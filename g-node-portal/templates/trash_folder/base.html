@@ -1,0 +1,19 @@
+{% extends "messages/base.html" %}
+
+{% load i18n %}
+{% load group_tags %}
+
+{% block body_class %}inbox{% endblock %}
+
+{% block subnav %}
+    {% if user.is_authenticated %}
+        <ul>
+            <li><a href="{% url messages_trash %}">{% trans "Messages" %}</a></li>
+            <li><a href="{% groupurl deletedExperiments group %} ">{% trans "Experiments" %}</a></li>
+            <li><a href="{% groupurl deletedDatasets group %} ">{% trans "Datasets" %}</a></li>
+            <li><a href="{% groupurl deletedFiles group %} ">{% trans "Files" %}</a></li>
+        </ul>
+    {% else %}
+        &nbsp;
+    {% endif %}
+{% endblock %}

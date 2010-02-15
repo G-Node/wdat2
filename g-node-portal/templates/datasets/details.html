@@ -1,0 +1,206 @@
+{% extends "datasets/base.html" %}
+
+{% load i18n %}
+{% load uni_form %}
+{% load pagination_tags %}
+{% load extra_tagging_tags %}
+{% load truncate_filter %}
+
+{% block head_title %}{{ dataset.title }}{% endblock %}
+
+{% block body %}
+    
+    {% if dataset %}
+
+        {% ifequal dataset.owner request.user %}
+            <div class="right_panel">
+                <div class="friends">
+                    {% if dataset.is_Public %}
+                    <h2>{% trans "Privacy" %}</h2>
+                    <p>This dataset is <b style="color: red">Public</b> and available for other users. The <b>Files</b> have specific privacy settings and may NOT be accessible to others.</p>
+                    {% else %}
+                    <h2>{% trans "Shared with:" %}</h2>
+                        {% if dataset.is_Friendly %}
+                            <p>All people you know
+                            {% if dataset.shared_with.all %}
+                            , and </p>
+                                {% for exp_member in dataset.shared_with.all %}
+                                        <span><a href="{% url profile_detail exp_member.username %}" title="{{ exp_member.username }}">{{ exp_member.username }}</a>, </span>
+                                {% endfor %}
+                            {% else %}
+                                .</p>
+                            {% endif %}
+                        {% else %}
+                            {% if dataset.shared_with.all %}
+                                {% for exp_member in dataset.shared_with.all %}
+                                        <span><a href="{% url profile_detail exp_member.username %}" title="{{ exp_member.username }}">{{ exp_member.username }}</a>, </span>
+                                {% endfor %}
+                            {% else %}
+                                <p><b>Nobody</b>. Only YOU can see this dataset.</p>
+                            {% endif %}
+                        {% endif %}
+                        <p>Please note, it's always ONLY YOUR exclusive right to MANAGE the dataset, changing its properties and collection of files.</p>
+                    {% endif %}
+                </div>
+            
+                {% if dataset.in_experiments.all %}
+                <div class="friends">
+                    <h2>{% trans "Used in" %}</h2>
+                    <table width="100%">
+                        {% for experiment in dataset.in_experiments.all %}
+                            <tr><td>- <a href="{{ experiment.get_absolute_url }}">{{ experiment.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>                    
+                </div>
+                {% endif%}
+            </div>
+        {% endifequal %}    
+    
+    <div class="left_panel">
+        <div class="photo-title">
+            <h2>Dataset: {{ dataset.title }} {% if not dataset.isActive %}(DELETED){% endif %}</h2>
+        </div>
+        <div class="photo-caption">
+            <p><b>Description: </b>{{ dataset.caption }}</p>
+        </div>
+        <div>
+            <p><b>Date recorded: </b>{{ dataset.date_added }}</p>
+        </div>
+        <div>
+            {% ifnotequal dataset.owner request.user%}
+            <b>Owner: </b>
+            <a href="{% url profile_detail dataset.owner.username %}">{{ dataset.owner.username }}</a>
+            {% endifnotequal %}
+        </div>
+        <div>
+            {% show_tags_for dataset %}
+        </div>
+        
+        {% ifequal request.user dataset.owner %}
+            <div class="form-toggle">
+                <p><span id="edit-dataset-toggle">{% trans "Edit details" %}</span></p>
+                
+                <form class="uniForm" id="edit-dataset" method="POST" action="">
+                    <fieldset class="inlineLabels">
+                        {{ dataset_form|as_uni_form }}
+                        <div class="form_block">
+                            <input type="hidden" name="action" value="details_update" />
+                            <input type="submit" value="{% trans "update" %}"/>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+
+            <div class="form-toggle">
+                <p><span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
+                
+                <form class="uniForm" id="change-privacy" method="POST" action="">
+                    <fieldset class="inlineLabels">
+                        {{ privacy_form|as_uni_form }}
+                        <div class="form_block">
+                            <input type="hidden" name="action" value="privacy_update" />
+                            <input type="submit" value="{% trans "update" %}"/>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+        {% endifequal %}
+        
+    </div>
+
+    <h2>{% trans "Files in this Dataset" %}</h2>
+	    {% ifequal dataset.owner request.user %}
+            <div class="form-toggle">
+                <p><span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
+                
+                <form class="uniForm" id="add-datafile" method="POST" action="">
+                    <fieldset class="inlineLabels">
+                        {{ datafile_form|as_uni_form }}
+                        <div class="form_block">
+                            <input type="hidden" name="action" value="new_datafile" />
+                            <input type="submit" value="{% trans "add" %}"/>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+	    {% endifequal %}
+    {% if datafiles %}
+        <form id="delete-datafiles" method="POST" action="">
+
+	{{ dfile_objects_form.dfile_choices.errors }}
+        <table class="messages">
+            <thead>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Tags" %}</th><th>{% trans "Volume" %}</th>
+                    {% ifequal dataset.owner request.user %}
+                    <th>{% trans "Action" %}</th>
+                    {% endifequal %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for datafile in datafiles %}
+                    <tr>
+                        <td>
+                            <a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a>
+                        </td>
+                        <td>{% show_tags_for datafile %}</td>
+                        <td>{{ datafile.size }}</td>
+                        {% ifequal datafile.owner request.user %}
+                            <td><nobr><a href="{% url datafile_delete datafile.id %}">{% trans "delete" %}</a> <a href="{{ datafile.raw_file.url }}">{% trans "download" %}</a> <input id="id_dfile_choices_{{ datafile.id }}" type="checkbox" value="{{ datafile.id }}" name="dfile_choices"/></nobr></td>
+                        {% endifequal %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% ifequal dataset.owner request.user %}
+		<input type="hidden" name="action" value="remove_datafiles" />
+		<input type="submit" value="{% trans "remove selected" %}"/>
+        {% endifequal %}
+        </form>
+
+    {% else %}
+    <p>No datafiles in this dataset. <a href="#">Upload</a> or <a href="#">Add an existing one</a>.</p>
+    {% endif %}
+
+    {% else %}
+    <p>No data about this dataset is found.</p>
+    {% endif %}
+
+{% endblock %}
+
+{% block extra_body %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#edit-dataset').hide();
+            $('#edit-dataset-toggle').click(function() {
+                $('#edit-dataset').toggle();
+                $('#edit-dataset').autoscroll();
+                return false;
+            });
+            if ($('#edit-dataset .error').length) {
+                $('#edit-dataset').show();
+                $('#edit-dataset .error').autoscroll();
+            }
+            $('#change-privacy').hide();
+            $('#change-privacy-toggle').click(function() {
+                $('#change-privacy').toggle();
+                $('#change-privacy').autoscroll();
+                return false;
+            });
+            if ($('#change-privacy .error').length) {
+                $('#change-privacy').show();
+                $('#change-privacy .error').autoscroll();
+            }
+            $('#add-datafile').hide();
+            $('#add-datafile-toggle').click(function() {
+                $('#add-datafile').toggle();
+                $('#add-datafile').autoscroll();
+                return false;
+            });
+            if ($('#add-datafile .error').length) {
+                $('#add-datafile').show();
+                $('#add-datafile .error').autoscroll();
+            }
+        });
+    </script>
+    
+{% endblock %}
