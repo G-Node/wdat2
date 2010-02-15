@@ -21,4 +21,3 @@ DONE - move "Trash" to "Trash" in Inbox. Make redirection to the page with activ
 2 - make reusable forms - add privacy settings, add / remove datasets from exprt, etc.
 2 - move the UploadProgress.js to the file upload form. Check whether other js scripts are required...
 2 - get the final solution for the file-based data container!!! Remove 777!! Resolve django [Errno 13] Permission denied:
-TEST
