@@ -7,6 +7,7 @@ from state_machine.models import SafetyLevel
 from experiments.models import Experiment
 from django.db.models import Q
 from django.db.models import Min, Max
+from friends.models import Friendship
 
 from tagging.fields import TagField
 from django.utils.translation import ugettext_lazy as _
