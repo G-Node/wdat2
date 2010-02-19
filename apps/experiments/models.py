@@ -28,7 +28,7 @@ class Experiment(SafetyLevel):
     caption = models.TextField(_('caption'), blank=True)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     owner = models.ForeignKey(User, blank=True, null=True)
-    exp_type = models.IntegerField(_('exp_type'), choices=EXPERIMENT_TYPES, default=1)
+    exp_type = models.IntegerField(_('experiment type'), choices=EXPERIMENT_TYPES, default=1)
     subject = models.CharField(_('subject'), max_length=100)
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     tags = TagField()

@@ -27,7 +27,7 @@ class RDataset(SafetyLevel):
     title = models.CharField(_('title'), max_length=200)
     caption = models.TextField(_('caption'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
-    dataset_qty = models.IntegerField(_('dataset_qty'), choices=QUALITY, default=4)
+    dataset_qty = models.IntegerField(_('dataset quality'), choices=QUALITY, default=4)
     owner = models.ForeignKey(User, related_name="added_datasets", blank=True, null=False)
     in_experiments = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
     tags = TagField()

@@ -33,7 +33,7 @@ class FileSystemStorage(storage.FileSystemStorage):
 
 class FileMetadata(models.Model):
     # file metadata description
-    recording_date = models.DateTimeField(_('recording_date'), default=datetime.now)
+    recording_date = models.DateTimeField(_('recording date'), default=datetime.now)
     # add other metadata fileds here...
 
 
@@ -45,7 +45,7 @@ class Datafile(SafetyLevel, FileMetadata):
     owner = models.ForeignKey(User, related_name="related_file", blank=True, null=True)
     in_datasets = models.ManyToManyField(RDataset, blank=True, verbose_name=_('related datasets'))
     in_expts = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
-    raw_file = models.FileField(_('raw_file'), upload_to="data/")
+    raw_file = models.FileField(_('data file'), upload_to="data/")
     tags = TagField()
 
     def __unicode__(self):

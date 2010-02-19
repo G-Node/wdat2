@@ -41,7 +41,7 @@ class SafetyLevel(ObjectState):
     )
 
     safety_level = models.IntegerField(_('privacy level'), choices=SAFETY_LEVELS, default=3)
-    shared_with = models.ManyToManyField(User, blank=True, verbose_name=_('you would like to share it with'))
+    shared_with = models.ManyToManyField(User, blank=True, verbose_name=_('share with'))
     
     def shareObject(users_list):
         self.shared_with = users_list
