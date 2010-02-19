@@ -282,7 +282,7 @@ def experimentDelete(request, id):
     redirect_to = reverse("your_experiments")
     
     if experiment.owner != request.user:
-        request.user.message_set.create(message="You can't delete photos that aren't yours")
+        request.user.message_set.create(message="You can't delete objects that aren't yours")
         return HttpResponseRedirect(redirect_to)
 
     #if request.method == "POST" and request.POST["action"] == "delete":
