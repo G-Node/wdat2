@@ -2,13 +2,13 @@ from django import forms
 from django.forms.util import ValidationError, ErrorList
 from django.utils.encoding import smart_unicode, force_unicode
 from django.utils.translation import ugettext_lazy as _
-from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHiddenInput
+from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHiddenInput, CheckboxSelectMultiple
 
 # A ModelMultipleChoiceField with "Clear" helptext
 
 class MMCFClearField(forms.ModelChoiceField):
     """A MultipleChoiceField whose choices are a model QuerySet."""
-    widget = SelectMultiple
+    widget = CheckboxSelectMultiple #SelectMultiple
     hidden_widget = MultipleHiddenInput
     default_error_messages = {
         'list': _(u'Enter a list of values.'),
