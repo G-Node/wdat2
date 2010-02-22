@@ -228,7 +228,15 @@ p.what_next {
     border: 1px solid #9BC;
 }
 
-
+span#clear_selection  {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    border-top: None;
+    border-left: None;
+    border-right: None;
+    cursor: pointer;
+}
 
 /* EXTRAS TO CLEAN UP */
 

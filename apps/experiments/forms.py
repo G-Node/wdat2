@@ -9,9 +9,10 @@ from django.contrib.auth.models import User
 from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
+from fields.models import MMCFClearField
 
 class CreateExperimentForm(forms.ModelForm):
-    title = forms.CharField(initial="[" + str(datetime.now().strftime("%b %d") + "]"), help_text="It's useful to start the name of your experiment by the month / date it was recorded")
+    title = forms.CharField(initial="[" + str(datetime.now().strftime("%b %d") + "] "), help_text="It's useful to start the name of your experiment by the month / date it was recorded")
     
     class Meta:
         model = Experiment
@@ -22,6 +23,8 @@ class CreateExperimentForm(forms.ModelForm):
         super(CreateExperimentForm, self).__init__(*args, **kwargs)
         choices = Project.objects.all().filter(Q(creator=user))
         self.fields['in_projects'].queryset = choices
+        self.fields['in_projects'].label = "Related projects"
+        self.fields['in_projects'].help_text = self.fields['in_projects'].help_text + "  <span id='clear_selection'><b onClick='unselectAll()'>Clear</b></span>"
         self.fields['safety_level'].help_text = "Nobody can see your PRIVATE experiments. FRIENDLY experiments can be viewed only by people you know. PUBLIC experiments available for everybody."
 
 class ExperimentEditForm(forms.ModelForm):
@@ -41,7 +44,9 @@ class ExperimentShortEditForm(forms.ModelForm):
         fields = ('title', 'exp_type', 'subject', 'caption', 'tags')
         
 class PrivacyEditForm(forms.ModelForm):
-    
+    #choices = User.objects.all()
+    #shared_with = MMCFClearField(queryset=[])
+
     class Meta:
         model = Experiment
         fields = ('safety_level', 'shared_with')
@@ -50,7 +55,13 @@ class PrivacyEditForm(forms.ModelForm):
         self.user = user
         super(PrivacyEditForm, self).__init__(*args, **kwargs)
         choices = User.objects.exclude(id__exact=user.id)
-        self.fields['shared_with'].queryset = choices        
+        self.fields['shared_with'] = MMCFClearField(queryset=choices)
+        #self.fields['shared_with'].queryset = choices
+	#self.fields['shared_with'].help_text = self.fields['shared_with'].help_text + " To clear selection push <span id='clear_selection'><b onClick='unselectAll()'>clear</b></span>."
+	# another way how to keep empty values
+	#self.fields['shared_with'].empty_label="--(nobody)--"
+	#self.fields['shared_with'].required=False
+
 
 class AddDatasetForm(forms.Form):
     datasets = forms.ModelMultipleChoiceField(queryset=RDataset.objects.all().filter(current_state=10))
