@@ -41,7 +41,7 @@
                 {% for datafile in datafiles %}
                     <tr>
                         <td><a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a></td>
-                        <td>{{ datafile.date_added }}</td>
+                        <td>{{ datafile.recording_date|date:_("DATETIME_FORMAT") }}</td>
                         <td>{{ datafile.size }}</td>
                         <td>{% if datafile.is_Public %}<b style="color: red">Public</b>{% endif %}{% if datafile.is_Friendly %}Friendly{% endif %}{% if datafile.is_Private %}Private{% endif %}</td>
                         <td><nobr><a href="{% url datafile_delete datafile.id %}">{% trans "delete" %}</a> <a href="{{ datafile.raw_file.url }}">{% trans "download" %}</a></nobr></td>

@@ -27,3 +27,14 @@
     {% endif %}
 
 {% endblock %}
+
+{% block extra_body %}
+    <script type="text/javascript">
+	function unselectAll() {
+		var obj = document.getElementById("id_in_projects");
+		for (var loop=0; loop < obj.options.length; loop++) {
+		obj.options[loop].selected = false;
+		}
+	};
+    </script>
+{% endblock %}

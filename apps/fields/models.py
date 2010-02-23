@@ -4,7 +4,8 @@ from django.utils.encoding import smart_unicode, force_unicode
 from django.utils.translation import ugettext_lazy as _
 from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHiddenInput
 
-# A ModelMultipleChoiceField with "Clear" helptext
+# A ModelMultipleChoiceField with "Clear" helptext.
+# Require a javascript code to be inserted to perform clear of selection.
 
 class MMCFClearField(forms.ModelChoiceField):
     """A MultipleChoiceField whose choices are a model QuerySet."""
@@ -23,6 +24,7 @@ class MMCFClearField(forms.ModelChoiceField):
         super(MMCFClearField, self).__init__(queryset, None,
             cache_choices, required, widget, label, initial, help_text,
             *args, **kwargs)
+	# this string makes the only difference from 'ModelMultipleChoiceField'
 	self.help_text = self.help_text + 'Hold down "Control", or "Command" on a Mac, to select more than one. To clear selection push <span id="clear_selection"><b onClick="unselectAll()">clear</b></span>.'
 
     def clean(self, value):

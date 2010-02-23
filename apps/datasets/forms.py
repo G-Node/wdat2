@@ -5,10 +5,10 @@ from django.utils.translation import ugettext_lazy as _
 from django.db.models import Q
 from django.contrib.auth.models import User
 
-
 from datasets.models import RDataset
 from datafiles.models import Datafile
 from experiments.models import Experiment
+from fields.models import MMCFClearField
 
 class NewRDatasetForm(forms.ModelForm):
     
@@ -20,9 +20,10 @@ class NewRDatasetForm(forms.ModelForm):
         self.user = user
         super(NewRDatasetForm, self).__init__(*args, **kwargs)
         choices = Experiment.objects.all().filter(Q(owner=user))
-        self.fields['in_experiments'].queryset = choices
+        self.fields['in_experiments'] = MMCFClearField(queryset=choices)
         self.fields['safety_level'].help_text = "Nobody can see your PRIVATE datasets. FRIENDLY datasets can be viewed only by people you know. PUBLIC datasets available for everybody."
-        
+
+# legacy form. Check and remove.
 class RDatasetEditForm(forms.ModelForm):
     
     class Meta:
@@ -58,7 +59,7 @@ class PrivacyEditForm(forms.ModelForm):
         self.user = user
         super(PrivacyEditForm, self).__init__(*args, **kwargs)
         choices = User.objects.exclude(id__exact=user.id)
-        self.fields['shared_with'].queryset = choices
+        self.fields['shared_with'] = MMCFClearField(queryset=choices)
 
 class AddDatafileForm(forms.Form):
     datafiles = forms.ModelMultipleChoiceField(queryset=Datafile.objects.all().filter(current_state=10))

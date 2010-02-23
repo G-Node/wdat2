@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 
 from datafiles.models import Datafile
+from fields.models import MMCFClearField
 
 class NewDatafileForm(forms.ModelForm):
     
@@ -41,7 +42,7 @@ class DatafileShortEditForm(forms.ModelForm):
     
     class Meta:
         model = Datafile
-        fields = ('title', 'caption', 'tags')
+        fields = ('title', 'recording_date', 'caption', 'tags')
         
 class PrivacyEditForm(forms.ModelForm):
     
@@ -53,6 +54,6 @@ class PrivacyEditForm(forms.ModelForm):
         self.user = user
         super(PrivacyEditForm, self).__init__(*args, **kwargs)
         choices = User.objects.exclude(id__exact=user.id)
-        self.fields['shared_with'].queryset = choices
+        self.fields['shared_with'] = MMCFClearField(queryset=choices)
 
 

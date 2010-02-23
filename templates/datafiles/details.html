@@ -76,7 +76,7 @@
             <p><b>Description: </b>{{ datafile.caption }}</p>
         </div>
         <div>
-            <p><b>Date recorded: </b>{{ datafile.date_added }}</p>
+            <p><b>Date recorded: </b>{{ datafile.recording_date|date:_("DATETIME_FORMAT") }}</p>
         </div>
         <div>
             {% ifnotequal datafile.owner request.user%}
@@ -155,6 +155,12 @@
                 $('#change-privacy .error').autoscroll();
             }
         });
+	function unselectAll() {
+		var obj = document.getElementById("id_shared_with");
+		for (var loop=0; loop < obj.options.length; loop++) {
+		obj.options[loop].selected = false;
+		}
+	};
     </script>
     
 {% endblock %}
