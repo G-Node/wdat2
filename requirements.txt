@@ -7,21 +7,16 @@ requirements for the g-node
 - memcached - should be started (memcached -d -m 2048 -M -p 11211, telnet localhost 11211 to check)
 
 2. 
-a) Changes in pinax.projects - 
-../projects/forms.py
-../projects/views.py
-(MOVE TO THE MAIN FOLDER)
-All templates are overriden (g-node-site/templates/default/projects)
-
-b) Changes in Notification (pinax-source/lib/python2.6/site-packages/notification)
+a) Changes in Notification (pinax-source/lib/python2.6/site-packages/notification)
 ??? Not yet done.. to be completed, Phase II?
 
-c) GRAPELLI: USE THE VERSION WITH CHANGES!
+b) GRAPELLI: USE THE VERSION WITH CHANGES!
 http://code.google.com/p/django-grappelli/source/detail?r=692
 (MOVE TO THE MAIN FOLDER)
 
-d) Changes in Wiki:
+c) Changes in pinax-source/lib/python2.6/site-packages/wiki:
 ../lib/python2.6/site-packages/wiki/forms.py
+../lib/python2.6/site-packages/wiki/views.py
 
 3. Before going live check whether project files do not contain empty # links!!
 
