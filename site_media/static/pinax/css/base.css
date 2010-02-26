@@ -249,6 +249,7 @@ div.profile_info p {
     margin: 0;
 }
 div.left_panel {
+    margin-top: 20px;
     width: 550px;
 }
 div.right_panel {

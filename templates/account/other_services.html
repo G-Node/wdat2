@@ -7,6 +7,9 @@
 {% block body %}
 
 <h1>{% trans "Other Services" %}</h1>
+
+{% comment %}
+
 <h3><a id="twitterform-toggle" href="#">{% trans "Twitter" %}</a></h3>
 <form  action="" method="POST" name="TwitterForm" id="TwitterForm">
   {% if twitter_authorized %}
@@ -39,4 +42,7 @@
            });
        });
       </script>
-      {% endblock %}</p>
+
+{% endcomment %}
+
+{% endblock %}</p>
