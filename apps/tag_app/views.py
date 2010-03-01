@@ -1,5 +1,6 @@
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
+from django.contrib.auth.decorators import login_required
 
 #from blog.models import Post
 #from photos.models import Image
@@ -15,6 +16,7 @@ from datasets.models import RDataset
 from datafiles.models import Datafile
 from wiki.models import Article as WikiArticle
 
+@login_required
 def tags(request, tag, template_name='tags/index.html'):
     tag = get_object_or_404(Tag, name=tag)
    
