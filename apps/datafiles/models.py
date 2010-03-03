@@ -14,7 +14,6 @@ from django.db.models import Q
 from tagging.fields import TagField
 
 from django.utils.translation import ugettext_lazy as _
-# Create your models here.
 
 class FileSystemStorage(storage.FileSystemStorage):
     """
@@ -30,18 +29,19 @@ class FileSystemStorage(storage.FileSystemStorage):
        os.chmod(full_path, mode)
        return name
 
+# maybe an option to describe meta-data as a separate class..
+#class FileMetadata(SafetyLevel):
+#    # file metadata description
+#    recording_date = models.DateTimeField(_('recording date'), default=datetime.now, null=True)
+#    # add other metadata fileds here...
 
-class FileMetadata(models.Model):
-    # file metadata description
-    recording_date = models.DateTimeField(_('recording date'), default=datetime.now)
-    # add other metadata fileds here...
 
-
-class Datafile(SafetyLevel, FileMetadata):
+class Datafile(SafetyLevel):
     # A datafile with its details and raw data files
     title = models.CharField(_('title'), max_length=200)
     caption = models.TextField(_('caption'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
+    recording_date = models.DateTimeField(_('recording date'), default=datetime.now)
     owner = models.ForeignKey(User, related_name="related_file", blank=True, null=True)
     in_datasets = models.ManyToManyField(RDataset, blank=True, verbose_name=_('related datasets'))
     in_expts = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
