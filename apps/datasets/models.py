@@ -6,7 +6,7 @@ from django.contrib.contenttypes import generic
 from state_machine.models import SafetyLevel
 from experiments.models import Experiment
 from django.db.models import Q
-#from django.db.models import Avg, Min, Max
+#from django.db.models import Min, Max
 from friends.models import Friendship
 
 from tagging.fields import TagField
@@ -47,12 +47,24 @@ class RDataset(SafetyLevel):
         return volume
     
     def get_min_file_date(self):
-        min_date = self.datafile_set.all().aggregate(Min('date_added'))
-        return min_date['date_added__min']
+	# may use this method for Django 1.2
+        #min_date = self.datafile_set.all().aggregate(Min('date_added'))
+	files = self.datafile_set.all().order_by("date_added")
+	try:
+	    min_date = files.all()[0].date_added
+	    return min_date
+	except:
+	    return None
 
     def get_max_file_date(self):
-        max_date = self.datafile_set.all().aggregate(Max('date_added'))
-        return max_date['date_added__max']
+	# may use this method for Django 1.2
+        #max_date = self.datafile_set.all().aggregate(Max('date_added'))
+	files = self.datafile_set.all().order_by("-date_added")
+	try:
+	    max_date = files.all()[0].date_added
+	    return max_date
+	except:
+	    return None
     
     def get_active_datafiles(self):
         return self.datafile_set.all().filter(Q(current_state=10))
