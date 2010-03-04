@@ -95,6 +95,7 @@ def alldatafiles(request, template_name="datafiles/all.html"):
     # all datafiles available for you
 
     datafiles = Datafile.objects.filter(Q(current_state=10))
+    datafiles = datafiles.exclude(owner=request.user, safety_level=3).exclude(owner=request.user, safety_level=2)
     
     search_terms = request.GET.get('search', '')
     if search_terms:
@@ -123,7 +124,7 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
 	raise Http404
 
     action = request.POST.get("action")
-    
+
     # edit details handler
     if request.user == datafile.owner and action == "details_update":
         datafile_form = form_class(request.POST, instance=datafile)
@@ -148,45 +149,6 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
 
 
 @login_required
-def edit(request, id, form_class=DatafileEditForm, template_name="datafiles/edit.html"):
-    # edit a datafile and its metadata
-    
-    datafiles = Datafile.objects.all()
-    datafile = get_object_or_404(datafiles, id=id)
-
-    if request.method == "POST":
-        if datafile.owner != request.user:
-            request.user.message_set.create(message="You can't edit datafiles that aren't yours")
-            
-            include_kwargs = {"id": datafile.id}
-            redirect_to = reverse("datafile_details", kwargs=include_kwargs)
-            return HttpResponseRedirect(reverse('datafile_details', args=(datafile.id,)))
-
-        if request.POST["action"] == "update":
-            datafile_form = form_class(request.user, request.POST, instance=datafile)
-            if datafile_form.is_valid():
-                datafileobj = datafile_form.save(commit=False)
-                datafileobj.save()
-		datafile_form.save_m2m()
-                
-                request.user.message_set.create(message=_("Successfully updated datafile '%s'") % datafile.title)
-                
-                include_kwargs = {"id": datafile.id}
-                redirect_to = reverse("datafile_details", kwargs=include_kwargs)
-                return HttpResponseRedirect(redirect_to)
-        else:
-            datafile_form = form_class(instance=datafile)
-
-    else:
-        datafile_form = form_class(instance=datafile)
-
-    return render_to_response(template_name, {
-        "datafile_form": datafile_form,
-        "datafile": datafile,
-    }, context_instance=RequestContext(request))
-
-
-@login_required
 def datafileDelete(request, id):
     
     datafiles = Datafile.objects.all()
@@ -197,8 +159,11 @@ def datafileDelete(request, id):
     redirect_to = reverse("your_datafiles")
     
     if datafile.owner != request.user:
-        request.user.message_set.create(message="You can't delete datafiles that aren't yours")
-        return HttpResponseRedirect(redirect_to)
+	datafile = None
+	raise Http404
+	# more user-friendly way to manage such cases..
+        #request.user.message_set.create(message="You can't delete datafiles that aren't yours")
+        #return HttpResponseRedirect(redirect_to)
 
     #if request.method == "POST" and request.POST["action"] == "delete":
     #datafile.deleteObject()
@@ -207,27 +172,5 @@ def datafileDelete(request, id):
     request.user.message_set.create(message=_("Successfully deleted datafile '%s'") % title)
     
     return HttpResponseRedirect(redirect_to)
-    
-# DELETE THIS METHOD !!!!!!!!!!!!!!!!!!!
-@login_required
-def test_upload(request, template_name="datafiles/test_upload.html"):
-    # create a test upload
-    
-    datafile_form = form_class()
-    if request.method == 'POST':
-        if request.POST.get("action") == "upload":
-            datafile_form = form_class(request.user, request.POST, request.FILES)
-            if datafile_form.is_valid():
-                datafile = datafile_form.save(commit=False)
-                datafile.owner = request.user
-                datafile.save()
-                request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)
-                include_kwargs = {"id": datafile.id}
-                    #redirect_to = reverse("Datafile_details", kwargs=include_kwargs)
-                    #return HttpResponseRedirect(redirect_to)
-                return HttpResponseRedirect(datafile.get_absolute_url())
-        #return HttpResponse("ok", mimetype="text/plain")
 
-    return render_to_response(template_name, {
-        "datafile_form": datafile_form,
-    }, context_instance=RequestContext(request))
+

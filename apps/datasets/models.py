@@ -6,7 +6,7 @@ from django.contrib.contenttypes import generic
 from state_machine.models import SafetyLevel
 from experiments.models import Experiment
 from django.db.models import Q
-from django.db.models import Avg, Min, Max
+#from django.db.models import Avg, Min, Max
 from friends.models import Friendship
 
 from tagging.fields import TagField

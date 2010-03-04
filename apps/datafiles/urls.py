@@ -15,9 +15,6 @@ urlpatterns = patterns('',
     url(r'^create/$', 'datafiles.views.create', name="datafile_create"),
     #delete datafile
     url(r'^delete/(?P<id>\d+)/$', 'datafiles.views.datafileDelete', name='datafile_delete'),
-    #edit datafile
-    url(r'^edit/(?P<id>\d+)/$', 'datafiles.views.edit', name='datafile_edit'),
-    
     
     # test upload
     #url(r'^test_upload/$', 'datafiles.views.test_upload', name='test_upload'),

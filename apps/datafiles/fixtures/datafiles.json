@@ -9,12 +9,12 @@
             "is_active": true,
             "is_superuser": false,
             "is_staff": false,
-            "last_login": "2010-02-15 19:11:56",
+            "last_login": "2010-02-19 19:11:56",
             "groups": [],
             "user_permissions": [],
-            "password": "sha1$a75af$7b2c7b5e7ac635e80477fece6291508d6af30b9d",
+            "password": "sha1$f0efc$2f2d5d0ce98fea36d3ac5f0499fe6d1da5640782",
             "email": "",
-            "date_joined": "2010-01-15 15:14:06"
+            "date_joined": "2010-02-18 09:10:01"
         }
     },
     {
@@ -27,12 +27,30 @@
             "is_active": true,
             "is_superuser": false,
             "is_staff": false,
-            "last_login": "2010-02-15 18:11:56",
+            "last_login": "2010-02-19 18:11:56",
             "groups": [],
             "user_permissions": [],
-            "password": "sha1$a75af$7b2c7b5e7ac635e80477fece6291508d6af30b9d",
+            "password": "sha1$f0efc$2f2d5d0ce98fea36d3ac5f0499fe6d1da5640782",
             "email": "",
-            "date_joined": "2010-01-15 14:14:06"
+            "date_joined": "2010-02-18 09:10:01"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "auth.user",
+        "fields": {
+            "username": "jane",
+            "first_name": "Jane",
+            "last_name": "Ostin",
+            "is_active": true,
+            "is_superuser": false,
+            "is_staff": false,
+            "last_login": "2010-02-19 18:11:56",
+            "groups": [],
+            "user_permissions": [],
+            "password": "sha1$f0efc$2f2d5d0ce98fea36d3ac5f0499fe6d1da5640782",
+            "email": "",
+            "date_joined": "2010-02-18 09:10:01"
         }
     },
     {
@@ -58,20 +76,82 @@
         }
     },
     {
+        "pk": 3,
+        "model": "profiles.profile",
+        "fields": {
+            "user": 3,
+            "name": "Jane Ostin",
+            "about": "Jane prefers wine",
+            "location": "Italy",
+            "website": "http://www.g-node.org"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "friends.friendship",
+        "fields": {
+            "to_user": 2,
+            "from_user": 3,
+            "added": "2010-02-15"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "state_machine.ObjectState",
+        "fields": {
+            "current_state": 10
+        }
+    },
+    {
+        "pk": 1,
+        "model": "state_machine.SafetyLevel",
+        "fields": {
+            "safety_level": 3,
+            "shared_with": [1]
+        }
+    },
+    {
         "pk": 1,
         "model": "datafiles.datafile",
         "fields": {
-            "title": "FirstFile",
+            "title": "Joe's Private File",
             "caption": "File description should go here",
             "date_added": "2010-02-15 19:11:56",
             "owner": 2,
             "in_datasets": [],
             "in_expts": [],
-            "raw_file": "/data/Bach_WTC1_Richter_01.mp3",
-            "tags": [],
-            "current_state": 10,
-            "safety_level": 3,
-            "shared_with": [],
+            "raw_file": "data/Bach_WTC1_Richter_01.mp3",
+            "tags": "",
+            "recording_date": "2010-02-15 19:11"
+        }
+    },
+    {
+        "pk": 2,
+        "model": "state_machine.ObjectState",
+        "fields": {
+            "current_state": 10
+        }
+    },
+    {
+        "pk": 2,
+        "model": "state_machine.SafetyLevel",
+        "fields": {
+            "safety_level": 2,
+            "shared_with": []
+        }
+    },
+    {
+        "pk": 2,
+        "model": "datafiles.datafile",
+        "fields": {
+            "title": "Joe's Friendly File",
+            "caption": "File description should go here",
+            "date_added": "2010-02-15 19:11:56",
+            "owner": 2,
+            "in_datasets": [],
+            "in_expts": [],
+            "raw_file": "data/Bach_WTC1_Richter_01.mp3",
+            "tags": "",
             "recording_date": "2010-02-15 19:11"
         }
     }
