@@ -4,10 +4,7 @@
 {% load humanize %}
 {% load uni_form %}
 {% load tagging_tags %}
-{% load comments_tag %}
-{% load photo_tags %}
-{% load flagtags %}
-{% load theme_tags %}
+{% load truncate_filter %}
 {% load extra_tagging_tags %}
 
 {% block head_title %}{% blocktrans %}Experiment Details{% endblocktrans %}{% endblock %}
@@ -46,6 +43,18 @@
                         <p>Please note, it's always ONLY YOUR exclusive right to MANAGE the experiment, changing its properties, results, assigned files and datasets.</p>
                     {% endif %}
                 </div>
+
+                {% if experiment.in_projects.all %}
+                <div class="friends">
+                    <h2>{% trans "In the scope of" %}</h2>
+                    <table width="100%">
+                        {% for project in experiment.in_projects.all %}
+                            <tr><td>- <a href="{{ project.get_absolute_url }}">{{ project.slug|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>                    
+                </div>
+                {% endif%}
+
             </div>
         {% endifequal %}
 

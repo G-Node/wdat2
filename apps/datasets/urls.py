@@ -2,11 +2,11 @@ from django.conf.urls.defaults import *
 from django.views.generic.simple import direct_to_template
 
 urlpatterns = patterns('',
-    # that was a test template
+    # action selection page
     url(r'^$', direct_to_template, {"template": "datasets/start.html"}, name="start"),
     
     # your datasets
-    url(r'^yourdatasets$', 'datasets.views.yourdatasets', name="your_datasets"),
+    url(r'^yourdatasets/$', 'datasets.views.yourdatasets', name="your_datasets"),
     # all shared datasets (private + public + shared)
     url(r'^alldatasets/$', 'datasets.views.alldatasets', name='datasets_all'),
     # a members datasets (public + shared)

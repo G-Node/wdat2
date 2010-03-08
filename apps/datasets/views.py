@@ -56,8 +56,11 @@ def yourdatasets(request, template_name="datasets/your_datasets.html"):
         if set_objects_form.is_valid():
             ids = set_objects_form.cleaned_data['set_choices'] # [u'39', u'20', u'18']
             for rdataset in RDataset.objects.filter(id__in=ids):
-                rdataset.deleteObject()
-                rdataset.save()
+		if rdataset.owner == request.user:
+	            rdataset.deleteObject()
+	            rdataset.save()
+		else:
+		    raise Http404
             request.user.message_set.create(message=("Successfully deleted the requested datasets. Files attached to a dataset are still available"))
             redirect_to = reverse("your_datasets")
             return HttpResponseRedirect(redirect_to)
@@ -70,7 +73,7 @@ def yourdatasets(request, template_name="datasets/your_datasets.html"):
 @login_required
 def alldatasets(request, template_name="datasets/all.html"):
     """
-    all datasets available for you
+    this method is oficially not used 
     """
     
     datasets = RDataset.objects.filter(Q(safety_level=1), Q(current_state=10)

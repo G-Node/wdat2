@@ -158,7 +158,7 @@
         </form>
 
     {% else %}
-    <p>No datafiles in this dataset. <a href="#">Upload</a> or <a href="#">Add an existing one</a>.</p>
+    <p>No datafiles in this dataset. You may <a href="{% url datafile_create %}">upload</a> a new file, or select and <a id="sub-add-datafile" href="#">link</a> an existing one.</p>
     {% endif %}
 
     {% else %}
@@ -192,6 +192,11 @@
             }
             $('#add-datafile').hide();
             $('#add-datafile-toggle').click(function() {
+                $('#add-datafile').toggle();
+                $('#add-datafile').autoscroll();
+                return false;
+            });
+            $('#sub-add-datafile').click(function() {
                 $('#add-datafile').toggle();
                 $('#add-datafile').autoscroll();
                 return false;
