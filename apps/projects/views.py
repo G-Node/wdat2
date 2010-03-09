@@ -56,9 +56,10 @@ def create(request, form_class=ProjectForm, template_name="projects/create.html"
     }, context_instance=RequestContext(request))
 
 
+@login_required
 def projects(request, template_name="projects/projects.html"):
     
-    projects = Project.objects.all()
+    projects = Project.objects.all().filter(private=False)
     
     search_terms = request.GET.get('search', '')
     if search_terms:
@@ -71,13 +72,14 @@ def projects(request, template_name="projects/projects.html"):
         ('member_count', MEMBER_COUNT_SQL),
         ('topic_count', TOPIC_COUNT_SQL),
     ]), select_params=(content_type.id,))
-    
+
     return render_to_response(template_name, {
         'projects': projects,
         'search_terms': search_terms,
     }, context_instance=RequestContext(request))
 
 
+@login_required
 def delete(request, group_slug=None, redirect_url=None):
     project = get_object_or_404(Project, slug=group_slug)
     if not redirect_url:
@@ -91,6 +93,26 @@ def delete(request, group_slug=None, redirect_url=None):
         # no notification required as the deleter must be the only member
     
     return HttpResponseRedirect(redirect_url)
+
+
+@login_required
+def publish(request, group_slug=None, redirect_url=None):
+    project = get_object_or_404(Project, slug=group_slug)
+    if not redirect_url:
+        redirect_url = reverse('project_list')
+    
+    if (request.user.is_authenticated() and request.method == "POST" and
+            request.user == project.creator):
+	if project.private == False:
+	    project.private = True
+	    project.save()
+            request.user.message_set.create(message=_("Project %(project_name)s is now Private.") % {"project_name": project.name})
+	else:
+	    project.private = False
+	    project.save()
+            request.user.message_set.create(message=_("Project %(project_name)s is now Public.") % {"project_name": project.name})
+    
+    return HttpResponseRedirect(project.get_absolute_url())
 
 
 @login_required
@@ -110,6 +132,7 @@ def your_projects(request, template_name="projects/your_projects.html"):
     }, context_instance=RequestContext(request))
 
 
+@login_required
 def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form_class=AddUserForm,
         template_name="projects/project.html"):
     project = get_object_or_404(Project, slug=group_slug)

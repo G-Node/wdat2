@@ -15,8 +15,10 @@
 {% block head_title %}{{ project.name }}{% endblock %}
 
 {% block body %}
+
+    {% if is_member or not project.private %}
     
-    {% if user.is_authenticated %}
+    {% if user.is_authenticated%}
         <div class="right_panel">
             <div class="members">
                 <h2>{% trans "Members" %}</h2>
@@ -95,10 +97,22 @@
                                 </fieldset>
                             </form>
                         </div>
-                        
+
+			{% if project.private %}
+                        <p>{% silk "status_busy" %} <a href="#" onclick="$('#change_privacy_form').toggle(); return false;">{% trans "Make it Public" %}</a><p>
+                         <form class="delete_form" id="change_privacy_form" action="{% url project_publish project.slug %}" method="POST" style="display: none;">
+                             <input type="submit" value="{% trans "Publish Project" %}" />
+                        </form>
+	                {% else %}
+                        <p>{% silk "status_online" %} <a href="#" onclick="$('#change_privacy_form').toggle(); return false;">{% trans "Retreat to Private" %}</a><p>
+                         <form class="delete_form" id="change_privacy_form" action="{% url project_publish project.slug %}" method="POST" style="display: none;">
+                             <input type="submit" value="{% trans "Make Project Private" %}" />
+                        </form>
+			{% endif %}
+
                         <p>{% silk "delete" %} <a href="#" onclick="$('#delete_project_form').toggle(); return false;">{% trans "Delete project" %}</a><p>
                          <form class="delete_form" id="delete_project_form" action="{% url project_delete project.slug %}" method="POST" style="display: none;">
-                             <input type="submit" value="{% trans "Delete Project" %}" /> (all content will be removed)
+                             <input type="submit" value="{% trans "Delete Project" %}" /> (only if there's no members in project)
                         </form>
                     {% else %}
                         <p>You are member of this project.</p>
@@ -146,6 +160,8 @@
             
         {% endif %}
     </div>
+
+    {% endif %}
 
 {% endblock %}
 

@@ -14,6 +14,7 @@ urlpatterns = patterns('projects.views',
     # project-specific
     url(r'^project/(?P<group_slug>[-\w]+)/$', 'project', name="project_detail"),
     url(r'^project/(?P<group_slug>[-\w]+)/delete/$', 'delete', name="project_delete"),
+    url(r'^project/(?P<group_slug>[-\w]+)/publish/$', 'publish', name="project_publish"),
 )
 
 urlpatterns += bridge.include_urls('topics.urls', r'^project/(?P<group_slug>[-\w]+)/topics/')

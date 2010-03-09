@@ -12,7 +12,7 @@ class Project(Group):
     member_users = models.ManyToManyField(User, through="ProjectMember", verbose_name=_('members'))
     
     # private means only members can see the project
-    private = models.BooleanField(_('private'), default=False)
+    private = models.BooleanField(_('private'), default=True)
     
     def get_absolute_url(self):
         return reverse('project_detail', kwargs={'group_slug': self.slug})
