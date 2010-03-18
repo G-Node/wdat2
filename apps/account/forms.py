@@ -10,6 +10,7 @@ from django.utils.encoding import smart_unicode
 from django.utils.hashcompat import sha_constructor
 
 from pinax.core.utils import get_send_mail
+from pinax.apps.profiles.models import Profile
 send_mail = get_send_mail()
 
 from django.contrib.auth import authenticate, login
@@ -79,6 +80,8 @@ class SignupForm(forms.Form):
             required = False,
             widget = forms.TextInput()
         )
+    name = forms.CharField(label=_("Full Name"), max_length=30, widget=forms.TextInput())
+    location = forms.CharField(label=_("Location"), max_length=30, widget=forms.TextInput())
     
     confirmation_key = forms.CharField(max_length=40, required=False, widget=forms.HiddenInput())
     ip_address = forms.CharField(label= _("IP"), max_length=15, required=False, widget=forms.HiddenInput())
@@ -152,9 +155,16 @@ class SignupForm(forms.Form):
             if email:
                 new_user.message_set.create(message=ugettext(u"Confirmation email sent to %(email)s") % {'email': email})
                 EmailAddress.objects.add_email(new_user, email)
-        
+
+	# saving the IP address of the newbie        
 	ip_addr = self.cleaned_data['ip_address']
 	update_other_services(new_user, ip_address=ip_addr)
+
+	# updating Profile
+	prfl = Profile.objects.get(user=new_user)
+	prfl.name = self.cleaned_data['name']
+	prfl.location = self.cleaned_data['location']
+	prfl.save()
 
         if settings.ACCOUNT_EMAIL_VERIFICATION:
             new_user.is_active = False
