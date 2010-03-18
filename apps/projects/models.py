@@ -29,6 +29,12 @@ class Project(Group):
     def get_url_kwargs(self):
         return {'group_slug': self.slug}
 
+    def is_member_group(self, user, group):
+        return user in group.member_queryset()
+
+    def is_private_group(self, group):
+        return group.private
+
 class ProjectMember(models.Model):
     project = models.ForeignKey(Project, related_name="members", verbose_name=_('project'))
     user = models.ForeignKey(User, related_name="projects", verbose_name=_('user'))

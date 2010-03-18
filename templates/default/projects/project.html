@@ -135,7 +135,7 @@
                     <p><a href="{% groupurl topic_list project %}">{% trans "more..." %}</a></p>
                 {% else %}
                     {% groupurl topic_list project as new_topic_url %}
-                    <p>{% blocktrans %}None yet. <a href="{{ new_topic_url }}">Start one...</a>{% endblocktrans %}</p>
+                    <p>None yet. {% if is_member %}<a href="{{ new_topic_url }}">Start one...</a>{% endif %}</p>
                 {% endif %}
             {% endwith %}
             
@@ -152,9 +152,11 @@
             {% else %}
                 {% groupurl wiki_list project as wiki_url %}
                 <p>
-                    {% blocktrans %}
+                    {% if is_member %}
                         None yet. Go to the <a href="{{ wiki_url }}" title="wiki">wiki</a> to start a new article.
-                    {% endblocktrans %}
+                    {% else %}
+                        No wiki's created yet.
+		    {% endif %}
                 </p>
             {% endif %}
             
