@@ -16,6 +16,13 @@ a, a:visited {
 img {
     border: 0;
 }
+.captcha {
+    padding: 0px 0px 0px 0px;
+    margin: 3px;
+    color: #666;
+    font-size: 12pt;
+    #background: #F3F3F3 url('../images/form-shadow.png') left top repeat-x;
+}
 dt {
     font-weight: bold;
 }
@@ -156,6 +163,7 @@ form.signup input[type="submit"], form.login input[type="submit"] {
 input[type="text"], input[type="password"], textarea {
     padding: 3px;
     margin: 3px;
+    vertical-align: top;
     border: solid 1px #C6C6C6;
     border-bottom: solid 1px #E3E3E3;
     color: #666;

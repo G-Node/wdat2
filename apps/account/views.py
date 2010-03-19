@@ -54,9 +54,15 @@ def signup(request, form_class=SignupForm,
     if success_url is None:
         success_url = get_default_redirect(request)
     if request.method == "POST":
-        form = form_class(request.POST or None, meta=request.META)
+	# assign an IP from request META instead of taking value from hidden field, may be hacked
+	real_post = request.POST.copy()
+	if getattr(settings, 'BEHIND_PROXY', False):
+            real_post['ip_address'] = request.META['HTTP_X_FORWARDED_FOR']
+	else:
+	    real_post['ip_address'] = request.META['REMOTE_ADDR']
+        form = form_class(real_post or None, meta=request.META)
         if form.is_valid():
-            username, password = form.save()
+            username, password = form.save(meta=request.META)
             if settings.ACCOUNT_EMAIL_VERIFICATION:
                 return render_to_response("account/verification_sent.html", {
                     "email": form.cleaned_data["email"],
