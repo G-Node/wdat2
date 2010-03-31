@@ -98,6 +98,7 @@ def yourexperiments(request, template_name="experiments/yourexperiments.html"):
 def experiments(request, template_name="experiments/all.html"):
     # all experiments available for the user
     experiments = Experiment.objects.filter(Q(current_state=10))
+    experiments = experiments.exclude(owner=request.user, safety_level=3).exclude(owner=request.user, safety_level=2)
     
     search_terms = request.GET.get('search', '')
     if search_terms:

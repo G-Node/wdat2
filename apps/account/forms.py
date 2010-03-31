@@ -27,9 +27,12 @@ from account.models import update_other_services
 from account.models import OtherServiceInfo
 
 from captcha.fields import CaptchaField
-
+from ldap_backend.models import LDAPBackend, getLDAPGroup
+from django.contrib.auth.models import Group
 
 alnum_re = re.compile(r'^\w+$')
+
+LDAPGROUP = getattr(settings, 'AUTH_LDAP_GROUP_NAME', 'ldap_users')
 
 class LoginForm(forms.Form):
     
@@ -92,7 +95,8 @@ class SignupForm(forms.Form):
     def __init__(self, *args, **kwargs):
 	meta = kwargs.pop('meta')
         super(SignupForm, self).__init__(*args, **kwargs)
-
+	if settings.AUTH_LDAP_SWITCHED_ON:
+	    self.l = LDAPBackend()
 	if getattr(settings, 'BEHIND_PROXY', False):
             self.fields['ip_address'].initial = meta['HTTP_X_FORWARDED_FOR']
 	else:
@@ -104,7 +108,12 @@ class SignupForm(forms.Form):
         try:
             user = User.objects.get(username__iexact=self.cleaned_data["username"])
         except User.DoesNotExist:
-            return self.cleaned_data["username"]
+	    if settings.AUTH_LDAP_SWITCHED_ON:
+	        # Checking also in LDAP
+	        if self.l.getUser(username=self.cleaned_data["username"]) == []:
+                    return self.cleaned_data["username"]
+	    else:
+		return self.cleaned_data["username"]
         raise forms.ValidationError(_("This username is already taken. Please choose another."))
     
     def clean(self):
@@ -139,7 +148,6 @@ class SignupForm(forms.Form):
             confirmed = False
         
         # @@@ clean up some of the repetition below -- DRY!
-        
         if confirmed:
             if email == join_invitation.contact.email:
                 new_user = User.objects.create_user(username, email, password)
@@ -176,7 +184,7 @@ class SignupForm(forms.Form):
         if settings.ACCOUNT_EMAIL_VERIFICATION:
             new_user.is_active = False
             new_user.save()
-                
+	
         return username, password # required for authenticate()
 
 
@@ -270,11 +278,26 @@ class ChangePasswordForm(UserForm):
     oldpassword = forms.CharField(label=_("Current Password"), widget=forms.PasswordInput(render_value=False))
     password1 = forms.CharField(label=_("New Password"), widget=forms.PasswordInput(render_value=False))
     password2 = forms.CharField(label=_("New Password (again)"), widget=forms.PasswordInput(render_value=False))
-    
+
+    def __init__(self, *args, **kwargs):
+        super(ChangePasswordForm, self).__init__(*args, **kwargs)
+	self.ldapuser = False
+	if settings.AUTH_LDAP_SWITCHED_ON:
+            self.l = LDAPBackend()
+	    self.ldap_user = self.l.getUser(username=self.user.username)
+	    if self.ldap_user:
+                self.ldapuser = True
+
     def clean_oldpassword(self):
-        if not self.user.check_password(self.cleaned_data.get("oldpassword")):
-            raise forms.ValidationError(_("Please type your current password."))
-        return self.cleaned_data["oldpassword"]
+        old_password = self.cleaned_data["oldpassword"]
+        if(self.ldapuser == False):
+            if not self.user.check_password(old_password):
+                raise forms.ValidationError(("Your old password was entered incorrectly. Please enter it again."))
+            return old_password
+        else:
+            if not self.l.checkPassword(self.user.username,old_password):
+                raise forms.ValidationError(("Your old LDAP password was entered incorrectly. Please enter it again."))
+            return old_password
     
     def clean_password2(self):
         if "password1" in self.cleaned_data and "password2" in self.cleaned_data:
@@ -284,8 +307,12 @@ class ChangePasswordForm(UserForm):
     
     def save(self):
         self.user.set_password(self.cleaned_data['password1'])
-        self.user.save()
+        if(self.ldapuser == True):
+            change = self.l.changePassword(self.user.username, self.cleaned_data['oldpassword'], self.cleaned_data['password1'])
+	    if not change: raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
+       	self.user.save()
         self.user.message_set.create(message=ugettext(u"Password successfully changed."))
+        return self.user
 
 
 class SetPasswordForm(UserForm):
@@ -300,6 +327,14 @@ class SetPasswordForm(UserForm):
         return self.cleaned_data["password2"]
     
     def save(self):
+	# reset the password in LDAP, if ldapuser
+	if settings.AUTH_LDAP_SWITCHED_ON:
+	    l = LDAPBackend()
+	    ldap_user = l.getUser(username=self.user.username)
+	    if ldap_user:
+                change = l.changePassword(self.user.username, None, self.cleaned_data['password1'])
+	        if not change: raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
+	# reset in django
         self.user.set_password(self.cleaned_data["password1"])
         self.user.save()
         self.user.message_set.create(message=ugettext(u"Password successfully set."))
@@ -345,7 +380,7 @@ class ResetPasswordKeyForm(forms.Form):
     password1 = forms.CharField(label=_("New Password"), widget=forms.PasswordInput(render_value=False))
     password2 = forms.CharField(label=_("New Password (again)"), widget=forms.PasswordInput(render_value=False))
     temp_key = forms.CharField(widget=forms.HiddenInput)
-    
+
     def clean_temp_key(self):
         temp_key = self.cleaned_data.get("temp_key")
         if not PasswordReset.objects.filter(temp_key=temp_key, reset=False).count() == 1:
@@ -365,6 +400,13 @@ class ResetPasswordKeyForm(forms.Form):
         
         # now set the new user password
         user = User.objects.get(passwordreset__exact=password_reset)
+	# reset the password in LDAP, if ldapuser
+	if settings.AUTH_LDAP_SWITCHED_ON:
+	    l = LDAPBackend()
+	    ldap_user = l.getUser(username=user.username)
+	    if ldap_user:
+                change = l.changePassword(user.username, None, self.cleaned_data['password1'])
+	        if not change: raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
         user.set_password(self.cleaned_data["password1"])
         user.save()
         user.message_set.create(message=ugettext(u"Password successfully changed."))
