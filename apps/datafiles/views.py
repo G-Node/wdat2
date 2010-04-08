@@ -17,7 +17,7 @@ import os.path
 from datafiles.models import Datafile
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
 
-#LOG_FILENAME = '/home/sobolev/apps/pina_x/pinax_social/tests/testlog.txt'
+LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
 #logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
 
 def upload_progress(request):
@@ -25,7 +25,7 @@ def upload_progress(request):
     Return JSON object with information about the progress of an upload.
     """
     if 'HTTP_X_PROGRESS_ID' in request.META:
-	#LOG_FILENAME = '/home/sobolev/apps/pina_x/pinax_social/tests/testlog.txt'
+	#LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
 	#logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
         progress_id = request.META['HTTP_X_PROGRESS_ID']
         #logging.debug('%s - is the X progress ID', progress_id)
