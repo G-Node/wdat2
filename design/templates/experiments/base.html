@@ -1,0 +1,19 @@
+{% extends "site_base.html" %}
+
+{% load i18n %}
+{% load group_tags %}
+
+{% block body_class %}experiments{% endblock %}
+
+{% block subnav %}
+    {% if user.is_authenticated %}
+        <ul>
+            <li><a href="{% groupurl experiments_all group %} ">{% trans "Search Public" %}</a></li>
+            <li><a href="{% groupurl your_experiments group %}">{% trans "Your Experiments" %}</a></li>
+            <li><a href="{% groupurl experiment_create group %}">{% trans "Start New Experiment" %}</a></li>
+        </ul>
+    {% else %}
+        &nbsp;
+    {% endif %}
+{% endblock %}
+

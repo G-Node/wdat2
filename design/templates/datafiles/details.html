@@ -1,0 +1,166 @@
+{% extends "datafiles/base.html" %}
+
+{% load i18n %}
+{% load uni_form %}
+{% load pagination_tags %}
+{% load extra_tagging_tags %}
+{% load truncate_filter %}
+
+{% block head_title %}{{ datafile.title }}{% endblock %}
+
+{% block body %}
+    
+    {% if datafile %}
+
+        {% ifequal datafile.owner request.user %}
+            <div class="right_panel">
+                <div class="friends">
+                    {% if datafile.is_Public %}
+                    <h2>{% trans "Privacy" %}</h2>
+                    <p>This File is <b style="color: red">Public</b> and available for other users. Members of this site may download this file.</p>
+                    {% else %}
+                    <h2>{% trans "Shared with:" %}</h2>
+                        {% if datafile.is_Friendly %}
+                            <p>All people you know
+                            {% if datafile.shared_with.all %}
+                            , and </p>
+                                {% for exp_member in datafile.shared_with.all %}
+                                        <span><a href="{% url profile_detail exp_member.username %}" title="{{ exp_member.username }}">{{ exp_member.username }}</a>, </span>
+                                {% endfor %}
+                            {% else %}
+                                .</p>
+                            {% endif %}
+                        {% else %}
+                            {% if datafile.shared_with.all %}
+                                {% for exp_member in datafile.shared_with.all %}
+                                        <span><a href="{% url profile_detail exp_member.username %}" title="{{ exp_member.username }}">{{ exp_member.username }}</a>, </span>
+                                {% endfor %}
+                            {% else %}
+                                <p><b>Nobody</b>. Only YOU can see this File.</p>
+                            {% endif %}
+                        {% endif %}
+                        <p>Please note, it's always ONLY YOUR exclusive right to MANAGE your files, changing its properties and privacy settings.</p>
+                    {% endif %}
+                </div>
+            
+                {% if datafile.in_expts.all %}
+                <div class="friends">
+                    <h2>{% trans "Linked to" %}</h2>
+                    <table width="100%">
+                        {% for exprt in datafile.in_expts.all %}
+                            <tr><td>- <a href="{{ exprt.get_absolute_url }}">{{ exprt.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>                    
+                </div>
+                {% endif%}
+                
+                {% if datafile.in_datasets.all %}
+                <div class="friends">
+                    <h2>{% trans "Used in" %}</h2>
+                    <table width="100%">
+                        {% for dataset in datafile.in_datasets.all %}
+                            <tr><td>- <a href="{{ dataset.get_absolute_url }}">{{ dataset.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>                    
+                </div>
+                {% endif%}
+                
+            </div>
+        {% endifequal %}
+    
+    <div class="left_panel">
+        <div class="photo-title">
+            <h2>File: {{ datafile.title }} {% if not datafile.isActive %}(DELETED){% endif %}</h2>
+        </div>
+        <div class="photo-caption">
+            <p><b>Description: </b>{{ datafile.caption }}</p>
+        </div>
+        <div>
+            <p><b>Date recorded: </b>{{ datafile.recording_date|date:_("DATETIME_FORMAT") }}</p>
+        </div>
+        <div>
+            {% ifnotequal datafile.owner request.user%}
+            <b>Owner: </b>
+            <a href="{% url profile_detail datafile.owner.username %}">{{ datafile.owner.username }}</a>
+            {% endifnotequal %}
+        </div>
+        <div>
+            {% show_tags_for datafile %}
+        </div>
+        
+        {% ifequal request.user datafile.owner %}
+            <div class="form-toggle">
+                <p><span id="edit-datafile-toggle">{% trans "Edit details" %}</span></p>
+                
+                <form class="uniForm" id="edit-datafile" method="POST" action="">
+                    <fieldset class="inlineLabels">
+                        {{ datafile_form|as_uni_form }}
+                        <div class="form_block">
+                            <input type="hidden" name="action" value="details_update" />
+                            <input type="submit" value="{% trans "update" %}"/>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+
+            <div class="form-toggle">
+                <p><span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
+                
+                <form class="uniForm" id="change-privacy" method="POST" action="">
+                    <fieldset class="inlineLabels">
+                        {{ privacy_form|as_uni_form }}
+                        <div class="form_block">
+                            <input type="hidden" name="action" value="privacy_update" />
+                            <input type="submit" value="{% trans "update" %}"/>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+            
+            <p>You may <a href="{{ datafile.raw_file.url }}">Download</a> your File.
+        {% endifequal %}
+        
+        <p style="color: grey">Soon HERE you'll be able to preview your file (if it's a voltage trace), test the recording quality,
+        or make some on-line analysis. We are working to be able to provide you more useful tools which may fit your needs.</p>
+        
+    </div>
+
+    {% else %}
+    <p>There is no data about this file.</p>
+    {% endif %}
+
+{% endblock %}
+
+{% block extra_body %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#edit-datafile').hide();
+            $('#edit-datafile-toggle').click(function() {
+                $('#edit-datafile').toggle();
+                $('#edit-datafile').autoscroll();
+                return false;
+            });
+            if ($('#edit-datafile .error').length) {
+                $('#edit-datafile').show();
+                $('#edit-datafile .error').autoscroll();
+            }
+            $('#change-privacy').hide();
+            $('#change-privacy-toggle').click(function() {
+                $('#change-privacy').toggle();
+                $('#change-privacy').autoscroll();
+                return false;
+            });
+            if ($('#change-privacy .error').length) {
+                $('#change-privacy').show();
+                $('#change-privacy .error').autoscroll();
+            }
+        });
+	function unselectAll() {
+		var obj = document.getElementById("id_shared_with");
+		for (var loop=0; loop < obj.options.length; loop++) {
+		obj.options[loop].selected = false;
+		}
+	};
+    </script>
+    
+{% endblock %}
