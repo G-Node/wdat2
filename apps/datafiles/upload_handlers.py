@@ -39,6 +39,7 @@ class UploadProgressCachedHandler(FileUploadHandler):
             })
 	    #logging.debug('Initialized cache with %s' % cache.get(self.cache_key))
 	else:
+	    pass
 	    #logging.error('No progress ID')
 
     def new_file(self, field_name, file_name, content_type, content_length, charset=None):
