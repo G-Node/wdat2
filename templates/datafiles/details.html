@@ -116,9 +116,8 @@
                     </fieldset>
                 </form>
             </div>
-            
-            <p>You may <a href="{{ datafile.raw_file.url }}">Download</a> your File.
         {% endifequal %}
+        <p>You may <a href="{{ datafile.raw_file.url }}">Download</a> {% ifequal request.user datafile.owner %}your{% else %}this{% endifequal %} File.
         
         <p style="color: grey">Soon HERE you'll be able to preview your file (if it's a voltage trace), test the recording quality,
         or make some on-line analysis. We are working to be able to provide you more useful tools which may fit your needs.</p>
