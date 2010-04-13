@@ -40,6 +40,12 @@ class Experiment(SafetyLevel):
         return ("experiment_details", [self.pk])
     get_absolute_url = models.permalink(get_absolute_url)
 
+    def addLinkedProject(self, project):
+	self.in_projects.add(project)
+
+    def removeLinkedProject(self, project):
+	self.in_projects.remove(project)
+
     # defines whether an object (dataset) is accessible for a given user
     # <<< better to migrate it inside the state_machine with the "owner" property >>>
     def is_accessible(self, user):
@@ -47,3 +53,4 @@ class Experiment(SafetyLevel):
             return True
         else:
             return False
+

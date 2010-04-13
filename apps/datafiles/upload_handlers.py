@@ -30,7 +30,7 @@ class UploadProgressCachedHandler(FileUploadHandler):
         if 'X-Progress-ID' in self.request.GET:
             self.progress_id = self.request.GET['X-Progress-ID']
         if self.progress_id:
-            logging.debug('%s - progress ID exists', self.progress_id)
+            #logging.debug('%s - progress ID exists', self.progress_id)
             self.cache_key = "%s_%s" % (self.request.META['REMOTE_ADDR'], self.progress_id )
             cache.set(self.cache_key, {
                 'state': 'uploading',

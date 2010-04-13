@@ -1,9 +1,11 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-
+from django.forms import widgets
+from django.db.models import Q
 from django.contrib.auth.models import User
 
 from projects.models import Project, ProjectMember
+from experiments.models import Experiment
 from django.conf import settings
 
 if "notification" in settings.INSTALLED_APPS:
@@ -79,3 +81,28 @@ class AddUserForm(forms.Form):
             notification.send(self.project.member_users.all(), "projects_new_member", {"new_member": new_member, "project": self.project})
             #notification.send([new_member], "projects_added_as_member", {"adder": user, "project": self.project})
         user.message_set.create(message="added %s to project" % new_member)
+
+class AddExperimentForm(forms.Form):
+    experiments = forms.ModelMultipleChoiceField(queryset=Experiment.objects.all().filter(current_state=10))
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        project = kwargs.pop('project')
+        super(AddExperimentForm, self).__init__(*args, **kwargs)
+	for_exclude = project.experiment_set.all().values_list("id", flat=True)
+        choices = Experiment.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+        self.fields['experiments'].queryset = choices
+
+class RemoveExperimentForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        project = kwargs.pop('project')
+        super(RemoveExperimentForm, self).__init__(*args, **kwargs)
+	values = project.experiment_set.all().filter(Q(current_state=10))
+	values = filter(lambda x: x.is_accessible(user), values)
+        self.fields['exprt_choices'] = forms.MultipleChoiceField(
+            choices=[(c.id, c.title) for c in values], required=False,
+            widget=widgets.CheckboxSelectMultiple)
+
+

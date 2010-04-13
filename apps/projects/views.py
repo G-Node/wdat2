@@ -19,7 +19,7 @@ else:
 from django.db.models import Q
 from friends.models import FriendshipManager
 from projects.models import Project, ProjectMember
-from projects.forms import ProjectForm, ProjectUpdateForm, AddUserForm
+from projects.forms import ProjectForm, ProjectUpdateForm, AddUserForm, AddExperimentForm, RemoveExperimentForm
 
 TOPIC_COUNT_SQL = """
 SELECT COUNT(*)
@@ -83,7 +83,7 @@ def projects(request, template_name="projects/projects.html"):
 def delete(request, group_slug=None, redirect_url=None):
     project = get_object_or_404(Project, slug=group_slug)
     if not redirect_url:
-        redirect_url = reverse('project_list')
+        redirect_url = reverse('your_projects')
     
     # @@@ eventually, we'll remove restriction that project.creator can't leave project but we'll still require project.members.all().count() == 1
     if (request.user.is_authenticated() and request.method == "POST" and
@@ -133,7 +133,7 @@ def your_projects(request, template_name="projects/your_projects.html"):
 
 
 @login_required
-def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form_class=AddUserForm,
+def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form_class=AddUserForm, experiment_form_class=AddExperimentForm, 
         template_name="projects/project.html"):
     project = get_object_or_404(Project, slug=group_slug)
     
@@ -141,7 +141,8 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
         is_member = False
     else:
         is_member = project.user_is_member(request.user)
-    
+
+    # update details handler    
     action = request.POST.get("action")
     if request.user == project.creator and action == "update":
         project_form = form_class(request.POST, instance=project)
@@ -149,6 +150,8 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             project = project_form.save()
     else:
         project_form = form_class(instance=project)
+
+    # add new member handler
     if request.user == project.creator and action == "add":
         adduser_form = adduser_form_class(request.POST, project=project)
         if adduser_form.is_valid():
@@ -156,6 +159,28 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             adduser_form = adduser_form_class(project=project) # clear form
     else:
         adduser_form = adduser_form_class(project=project)
+
+    # linking experiment handler
+    if action == "link_experiments":
+	experiments_form = experiment_form_class(request.POST, user=request.user, project=project)
+	if experiments_form.is_valid():
+	    sets = experiments_form.cleaned_data['experiments']
+	    for s in sets:
+		s.addLinkedProject(project)
+		s.save()
+	    request.user.message_set.create(message=_("Successfully linked experiments to '%s'") % project.slug)
+    else:
+	experiments_form = experiment_form_class(user=request.user, project=project)
+
+    # remove datafiles handler
+    remove_exprts_form = RemoveExperimentForm(request.POST or None, user=request.user, project=project)
+    if action == "remove_experiments":
+	if remove_exprts_form.is_valid():
+	    ids = remove_exprts_form.cleaned_data['exprt_choices'] 
+	    for experiment in Experiment.objects.filter(id__in=ids):
+	        experiment.removeLinkedProject(project)
+	        experiment.save()
+	    request.user.message_set.create(message=_("Successfully removed selected experiments from '%s'") % project.slug)
 
     experiments = project.experiment_set.all().filter(Q(current_state=10))
     experiments = filter(lambda x: x.is_accessible(request.user), experiments)
@@ -167,4 +192,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
         "group": project, # @@@ this should be the only context var for the project
         "is_member": is_member,
 	"experiments": experiments,
+	"experiments_form": experiments_form,
+	"remove_exprts_form": remove_exprts_form,
     }, context_instance=RequestContext(request))
+

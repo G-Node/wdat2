@@ -83,3 +83,4 @@ class RemoveDatafilesForm(forms.Form):
         self.fields['dfile_choices'] = forms.MultipleChoiceField(
             choices=[(c.id, c.title) for c in values], required=False,
             widget=widgets.CheckboxSelectMultiple)
+

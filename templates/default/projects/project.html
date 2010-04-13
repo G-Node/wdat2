@@ -11,6 +11,7 @@
 {% load topics_tags %}
 {% load wiki_tags %}
 {% load theme_tags %}
+{% load truncate_filter %}
 
 {% block head_title %}{{ project.name }}{% endblock %}
 
@@ -36,12 +37,25 @@
             </div>
 	    {% if experiments %}
             <div class="friends">
+	        <form id="delete-exprts" method="POST" action="">
                 <h2>{% trans "Experiments" %}</h2>
                 <table width="100%">
                     {% for experiment in experiments %}
-                        <tr><td>- <a href="{{ experiment.get_absolute_url }}">{{ experiment.title }}</a></td></tr>
+                        <tr>
+			    <nobr>
+				<td>- <a href="{{ experiment.get_absolute_url }}">{{ experiment.title|truncate_dot:23|escape }}</a></td>
+				{% ifequal user project.creator %}
+				<td align=right><input id="id_exprt_choices_{{ experiment.id }}" type="checkbox" value="{{ experiment.id }}" name="exprt_choices"/></td>
+				{% endifequal %}
+			    </nobr>
+			</tr>
                     {% endfor %}
                 </table>
+		{% ifequal user project.creator %}
+			<input type="hidden" name="action" value="remove_experiments" />
+			<input type="submit" value="{% trans "remove selected" %}"/>
+		{% endifequal %}
+	    </form>
             </div>
 	    {% endif %}
         </div>
@@ -92,6 +106,20 @@
                                     {{ adduser_form|as_uni_form }}
                                     <div class="form_block">
                                         <input type="hidden" name="action" value="add" />
+                                        <input type="submit" value="{% trans "add" %}"/>
+                                    </div>
+                                </fieldset>
+                            </form>
+                        </div>
+
+                        <div class="form-toggle">
+                            <p><span id="add-experiment-toggle">{% trans "Link Experiment" %}</span></p>
+                            
+                            <form class="uniForm" id="add-experiment" method="POST" action="">
+                                <fieldset class="inlineLabels">
+                                    {{ experiments_form|as_uni_form }}
+                                    <div class="form_block">
+                                        <input type="hidden" name="action" value="link_experiments" />
                                         <input type="submit" value="{% trans "add" %}"/>
                                     </div>
                                 </fieldset>
@@ -189,6 +217,16 @@
             if ($('#add-member .error').length) {
                 $('#add-member').show();
                 $('#add-member .error').autoscroll();
+            }
+            $('#add-experiment').hide();
+            $('#add-experiment-toggle').click(function() {
+                $('#add-experiment').toggle();
+                $('#add-experiment').autoscroll();
+                return false;
+            });
+            if ($('#add-experiment .error').length) {
+                $('#add-experiment').show();
+                $('#add-experiment .error').autoscroll();
             }
         });
     </script>
