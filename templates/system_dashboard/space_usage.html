@@ -1,0 +1,21 @@
+{% extends "datasets/base.html" %}
+
+{% load i18n %}
+{% load uni_form %}
+{% load pagination_tags %}
+{% load extra_tagging_tags %}
+{% load truncate_filter %}
+
+{% block head_title %}System - Space Usage{% endblock %}
+
+{% block body %}
+
+    {% if user.is_authenticated and user.is_staff %}
+    <div class="left_panel">
+        <div class="photo-title">
+            <h2>Space Usage</h2>
+        </div>
+    {% endif %}
+
+{% endblock %}
+
