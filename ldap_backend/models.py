@@ -5,6 +5,7 @@ import django.dispatch
 import ldap
 import ldap.modlist as modlist
 
+import logging
 
 """ Signals, to make magic easier """
 new_ldap_user = django.dispatch.Signal(providing_args=['user','email'])
@@ -111,12 +112,17 @@ class LDAPBackend:
             email = data[0][1]['mail'][0]
         else:
             email = "%s@%s" % (username, self.domain_name)
+
+	#LOG_FILENAME = '/home/sobolev/media/logs/test.txt'
+	#logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
+        #logging.debug('%s', data)
+
         connection = self.connection()
         if connection is None:
             return None
         else:
             try:
-                user = User.objects.get(username__exact=username)
+                user = User.objects.get(username__exact=username)	
             except Exception, e:
                 if(create == True):
                     user = User.objects.create_user(username, email)
