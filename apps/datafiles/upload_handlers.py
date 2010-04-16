@@ -4,8 +4,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadhandler import MemoryFileUploadHandler, FileUploadHandler
 
-LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
-logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
+#LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
+#logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
 
 class UploadProgressCachedHandler(FileUploadHandler):
     """
