@@ -20,13 +20,8 @@ storage, and data analysis. It's free and easy to sign up.
         {% endblocktrans %}
     </p>
     
-    <p>
-        {% blocktrans %}
-        For more information about G-Node, see
-        <a href="http://www.g-node.org/">http://www.g-node.org/</a>.
-        {% endblocktrans %}
-    </p>
     
+    <div class="newsbox">
     <h2>{% trans "About this project" %}</h2>
     
     <p>
@@ -38,18 +33,28 @@ other labs. It provides secured way of data storage, regular back-ups and user-t
         {% endblocktrans %}
     </p>
     
+    <p>
+        {% blocktrans %}
+        For more information about G-Node, see
+        <a href="http://www.g-node.org/">http://www.g-node.org/</a>.
+        {% endblocktrans %}
+    </p>
+    </div>  
+    
     <hr />
     {% if user.is_authenticated %}
         {% url what_next as what_next_url %}
-        <p class="what_next">{% blocktrans %}Wondering <a href="{{ what_next_url }}">What Next</a>?{% endblocktrans %}</p>
+        <p class="center what_next">{% blocktrans %}Wondering <a href="{{ what_next_url }}">What Next</a>?{% endblocktrans %}</p>
     {% else %}
         {% url acct_login as login_url %}
         {% ifsetting ACCOUNT_OPEN_SIGNUP %}
             {% url acct_signup as signup_url %}
-            <p>{% blocktrans %}You can <a href="{{ signup_url }}">Sign up</a> and <a href="{{ login_url }}">Log in</a> to try out the site.{% endblocktrans %}</p>
+            <p  class="center">{% blocktrans %}You can <a href="{{ signup_url }}">Sign up</a> and <a href="{{ login_url }}">Log in</a> to try out the site.{% endblocktrans %}</p>
         {% else %}
-            <p>{% blocktrans %}You can <a href="{{ login_url }}">Log in</a> to try out the site.{% endblocktrans %}</p>
+            <p  class="center">{% blocktrans %}You can <a href="{{ login_url }}">Log in</a> to try out the site.{% endblocktrans %}</p>
         {% endifsetting %}
     {% endif %}
-    
+
+     
 {% endblock %}
+
