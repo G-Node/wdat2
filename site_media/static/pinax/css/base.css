@@ -259,9 +259,7 @@ hr{
 /* @group SUBNAVIGATION */
 
 #subnav {
-    margin: 0;
-    margin-top: 10px;
-    margin-left: 6px;
+    margin:10px 1px 0 6px;
     padding: 0;
 }
 
@@ -300,7 +298,8 @@ hr{
     font-weight: normal;
 }
 #subnav ul a:hover {
-    color: #CCC;
+    
+    background: #eff0f3;
 }
 
 /* @group SUBNAVIGATION 2 */
@@ -407,6 +406,11 @@ width:190px;
 	background: #eff0f3 url(../images/img/contentseite_bg2.jpg) no-repeat left top;
     margin-left: 18px !important;
     width: 920px !important;
+    min-height: 400px;
+}
+
+.welcome{
+	background: #fff url() no-repeat left top !important;
 }
 
 
@@ -414,7 +418,7 @@ width:190px;
 
 
 /* @group TEXT */
-p, ul, form
+p, ul, form, ul
 { 
    line-height: 1.5em;
    padding: 0px 20px 10px 20px; 
@@ -574,6 +578,26 @@ ul.errorlist {
 	left: 0px;
 	top: 0px;
 	z-index: 50;
+}
+
+
+/* @group MESSAGES  */
+
+ul#messages {
+  list-style:none outside none;
+  margin:auto;
+  padding:0 20px 10px;
+  width:930px;
+}
+ul#messages li {
+    padding: 5px 10px;
+    background: #EFD;
+    margin: 3px;
+    border: 1px solid #BC9;
+}
+ul#messages li a {
+    float: right;
+    color: #693;
 }
 
 
@@ -763,6 +787,7 @@ ul.errorlist {
 
 /* MESSAGES */
 
+/*
 ul#messages {
     margin: 0 0 10px 0;
     padding: 0;
@@ -778,6 +803,8 @@ ul#messages li a {
     float: right;
     color: #693;
 }
+
+*/
 
 
 /* WHAT NEXT */
