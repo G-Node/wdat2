@@ -67,7 +67,7 @@
                         /* update uuid */
                         options.uuid = uuid;
 			/* start callback */
-			options.start();
+                        options.start();
 
 			/* patch the form-action tag to include the progress-id 
                            if X-Progress-ID has been already added just replace it */
