@@ -14,12 +14,12 @@
 
     <div id="upload_btn"></div>
 
-    <form id="upload_form" method="POST" enctype="multipart/form-data" action="" class="uniForm">
+    <form id="upload_form" method="POST" enctype="multipart/form-data" action="{% url datafile_create %}" class="uniForm">
         <fieldset class="inlineLabels">
             {{ datafile_form|as_uni_form }}
             <div class="form_block">
-                <input type="hidden" name="action" value="upload" />
-                <input type="submit" value="{% trans 'upload' %}" />
+                <input type="hidden" name="action_1" value="upload" />
+                <input type="submit" value="Upload" />
             </div>
         </fieldset>
     </form>
@@ -43,33 +43,34 @@
 
         <script charset="utf-8" type="text/javascript">
         //<![CDATA[
- 
+	var fileSizePattern = /^(\d+(?:\.\d+)*)\s*([egkmpt])b?$/i;
+
         $(document).ready(function() 
-                {
-                        $(function() {
-                                $('#upload_form').uploadProgress({
-                                        jqueryPath: "{{ STATIC_URL }}js/jquery.js",
-                                        progressBar: '#progress_indicator',
-                                        progressUrl: '{% url datafiles.views.upload_progress %}',
-                                        start: function() {
-                                                $("#upload_form").hide();
-                                                filename = $("#id_raw_file").val().split(/[\/\\]/).pop();
-                                                $("#progress_filename").html('Uploading ' + filename + "...");
-                                                $("#progress_container").show();
-                                        },
-                                        uploadProgressPath: "{{ STATIC_URL }}js/jquery.uploadProgress.js",
-                                        uploading: function(upload) {
-                                                if (upload.percents == 100) {
-                                                        window.clearTimeout(this.timer);
-                                                        $("#progress_filename").html('Processing ' + filename + "...");
-                                                } else {
-                                                        $("#progress_filename").html('Uploading ' + filename + ': ' + upload.percents + '%');
-                                                }
-                                        },
-                                        interval: 1000
-                                });
-                        });
-                }
+            {
+                $(function() {
+                    $('#upload_form').uploadProgress({
+                        jqueryPath: "{{ STATIC_URL }}js/jquery.js",
+                        progressBar: '#progress_indicator',
+                        progressUrl: '{% url upload_progress %}',
+                        start: function() {
+                            $("#upload_form").hide();
+                            filename = $("#id_raw_file").val().split(/[\/\\]/).pop();
+                            $("#progress_filename").html('Uploading ' + filename + "...");
+                            $("#progress_container").show();
+                        },
+                        uploadProgressPath: "{{ STATIC_URL }}js/jquery.uploadProgress.js",
+                        uploading: function(upload) {
+                            if (upload.percents == 100) {
+                                window.clearTimeout(this.timer);
+                                $("#progress_filename").html('Processing ' + filename + "...");
+                            } else {
+                                $("#progress_filename").html('Uploading ' + filename + ': ' + upload.percents + '%');
+                            }
+                        },
+                        interval: 1000
+                    });
+                });
+            }
         );
         //]]>
         </script>

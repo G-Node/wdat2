@@ -17,7 +17,7 @@ import os.path
 from datafiles.models import Datafile
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
 
-LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
+#LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
 #logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
 
 def upload_progress(request):
@@ -48,7 +48,7 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
     # create a new datafile
     datafile_form = form_class(request.user)
     if request.method == 'POST':
-        if request.POST.get("action") == "upload":
+        if request.POST.get("action_1") == "upload":
             #logging.debug('start uploading the file')
             datafile_form = form_class(request.user, request.POST, request.FILES)
             if datafile_form.is_valid():
