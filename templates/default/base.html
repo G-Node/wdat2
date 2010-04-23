@@ -54,11 +54,11 @@
                  <li id="message_{{ forloop.counter }}"><a href="#" onclick="$('#message_{{ forloop.counter }}').fadeOut(); return false;"><small>{% trans "clear" %}</small></a> {{ message }}</li>
               {% endfor %}
           </ul>
-          <div class="clxearfix"> </div>
+          <div class="clearfix"> </div>
         {% endif %}
         
         
-        <div id="subnav" class="clxearfix">
+        <div id="subnav" class="clearfix">
           {% block subnav_base %}
             <!-- <div class="clearfix">  -->
             <div class="seitenbreite">
