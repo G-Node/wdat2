@@ -11,7 +11,11 @@
 {% load threadedcommentstags %}
 
 {% block head_title %}{% blocktrans %}Profile for {{ other_user }}{% endblocktrans %}{% endblock %}
-{% block subnavi1_class %}aktiv{% endblock %}
+
+
+  {% block subnavi1_class %}{% if is_me %}aktiv{% endif %}{% endblock %}
+
+
 {% block body %}
     
     <div class="right_panel">
@@ -20,24 +24,28 @@
     
     <div class="left_panel">
         <div class="vcard">
-            <div id="profile_avatar">
-                <div><img src="{% avatar_url other_user 80 %}" alt="Photo of {{ other_user }}" class="photo" /></div>
-                {% if is_me %}
-                <a href="{% url avatar_change %}" id="avatar_replace">(replace)</a>
-                {% endif %}
-            </div>
             
             {% if other_user.get_profile.name %}
                 <h1>{% blocktrans %}Profile for <span class="nickname">{{ other_user }}</span>{% endblocktrans %}</h1>
             {% else %}
                 <h1>{% blocktrans %}Profile for <span class="fn nickname">{{ other_user }}</span>{% endblocktrans %}</h1>
-            {% endif %}
+            {% endif %}            
             
-            <div class="profile_info">
-                {% if other_user.get_profile.name %}<p><b>{% trans "Name" %}</b>: <span class="fn">{{ other_user.get_profile.name }}</span></p>{% endif %}
-                {% if other_user.get_profile.about %}<p><b>{% trans "About" %}</b>: {{ other_user.get_profile.about }}</p>{% endif %}
-                {% if other_user.get_profile.location%}<p><b>{% trans "Location" %}</b>: {{ other_user.get_profile.location }}</p>{% endif %}
-                {% if other_user.get_profile.website %}<p><b>{% trans "Website" %}</b>: <a class="url" href="{{ other_user.get_profile.website }}">{{ other_user.get_profile.website }}</a></p>{% endif %}
+            <div id="profilcontainer">
+	            <div id="profile_avatar">
+	                <div><img src="{% avatar_url other_user 80 %}" alt="Photo of {{ other_user }}" class="photo" /></div>
+	                {% if is_me %}
+	                <a href="{% url avatar_change %}" id="avatar_replace">(replace)</a>
+	                {% endif %}
+	            </div>    
+	            <div class="profile_info">
+	                {% if other_user.get_profile.name %}<p><b>{% trans "Name" %}</b>: <span class="fn">{{ other_user.get_profile.name }}</span></p>{% endif %}
+	                {% if other_user.get_profile.about %}<p><b>{% trans "About" %}</b>: {{ other_user.get_profile.about }}</p>{% endif %}
+	                {% if other_user.get_profile.location%}<p><b>{% trans "Location" %}</b>: {{ other_user.get_profile.location }}</p>{% endif %}
+	                {% if other_user.get_profile.website %}<p><b>{% trans "Website" %}</b>: <a class="url" href="{{ other_user.get_profile.website }}">{{ other_user.get_profile.website }}</a></p>{% endif %}
+	            </div>
+	            <div class="clearfix"> </div>
+	            <div class="hr"> </div>
             </div>
             
             {% if is_me %}
@@ -98,7 +106,7 @@
                                 <p>{% trans "Friendship request sent." %}</p>
                             {% else %}
                                 <h2>{% trans "Add As Friend" %}</h2>
-                                <form class="uniForm" method="POST" action="">
+                                <form id="addfriend" class="uniForm" method="POST" action="">
                                     <fieldset class="inlineLabels">
                                         {{ invite_form|as_uni_form }}
                                         <div class="form_block">
@@ -113,6 +121,8 @@
                     {% endif %} {# is_friend #}
                     
                 {% endif %} {# is me #}
+                
+                <div class="hr"> </div>
                 
                 <h2>{% trans "Wiki Articles" %}</h2>
                 
@@ -134,6 +144,8 @@
                     <p>{% trans "No wiki articles yet." %}</p>
                 {% endif %}
 
+                <div class="hr"> </div>
+                
                 <h2>{% trans "Experiments" %}</h2>
 
                 {% if experiments %}
@@ -153,6 +165,8 @@
                 {% else %}
                     <p>{% trans "No experiments started yet." %}</p>
                 {% endif %}
+                
+                <div class="hr"> </div>
 
 		{% comment %}                
                 <h2>{% trans "Bookmarks" %}</h2>

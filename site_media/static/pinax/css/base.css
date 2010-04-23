@@ -442,19 +442,17 @@ h1
    font-family: Arial, Verdana, sans-serif;
    font-weight: normal;
    color: #004c93;
-   line-height: 26px;
    margin-top: 20px;
-   margin-bottom: 0px;
+   margin-bottom: 10px;
 }
 h2 
 { 
-   font-size: 16px;
-   line-height: 20px;
+   font-size: 14px;
+   line-height: 18px;
    font-family: Arial, Verdana, sans-serif;
-   font-weight: normal;
+   font-weight: bold;
    color: #004c93;
-   line-height: 26px;
-   margin-top: 20px;
+   margin-top: 10px;
    margin-bottom: 0px;
 }
 h2.lightPadding
@@ -646,16 +644,84 @@ ul#messages li a {
     font-weight: bold;
 }
 
-div.profile_info p {
-    margin: 0;
-}
+
 
 /* @group PROFIL */
 .vcard{
 	margin-top:20px;
 }
 .profile {
- 
+  width:98%;
+  margin-bottom: 10px;
+}
+h2.join_date, h2.creation_date {
+ border-bottom:1px solid #999999;
+ color:#666666;
+ font-size:13px !important;
+ width:98%;
+ margin-top:1px !important;
+ padding-bottom: 2px !important;
+}
+
+#profile_avatar{
+  float: left;	
+  width: 80px;
+  margin-right: 10px;
+}
+#profile_info{
+  float: left;	
+}
+div.profile_info p {
+    margin: 0;
+    padding-bottom: 2px;
+}
+
+#addfriend label {
+  margin:0.3em 2% 0 0;
+  width:10% !important;
+}
+#addfriend textarea {
+  width:450px; !important;
+  height:60px; !important;
+}
+
+#addfriend .ctrlHolder {
+  border-bottom:0px solid #DFDFDF !important;
+}
+
+#addfriend .form_block{
+  margin:0px;	
+}
+
+#addfriend input {
+  margin-left: 83px !important;
+}
+
+
+/*  */
+#topicform label {
+  margin:0.3em 2% 0 0;
+  width:10% !important;	
+}
+
+.uniForm label{
+  width:15% !important;		
+}
+
+.formHint{
+ margin-left:17.5% !important;		
+}
+
+
+#messagehead table{
+border:0 none;
+border-collapse:collapse;
+border-spacing:5px;
+font-size:inherit;	
+}
+#messagehead td{
+padding:3px;
+padding-left: 0px;
 }
 
 /* @group PANELS */
@@ -757,6 +823,14 @@ h2.notice_date {
  border-bottom:0px solid #999999 !important;	
  color:#004C93 !important;	
  font-size:16px !important;	
+}
+
+.hr{
+  border-bottom:1px solid #DFDFDF;
+  width:98%;
+  margin-top:10px;
+  margin-bottom:10px;
+  display: block;		
 }
 
 
