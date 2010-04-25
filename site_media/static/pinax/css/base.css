@@ -720,8 +720,9 @@ border-spacing:5px;
 font-size:inherit;	
 }
 #messagehead td{
-padding:3px;
-padding-left: 0px;
+  padding:3px;
+  padding-right: 5px;
+  padding-left: 0px;
 }
 
 /* @group PANELS */
@@ -737,18 +738,31 @@ div.right_panel {
 }
 
 div.members,
-div.friends {
+div.friends,
+div.actions {
   background:none repeat scroll 0 0 #E7E8EB !important;
   margin-bottom:10px !important;
   padding:8px;
 }
 div.members h2,
-div.friends h2{
+div.friends h2,
+div.actions{
   color:#004C93 !important;
   font-size: 16px;
   text-align: right;
   margin-bottom: 20px !important;
 }
+
+div.actions ul{
+	text-align: left;
+	margin-left: 20px;
+	
+}
+
+div.actions li{
+	list-style-type: square;
+}
+
 
 div.members .avatar {
   margin:0 0 12px;
@@ -807,6 +821,32 @@ table.messages tr th, table.messages tr td {
 
 
 
+/*@group PAGINATION */
+.pagination{
+	text-align: center !important;	
+}
+.pagination .disabled {
+  border:0px solid #CCCCCC !important;	
+  color:#999999;
+  padding:3px;
+}
+.pagination .current {
+  background:none repeat scroll 0 0 !important;	
+  border:0px solid #484848 !important;	
+  color:#568ebe  !important;	
+  padding:3px;
+}
+.pagination a {
+  background:none repeat scroll 0 0 !important;	
+  border:0px solid #99BBCC !important;	
+  color:#11589A !important;	
+  padding:3px;
+  text-decoration:none;
+}
+.pagination a:hover {
+  color:#568ebe !important;	
+}
+
 /* @group ETC */
 .stats {
   margin-top: 10px;
@@ -831,6 +871,12 @@ h2.notice_date {
   margin-top:10px;
   margin-bottom:10px;
   display: block;		
+}
+
+h2.join_date, 
+h2.creation_date {
+  margin-bottom: 5px !important;
+  margin-top: 10px !important;
 }
 
 
