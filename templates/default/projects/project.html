@@ -51,6 +51,31 @@
         
         <h1>{% trans "Project" %} {{ project.name }}</h1>
         
+        
+         <div id="projecthead">
+	        <table>
+	          <tbody>
+	          <tr>
+	            <td><strong>{% trans "Slug:" %}</strong></td>
+	            <td>{{ project.slug }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>{% trans "Creator:" %}</strong> </td>
+	            <td><a href="{% url profile_detail project.creator.username %}">{{ project.creator }}</a></td>
+	          </tr>
+	          <tr>
+	            <td><strong>{% trans "Created:" %}</strong></td>
+	            <td>{{ project.created|date }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>&nbsp;</strong></td>
+	            <td>{% show_tags_for project %}</td>
+	          </tr>	          
+		     </tbody>
+		   </table>
+        </div>          
+	          
+        <!-- 
         <p>
             <strong>{% trans "Slug:" %}</strong> <tt>{{ project.slug }}</tt><br />
             <strong>{% trans "Creator:" %}</strong> <a href="{% url profile_detail project.creator.username %}">{{ project.creator }}</a><br />
@@ -58,12 +83,13 @@
             <br />
             {% show_tags_for project %}
         </p>
+        -->
         
         <p>{{ project.description }}</p>
         
         {% ifequal user project.creator %}
             <div class="form-toggle">
-                <p><span id="edit-project-toggle">{% trans "Edit details" %}</span></p>
+                <p>&raquo; <span id="edit-project-toggle">{% trans "Edit details" %}</span></p>
                 
                 <form class="uniForm" id="edit-project" method="POST" action="">
                     <fieldset class="inlineLabels">
@@ -85,7 +111,7 @@
                         <p>You are the creator of this project.</p>
                         
                         <div class="form-toggle">
-                            <p><span id="add-member-toggle">{% trans "Add new member" %}</span></p>
+                            <p>&raquo; <span id="add-member-toggle">{% trans "Add new member" %}</span></p>
                             
                             <form class="uniForm" id="add-member" method="POST" action="">
                                 <fieldset class="inlineLabels">

@@ -36,7 +36,7 @@ body
 a:link, a:visited
 { 
    color: #11589a; 
-   text-decoration: none;
+   text-decoration: underline;
    font-weight: normal;
 }
 a:hover, a:active, a.aktiv:link, a.aktiv:visited, a.aktiv:hover, a.aktiv:active
@@ -160,6 +160,7 @@ hr{
 	color: #ffffff;
 	letter-spacing: 0px;
 	line-height: 11px;	
+	text-decoration: none;
 }
 #headernavigation ul li a:hover, #headernavigation ul li.aktiv a, #headernavigation ul li.aktiv a:hover
 {
@@ -205,6 +206,7 @@ hr{
 	padding-top: 10px;
 	padding-bottom: 10px;
 	background: transparent url(../images/img/navigation_spacer.gif) no-repeat center right;
+	text-decoration: none;
 }
 #right_tabs ul li a:hover, 
 #right_tabs ul li.aktiv a, 
@@ -527,7 +529,7 @@ form th {
 }
 
 .form_block{
-   margin: 10px 0px 25px 0px; 	
+   margin: 10px 0px 10px 0px; 	
 }
 
 form .formHint{
@@ -539,6 +541,10 @@ form.login input[type="submit"] {
     margin: 20px 0;
     font-size: 10pt;
 }
+input[disabled="disabled"]  {
+  color: #000;
+}
+
 input[type="submit"]{
     margin: 3px;
 }
@@ -651,8 +657,10 @@ ul#messages li a {
 	margin-top:20px;
 }
 .profile {
+  /*
   width:98%;
   margin-bottom: 10px;
+  */
 }
 h2.join_date, h2.creation_date {
  border-bottom:1px solid #999999;
@@ -713,13 +721,19 @@ div.profile_info p {
 }
 
 
-#messagehead table{
-border:0 none;
-border-collapse:collapse;
-border-spacing:5px;
-font-size:inherit;	
+#messagehead table,
+#projecthead table,
+#dataset table,
+#experimenthead table{
+  border:0 none;
+  border-collapse:collapse;
+  border-spacing:5px;
+  font-size:inherit;	
 }
-#messagehead td{
+#messagehead td,
+#projecthead td,
+#datasethead td,
+#experimenthead td{
   padding:3px;
   padding-right: 5px;
   padding-left: 0px;
@@ -1085,7 +1099,33 @@ ul#messages li a {
 
 
 /* FORM TOGGLE */
+.form-toggle {
+	margin-top: 5px;	
+	border:1px solid #DFDFDF;
+	padding: 5px;
+	padding-bottom: 0px;
+	width: 700px;
+}
 
+.form-toggle form {
+	padding-bottom: 0px;
+   /* border: 1px solid #DFDFDF; */
+}
+.form-toggle p span  {
+  /*color:#11589A;*/
+  color:#000;
+  font-weight:normal;
+  text-decoration:underline;
+  cursor:pointer;	
+}
+.form-toggle p span:HOVER  {
+  /*color:#11589A;*/
+  color:#868686;
+  font-weight:normal;
+  text-decoration:none;
+  cursor:pointer;	
+}
+/*
 .form-toggle p {
     margin-bottom: 2px;
 }
@@ -1118,6 +1158,7 @@ span#clear_selection  {
     border-right: None;
     cursor: pointer;
 }
+*/
 
 /* EXTRAS TO CLEAN UP */
 

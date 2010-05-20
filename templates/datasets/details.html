@@ -57,9 +57,12 @@
         {% endifequal %}    
     
     <div class="left_panel">
+    
         <div class="photo-title">
-            <h2>Dataset: {{ dataset.title }} {% if not dataset.isActive %}(DELETED){% endif %}</h2>
+            <h1>Dataset: {{ dataset.title }} {% if not dataset.isActive %}(DELETED){% endif %}</h1>
         </div>
+        
+        <!-- 
         <div class="photo-caption">
             <p><b>Description: </b>{{ dataset.caption }}</p>
         </div>
@@ -75,10 +78,40 @@
         <div>
             {% show_tags_for dataset %}
         </div>
+         -->
+        
+        <div id="datasethead">
+	        <table>
+	          <tbody>
+	          <tr>
+	            <td><strong>Description:</strong></td>
+	            <td>{{ dataset.caption }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>Date recorded:</strong> </td>
+	            <td>{{ dataset.date_added }}</td>
+	          </tr>
+	          {% ifnotequal dataset.owner request.user%}
+		          <tr>
+		            <td><strong>Owner:</strong></td>
+		            <td><a href="{% url profile_detail dataset.owner.username %}">{{ dataset.owner.username }}</a></td>
+		          </tr>
+	          {% endifnotequal %}
+	          <tr>
+	            <td><strong>&nbsp;</strong></td>
+	            <td>{% show_tags_for dataset %}</td>
+	          </tr>	          
+		     </tbody>
+		   </table>
+        </div>  
+        
+        
+        
+        
         
         {% ifequal request.user dataset.owner %}
             <div class="form-toggle">
-                <p><span id="edit-dataset-toggle">{% trans "Edit details" %}</span></p>
+                <p>&raquo; <span id="edit-dataset-toggle">{% trans "Edit details" %}</span></p>
                 
                 <form class="uniForm" id="edit-dataset" method="POST" action="">
                     <fieldset class="inlineLabels">
@@ -92,7 +125,7 @@
             </div>
 
             <div class="form-toggle">
-                <p><span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
+                <p>&raquo; <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
                 
                 <form class="uniForm" id="change-privacy" method="POST" action="">
                     <fieldset class="inlineLabels">
@@ -111,7 +144,7 @@
     <h2>{% trans "Files in this Dataset" %}</h2>
 	    {% ifequal dataset.owner request.user %}
             <div class="form-toggle">
-                <p><span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
+                <p>&raquo; <span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
                 
                 <form class="uniForm" id="add-datafile" method="POST" action="">
                     <fieldset class="inlineLabels">
