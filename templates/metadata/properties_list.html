@@ -12,13 +12,13 @@
             <tbody>
                 {% for property in section.property_set.all %}
                     <tr>
-                        <td><a href="#">{{ property.title }}</a></td>
-                        <td>{{ property.value }}</td>
-                        <td>{{ property.description }}</td>
-                        <td>{{ property.comment }}</td>
-                        <td>{{ property.date_created|date:_("DATETIME_FORMAT") }}</td>
+                        <td><a href="#">{{ property.prop_title }}</a></td>
+                        <td>{{ property.prop_value }}</td>
+                        <td>{{ property.prop_description }}</td>
+                        <td>{{ property.prop_comment }}</td>
+                        <td>{{ property.prop_date_created|date:_("DATETIME_FORMAT") }}</td>
                         {% ifequal section.get_owner request.user %}
-                            <td><nobr><a href="{% url property_edit property.id %}">{% trans "edit" %}</a> <a href="{% url property_delete property.id %}">{% trans "delete" %}</a></nobr></td>
+                            <td><nobr><a href="{% url property_edit property.id %}" rel="facebox">{% trans "edit" %}</a> <a href="{% url property_delete property.id %}">{% trans "delete" %}</a></nobr></td>
                         {% endifequal %}
                     </tr>
                 {% endfor %}

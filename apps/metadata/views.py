@@ -12,7 +12,7 @@ import datetime
 
 from experiments.models import Experiment
 from datasets.models import RDataset
-from metadata.forms import AddSectionForm
+from metadata.forms import AddSectionForm, EditPropertyForm
 from metadata.models import Section, Property
 
 
@@ -93,7 +93,7 @@ def property_add(request, id, template_name="metadata/dummy.html"):
     section = get_object_or_404(Section, id=id)
     if request.method == 'POST' and request.POST.get("action") == "property_add":
         if section.does_belong_to(request.user):
-            new_property = Property(title=???, parent_section=section)
+            new_property = Property(prop_title=property_title, prop_value=property_value, prop_parent_section=section)
             new_property.save()
             property_id = new_property.id
     return render_to_response(template_name, {
@@ -107,5 +107,21 @@ def property_delete(request):
 
 
 @login_required
-def property_edit(request):
-    pass
+def property_edit(request, id, form_class=EditPropertyForm, template_name="metadata/property_edit.html"):
+    sel_property = get_object_or_404(Property, id=id)
+    property_form = None
+
+    if sel_property.does_belong_to(request.user):
+        if request.method == "POST":
+            property_form = form_class(request.POST, instance=sel_property)
+            if property_form.is_valid():
+                sel_property = property_form.save(commit=False)
+                sel_property.save()
+                return HttpResponseRedirect(reverse("profile_detail", args=[request.user.username]))
+        else:
+            property_form = form_class(instance=sel_property)
+    
+    return render_to_response(template_name, {
+        "sel_property": sel_property,
+        "property_form": property_form,
+    }, context_instance=RequestContext(request))

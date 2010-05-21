@@ -79,15 +79,21 @@ class Property(models.Model):
     # A metadata "Property". Defines any kind of metadata property 
     # and may be linked to the section.
 
-    title = models.CharField(_('title'), max_length=100)
-    value = models.TextField(_('value'), blank=True)
-    description = models.TextField(_('description'), blank=True)
-    name_definition = models.TextField(_('name_definition'), blank=True)
-    comment = models.TextField(_('comment'), blank=True)
-    date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
-    parent_section = models.ForeignKey(Section, blank=True)
+    prop_title = models.CharField(_('title'), max_length=100)
+    prop_value = models.TextField(_('value'), blank=True)
+    prop_description = models.TextField(_('description'), blank=True)
+    prop_name_definition = models.TextField(_('name_definition'), blank=True)
+    prop_comment = models.TextField(_('comment'), blank=True)
+    prop_date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
+    prop_parent_section = models.ForeignKey(Section, blank=True)
 
     def __unicode__(self):
         return self.title
 
+    def does_belong_to(self, user):
+        section = self.prop_parent_section
+        if section.does_belong_to(user):
+            return True
+        else:
+            return False
 

@@ -6,6 +6,7 @@ from pinax.apps.projects.models import Project
 from django.db.models import Q
 from django.contrib.auth.models import User
 
+
 from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
@@ -41,4 +42,15 @@ class AddPropertyForm(forms.ModelForm):
     
     class Meta:
         model = Property
-        fields = ['title', 'value']
+        fields = ['prop_title', 'prop_value']
+        #widgets = {
+            #'title': widgets.TextInput(attrs={'id': 'id_prop_title', 'name': 'eyeyuu'}),
+         #   'title': widgets.Textarea(attrs={'cols': 80, 'rows': 20}),
+        #}
+
+class EditPropertyForm(forms.ModelForm):
+    
+    class Meta:
+        model = Property
+        fields = ['prop_title', 'prop_value', 'prop_description', 'prop_name_definition', 'prop_comment']
+

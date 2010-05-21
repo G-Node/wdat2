@@ -16,7 +16,7 @@
 	html, body { margin:0; padding:0; }
 	body, td, th, pre, code, select, option, input, textarea { font-family:"Trebuchet MS", Sans-serif; font-size:10pt; }
 	#container { width:800px; margin:10px auto; overflow:hidden; }
-	.demo { height:200px; width:200px; margin:0; border:1px solid gray; overflow-x:auto; overflow-y:auto; font-family:Verdana; font-size:10px; background:white; }
+	.demo { height:300px; width:200px; margin:0; border:1px solid gray; float:left; overflow-x:auto; overflow-y:auto; font-family:Verdana; font-size:10px; background:white; }
 	.code { width:490px; float:right; margin:0 0 10px 0; border:1px solid gray; }
 	pre { display:block; }
 	.syntaxhighlighter { margin:0 0 0 0 !important; padding:0 !important; }
@@ -137,19 +137,10 @@
     
     <h2>{% trans "Metadata" %}</h2>
 
-    <table style="borders: none; margin: none; padding: none;">
-        <tr><td colspan=2>
             {% include "metadata/section_buttons.html" %}
-        </td></tr>
-        <tr><td>
-
-        </td><td>
-
-        </td></tr>
-    </table>
 
             {% include "metadata/sections_tree.html" %}
-            <div id="properties_area">
+            <div id="properties_area" style="height: 300px; width: 580px; padding-left: 210px">
                 {% include "metadata/properties_list.html" %}
             </div>
 
@@ -279,20 +270,44 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript">
+    //needs to be rewritten
+    function edit_property(prop_id) {
+        var t = $.tree.focused(); 
+        if(t.selected) {
+            var prop_url = '../../../metadata/property_add/' + t.selected[0].id + '/';
+            var new_title = $(document.getElementById("id_prop_title")).attr('value');
+            var new_value = $(document.getElementById("id_prop_value")).attr('value');
+            var resp = $.ajax( { 
+                type: 'POST', 
+                url: prop_url, 
+                data: ({ section_id:t.selected[0].id, new_title:new_title, new_value:new_value, action:'property_add' }), 
+                success: function(data) { 
+                    var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
+                    $('#properties_area').load(load_url, function() {
+                        $('#add-property').toggle();
+                    }
+                );
+            },
+        }); 
+    }
+    else alert('Please select a section first');
+    };
+    </script>
+    <script type="text/javascript">
     function add_property() {
         var t = $.tree.focused(); 
         if(t.selected) {
             var prop_url = '../../../metadata/property_add/' + t.selected[0].id + '/';
-            var prop_form = $(document.getElementById("add-property"));
-            //new_title = ??;
-            //new_value = ??;
+            var new_title = $(document.getElementById("id_prop_title")).attr('value');
+            var new_value = $(document.getElementById("id_prop_value")).attr('value');
             var resp = $.ajax( { 
                 type: 'POST', 
                 url: prop_url, 
-                data: ({ section_id:t.selected[0].id, action:'property_add' }), 
+                data: ({ section_id:t.selected[0].id, new_title:new_title, new_value:new_value, action:'property_add' }), 
                 success: function(data) { 
-                    var load_url = '../../../metadata/properties_list/' + id;
+                    var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
                     $('#properties_area').load(load_url, function() {
+                        $('#add-property').toggle();
                     }
                 );
             },
@@ -347,7 +362,6 @@
 			},  
 			onselect : function (NODE, TREE_OBJ) {
 				var n_id =  NODE.id;
-                alert("node selected");
                 var prop_url = '../../../metadata/properties_list/' + n_id + '/';
                 $('#properties_area').load(prop_url, function() {
                     }

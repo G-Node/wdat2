@@ -1,0 +1,16 @@
+{% load i18n %}
+{% load uni_form %}
+
+                            <form class="uniForm" id="edit-property" method="POST" action="">
+                                <fieldset class="inlineLabels">
+                                    {{ property_form|as_uni_form }}
+                                    <div class="form_block">
+                                        <input type="hidden" name="action" value="property_add" />
+                                        <input type="button" onclick="edit_property({{ sel_property.id }})" value="{% trans 'Update' %}"/>
+                                    </div>
+                                </fieldset>
+                            </form>
+
+
+    
+
