@@ -10,7 +10,7 @@
             }
         </style><![endif]-->
         <link rel="stylesheet" href="{{ STATIC_URL }}pinax/css/base.css" />
-        <link rel="stylesheet" href="{{ STATIC_URL }}pinax/css/tabs.css" />
+        <!-- <link rel="stylesheet" href="{{ STATIC_URL }}pinax/css/tabs.css" />  -->
         <link rel="stylesheet" href="{{ STATIC_URL }}pinax/css/facebox.css" />
         <link rel="stylesheet" href="{{ STATIC_URL }}pinax/css/announcements.css" />
         <link rel="stylesheet" href="{{ STATIC_URL }}pinax/css/accounts.css" />
@@ -43,25 +43,42 @@
         
         <div id="tabhead">
             <div class="logo" dir="ltr">{% block logo_link_image %}{% endblock %}</div>
-            <div class="login">{% block login %}{% endblock %}{% block locale_switcher %}{% endblock %}<div style="text-align: right;"></div></div>
+            <div class="login"><div style="text-align: right;"></div></div>
             <div id="left_tabs" >{% block left_tabs %}{% endblock %}</div>
             <div id="right_tabs" >{% block right_tabs %}{% endblock %}</div>
         </div>
-        <div id="subnav" class="clxearfix">{% block subnav_base %}<div class="clearfix">{% block subnav %}&nbsp;{% endblock %}</div>{% endblock %}</div>
+        
+        {% if messages %}
+          <ul id="messages">
+              {% for message in messages %}
+                 <li id="message_{{ forloop.counter }}"><a href="#" onclick="$('#message_{{ forloop.counter }}').fadeOut(); return false;"><small>{% trans "clear" %}</small></a> {{ message }}</li>
+              {% endfor %}
+          </ul>
+          <div class="clxearfix"> </div>
+        {% endif %}
+        
+        
+        <div id="subnav" class="clxearfix">
+          {% block subnav_base %}
+            <!-- <div class="clearfix">  -->
+            <div class="seitenbreite">
+             {% block subnav %}&nbsp;{% endblock %}
+            </div>
+          {% endblock %}
+         </div>
         
         {% block body_outer %}
         <div id="body">
-            {% if messages %}
-                <ul id="messages">
-                    {% for message in messages %}
-                    <li id="message_{{ forloop.counter }}"><a href="#" onclick="$('#message_{{ forloop.counter }}').fadeOut(); return false;"><small>{% trans "clear" %}</small></a> {{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
+          <div id="content" class="contentseite {% block contentdiv_class %}{% endblock %}">
+            <div id="subsubnav" class="clxearfix">
+            {% block subsubnav_base %}
+            {% endblock %}
+            </div>
             
             {% block body %}
             {% endblock %}
-            
+          </div>  
+          <div class="clear"></div>  
         </div>
         {% endblock %}
         

@@ -2,16 +2,10 @@
 
 {% load group_tags %}
 
-{% block subnav_base %}
-    <div class="clearfix" style="border-bottom: 1px solid #9BC;">
+{% block subnav %}
         <ul>
-            <li><a href="{% url project_detail group.slug %}">{{ group }}</a></li>
-            <li><a href="{% groupurl topic_list group %}">Topics</a></li>
-            <li><a href="{% groupurl wiki_list group %}">Wiki</a></li>
+            <li class="{% block subnavi1_class %}{% endblock %} first"><a href="{% url project_detail group.slug %}">&laquo; {{ group }}</a></li>
+            <li class="{% block subnavi2_class %}{% endblock %}"><a href="{% groupurl topic_list group %}">Topics</a></li>
+            <li class="{% block subnavi3_class %}{% endblock %}"><a href="{% groupurl wiki_list group %}">Wiki</a></li>
         </ul>
-    </div>
-    <div class="clearfix" style="background: #F0F7FF;">
-        {% block subnav %}
-        {% endblock %}
-    </div>
 {% endblock %}

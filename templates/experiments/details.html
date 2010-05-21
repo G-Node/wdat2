@@ -60,8 +60,48 @@
 
     <div class="left_panel">
         <div class="photo-title">
-            <h2>{{ experiment.title }} {% if not experiment.isActive %}(DELETED){% endif %}</h2>
+            <h1>{{ experiment.title }} {% if not experiment.isActive %}(DELETED){% endif %}</h1>
         </div>
+        
+        <div id="experimenthead">
+	        <table>
+	          <tbody><tr>
+	            <td><strong>Description:</strong></td>
+	            <td>{{ experiment.caption }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>Date created:</strong> </td>
+	            <td>{{ experiment.date_created }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>Experiment type:</strong></td>
+	            <td>            
+	            {% ifequal experiment.exp_type 1 %}electrophysiology{% endifequal %}
+                {% ifequal experiment.exp_type 2 %}behaviour{% endifequal %}
+                {% ifequal experiment.exp_type 3 %}imaging{% endifequal %}
+                {% ifequal experiment.exp_type 4 %}modelling{% endifequal %}
+                {% ifequal experiment.exp_type 5 %}other{% endifequal %}  
+               </td>
+	          </tr>
+	          {% ifnotequal experiment.owner request.user%}
+	          	<tr>
+	              <td><strong>Owner:</strong></td>
+	              <td><a href="{% url profile_detail experiment.owner.username %}">{{ experiment.owner.username }}</a></td>
+	            </tr>
+	          {% endifnotequal %}
+	          <tr>
+	            <td><strong>Subject:</strong></td>
+	            <td>{{ experiment.subject }}</td>
+	          </tr> 
+	          <tr>
+	            <td><strong>&nbsp;</strong></td>
+	            <td>{% show_tags_for experiment %}</td>
+	          </tr> 
+	         </tbody></table>
+         </div>
+        
+        
+        <!--  
         <div class="photo-caption">
             <p><b>Description: </b>{{ experiment.caption }}</p>
         </div>
@@ -91,9 +131,11 @@
             {% show_tags_for experiment %}
         </div>
         
+         -->
+        
         {% ifequal request.user experiment.owner %}
             <div class="form-toggle">
-                <p><span id="edit-experiment-toggle">{% trans "Edit details" %}</span></p>
+                <p>&raquo; <span id="edit-experiment-toggle">{% trans "Edit details" %}</span></p>
                 
                 <form class="uniForm" id="edit-experiment" method="POST" action="">
                     <fieldset class="inlineLabels">
@@ -106,7 +148,7 @@
                 </form>
             </div>
             <div class="form-toggle">
-                <p><span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
+                <p>&raquo; <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
                 
                 <form class="uniForm" id="change-privacy" method="POST" action="">
                     <fieldset class="inlineLabels">
@@ -124,7 +166,7 @@
     <h2>{% trans "Related Datasets" %}</h2>
 	    {% ifequal experiment.owner request.user %}
             <div class="form-toggle">
-                <p><span id="add-dataset-toggle">{% trans "Link Dataset" %}</span></p>
+                <p>&raquo; <span id="add-dataset-toggle">{% trans "Link Dataset" %}</span></p>
                 
                 <form class="uniForm" id="add-dataset" method="POST" action="">
                     <fieldset class="inlineLabels">
@@ -182,7 +224,7 @@
     <h2>{% trans "Related Files" %}</h2>
 	    {% ifequal experiment.owner request.user %}
             <div class="form-toggle">
-                <p><span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
+                <p>&raquo; <span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
                 
                 <form class="uniForm" id="add-datafile" method="POST" action="">
                     <fieldset class="inlineLabels">

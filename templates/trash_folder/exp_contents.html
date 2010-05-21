@@ -1,5 +1,7 @@
 {% extends "trash_folder/base.html" %}
 
+{% block subnavi4a_class %}aktiv{% endblock %}
+
 {% load i18n %}
 {% load humanize %}
 {% load pagination_tags %}
@@ -8,13 +10,14 @@
 {% block head_title %}{% blocktrans %}Deleted Experiments{% endblocktrans %}{% endblock %}
 
 {% block body %}
+    <h1>Experiments</h1>
+    
     <p>You may restore objects. Please select which you want to restore. Objects, deleted more than 30 days ago will be automatically removed from the system.</p>
     
     {% if not exp_objects %}
         <p>You don't have deleted experiments.</p>
     {% else %}
 
-    <h1>Experiments</h1>
 
     {% autosort exp_objects %}
     {% autopaginate exp_objects 10 %}

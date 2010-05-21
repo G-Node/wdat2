@@ -4,7 +4,7 @@
 {% load uni_form %}
 
 {% block head_title %}{% blocktrans %}New file upload{% endblocktrans %}{% endblock %}
-
+{% block subnavi1_class %}aktiv{% endblock %}
 
 {% block body %}
     <h1>{% trans "Upload a File" %}</h1>
@@ -39,7 +39,7 @@
 {% endblock %}
 
 {% block js %}
-        <link href="{{ STATIC_URL }}css/upload.css" rel="stylesheet" type="text/css" />
+        <link href="{{ MEDIA_URL }}css/upload.css" rel="stylesheet" type="text/css" />
 
         <script charset="utf-8" type="text/javascript">
         //<![CDATA[
@@ -48,7 +48,7 @@
                 {
                         $(function() {
                                 $('#upload_form').uploadProgress({
-                                        jqueryPath: "{{ STATIC_URL }}js/jquery.js",
+                                        jqueryPath: "{{ MEDIA_URL }}js/jquery.js",
                                         progressBar: '#progress_indicator',
                                         progressUrl: '{% url datafiles.views.upload_progress %}',
                                         start: function() {
@@ -57,7 +57,7 @@
                                                 $("#progress_filename").html('Uploading ' + filename + "...");
                                                 $("#progress_container").show();
                                         },
-                                        uploadProgressPath: "{{ STATIC_URL }}js/jquery.uploadProgress.js",
+                                        uploadProgressPath: "{{ MEDIA_URL }}js/jquery.uploadProgress.js",
                                         uploading: function(upload) {
                                                 if (upload.percents == 100) {
                                                         window.clearTimeout(this.timer);

@@ -1,5 +1,7 @@
 {% extends "trash_folder/base.html" %}
 
+{% block subnavi4b_class %}aktiv{% endblock %}
+
 {% load i18n %}
 {% load humanize %}
 {% load pagination_tags %}
@@ -8,13 +10,15 @@
 {% block head_title %}{% blocktrans %}Deleted Datasets{% endblocktrans %}{% endblock %}
 
 {% block body %}
+    <h1>Datasets</h1>
+    
     <p>You may restore objects. Please select which you want to restore. Objects, deleted more than 30 days ago will be automatically removed from the system.</p>
     
     {% if not set_objects %}
         <p>You don't have deleted datasets.</p>
     {% else %}
 
-    <h1>Datasets</h1>
+    
 
     {% autosort set_objects %}
     {% autopaginate set_objects 10 %}
