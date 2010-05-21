@@ -9,6 +9,20 @@
 
 {% block head_title %}{% blocktrans %}Experiment Details{% endblocktrans %}{% endblock %}
 
+{% block extra_head %}
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shCore.css"/> 
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shThemeDefault.css"/> 
+	<style type="text/css"> 
+	html, body { margin:0; padding:0; }
+	body, td, th, pre, code, select, option, input, textarea { font-family:"Trebuchet MS", Sans-serif; font-size:10pt; }
+	#container { width:800px; margin:10px auto; overflow:hidden; }
+	.demo { height:200px; width:200px; margin:0; border:1px solid gray; overflow-x:auto; overflow-y:auto; font-family:Verdana; font-size:10px; background:white; }
+	.code { width:490px; float:right; margin:0 0 10px 0; border:1px solid gray; }
+	pre { display:block; }
+	.syntaxhighlighter { margin:0 0 0 0 !important; padding:0 !important; }
+	</style> 
+{% endblock %}
+
 {% block body %}
 
     {% if experiment %}
@@ -60,48 +74,8 @@
 
     <div class="left_panel">
         <div class="photo-title">
-            <h1>{{ experiment.title }} {% if not experiment.isActive %}(DELETED){% endif %}</h1>
+            <h2>{{ experiment.title }} {% if not experiment.isActive %}(DELETED){% endif %}</h2>
         </div>
-        
-        <div id="experimenthead">
-	        <table>
-	          <tbody><tr>
-	            <td><strong>Description:</strong></td>
-	            <td>{{ experiment.caption }}</td>
-	          </tr>
-	          <tr>
-	            <td><strong>Date created:</strong> </td>
-	            <td>{{ experiment.date_created }}</td>
-	          </tr>
-	          <tr>
-	            <td><strong>Experiment type:</strong></td>
-	            <td>            
-	            {% ifequal experiment.exp_type 1 %}electrophysiology{% endifequal %}
-                {% ifequal experiment.exp_type 2 %}behaviour{% endifequal %}
-                {% ifequal experiment.exp_type 3 %}imaging{% endifequal %}
-                {% ifequal experiment.exp_type 4 %}modelling{% endifequal %}
-                {% ifequal experiment.exp_type 5 %}other{% endifequal %}  
-               </td>
-	          </tr>
-	          {% ifnotequal experiment.owner request.user%}
-	          	<tr>
-	              <td><strong>Owner:</strong></td>
-	              <td><a href="{% url profile_detail experiment.owner.username %}">{{ experiment.owner.username }}</a></td>
-	            </tr>
-	          {% endifnotequal %}
-	          <tr>
-	            <td><strong>Subject:</strong></td>
-	            <td>{{ experiment.subject }}</td>
-	          </tr> 
-	          <tr>
-	            <td><strong>&nbsp;</strong></td>
-	            <td>{% show_tags_for experiment %}</td>
-	          </tr> 
-	         </tbody></table>
-         </div>
-        
-        
-        <!--  
         <div class="photo-caption">
             <p><b>Description: </b>{{ experiment.caption }}</p>
         </div>
@@ -131,13 +105,11 @@
             {% show_tags_for experiment %}
         </div>
         
-         -->
-        
         {% ifequal request.user experiment.owner %}
             <div class="form-toggle">
-                <p>&raquo; <span id="edit-experiment-toggle">{% trans "Edit details" %}</span></p>
+                <p><span id="edit-experiment-toggle">{% trans "Edit details" %}</span></p>
                 
-                <form class="uniForm" id="edit-experiment" method="POST" action="">
+                <form class="uniForm" id="edit-experiment" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ exp_form|as_uni_form }}
                         <div class="form_block">
@@ -148,9 +120,9 @@
                 </form>
             </div>
             <div class="form-toggle">
-                <p>&raquo; <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
+                <p><span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
                 
-                <form class="uniForm" id="change-privacy" method="POST" action="">
+                <form class="uniForm" id="change-privacy" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ privacy_form|as_uni_form }}
                         <div class="form_block">
@@ -163,12 +135,30 @@
         {% endifequal %}
     </div>
     
+    <h2>{% trans "Metadata" %}</h2>
+
+    <table style="borders: none; margin: none; padding: none;">
+        <tr><td colspan=2>
+            {% include "metadata/section_buttons.html" %}
+        </td></tr>
+        <tr><td>
+
+        </td><td>
+
+        </td></tr>
+    </table>
+
+            {% include "metadata/sections_tree.html" %}
+            <div id="properties_area">
+                {% include "metadata/properties_list.html" %}
+            </div>
+
     <h2>{% trans "Related Datasets" %}</h2>
 	    {% ifequal experiment.owner request.user %}
             <div class="form-toggle">
-                <p>&raquo; <span id="add-dataset-toggle">{% trans "Link Dataset" %}</span></p>
+                <p><span id="add-dataset-toggle">{% trans "Link Dataset" %}</span></p>
                 
-                <form class="uniForm" id="add-dataset" method="POST" action="">
+                <form class="uniForm" id="add-dataset" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ dataset_form|as_uni_form }}
                         <div class="form_block">
@@ -224,9 +214,9 @@
     <h2>{% trans "Related Files" %}</h2>
 	    {% ifequal experiment.owner request.user %}
             <div class="form-toggle">
-                <p>&raquo; <span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
+                <p><span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
                 
-                <form class="uniForm" id="add-datafile" method="POST" action="">
+                <form class="uniForm" id="add-datafile" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ datafile_form|as_uni_form }}
                         <div class="form_block">
@@ -286,9 +276,96 @@
 {% endblock %}
 
 {% block extra_body %}
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
+    <script type="text/javascript">
+    function add_property() {
+        var t = $.tree.focused(); 
+        if(t.selected) {
+            var prop_url = '../../../metadata/property_add/' + t.selected[0].id + '/';
+            var prop_form = $(document.getElementById("add-property"));
+            //new_title = ??;
+            //new_value = ??;
+            var resp = $.ajax( { 
+                type: 'POST', 
+                url: prop_url, 
+                data: ({ section_id:t.selected[0].id, action:'property_add' }), 
+                success: function(data) { 
+                    var load_url = '../../../metadata/properties_list/' + id;
+                    $('#properties_area').load(load_url, function() {
+                    }
+                );
+            },
+        }); 
+    }
+    else alert('Please select a section first');
+    };
+    </script>
+    <script type="text/javascript">
+        function load_meta_tree() {
+	    $("#sections").tree({
+		ui : {theme_name : "apple"},
+		callback : { 
+			oncreate : function (NODE, REF_NODE, TYPE, TREE_OBJ, RB) {
+                //if(TYPE != "inside") REF_NODE = $(REF_NODE).parent("li:eq(0)");
+                var pi = TREE_OBJ.parent(NODE).attr('id')
+                // n_id is always empty here unless assigned on the server side
+				var n_id =  NODE.id;
+				var n_name = TREE_OBJ.get_text(NODE);
+				var resp = $.ajax( { 
+					type: "POST", 
+					url: "../../../metadata/section_add/", 
+					data: ({ new_id:n_id, new_name:n_name, parent_id:pi, action:'section_add' }), 
+                    success: function(data) { 
+                        NODE.setAttribute("id", data);
+                        NODE.firstChild.setAttribute("href", "#");
+                        var f1 = data * 1;
+                        var nod = "#"+f1;
+                        $.tree.reference("#sections").refresh(nod);
+                        $.tree.focused().select_branch(nod);
+                        $.tree.focused().rename();
+                    },
+				}); 
+			}, 
+			onrename : function (NODE, TREE_OBJ, RB) {
+                //alert(NODE.id);
+				var n_id =  NODE.id;
+				var n_name = TREE_OBJ.get_text(NODE);
+				$.ajax( { 
+					type: "POST", 
+					url: "../../../metadata/section_edit/", 
+					data: ({ new_id:n_id, new_name:n_name, action:'section_edit' }), 
+				}); 
+			},
+			ondelete : function (NODE, TREE_OBJ, RB) {
+				var n_id =  NODE.id;
+				$.ajax( { 
+					type: "POST", 
+					url: "../../../metadata/section_delete/", 
+					data: ({ node_id:n_id, action:'section_delete' }), 
+				}); 
+			},  
+			onselect : function (NODE, TREE_OBJ) {
+				var n_id =  NODE.id;
+                alert("node selected");
+                var prop_url = '../../../metadata/properties_list/' + n_id + '/';
+                $('#properties_area').load(prop_url, function() {
+                    }
+                );
+			},  
+		} 
+	    });
+        };
+
+    </script>
+    <script type="text/javascript">
+        $(document.getElementById("sections")).ready(function() {
+        // do stuff when div is ready
+            load_meta_tree();
+        });
+    </script>
     <script type="text/javascript">
         $(document).ready(function() {
-            $('#edit-experiment').hide();
             $('#edit-experiment-toggle').click(function() {
                 $('#edit-experiment').toggle();
                 $('#edit-experiment').autoscroll();
@@ -298,7 +375,6 @@
                 $('#edit-experiment').show();
                 $('#edit-experiment .error').autoscroll();
             }
-            $('#change-privacy').hide();
             $('#change-privacy-toggle').click(function() {
                 $('#change-privacy').toggle();
                 $('#change-privacy').autoscroll();
@@ -308,7 +384,15 @@
                 $('#change-privacy').show();
                 $('#change-privacy .error').autoscroll();
             }
-            $('#add-dataset').hide();
+            $('#add-property-toggle').click(function() {
+                $('#add-property').toggle();
+                //$('#add-property').autoscroll();
+                return false;
+            });
+            if ($('#add-property .error').length) {
+                $('#add-property').show();
+                $('#add-property .error').autoscroll();
+            }
             $('#add-dataset-toggle').click(function() {
                 $('#add-dataset').toggle();
                 $('#add-dataset').autoscroll();
@@ -318,7 +402,6 @@
                 $('#add-dataset').show();
                 $('#add-dataset .error').autoscroll();
             }
-            $('#add-datafile').hide();
             $('#add-datafile-toggle').click(function() {
                 $('#add-datafile').toggle();
                 $('#add-datafile').autoscroll();
@@ -335,5 +418,6 @@
 		obj.options[loop].selected = false;
 		}
 	};
+
     </script>
 {% endblock %}

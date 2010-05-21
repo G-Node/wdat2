@@ -16,6 +16,7 @@ from datasets.models import RDataset
 from datafiles.models import Datafile
 from experiments.forms import CreateExperimentForm, ExperimentEditForm, ExperimentShortEditForm, PrivacyEditForm, AddDatasetForm, RemoveDatasetsForm, AddDatafileForm, RemoveDatafilesForm
 from experiments.filters import ExpFilter
+from metadata.forms import AddPropertyForm
 
 @login_required
 def create(request, form_class=CreateExperimentForm,
@@ -134,17 +135,15 @@ def member_experiments(request, template_name="experiments/memberexperiments.htm
 
 @login_required
 def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_form_class=PrivacyEditForm, 
-	dataset_form_class=AddDatasetForm, datafile_form_class=AddDatafileForm, template_name="experiments/details.html"):
+	dataset_form_class=AddDatasetForm, datafile_form_class=AddDatafileForm, property_form_class=AddPropertyForm, template_name="experiments/details.html"):
     # show the experiment details
 
-    experiments = Experiment.objects.all()
-    experiment = get_object_or_404(experiments, id=id)
-    experiments = None
+    experiment = get_object_or_404(Experiment.objects.all(), id=id)
 
     # security handler
     if not experiment.is_accessible(request.user):
-	experiment = None
-	raise Http404
+        experiment = None
+        raise Http404
 
     action = request.POST.get("action")
     dset_objects_form = RemoveDatasetsForm(request.POST or None, user=request.user, exprt=experiment)
@@ -211,19 +210,26 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 		        datafile.save()
 		    request.user.message_set.create(message=_("Successfully removed selected datafiles from '%s'") % experiment.title)
     else:
-	exp_form = form_class(instance=experiment)
-	privacy_form = privacy_form_class(user=request.user, instance=experiment)
-	dataset_form = dataset_form_class(user=request.user, exprt=experiment)
-	datafile_form = datafile_form_class(user=request.user, exprt=experiment)
+        exp_form = form_class(instance=experiment)
+        privacy_form = privacy_form_class(user=request.user, instance=experiment)
+        dataset_form = dataset_form_class(user=request.user, exprt=experiment)
+        datafile_form = datafile_form_class(user=request.user, exprt=experiment)
+
+    prop_add_form = property_form_class()
 
     datasets = experiment.rdataset_set.all().filter(Q(current_state=10))
     datasets = filter(lambda x: x.is_accessible(request.user), datasets)
-   
+
+    #from metadata.templatetags.metadata_extras import metadata_tree
+    #a1 = experiment.get_metadata()
+    #b2 = metadata_tree(a1)
+    #a3 = g3
+
     datafiles = experiment.datafile_set.all().filter(Q(current_state=10))
     datafiles = filter(lambda x: x.is_accessible(request.user), datafiles)
-    
+
     return render_to_response(template_name, {
-        "experiment": experiment,
+    "experiment": experiment,
 	"datasets": datasets,
 	"datafiles": datafiles,
 	"exp_form": exp_form,
@@ -232,6 +238,7 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 	"datafile_form": datafile_form,
 	"dset_objects_form": dset_objects_form,
 	"dfile_objects_form": dfile_objects_form,
+    "prop_add_form": prop_add_form,
     }, context_instance=RequestContext(request))
 
 
@@ -293,3 +300,22 @@ def experimentDelete(request, id):
     request.user.message_set.create(message=_("Successfully deleted experiment '%s'. You can find it in trash.") % title)
     
     return HttpResponseRedirect(redirect_to)
+
+
+# this view is no longer used, but kept for future purposes.
+"""
+@login_required
+def get_tree(request, id, template_name="metadata/sections_tree.html"):
+  
+    experiment = get_object_or_404(Experiment.objects.all(), id=id)
+    redirect_to = reverse("your_experiments")
+    
+    if experiment.owner != request.user:
+        request.user.message_set.create(message="You can't see data that isn't yours")
+        return HttpResponseRedirect(redirect_to)
+
+    return render_to_response(template_name, {
+        "experiment": experiment,
+    }, context_instance=RequestContext(request))
+"""
+

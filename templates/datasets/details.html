@@ -57,12 +57,9 @@
         {% endifequal %}    
     
     <div class="left_panel">
-    
         <div class="photo-title">
-            <h1>Dataset: {{ dataset.title }} {% if not dataset.isActive %}(DELETED){% endif %}</h1>
+            <h2>Dataset: {{ dataset.title }} {% if not dataset.isActive %}(DELETED){% endif %}</h2>
         </div>
-        
-        <!-- 
         <div class="photo-caption">
             <p><b>Description: </b>{{ dataset.caption }}</p>
         </div>
@@ -78,42 +75,12 @@
         <div>
             {% show_tags_for dataset %}
         </div>
-         -->
-        
-        <div id="datasethead">
-	        <table>
-	          <tbody>
-	          <tr>
-	            <td><strong>Description:</strong></td>
-	            <td>{{ dataset.caption }}</td>
-	          </tr>
-	          <tr>
-	            <td><strong>Date recorded:</strong> </td>
-	            <td>{{ dataset.date_added }}</td>
-	          </tr>
-	          {% ifnotequal dataset.owner request.user%}
-		          <tr>
-		            <td><strong>Owner:</strong></td>
-		            <td><a href="{% url profile_detail dataset.owner.username %}">{{ dataset.owner.username }}</a></td>
-		          </tr>
-	          {% endifnotequal %}
-	          <tr>
-	            <td><strong>&nbsp;</strong></td>
-	            <td>{% show_tags_for dataset %}</td>
-	          </tr>	          
-		     </tbody>
-		   </table>
-        </div>  
-        
-        
-        
-        
         
         {% ifequal request.user dataset.owner %}
             <div class="form-toggle">
-                <p>&raquo; <span id="edit-dataset-toggle">{% trans "Edit details" %}</span></p>
+                <p><span id="edit-dataset-toggle">{% trans "Edit details" %}</span></p>
                 
-                <form class="uniForm" id="edit-dataset" method="POST" action="">
+                <form class="uniForm" id="edit-dataset" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ dataset_form|as_uni_form }}
                         <div class="form_block">
@@ -125,9 +92,9 @@
             </div>
 
             <div class="form-toggle">
-                <p>&raquo; <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
+                <p><span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
                 
-                <form class="uniForm" id="change-privacy" method="POST" action="">
+                <form class="uniForm" id="change-privacy" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ privacy_form|as_uni_form }}
                         <div class="form_block">
@@ -144,9 +111,9 @@
     <h2>{% trans "Files in this Dataset" %}</h2>
 	    {% ifequal dataset.owner request.user %}
             <div class="form-toggle">
-                <p>&raquo; <span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
+                <p><span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
                 
-                <form class="uniForm" id="add-datafile" method="POST" action="">
+                <form class="uniForm" id="add-datafile" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ datafile_form|as_uni_form }}
                         <div class="form_block">
@@ -203,7 +170,6 @@
 {% block extra_body %}
     <script type="text/javascript">
         $(document).ready(function() {
-            $('#edit-dataset').hide();
             $('#edit-dataset-toggle').click(function() {
                 $('#edit-dataset').toggle();
                 $('#edit-dataset').autoscroll();
@@ -213,7 +179,6 @@
                 $('#edit-dataset').show();
                 $('#edit-dataset .error').autoscroll();
             }
-            $('#change-privacy').hide();
             $('#change-privacy-toggle').click(function() {
                 $('#change-privacy').toggle();
                 $('#change-privacy').autoscroll();
@@ -223,7 +188,6 @@
                 $('#change-privacy').show();
                 $('#change-privacy .error').autoscroll();
             }
-            $('#add-datafile').hide();
             $('#add-datafile-toggle').click(function() {
                 $('#add-datafile').toggle();
                 $('#add-datafile').autoscroll();
