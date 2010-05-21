@@ -27,7 +27,7 @@
 
 {% block login %}
     {% if user.is_authenticated %}
-        {% openid_icon openid user %}<b>{{ user }}</b> | <a href="{% url acct_email %}">{% trans "Account" %}</a> | {% if user.is_staff %}<a href="/admin/">{% trans "Admin" %}</a> | <a href="/system_dashboard/">{% trans "Dashboard" %}</a> | {% endif %}<a href="{% url home %}openid/logout/?next={% url acct_logout %}">{% trans "Logout" %}</a>
+        {% openid_icon openid user %}<b>{{ user }}</b> | <a href="{% url acct_email %}">{% trans "Account" %}</a> | {% if user.is_staff %}<a href="/admin/">{% trans "Admin" %}</a> | {% endif %}<a href="{% url home %}openid/logout/?next={% url acct_logout %}">{% trans "Logout" %}</a>
     {% else %}
         <a href="{% url acct_login %}">{% trans "Login" %}</a> {% ifsetting ACCOUNT_OPEN_SIGNUP %}{% trans "or" %} <a href="{% url acct_signup %}"><b>{% trans "Sign up" %}</b></a>{% endifsetting %}
     {% endif %}
@@ -62,8 +62,11 @@
 	    <li id="tab_projects"><a href="{% url your_projects %}">{% trans "Projects" %}</a></li>
 	    <li id="tab_experiments"><a href="{% url your_experiments %}">{% trans "Experiments" %}</a></li>
 	    <li id="tab_datasets"><a href="{% url start %}">{% trans "Data" %}</a></li>
-            <li id="tab_profile"><a href="{% url profile_detail user %}">{% trans "Profile" %}</a></li>
-            <li id="tab_inbox"><a href="{% url messages_inbox %}">{% trans "Inbox" %} ({{ combined_inbox_count }})</a></li>
+        <li id="tab_profile"><a href="{% url profile_detail user %}">{% trans "Profile" %}</a></li>
+        <li id="tab_inbox"><a href="{% url messages_inbox %}">{% trans "Inbox" %} ({{ combined_inbox_count }})</a></li>
+        {% if user.is_staff %}
+            <li id="tab_dashboard"><a href="/system_dashboard/">{% trans "Dashboard" %}</a></li>
+        {% endif %}
         {% endspaceless %}</ul>
     {% endif %}
 {% endblock %}
