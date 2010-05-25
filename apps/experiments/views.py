@@ -33,7 +33,7 @@ def create(request, form_class=CreateExperimentForm,
                 experiment = exp_form.save(commit=False)
                 experiment.owner = request.user
                 experiment.save()
-		exp_form.save_m2m()
+                exp_form.save_m2m()
                 
                 request.user.message_set.create(message=_("Successfully created experiment '%s'") % experiment.title)
 		include_kwargs = {"id": experiment.id}
