@@ -18,7 +18,8 @@
                         <td>{{ property.prop_comment }}</td>
                         <td>{{ property.prop_date_created|date:_("DATETIME_FORMAT") }}</td>
                         {% ifequal section.get_owner request.user %}
-                            <td><nobr><a href="{% url property_edit property.id %}" rel="facebox">{% trans "edit" %}</a> <a href="{% url property_delete property.id %}">{% trans "delete" %}</a></nobr></td>
+                            <td><nobr><a href="#" onclick="edit_property({{ property.id }}, 'get')">{% trans "edit" %}</a> <a 
+                                href="{% url property_delete property.id %}">{% trans "delete" %}</a></nobr></td>
                         {% endifequal %}
                     </tr>
                 {% endfor %}

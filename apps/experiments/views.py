@@ -16,7 +16,7 @@ from datasets.models import RDataset
 from datafiles.models import Datafile
 from experiments.forms import CreateExperimentForm, ExperimentEditForm, ExperimentShortEditForm, PrivacyEditForm, AddDatasetForm, RemoveDatasetsForm, AddDatafileForm, RemoveDatafilesForm
 from experiments.filters import ExpFilter
-from metadata.forms import AddPropertyForm
+from metadata.forms import AddPropertyForm, EditPropertyForm
 
 @login_required
 def create(request, form_class=CreateExperimentForm,
@@ -135,9 +135,9 @@ def member_experiments(request, template_name="experiments/memberexperiments.htm
 
 @login_required
 def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_form_class=PrivacyEditForm, 
-	dataset_form_class=AddDatasetForm, datafile_form_class=AddDatafileForm, property_form_class=AddPropertyForm, template_name="experiments/details.html"):
+	dataset_form_class=AddDatasetForm, datafile_form_class=AddDatafileForm, property_form_class1=AddPropertyForm, 
+    property_form_class2=EditPropertyForm, template_name="experiments/details.html"):
     # show the experiment details
-
     experiment = get_object_or_404(Experiment.objects.all(), id=id)
 
     # security handler
@@ -215,7 +215,8 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
         dataset_form = dataset_form_class(user=request.user, exprt=experiment)
         datafile_form = datafile_form_class(user=request.user, exprt=experiment)
 
-    prop_add_form = property_form_class()
+    prop_add_form = property_form_class1(auto_id='id_add_form_%s')
+    prop_edit_form = property_form_class2(auto_id='id_edit_form_%s')
 
     datasets = experiment.rdataset_set.all().filter(Q(current_state=10))
     datasets = filter(lambda x: x.is_accessible(request.user), datasets)

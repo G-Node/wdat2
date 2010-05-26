@@ -2,38 +2,23 @@
 {% load uni_form %}
 
 {% ifequal request.user experiment.owner %}
-                        <div class="form-toggle">
-                            <p>
-				<span onclick='var t = $.tree.focused(); if(t.selected) t.create({data: "New section"}); else alert("Select a node first");' id="add-temp-section">{% trans "Add section" %}</span>
-                <span onclick="$.tree.focused().rename();" id="rename-section-button">{% trans "Rename" %}</span>
-                <span onclick="$.tree.focused().remove();" id="delete-section-button">{% trans "Delete" %}</span>
-                <span id="add-property-toggle">{% trans "Add Property" %}</span>
-				<span id="add-section-toggle">{% trans "Add section from Template" %}</span>
+            <div class="form-toggle">
+                <p>
+				    <span onclick='var t = $.tree.focused(); if(t.selected) t.create({data: "New section"}); else alert("Select a node first");' id="add-temp-section">{% trans "Add section" %}</span>
+                    <span onclick="$.tree.focused().rename();" id="rename-section-button">{% trans "Rename" %}</span>
+                    <span onclick="$.tree.focused().remove();" id="delete-section-button">{% trans "Delete" %}</span>
+                    <span id="add-property-toggle">{% trans "Add Property" %}</span>
+				    <span id="add-section-toggle">{% trans "Add section from Template" %}</span>
 			    </p>
 
-                            <form class="uniForm" id="add-property" method="POST" action="" style="display:none">
-                                <fieldset class="inlineLabels">
-                                    {{ prop_add_form|as_uni_form }}
-                                    <div class="form_block">
-                                        <input type="hidden" name="action" value="property_add" />
-                                        <input type="button" onclick="add_property()" value="{% trans 'add' %}"/>
-                                    </div>
-                                </fieldset>
-                            </form>
+                <div id="form-add-property">
+                    {% include "metadata/property_add.html" %}
+                </div>
+                <div id="form-edit-property">
+                    {% include "metadata/property_edit.html" %}
+                </div>
 
-			{% comment %}
-                            <form class="uniForm" id="add-section" method="POST" action="">
-                                <fieldset class="inlineLabels">
-                                    {{ sec_add_form|as_uni_form }}
-                                    <div class="form_block">
-                                        <input type="hidden" name="action" value="section_add" />
-                                        <input type="submit" value="{% trans 'add' %}"/>
-                                    </div>
-                                </fieldset>
-                            </form>
-			{% endcomment %}
-
-                        </div>         
+            </div>         
 {% endifequal %}
 
 

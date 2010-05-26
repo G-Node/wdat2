@@ -43,14 +43,10 @@ class AddPropertyForm(forms.ModelForm):
     class Meta:
         model = Property
         fields = ['prop_title', 'prop_value']
-        #widgets = {
-            #'title': widgets.TextInput(attrs={'id': 'id_prop_title', 'name': 'eyeyuu'}),
-         #   'title': widgets.Textarea(attrs={'cols': 80, 'rows': 20}),
-        #}
 
 class EditPropertyForm(forms.ModelForm):
     
     class Meta:
         model = Property
-        fields = ['prop_title', 'prop_value', 'prop_description', 'prop_name_definition', 'prop_comment']
+        fields = ['prop_title', 'prop_value', 'prop_description', 'prop_comment']
 

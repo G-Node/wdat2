@@ -97,3 +97,15 @@ class Property(models.Model):
         else:
             return False
 
+    def update(self, title, value, description, comment):
+        if title:
+            self.prop_title = title
+        if value:
+            self.prop_value = value
+        if description:
+            self.prop_description = description
+        if comment:
+            self.prop_comment = comment
+
+
+

@@ -12,7 +12,7 @@ import datetime
 
 from experiments.models import Experiment
 from datasets.models import RDataset
-from metadata.forms import AddSectionForm, EditPropertyForm
+from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm
 from metadata.models import Section, Property
 
 
@@ -86,18 +86,20 @@ def properties_list(request, id, template_name="metadata/properties_list.html"):
 
 
 @login_required
-def property_add(request, id, template_name="metadata/dummy.html"):
-    property_id = None
-    property_title = request.POST.get("new_title")
-    property_value = request.POST.get("new_value")
-    section = get_object_or_404(Section, id=id)
-    if request.method == 'POST' and request.POST.get("action") == "property_add":
-        if section.does_belong_to(request.user):
+def property_add(request, id, property_form_class=AddPropertyForm, template_name="metadata/property_add.html"):
+    property_id = 0
+    prop_form = property_form_class(request.POST, auto_id='id_add_form_%s')
+    if request.method == 'POST' and prop_form.is_valid():
+        property_title = request.POST.get("prop_title")
+        property_value = request.POST.get("prop_value")
+        section = get_object_or_404(Section, id=id)
+        if request.POST.get("action") == "property_add" and section.does_belong_to(request.user):
             new_property = Property(prop_title=property_title, prop_value=property_value, prop_parent_section=section)
             new_property.save()
             property_id = new_property.id
     return render_to_response(template_name, {
         "property_id": property_id,
+        "prop_add_form": prop_form,
         }, context_instance=RequestContext(request))
 
 
@@ -108,20 +110,26 @@ def property_delete(request):
 
 @login_required
 def property_edit(request, id, form_class=EditPropertyForm, template_name="metadata/property_edit.html"):
-    sel_property = get_object_or_404(Property, id=id)
     property_form = None
+    property_id = id
+    upd_result = 0
+    sel_property = get_object_or_404(Property, id=id)
 
-    if sel_property.does_belong_to(request.user):
-        if request.method == "POST":
-            property_form = form_class(request.POST, instance=sel_property)
-            if property_form.is_valid():
-                sel_property = property_form.save(commit=False)
-                sel_property.save()
-                return HttpResponseRedirect(reverse("profile_detail", args=[request.user.username]))
-        else:
-            property_form = form_class(instance=sel_property)
+    if request.method == "POST" and request.POST.get("action") == 'update_form':
+        property_form = form_class(request.POST, auto_id='id_edit_form_%s')
+        if property_form.is_valid() and sel_property.does_belong_to(request.user):
+            #sel_property = property_form.save(commit=False)
+            sel_property.update(request.POST.get("prop_title"), request.POST.get("prop_value"), request.POST.get("prop_description"), request.POST.get("prop_comment"))
+            sel_property.save()
+            property_id = sel_property.id
+            upd_result = property_id
+    elif request.method == "POST" and request.POST.get("action") == 'get_form':
+        property_form = form_class(auto_id='id_edit_form_%s', instance=sel_property)
     
     return render_to_response(template_name, {
-        "sel_property": sel_property,
-        "property_form": property_form,
+        "upd_result": upd_result,
+        "property_id": property_id,
+        "prop_edit_form": property_form,
     }, context_instance=RequestContext(request))
+
+
