@@ -270,7 +270,23 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript">
-    //needs to be rewritten
+    function delete_property(prop_id) {
+		var resp = $.ajax( { 
+			type: "POST", 
+			url: '../../../metadata/property_delete/', 
+			data: ({ prop_id:prop_id, action:'property_delete' }), 
+            success: function(data) { 
+                var t = $.tree.focused(); 
+                if(t.selected) {
+                    var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
+                    $('#properties_area').load(load_url, function() {
+                    })
+                }
+            },
+		});
+     };
+    </script>
+    <script type="text/javascript">
     function edit_property(prop_id, action) {
         var prop_url = '../../../metadata/property_edit/' + prop_id + '/';
         if(action == 'update') {
@@ -307,30 +323,6 @@
         }
     };
     </script>
-<!--    <script type="text/javascript">
-    //needs to be rewritten
-    function edit_property(prop_id) {
-        var t = $.tree.focused(); 
-        if(t.selected) {
-            var prop_url = '../../../metadata/property_add/' + t.selected[0].id + '/';
-            var new_title = $(document.getElementById("id_prop_title")).attr('value');
-            var new_value = $(document.getElementById("id_prop_value")).attr('value');
-            var resp = $.ajax( { 
-                type: 'POST', 
-                url: prop_url, 
-                data: ({ section_id:t.selected[0].id, new_title:new_title, new_value:new_value, action:'property_add' }), 
-                success: function(data) { 
-                    var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
-                    $('#properties_area').load(load_url, function() {
-                        $('#add-property').toggle();
-                    }
-                );
-            },
-        }); 
-    }
-    else alert('Please select a section first');
-    };
-    </script> -->
     <script type="text/javascript">
     function add_property() {
         var t = $.tree.focused(); 

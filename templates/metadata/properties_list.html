@@ -1,6 +1,7 @@
 {% load i18n %}
 
 {% if section %}
+    {% if section.getActiveProperties %}
         <table class="messages">
             <thead>
                 <tr><th>{% trans "Name" %}</th><th>{% trans "Value" %}</th><th>{% trans "Description" %}</th><th>{% trans "Comment" %}</th><th>{% trans "Created" %}</th>
@@ -10,7 +11,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for property in section.property_set.all %}
+                {% for property in section.getActiveProperties %}
                     <tr>
                         <td><a href="#">{{ property.prop_title }}</a></td>
                         <td>{{ property.prop_value }}</td>
@@ -19,10 +20,13 @@
                         <td>{{ property.prop_date_created|date:_("DATETIME_FORMAT") }}</td>
                         {% ifequal section.get_owner request.user %}
                             <td><nobr><a href="#" onclick="edit_property({{ property.id }}, 'get')">{% trans "edit" %}</a> <a 
-                                href="{% url property_delete property.id %}">{% trans "delete" %}</a></nobr></td>
+                                href="#" onclick="delete_property({{ property.id }})">{% trans "delete" %}</a></nobr></td>
                         {% endifequal %}
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+    {% else %}
+        <p>No properties found in this section.<br> You may add new properties, link datasets, files or time series records using the navigation above.</p>
+    {% endif %}
 {% endif %}

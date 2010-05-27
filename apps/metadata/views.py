@@ -104,8 +104,17 @@ def property_add(request, id, property_form_class=AddPropertyForm, template_name
 
 
 @login_required
-def property_delete(request):
-    pass
+def property_delete(request, template_name="metadata/dummy.html"):
+    status = False
+    if request.method == 'POST' and request.POST.get("action") == "property_delete":
+        property_id = request.POST.get("prop_id")
+        prop = get_object_or_404(Property, id=property_id)
+        if prop.does_belong_to(request.user):
+            prop.deleteObject()
+            status = True
+    return render_to_response(template_name, {
+        "status": status,
+        }, context_instance=RequestContext(request))
 
 
 @login_required

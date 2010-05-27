@@ -73,12 +73,23 @@ class Section(models.Model):
             for section in self.section_set.filter(current_state=10):
                 sec_tree.append(section.get_tree())
         return sec_tree
-	    
+
+    def getActiveProperties(self):
+        return self.property_set.filter(current_state=10)	    
+
+
 
 class Property(models.Model):
     # A metadata "Property". Defines any kind of metadata property 
     # and may be linked to the section.
-
+    STATES = (
+        (10, _('Active')),
+        (20, _('Deleted')),
+        (30, _('Archived')),
+    )
+    # the state is not inherited from state_machine module due to 
+    # the complexity of the DB structure
+    current_state = models.IntegerField(_('state'), choices=STATES, default=10)
     prop_title = models.CharField(_('title'), max_length=100)
     prop_value = models.TextField(_('value'), blank=True)
     prop_description = models.TextField(_('description'), blank=True)
@@ -107,5 +118,11 @@ class Property(models.Model):
         if comment:
             self.prop_comment = comment
 
+    def deleteObject(self):
+        if not self.current_state == 30: 
+            self.current_state = 20
+            self.save()
+            return True
+        return False
 
 
