@@ -7,75 +7,174 @@
 
 {% block head_title %}{% blocktrans %}My Time Series data{% endblocktrans %}{% endblock %}
 
+{% block extra_head %}
+<script type="text/javascript" src="{{ STATIC_URL }}js/highcharts.js"></script>
+<script type="text/javascript">
+   var chart;
+   $(document).ready(function() {
+   chart = new Highcharts.Chart({
+   chart: {
+      renderTo: 'container',
+      zoomType: 'x'
+   },
+        title: {
+      text: 'my time series'
+   },
+        subtitle: {
+      text: 'Click and drag in the plot area to zoom in'
+   },
+   xAxis: {
+      type: 'datetime',
+      maxZoom: 10 * {{ t_serie.getTimeStep_ms }}, 
+      title: {
+         text: null
+      }
+   },
+   yAxis: {
+      title: {
+         text: 'Voltage'
+      },
+      //min: 0.6,
+      startOnTick: false,
+      showFirstLabel: false
+   },
+   tooltip: {
+      formatter: function() {
+         return '<b>'+ (this.point.name || this.series.name) +'</b><br>'+
+            Highcharts.dateFormat('%A %B %e %Y', this.x) + ':<br>'+
+            '1 USD = '+ Highcharts.numberFormat(this.y, 2) +' EUR';
+      }
+   },
+   legend: {
+      enabled: false
+   },
+   plotOptions: {
+      area: {
+         fillColor: {
+            linearGradient: [0, 0, 0, 300],
+            stops: [
+               [0, highchartsOptions.colors[0]],
+               [1, 'rgba(0,0,0,0)']
+            ]
+         },
+         lineWidth: 1,
+         marker: {
+            enabled: false,
+            states: {
+               hover: {
+                  enabled: true,
+                  radius: 3
+               }
+            }
+         },
+         shadow: false,
+         states: {
+            hover: {
+               lineWidth: 1                  
+            }
+         }
+      }
+   },
+
+   series: [{
+      type: 'area',
+      name: 'USD to EUR',
+      pointInterval: {{ t_serie.getTimeStep_ms }},
+      pointStart: Date.UTC({{ t_serie.start_time }}),
+      data: [
+        {{ t_serie.getData }}
+      ]
+   }]
+});
+</script> 
+
 {% block body %}
 
     {% if timeseries %}
 
-            <div class="right_panel">
-                <div class="friends">
-                    <h2>{% trans "From Experiments" %}</h2>
-                    <p>Select an experiment to browse time series data, associated with it. Or push <a href="{% url timeseries_main %}">"View all"</a> to browse all your recorded time series.</p>
-                    <p>HERE GOES THE TABLE WITH EXPERIMENTS</p>
-                </div>
-
-                <div class="friends">
-                    <h2>{% trans "Time Series" %}</h2>
-                    {% autopaginate timeseries 15 %}
-                    <table width="100%">
-                        {% for tserie in timeseries %}
-                            <tr><td>- <a href="#">{{ tserie.title|truncate_dot:26|escape }}</a></td></tr>
-                        {% endfor %}
-                    </table>    
-                	{% paginate %}                
-                </div>
+        <div class="right_panel">
+            <div class="friends">
+                <h2>{% trans "From Experiments" %}</h2>
+                <p>Select an experiment to browse time series data, associated with it. Or push <a href="{% url timeseries_main %}">"View all"</a> to browse all your recorded time series.</p>
+                <p>HERE GOES THE TABLE WITH EXPERIMENTS</p>
             </div>
 
-    <div class="left_panel">
-        <div class="photo-title">
-            <h2>{{ t_serie.title }} {% if not t_serie.isActive %}(DELETED){% endif %}</h2>
-        </div>
-        <div class="photo-caption">
-            <p><b>Description: </b>{{ t_serie.description }}</p>
-        </div>
-        <div>
-            <p><b>Date created: </b>{{ experiment.date_created }}</p>
-        </div>
-        <div>
-            {% ifnotequal t_serie.owner request.user%}
-            <b>Owner: </b>
-            <a href="{% url profile_detail t_serie.owner.username %}">{{ t_serie.owner.username }}</a>
-            {% endifnotequal %}
-        </div>
-        <div>
-            {% show_tags_for t_serie %}
+            <div class="friends">
+                <h2>{% trans "Time Series" %}</h2>
+                {% autopaginate timeseries 15 %}
+                <table width="100%">
+                    {% for tserie in timeseries %}
+                        <tr><td>- <a href="#">{{ tserie.title|truncate_dot:26|escape }}</a></td></tr>
+                    {% endfor %}
+                </table>    
+            	{% paginate %}                
+            </div>
         </div>
 
-        <div id="container" style="width: 800px; height: 400px; margin: 0 auto"></div>
+        <div class="left_panel">
+
+            <div class="form-toggle">
+                <div id="form-add-timeseries">
+                    <form class="uniForm" id="add-timeseries" method="POST" action="" style="display:none">
+                        <fieldset class="inlineLabels">
+                            {{ tserie_add_form|as_uni_form }}
+                            <div class="form_block">
+                                <input type="hidden" name="action" value="timeseries_add" />
+                                <input type="button" value="submit"/>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+
+                <div id="form-edit-timeseries">
+                </div>
+
+            </div>         
+
+            <div class="photo-title">
+                <h2>{{ t_serie.title }} {% if not t_serie.isActive %}(DELETED){% endif %}</h2>
+            </div>
+            <div class="photo-caption">
+                <p><b>Description: </b>{{ t_serie.description }}</p>
+            </div>
+            <div>
+                <p><b>Date created: </b>{{ experiment.date_created }}</p>
+            </div>
+            <div>
+                {% ifnotequal t_serie.owner request.user%}
+                <b>Owner: </b>
+                <a href="{% url profile_detail t_serie.owner.username %}">{{ t_serie.owner.username }}</a>
+                {% endifnotequal %}
+            </div>
+            <div>
+                {% show_tags_for t_serie %}
+            </div>
+
+            <div id="container" style="width: 800px; height: 400px; margin: 0 auto"></div>
 
 
-        {% ifequal request.user t_serie.owner %}
-         
-        {% endifequal %}
-    </div>
+            {% ifequal request.user t_serie.owner %}
+             
+            {% endifequal %}
+        </div>
     
-    {% comment %}
-    <h2>{% trans "Metadata" %}</h2>
+        {% comment %}
+        <h2>{% trans "Metadata" %}</h2>
 
-            {% include "metadata/section_buttons.html" %}
+                {% include "metadata/section_buttons.html" %}
 
 
-        <div style="height: 300px; padding: 0; margin: 0;">
-            {% include "metadata/sections_tree.html" %}
-            <div id="properties_area" style="height: 300px; width: 580px; padding-left: 210px">
-                {% include "metadata/properties_list.html" %}
+            <div style="height: 300px; padding: 0; margin: 0;">
+                {% include "metadata/sections_tree.html" %}
+                <div id="properties_area" style="height: 300px; width: 580px; padding-left: 210px">
+                    {% include "metadata/properties_list.html" %}
+                </div>
             </div>
-        </div>
 
-    {% endcomment %}
-
+        {% endcomment %}
    
     {% else %}
-    <p>You don't have any timeseries data uploaded. Try by uploading new time series data now, or upload data in files.</p>
+        <p>You don't have any timeseries data uploaded. Try by uploading new time series data now, or upload data in files.</p>
     {% endif %}
     
 {% endblock %}
@@ -83,142 +182,12 @@
 {% block extra_body %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
-    <script type="text/javascript">
-    function delete_property(prop_id) {
-		var resp = $.ajax( { 
-			type: "POST", 
-			url: '../../../metadata/property_delete/', 
-			data: ({ prop_id:prop_id, action:'property_delete' }), 
-            success: function(data) { 
-                var t = $.tree.focused(); 
-                if(t.selected) {
-                    var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
-                    $('#properties_area').load(load_url, function() {
-                    })
-                }
-            },
-		});
-     };
-    </script>
-    <script type="text/javascript">
-    function edit_property(prop_id, action) {
-        var prop_url = '../../../metadata/property_edit/' + prop_id + '/';
-        if(action == 'update') {
-            var new_title = $(document.getElementById("id_edit_form_prop_title")).attr('value');
-            var new_value = $(document.getElementById("id_edit_form_prop_value")).attr('value');
-            var new_description = $(document.getElementById("id_edit_form_prop_description")).attr('value');
-            var new_comment = $(document.getElementById("id_edit_form_prop_comment")).attr('value');
-            $('#edit-property').load(
-                prop_url, 
-                {prop_title:new_title, prop_value:new_value, prop_description:new_description, prop_comment:new_comment, action:'update_form'}, 
-                function() {
-                    var t1 = $(document.getElementById("edit-prop-success-identifier")).attr('value');
-                    if (t1 != "0") {
-                        var t = $.tree.focused(); 
-                        if(t.selected) {
-                            var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
-                            $('#properties_area').load(load_url, function() {
-                            })
-                        }
-                        $('#edit-property').hide();
-                    }
-                }
-            ); 
-        }
-        else {
-            $('#edit-property').load(
-                prop_url, 
-                {action:'get_form'}, 
-                function() {
-                    $('#edit-property').show();
-                    $('#edit-property').autoscroll();
-                }
-            ); 
-        }
-    };
-    </script>
-    <script type="text/javascript">
-    function add_property() {
-        var t = $.tree.focused(); 
-        if(t.selected) {
-            var prop_url = '../../../metadata/property_add/' + t.selected[0].id + '/';
-            var new_title = $(document.getElementById("id_add_form_prop_title")).attr('value');
-            var new_value = $(document.getElementById("id_add_form_prop_value")).attr('value');
-            $('#add-property').load(
-                prop_url, 
-                {section_id:t.selected[0].id, prop_title:new_title, prop_value:new_value, action:'property_add'}, 
-                function(response, status, xhr) {
-                    var t1 = $(document.getElementById("add-prop-success-identifier")).attr('value');
-                    if (t1 != "0") {
-                        var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
-                        $('#properties_area').load(load_url, function() {
-                            $('#add-property').toggle();
-                        })
-                    }
-                }
-            ); 
-        }
-        else alert('Please select a section first');
-        };
-    </script>
-    <script type="text/javascript">
-        function load_meta_tree() {
-	    $("#sections").tree({
-		ui : {theme_name : "apple"},
-		callback : { 
-			oncreate : function (NODE, REF_NODE, TYPE, TREE_OBJ, RB) {
-                //if(TYPE != "inside") REF_NODE = $(REF_NODE).parent("li:eq(0)");
-                var pi = TREE_OBJ.parent(NODE).attr('id')
-                // n_id is always empty here unless assigned on the server side
-				var n_id =  NODE.id;
-				var n_name = TREE_OBJ.get_text(NODE);
-				var resp = $.ajax( { 
-					type: "POST", 
-					url: "../../../metadata/section_add/", 
-					data: ({ new_id:n_id, new_name:n_name, parent_id:pi, action:'section_add' }), 
-                    success: function(data) { 
-                        NODE.setAttribute("id", data);
-                        NODE.firstChild.setAttribute("href", "#");
-                        var f1 = data * 1;
-                        var nod = "#"+f1;
-                        $.tree.reference("#sections").refresh(nod);
-                        $.tree.focused().select_branch(nod);
-                        $.tree.focused().rename();
-                    },
-				}); 
-			}, 
-			onrename : function (NODE, TREE_OBJ, RB) {
-                //alert(NODE.id);
-				var n_id =  NODE.id;
-				var n_name = TREE_OBJ.get_text(NODE);
-				$.ajax( { 
-					type: "POST", 
-					url: "../../../metadata/section_edit/", 
-					data: ({ new_id:n_id, new_name:n_name, action:'section_edit' }), 
-				}); 
-			},
-			ondelete : function (NODE, TREE_OBJ, RB) {
-				var n_id =  NODE.id;
-				$.ajax( { 
-					type: "POST", 
-					url: "../../../metadata/section_delete/", 
-					data: ({ node_id:n_id, action:'section_delete' }), 
-				}); 
-			},  
-			onselect : function (NODE, TREE_OBJ) {
-                $('#properties_area').hide();
-				var n_id =  NODE.id;
-                var prop_url = '../../../metadata/properties_list/' + n_id + '/';
-                $('#properties_area').load(prop_url, function() {
-                    $('#properties_area').show();
-                    }
-                );
-			},  
-		} 
-	    });
-        };
+    <script type="text/javascript" src="{{ STATIC_URL }}js/delete_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
 
-    </script>
     <script type="text/javascript">
         $(document.getElementById("sections")).ready(function() {
         // do stuff when div is ready

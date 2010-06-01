@@ -14,7 +14,7 @@ class AddTSfromFieldForm(forms.ModelForm):
     
     class Meta:
         model = TimeSeries
-        fields = ['data']
+        fields = ['data', 'data_type', 'time_step']
 
 class AddTSfromFileForm(forms.ModelForm):
     

@@ -11,16 +11,8 @@
 
 {% block extra_head %}
 	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shCore.css"/> 
-	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shThemeDefault.css"/> 
-	<style type="text/css"> 
-	html, body { margin:0; padding:0; }
-	body, td, th, pre, code, select, option, input, textarea { font-family:"Trebuchet MS", Sans-serif; font-size:10pt; }
-	#container { width:800px; margin:10px auto; overflow:hidden; }
-	.demo { height:300px; width:200px; margin-top:3px; border:1px solid gray; float:left; overflow-x:auto; overflow-y:auto; font-family:Verdana; font-size:10px; background:white; }
-	.code { width:490px; float:right; margin:0 0 10px 0; border:1px solid gray; }
-	pre { display:block; }
-	.syntaxhighlighter { margin:0 0 0 0 !important; padding:0 !important; }
-	</style> 
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shThemeDefault.css"/>
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shTreeDemo.css"/>  
 {% endblock %}
 
 {% block body %}
@@ -272,142 +264,11 @@
 {% block extra_body %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
-    <script type="text/javascript">
-    function delete_property(prop_id) {
-		var resp = $.ajax( { 
-			type: "POST", 
-			url: '../../../metadata/property_delete/', 
-			data: ({ prop_id:prop_id, action:'property_delete' }), 
-            success: function(data) { 
-                var t = $.tree.focused(); 
-                if(t.selected) {
-                    var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
-                    $('#properties_area').load(load_url, function() {
-                    })
-                }
-            },
-		});
-     };
-    </script>
-    <script type="text/javascript">
-    function edit_property(prop_id, action) {
-        var prop_url = '../../../metadata/property_edit/' + prop_id + '/';
-        if(action == 'update') {
-            var new_title = $(document.getElementById("id_edit_form_prop_title")).attr('value');
-            var new_value = $(document.getElementById("id_edit_form_prop_value")).attr('value');
-            var new_description = $(document.getElementById("id_edit_form_prop_description")).attr('value');
-            var new_comment = $(document.getElementById("id_edit_form_prop_comment")).attr('value');
-            $('#edit-property').load(
-                prop_url, 
-                {prop_title:new_title, prop_value:new_value, prop_description:new_description, prop_comment:new_comment, action:'update_form'}, 
-                function() {
-                    var t1 = $(document.getElementById("edit-prop-success-identifier")).attr('value');
-                    if (t1 != "0") {
-                        var t = $.tree.focused(); 
-                        if(t.selected) {
-                            var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
-                            $('#properties_area').load(load_url, function() {
-                            })
-                        }
-                        $('#edit-property').hide();
-                    }
-                }
-            ); 
-        }
-        else {
-            $('#edit-property').load(
-                prop_url, 
-                {action:'get_form'}, 
-                function() {
-                    $('#edit-property').show();
-                    $('#edit-property').autoscroll();
-                }
-            ); 
-        }
-    };
-    </script>
-    <script type="text/javascript">
-    function add_property() {
-        var t = $.tree.focused(); 
-        if(t.selected) {
-            var prop_url = '../../../metadata/property_add/' + t.selected[0].id + '/';
-            var new_title = $(document.getElementById("id_add_form_prop_title")).attr('value');
-            var new_value = $(document.getElementById("id_add_form_prop_value")).attr('value');
-            $('#add-property').load(
-                prop_url, 
-                {section_id:t.selected[0].id, prop_title:new_title, prop_value:new_value, action:'property_add'}, 
-                function(response, status, xhr) {
-                    var t1 = $(document.getElementById("add-prop-success-identifier")).attr('value');
-                    if (t1 != "0") {
-                        var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
-                        $('#properties_area').load(load_url, function() {
-                            $('#add-property').toggle();
-                        })
-                    }
-                }
-            ); 
-        }
-        else alert('Please select a section first');
-        };
-    </script>
-    <script type="text/javascript">
-        function load_meta_tree() {
-	    $("#sections").tree({
-		ui : {theme_name : "apple"},
-		callback : { 
-			oncreate : function (NODE, REF_NODE, TYPE, TREE_OBJ, RB) {
-                //if(TYPE != "inside") REF_NODE = $(REF_NODE).parent("li:eq(0)");
-                var pi = TREE_OBJ.parent(NODE).attr('id')
-                // n_id is always empty here unless assigned on the server side
-				var n_id =  NODE.id;
-				var n_name = TREE_OBJ.get_text(NODE);
-				var resp = $.ajax( { 
-					type: "POST", 
-					url: "../../../metadata/section_add/", 
-					data: ({ new_id:n_id, new_name:n_name, parent_id:pi, action:'section_add' }), 
-                    success: function(data) { 
-                        NODE.setAttribute("id", data);
-                        NODE.firstChild.setAttribute("href", "#");
-                        var f1 = data * 1;
-                        var nod = "#"+f1;
-                        $.tree.reference("#sections").refresh(nod);
-                        $.tree.focused().select_branch(nod);
-                        $.tree.focused().rename();
-                    },
-				}); 
-			}, 
-			onrename : function (NODE, TREE_OBJ, RB) {
-                //alert(NODE.id);
-				var n_id =  NODE.id;
-				var n_name = TREE_OBJ.get_text(NODE);
-				$.ajax( { 
-					type: "POST", 
-					url: "../../../metadata/section_edit/", 
-					data: ({ new_id:n_id, new_name:n_name, action:'section_edit' }), 
-				}); 
-			},
-			ondelete : function (NODE, TREE_OBJ, RB) {
-				var n_id =  NODE.id;
-				$.ajax( { 
-					type: "POST", 
-					url: "../../../metadata/section_delete/", 
-					data: ({ node_id:n_id, action:'section_delete' }), 
-				}); 
-			},  
-			onselect : function (NODE, TREE_OBJ) {
-                $('#properties_area').hide();
-				var n_id =  NODE.id;
-                var prop_url = '../../../metadata/properties_list/' + n_id + '/';
-                $('#properties_area').load(prop_url, function() {
-                    $('#properties_area').show();
-                    }
-                );
-			},  
-		} 
-	    });
-        };
-
-    </script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/delete_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
     <script type="text/javascript">
         $(document.getElementById("sections")).ready(function() {
         // do stuff when div is ready
@@ -462,12 +323,5 @@
                 $('#add-datafile .error').autoscroll();
             }
         });
-	function unselectAll() {
-		var obj = document.getElementById("id_shared_with");
-		for (var loop=0; loop < obj.options.length; loop++) {
-		obj.options[loop].selected = false;
-		}
-	};
-
     </script>
 {% endblock %}

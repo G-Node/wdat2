@@ -31,8 +31,8 @@ class TimeSeries(SafetyLevel):
     parent_section = models.ManyToManyField(Section, blank=True)
     data = models.TextField(_('data'), blank=True)
     data_type = models.IntegerField(_('data type'), choices=TYPES, default=10)
-    start_time = models.DateTimeField(_('start time'), blank=True)
-    end_time = models.DateTimeField(_('end time'), blank=True)
+    start_time = models.DateTimeField(_('start time'), default=datetime.now, blank=True)
+    #end_time = models.DateTimeField(_('end time'), blank=True)
     time_step = IntegerField(_('data timestep'), default=1)
     time_step_items = IntegerField(_('data timestep'), choices=ITEMS  , default=21)
     tags = TagField()
@@ -58,11 +58,17 @@ class TimeSeries(SafetyLevel):
         self.save()
 
     def getNextCounter(self):
-        c = Section.timeseries_set.filter(owner=self.owner).count()
+        c = TimeSeries.filter(owner=self.owner).count()
         title = ("%s", c)
         while len(title) < 11:
             title += "0" + title
         return title
+
+    def getData(self):
+        return self.data
+
+    def getTimeStep_ms(self):
+        
 
 
 
