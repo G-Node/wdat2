@@ -139,10 +139,13 @@
 
             {% include "metadata/section_buttons.html" %}
 
+
+        <div style="height: 300px; padding: 0; margin: 0;">
             {% include "metadata/sections_tree.html" %}
             <div id="properties_area" style="height: 300px; width: 580px; padding-left: 210px">
                 {% include "metadata/properties_list.html" %}
             </div>
+        </div>
 
     <h2>{% trans "Related Datasets" %}</h2>
 	    {% ifequal experiment.owner request.user %}
@@ -392,9 +395,11 @@
 				}); 
 			},  
 			onselect : function (NODE, TREE_OBJ) {
+                $('#properties_area').hide();
 				var n_id =  NODE.id;
                 var prop_url = '../../../metadata/properties_list/' + n_id + '/';
                 $('#properties_area').load(prop_url, function() {
+                    $('#properties_area').show();
                     }
                 );
 			},  

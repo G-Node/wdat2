@@ -56,12 +56,12 @@ class Section(models.Model):
         return False
 
     def get_root(self):
-		if self.parent_exprt is not None:
-			return self.parent_exprt
+		if self.parent_section is not None:
+			return self.parent_section.get_root()
 		elif self.parent_dataset is not None:
 			return self.parent_dataset
-		elif self.parent_section is not None:
-			return self.parent_section.get_root()
+		elif self.parent_exprt is not None:
+			return self.parent_exprt
 		else:
 			return None
 
