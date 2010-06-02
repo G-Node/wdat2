@@ -172,7 +172,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
     else:
 	experiments_form = experiment_form_class(user=request.user, project=project)
 
-    # remove datafiles handler
+    # remove experiments handler
     remove_exprts_form = RemoveExperimentForm(request.POST or None, user=request.user, project=project)
     if action == "remove_experiments":
 	if remove_exprts_form.is_valid():

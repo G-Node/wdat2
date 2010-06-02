@@ -4,14 +4,18 @@
 {% load humanize %}
 {% load uni_form %}
 {% load pagination_tags %}
+{% load truncate_filter %}
+{% load tagging_tags %}
+{% load extra_tagging_tags %}
 
 {% block head_title %}{% blocktrans %}My Time Series data{% endblocktrans %}{% endblock %}
 
 {% block extra_head %}
+<script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/highcharts.js"></script>
 <script type="text/javascript">
-   var chart;
    $(document).ready(function() {
+   var chart;
    chart = new Highcharts.Chart({
    chart: {
       renderTo: 'container',
@@ -25,7 +29,7 @@
    },
    xAxis: {
       type: 'datetime',
-      maxZoom: 10 * {{ t_serie.getTimeStep_ms }}, 
+      maxZoom: 2 * {{ t_serie.getTimeStep }}, 
       title: {
          text: null
       }
@@ -42,7 +46,7 @@
       formatter: function() {
          return '<b>'+ (this.point.name || this.series.name) +'</b><br>'+
             Highcharts.dateFormat('%A %B %e %Y', this.x) + ':<br>'+
-            '1 USD = '+ Highcharts.numberFormat(this.y, 2) +' EUR';
+            'V(t) = '+ Highcharts.numberFormat(this.y, 2) +' mV';
       }
    },
    legend: {
@@ -53,7 +57,7 @@
          fillColor: {
             linearGradient: [0, 0, 0, 300],
             stops: [
-               [0, highchartsOptions.colors[0]],
+               [0, 'rgba(255,255,0,0)'],
                [1, 'rgba(0,0,0,0)']
             ]
          },
@@ -78,15 +82,17 @@
 
    series: [{
       type: 'area',
-      name: 'USD to EUR',
-      pointInterval: {{ t_serie.getTimeStep_ms }},
-      pointStart: Date.UTC({{ t_serie.start_time }}),
+      name: 'Voltage dynamics, V(t)',
+      pointInterval: {{ t_serie.getTimeStep }},
+      pointStart: Date.UTC({{ t_serie.start_time|date:"Y, m, d" }}),
       data: [
         {{ t_serie.getData }}
       ]
    }]
+})
 });
-</script> 
+</script>
+{% endblock %}
 
 {% block body %}
 
@@ -101,34 +107,59 @@
 
             <div class="friends">
                 <h2>{% trans "Time Series" %}</h2>
-                {% autopaginate timeseries 15 %}
-                <table width="100%">
-                    {% for tserie in timeseries %}
-                        <tr><td>- <a href="#">{{ tserie.title|truncate_dot:26|escape }}</a></td></tr>
-                    {% endfor %}
-                </table>    
-            	{% paginate %}                
+        	        <form id="delete-exprts" method="POST" action="">
+                    {% autopaginate timeseries 15 %}
+                    <table width="100%">
+                        {% for tserie in timeseries %}
+                            <tr>
+                                <td>- <a href="{{ tserie.get_absolute_url }}">{{ tserie.title|truncate_dot:26|escape }}</a></td>
+				                {% ifequal user tserie.owner %}
+				                <td align=right><input id="id_serie_choices_{{ tserie.id }}" type="checkbox" value="{{ tserie.id }}" name="serie_choices"/></td>
+				                {% endifequal %}
+                            </tr>
+                        {% endfor %}
+                    </table>    
+		            {% ifequal user t_serie.owner %}
+			            <input type="hidden" name="action" value="timeseries_delete"/>
+			            <input type="submit" value="delete selected"/>
+		            {% endifequal %}
+
+                	{% paginate %}
+                    </form>
             </div>
         </div>
 
         <div class="left_panel">
 
             <div class="form-toggle">
+                <p>
+                    <span id="add-timeseries-toggle" onclick="$('#edit-timeseries').hide(); $('#add-timeseries').toggle();">{% trans "Add Time Series" %}</span>
+                    <span id="edit-timeseries-toggle" onclick="$('#add-timeseries').hide(); $('#edit-timeseries').toggle();">{% trans "Edit Properties" %}</span>
+                </p>
+
                 <div id="form-add-timeseries">
-                    <form class="uniForm" id="add-timeseries" method="POST" action="" style="display:none">
+                    <form class="uniForm" id="add-timeseries" method="POST" action="" style="display:{{ tserie_add_form_status }}">
                         <fieldset class="inlineLabels">
                             {{ tserie_add_form|as_uni_form }}
                             <div class="form_block">
                                 <input type="hidden" name="action" value="timeseries_add" />
-                                <input type="button" value="submit"/>
+                                <input type="submit" value="create"/>
                             </div>
                         </fieldset>
                     </form>
                 </div>
 
                 <div id="form-edit-timeseries">
+                    <form class="uniForm" id="edit-timeseries" method="POST" action="" style="display:{{ tserie_edit_form_status }}">
+                        <fieldset class="inlineLabels">
+                            {{ tserie_edit_form|as_uni_form }}
+                            <div class="form_block">
+                                <input type="hidden" name="action" value="timeseries_update" />
+                                <input type="submit" value="update"/>
+                            </div>
+                        </fieldset>
+                    </form>
                 </div>
-
             </div>         
 
             <div class="photo-title">
@@ -138,7 +169,7 @@
                 <p><b>Description: </b>{{ t_serie.description }}</p>
             </div>
             <div>
-                <p><b>Date created: </b>{{ experiment.date_created }}</p>
+                <p><b>Date created: </b>{{ t_serie.date_created }}</p>
             </div>
             <div>
                 {% ifnotequal t_serie.owner request.user%}
@@ -150,7 +181,7 @@
                 {% show_tags_for t_serie %}
             </div>
 
-            <div id="container" style="width: 800px; height: 400px; margin: 0 auto"></div>
+            <div id="container" style="width: 550px; height: 300px; margin: 0 auto"></div>
 
 
             {% ifequal request.user t_serie.owner %}
@@ -174,7 +205,20 @@
         {% endcomment %}
    
     {% else %}
-        <p>You don't have any timeseries data uploaded. Try by uploading new time series data now, or upload data in files.</p>
+        <p>You don't have any timeseries data uploaded. Try by <a href="#" onclick="$('#add-timeseries').toggle();">uploading new time series</a> data now, or <a href="{% url datafile_create %}">upload data</a> in files.</p>
+            <div class="form-toggle">
+                <div id="form-add-timeseries">
+                    <form class="uniForm" id="add-timeseries" method="POST" action="" style="display:none">
+                        <fieldset class="inlineLabels">
+                            {{ tserie_add_form|as_uni_form }}
+                            <div class="form_block">
+                                <input type="hidden" name="action" value="timeseries_add" />
+                                <input type="submit" value="create"/>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
     {% endif %}
     
 {% endblock %}

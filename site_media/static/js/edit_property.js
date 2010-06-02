@@ -27,6 +27,7 @@
                 prop_url, 
                 {action:'get_form'}, 
                 function() {
+                    $('#add-property').hide();
                     $('#edit-property').show();
                     $('#edit-property').autoscroll();
                 }

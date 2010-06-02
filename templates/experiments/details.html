@@ -296,8 +296,8 @@
                 $('#change-privacy .error').autoscroll();
             }
             $('#add-property-toggle').click(function() {
+                $('#edit-property').hide();
                 $('#add-property').toggle();
-                //$('#add-property').autoscroll();
                 return false;
             });
             if ($('#add-property .error').length) {

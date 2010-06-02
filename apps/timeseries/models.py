@@ -32,13 +32,16 @@ class TimeSeries(SafetyLevel):
     data = models.TextField(_('data'), blank=True)
     data_type = models.IntegerField(_('data type'), choices=TYPES, default=10)
     start_time = models.DateTimeField(_('start time'), default=datetime.now, blank=True)
-    #end_time = models.DateTimeField(_('end time'), blank=True)
-    time_step = IntegerField(_('data timestep'), default=1)
-    time_step_items = IntegerField(_('data timestep'), choices=ITEMS  , default=21)
+    time_step = models.IntegerField(_('data timestep'), default=1)
+    time_step_items = models.IntegerField(_('data timestep'), choices=ITEMS  , default=21)
     tags = TagField()
 
     def __unicode__(self):
         return self.title
+
+    def get_absolute_url(self):
+        return ("timeseries_list", [self.pk])
+    get_absolute_url = models.permalink(get_absolute_url)
 
     def get_owner(self):
         return self.owner
@@ -57,18 +60,18 @@ class TimeSeries(SafetyLevel):
         self.title = new_title
         self.save()
 
-    def getNextCounter(self):
-        c = TimeSeries.filter(owner=self.owner).count()
-        title = ("%s", c)
-        while len(title) < 11:
-            title += "0" + title
+    def getNextCounter(self, user):
+        c = TimeSeries.objects.count()
+        title = (_("%s") % c)
+        while len(title) < 8:
+            title = "0" + title
         return title
 
     def getData(self):
         return self.data
 
-    def getTimeStep_ms(self):
-        
+    def getTimeStep(self):
+        return self.time_step
 
 
 

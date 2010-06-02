@@ -1,7 +1,7 @@
 from django.contrib import admin
-from metadata.models import TimeSeries
+from timeseries.models import TimeSeries
 
-class SectionAdmin(admin.ModelAdmin):
+class TimeSeriesAdmin(admin.ModelAdmin):
     list_display = ('title','date_created',)
 
 admin.site.register(TimeSeries, TimeSeriesAdmin)
