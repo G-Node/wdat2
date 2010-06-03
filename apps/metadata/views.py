@@ -18,26 +18,36 @@ from metadata.models import Section, Property
 
 @login_required
 def section_add(request, template_name="metadata/add.html"):
+    parent_type = 0
+    parent = None
+    section_id = None
+    # parent types - "1" - Experiment; "2" - Dataset; "3" - Section; "4" - Time Series (TBI)
     if request.method == 'POST' and request.POST.get("action") == "section_add":
         parent_id = request.POST.get("parent_id")
         section_title = request.POST.get("new_name")
-        parent_type = 3
-    # parent types - "1" - Experiment "2" - Dataset "3" - Section
-    if parent_type == 3:
-        parent = get_object_or_404(Section, id=parent_id)
-        if parent.does_belong_to(request.user):
-            section = Section(title=section_title, parent_section=parent)
+        parent_type = request.POST.get("parent_type")
+        if parent_type == "3":
+            parent = get_object_or_404(Section, id=parent_id)
+        if parent_type == "1":
+            parent = get_object_or_404(Experiment, id=parent_id)
+        if parent_type == "2":
+            parent = get_object_or_404(RDataset, id=parent_id)
+        if parent_type == "4":
+            parent = get_object_or_404(TimeSeries, id=parent_id)
+        if parent_type == "3":
+            if parent.does_belong_to(request.user):
+                section = Section(title=section_title, parent_section=parent)
+                section.save()
+                section_id = section.id
+        elif parent.owner == request.user:
+            if parent_type == "1":
+                parent = get_object_or_404(Experiment, id=parent_id)
+                section = Section(title=section_title, parent_exprt=parent)
+            else:
+                parent = get_object_or_404(RDataset, id=parent_id)
+                section = Section(title=section_title, parent_dataset=parent)
             section.save()
             section_id = section.id
-    elif parent.owner == request.user:
-        if parent_type == 1:
-            parent = get_object_or_404(Experiment, id=parent_id)
-            section = Section(title=section_title, parent_exprt=parent)
-        else:
-            parent = get_object_or_404(RDataset, id=parent_id)
-            section = Section(title=section_title, parent_dataset=parent)
-        section.save()
-        section_id = section.id
     else:
         section_id = None
     return render_to_response(template_name, {
@@ -111,6 +121,22 @@ def property_delete(request, template_name="metadata/dummy.html"):
         prop = get_object_or_404(Property, id=property_id)
         if prop.does_belong_to(request.user):
             prop.deleteObject()
+            status = True
+    return render_to_response(template_name, {
+        "status": status,
+        }, context_instance=RequestContext(request))
+
+
+@login_required
+def remove_dataset(request, template_name="metadata/dummy.html"):
+    status = False
+    if request.method == 'POST' and request.POST.get("action") == "remove_dataset":
+        dataset_id = request.POST.get("dataset_id")
+        section_id = request.POST.get("section_id")
+        dataset = get_object_or_404(RDataset, id=property_id)
+        section = get_object_or_404(Section, id=section_id)
+        if dataset.owner == request.user:
+            dataset.removeLinkedSections(section)
             status = True
     return render_to_response(template_name, {
         "status": status,

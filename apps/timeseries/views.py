@@ -65,12 +65,13 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
                     for serie in TimeSeries.objects.filter(id__in=ids):
                         serie.deleteObject()
                         serie.save()
-                    request.user.message_set.create(message=_("Successfully deleted selected time series"))
-                    time_series = TimeSeries.objects.filter(owner=request.user, current_state=10)
-                    time_series = time_series.order_by("-date_created")
-                    # if currently displayed object was deleted, displaying
-                    # different object to not confuse user
-                    # WRITE CODE HERE
+                    request.user.message_set.create(message=_("Successfully deleted selected %s time series") % len(ids))
+                    #include_kwargs = {"id": dataset.id}
+                    redirect_to = reverse("timeseries_main")
+                    return HttpResponseRedirect(redirect_to)
+                    #time_series = TimeSeries.objects.filter(owner=request.user, current_state=10)
+                    #time_series = time_series.order_by("-date_created")
+                    #t_serie = time_series[0]
     else:
         tserie_add_form = AddTSfromFieldForm()
         tserie_edit_form = None

@@ -1,6 +1,7 @@
 {% load i18n %}
 
 {% if section %}
+    {% if section.hasChild %}
     {% if section.getActiveProperties %}
         <table class="messages">
             <thead>
@@ -26,7 +27,38 @@
                 {% endfor %}
             </tbody>
         </table>
+    {% endif %}
+
+    {% if section.getActiveDatasets %}
+        <table class="messages">
+            <thead>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th>
+                    {% ifequal experiment.owner request.user %}
+                    <th>{% trans "Action" %}</th>
+                    {% endifequal %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for dataset in section.getActiveDatasets %}
+                    <tr>
+                        <td><a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a></td>
+                        <td>{{ dataset.date_added }}</td>
+                        {% ifequal dataset.owner request.user %}
+                            <td><nobr><a href="#" onclick="remove_dataset({{ section.id }}, {{ dataset.id }})">{% trans "remove" %}</a></nobr></td>
+                        {% endifequal %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     {% else %}
-        <span>No properties found in this section.<br> You may add new properties, link datasets, files or time series records using the navigation above.</span>
+    <p>No datasets are linked to this section.</p>
+    {% endif %}
+
+
+
+
+
+    {% else %}
+        <span><br>No properties, files or time series found in this section.<br> You may add new properties, link datasets, files or time series records using the navigation above.</span>
     {% endif %}
 {% endif %}

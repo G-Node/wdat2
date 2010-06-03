@@ -1,4 +1,4 @@
-        function load_meta_tree() {
+        function load_meta_tree(par_type) {
 	    $("#sections").tree({
 		ui : {theme_name : "apple"},
 		callback : { 
@@ -11,7 +11,7 @@
 				var resp = $.ajax( { 
 					type: "POST", 
 					url: "../../../metadata/section_add/", 
-					data: ({ new_id:n_id, new_name:n_name, parent_id:pi, action:'section_add' }), 
+					data: ({ new_id:n_id, new_name:n_name, parent_id:pi, parent_type:par_type, action:'section_add' }), 
                     success: function(data) { 
                         NODE.setAttribute("id", data);
                         NODE.firstChild.setAttribute("href", "#");

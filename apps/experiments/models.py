@@ -42,6 +42,11 @@ class Experiment(SafetyLevel):
             metadata.append(section.get_tree())
         return metadata
 
+    def hasMetadata(self):
+        if self.section_set.filter(current_state=10):
+            return True
+        return False
+
     def get_absolute_url(self):
         return ("experiment_details", [self.pk])
     get_absolute_url = models.permalink(get_absolute_url)
@@ -59,4 +64,6 @@ class Experiment(SafetyLevel):
             return True
         else:
             return False
+
+
 

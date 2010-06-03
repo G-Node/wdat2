@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from datetime import datetime
 from experiments.models import Experiment
 from datasets.models import RDataset
+from datafiles.models import Datafile
+from timeseries.models import TimeSeries
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -77,6 +79,19 @@ class Section(models.Model):
     def getActiveProperties(self):
         return self.property_set.filter(current_state=10)	    
 
+    def getActiveDatasets(self):
+        return self.rdataset_set.filter(current_state=10)	    
+
+    def getActiveDatafiles(self):
+        return self.datafile_set.filter(current_state=10)	    
+
+    def getActiveTimeSeries(self):
+        return self.timeseries_set.filter(current_state=10)	    
+
+    def hasChild(self):
+        if self.getActiveProperties() or self.getActiveDatasets() or self.getActiveDatafiles() or self.getActiveTimeSeries():
+            return True
+        return False
 
 
 class Property(models.Model):

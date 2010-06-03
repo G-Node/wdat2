@@ -127,134 +127,21 @@
         {% endifequal %}
     </div>
     
+    {% if experiment.hasMetadata %}
     <h2>{% trans "Metadata" %}</h2>
 
-            {% include "metadata/section_buttons.html" %}
+    {% include "metadata/section_buttons.html" %}
 
-
-        <div style="height: 300px; padding: 0; margin: 0;">
-            {% include "metadata/sections_tree.html" %}
-            <div id="properties_area" style="height: 300px; width: 580px; padding-left: 210px">
-                {% include "metadata/properties_list.html" %}
-            </div>
+    <div style="height: 300px; padding: 0; margin: 0;">
+        {% include "metadata/sections_tree.html" %}
+        <div id="properties_area" style="height: 300px; width: 580px; padding-left: 210px">
+            {% include "metadata/properties_list.html" %}
         </div>
-
-    <h2>{% trans "Related Datasets" %}</h2>
-	    {% ifequal experiment.owner request.user %}
-            <div class="form-toggle">
-                <p><span id="add-dataset-toggle">{% trans "Link Dataset" %}</span></p>
-                
-                <form class="uniForm" id="add-dataset" method="POST" action="" style="display:none">
-                    <fieldset class="inlineLabels">
-                        {{ dataset_form|as_uni_form }}
-                        <div class="form_block">
-                            <input type="hidden" name="action" value="new_dataset" />
-                            <input type="submit" value="{% trans "add" %}"/>
-                        </div>
-                    </fieldset>
-                </form>
-            </div>
-	    {% endifequal %}
-    {% if datasets %}
-        <form id="delete-datasets" method="POST" action="">
-
-	{{ dset_objects_form.dset_choices.errors }}
-
-        <table class="messages">
-            <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Files" %}</th><th>{% trans "Volume" %}</th>
-                    {% ifequal experiment.owner request.user %}
-                    <th>{% trans "Action" %}</th>
-                    {% endifequal %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for dataset in datasets %}
-                    <tr>
-                        <td>
-                            <a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a>
-                        </td>
-                        <td>
-			{% for datafile in dataset.get_active_datafiles %}
-				<span>{{ datafile.title }}, </span>                                
-			{% endfor %}
-			</td>
-                        <td>{{ dataset.file_volume_count|filesizeformat }}</td>
-                        {% ifequal experiment.owner request.user %}
-                            <td><nobr>{% comment %}<a href="{% url dataset_edit dataset.id %}">{% trans "edit" %}</a>{% endcomment %} <input id="id_dset_choices_{{ dataset.id }}" type="checkbox" value="{{ dataset.id }}" name="dset_choices"/></nobr></td>
-                        {% endifequal %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        {% ifequal experiment.owner request.user %}
-		<input type="hidden" name="action" value="remove_datasets" />
-		<input type="submit" value="{% trans "remove selected" %}"/>
-        {% endifequal %}
-        </form>
+    </div>
     {% else %}
-    <p>No datasets are linked to the experiment.</p>
-    {% endif %}
-        
-    <h2>{% trans "Related Files" %}</h2>
-	    {% ifequal experiment.owner request.user %}
-            <div class="form-toggle">
-                <p><span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
-                
-                <form class="uniForm" id="add-datafile" method="POST" action="" style="display:none">
-                    <fieldset class="inlineLabels">
-                        {{ datafile_form|as_uni_form }}
-                        <div class="form_block">
-                            <input type="hidden" name="action" value="new_datafile" />
-                            <input type="submit" value="{% trans "add" %}"/>
-                        </div>
-                    </fieldset>
-                </form>
-            </div>
-	    {% endifequal %}
-    {% if datafiles %}
-        <form id="delete-datafiles" method="POST" action="">
-
-	{{ dfile_objects_form.dfile_choices.errors }}
-
-        <table class="messages">
-            <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Tags" %}</th><th>{% trans "Volume" %}</th>
-                    {% ifequal experiment.owner request.user %}
-                    <th>{% trans "Action" %}</th>
-                    {% endifequal %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for datafile in datafiles %}
-                    <tr>
-                        <td>
-                            <a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a>
-                        </td>
-                        <td>{% show_tags_for datafile %}</td>
-                        <td>{{ datafile.size }}</td>
-                        {% ifequal experiment.owner request.user %}
-                            <td><nobr>{% comment %}<a href="{% url datafile_edit datafile.id %}">{% trans "edit" %}</a>{% endcomment %} <input id="id_dfile_choices_{{ datafile.id }}" type="checkbox" value="{{ datafile.id }}" name="dfile_choices"/></nobr></td>
-                        {% endifequal %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        {% ifequal experiment.owner request.user %}
-		<input type="hidden" name="action" value="remove_datafiles" />
-		<input type="submit" value="{% trans "remove selected" %}"/>
-        {% endifequal %}
-        </form>
-    {% else %}
-    <p>No datafiles are linked to the experiment.</p>
+    <p>You don't have metadata assigned to this experiment. You may start annotating your experiment by <a href="#" onclick="add_root_section({{ experiment.id }}, 1)">adding the Metadata</a>.
     {% endif %}
 
-    <p style="color: grey"> This is the space for the stimuli description </p>
-    
-    <p style="color: grey"> This is the space for analytical results </p>
-    
     {% else %}
     <p>No data about this experiment is found.</p>
     {% endif %}
@@ -264,17 +151,31 @@
 {% block extra_body %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
-    <script type="text/javascript" src="{{ STATIC_URL }}js/delete_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_property.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
+
+    {% if experiment.hasMetadata %}
     <script type="text/javascript">
         $(document.getElementById("sections")).ready(function() {
-        // do stuff when div is ready
-            load_meta_tree();
+        // 3 - Section
+            load_meta_tree(3);
+            $('#add-property-toggle').click(function() {
+                $('#edit-property').hide();
+                $('#add-property').toggle();
+                return false;
+            });
+            if ($('#add-property .error').length) {
+                $('#add-property').show();
+                $('#add-property .error').autoscroll();
+            }
         });
     </script>
+    {% endif %}
+
     <script type="text/javascript">
         $(document).ready(function() {
             $('#edit-experiment-toggle').click(function() {
@@ -294,15 +195,6 @@
             if ($('#change-privacy .error').length) {
                 $('#change-privacy').show();
                 $('#change-privacy .error').autoscroll();
-            }
-            $('#add-property-toggle').click(function() {
-                $('#edit-property').hide();
-                $('#add-property').toggle();
-                return false;
-            });
-            if ($('#add-property .error').length) {
-                $('#add-property').show();
-                $('#add-property .error').autoscroll();
             }
             $('#add-dataset-toggle').click(function() {
                 $('#add-dataset').toggle();
