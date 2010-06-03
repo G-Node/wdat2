@@ -130,7 +130,9 @@
     {% if experiment.hasMetadata %}
     <h2>{% trans "Metadata" %}</h2>
 
+    {% ifequal request.user experiment.owner %}
     {% include "metadata/section_buttons.html" %}
+    {% endifequal %}
 
     <div style="height: 300px; padding: 0; margin: 0;">
         {% include "metadata/sections_tree.html" %}
@@ -172,6 +174,15 @@
                 $('#add-property').show();
                 $('#add-property .error').autoscroll();
             }
+            $('#link-dataset-toggle').click(function() {
+                $('#add-dataset').toggle();
+                $('#add-dataset').autoscroll();
+                return false;
+            });
+            if ($('#add-dataset .error').length) {
+                $('#add-dataset').show();
+                $('#add-dataset .error').autoscroll();
+            }
         });
     </script>
     {% endif %}
@@ -195,15 +206,6 @@
             if ($('#change-privacy .error').length) {
                 $('#change-privacy').show();
                 $('#change-privacy .error').autoscroll();
-            }
-            $('#add-dataset-toggle').click(function() {
-                $('#add-dataset').toggle();
-                $('#add-dataset').autoscroll();
-                return false;
-            });
-            if ($('#add-dataset .error').length) {
-                $('#add-dataset').show();
-                $('#add-dataset .error').autoscroll();
             }
             $('#add-datafile-toggle').click(function() {
                 $('#add-datafile').toggle();

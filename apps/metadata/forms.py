@@ -50,3 +50,18 @@ class EditPropertyForm(forms.ModelForm):
         model = Property
         fields = ['prop_title', 'prop_value', 'prop_description', 'prop_comment']
 
+
+class LinkDatasetForm(forms.Form):
+    datasets = forms.ModelMultipleChoiceField(queryset=RDataset.objects.all().filter(current_state=10))
+    
+    #def __init__(self, *args, **kwargs):
+    #    user = kwargs.pop('user')
+    #    section = kwargs.pop('section')
+    #    super(AddDatasetForm, self).__init__(*args, **kwargs)
+    #    if section:
+    #        for_exclude = section.rdataset_set.all().values_list("id", flat=True)
+    #        choices = RDataset.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+    #    else:
+    #        choices = RDataset.objects.filter(owner=user, current_state=100)
+    #    self.fields['datasets'].queryset = choices
+

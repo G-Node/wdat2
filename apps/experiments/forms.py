@@ -59,6 +59,13 @@ class PrivacyEditForm(forms.ModelForm):
 	#self.fields['shared_with'].required=False
 
 
+
+
+    # The classes below are legacy after implementation of 
+    # the metadata section/property objects. So only applicable
+    # for older objects in the database. Remove when no longer
+    # required.
+
 class AddDatasetForm(forms.Form):
     datasets = forms.ModelMultipleChoiceField(queryset=RDataset.objects.all().filter(current_state=10))
     

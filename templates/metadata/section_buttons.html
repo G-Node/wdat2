@@ -1,13 +1,14 @@
 {% load i18n %}
 {% load uni_form %}
 
-{% ifequal request.user experiment.owner %}
+
             <div class="form-toggle">
                 <p>
 				    <span onclick='var t = $.tree.focused(); if(t.selected) t.create({data: "New section"}); else alert("Select a node first");' id="add-temp-section">{% trans "Add section" %}</span>
                     <span onclick="$.tree.focused().rename();" id="rename-section-button">{% trans "Rename" %}</span>
                     <span onclick="$.tree.focused().remove();" id="delete-section-button">{% trans "Delete" %}</span>
                     <span id="add-property-toggle">{% trans "Add Property" %}</span>
+                    <span id="link-dataset-toggle">{% trans "Link Dataset" %}</span>
 			    </p>
 
                 <div id="form-add-property">
@@ -16,10 +17,10 @@
                 <div id="form-edit-property">
                     {% include "metadata/property_edit.html" %}
                 </div>
+                <div id="form-link-dataset">
+                    {% include "metadata/dataset_link.html" %}
+                </div>
 
             </div>         
-{% endifequal %}
-
-
-    
+  
 

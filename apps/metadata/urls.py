@@ -14,11 +14,12 @@ urlpatterns = patterns('',
     url(r'^property_add/(?P<id>\d+)/$', 'metadata.views.property_add', name="property_add"),
     # edit property
     url(r'^property_edit/(?P<id>\d+)/$', 'metadata.views.property_edit', name='property_edit'),
+    # link dataset
+    url(r'^dataset_link/(?P<id>\d+)/$', 'metadata.views.dataset_link', name="dataset_link"),
 
-    # link / remove items
     # remove property
     url(r'^property_delete/$', 'metadata.views.property_delete', name='property_delete'),
-    # remove property
+    # remove dataset
     url(r'^remove_dataset/$', 'metadata.views.remove_dataset', name='remove_dataset'),
 
 )
