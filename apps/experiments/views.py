@@ -217,7 +217,7 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
     prop_edit_form = property_form_class2(auto_id='id_edit_form_%s')
-    dataset_link_form = dataset_form_class(auto_id='id_dataset_form_%s')
+    dataset_link_form = dataset_form_class(auto_id='id_dataset_form_%s', user=request.user)
 
     #datasets = experiment.rdataset_set.all().filter(Q(current_state=10))
     #datasets = filter(lambda x: x.is_accessible(request.user), datasets)
@@ -236,6 +236,7 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 	"dset_objects_form": dset_objects_form,
 	"dfile_objects_form": dfile_objects_form,
     "prop_add_form": prop_add_form,
+    "dataset_link_form": dataset_link_form,
     }, context_instance=RequestContext(request))
 
 

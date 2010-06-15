@@ -26,6 +26,9 @@ class Section(models.Model):
     parent_exprt = models.ForeignKey(Experiment, null=True)
     parent_dataset = models.ForeignKey(RDataset, null=True)
     parent_section = models.ForeignKey('self', null=True)
+    rel_datasets = models.ManyToManyField(RDataset, related_name="sec_datasets", blank=True, verbose_name=_('related datasets'))
+    rel_datafiles = models.ManyToManyField(Datafile, related_name="sec_datafiles",  blank=True, verbose_name=_('related datafiles'))
+    rel_timeseries = models.ManyToManyField(TimeSeries, related_name="sec_timeseries", blank=True, verbose_name=_('related time series'))
 
     def __unicode__(self):
         return self.title
@@ -80,18 +83,25 @@ class Section(models.Model):
         return self.property_set.filter(current_state=10)	    
 
     def getActiveDatasets(self):
-        return self.rdataset_set.filter(current_state=10)	    
+        return self.rel_datasets.filter(current_state=10)	    
 
     def getActiveDatafiles(self):
-        return self.datafile_set.filter(current_state=10)	    
+        return self.rel_datafiles.filter(current_state=10)	    
 
     def getActiveTimeSeries(self):
-        return self.timeseries_set.filter(current_state=10)	    
+        return self.rel_timeseries.filter(current_state=10)	    
 
     def hasChild(self):
         if self.getActiveProperties() or self.getActiveDatasets() or self.getActiveDatafiles() or self.getActiveTimeSeries():
             return True
         return False
+
+    def addLinkedDataset(self, dataset):
+        self.rel_datasets.add(dataset)
+
+    def removeLinkedDataset(self, dataset):
+        self.rel_datasets.remove(dataset)
+
 
 
 class Property(models.Model):

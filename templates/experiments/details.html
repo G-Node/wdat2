@@ -155,7 +155,7 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
-    <script type="text/javascript" src="{{ STATIC_URL }}js/add_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
@@ -165,8 +165,10 @@
         $(document.getElementById("sections")).ready(function() {
         // 3 - Section
             load_meta_tree(3);
+            //$.tree.focused().select_branch({{ experiment.get_metadata_root_id }});
             $('#add-property-toggle').click(function() {
                 $('#edit-property').hide();
+                $('#add-dataset').hide();
                 $('#add-property').toggle();
                 return false;
             });
@@ -175,8 +177,9 @@
                 $('#add-property .error').autoscroll();
             }
             $('#link-dataset-toggle').click(function() {
+                $('#edit-property').hide();
+                $('#add-property').hide();
                 $('#add-dataset').toggle();
-                $('#add-dataset').autoscroll();
                 return false;
             });
             if ($('#add-dataset .error').length) {
@@ -206,15 +209,6 @@
             if ($('#change-privacy .error').length) {
                 $('#change-privacy').show();
                 $('#change-privacy .error').autoscroll();
-            }
-            $('#add-datafile-toggle').click(function() {
-                $('#add-datafile').toggle();
-                $('#add-datafile').autoscroll();
-                return false;
-            });
-            if ($('#add-datafile .error').length) {
-                $('#add-datafile').show();
-                $('#add-datafile .error').autoscroll();
             }
         });
     </script>

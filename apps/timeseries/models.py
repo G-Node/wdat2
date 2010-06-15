@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from datetime import datetime
-from metadata.models import Section
+#from metadata.models import Section
 from state_machine.models import SafetyLevel
 from tagging.fields import TagField
 
@@ -28,7 +28,7 @@ class TimeSeries(SafetyLevel):
     description = models.TextField(_('description'), blank=True)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     owner = models.ForeignKey(User, editable=False)
-    parent_section = models.ManyToManyField(Section, blank=True)
+    #parent_section = models.ManyToManyField(Section, blank=True)
     data = models.TextField(_('data'), blank=True)
     data_type = models.IntegerField(_('data type'), choices=TYPES, default=10)
     start_time = models.DateTimeField(_('start time'), default=datetime.now, blank=True)

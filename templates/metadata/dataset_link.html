@@ -1,9 +1,6 @@
 {% load i18n %}
 {% load uni_form %}
 
-            <div class="form-toggle">
-                <p><span id="add-dataset-toggle">{% trans "Link Dataset" %}</span></p>
-                
                 <form class="uniForm" id="add-dataset" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ dataset_link_form|as_uni_form }}
@@ -14,4 +11,3 @@
                     </fieldset>
                     <input id="link-dataset-success-identifier" type="hidden" name="result" value="{{ section_id }}" />
                 </form>
-            </div>

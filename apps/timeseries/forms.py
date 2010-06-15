@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
-from metadata.models import Section
+#from metadata.models import Section
 from timeseries.models import TimeSeries
 
 class AddTSfromFieldForm(forms.ModelForm):

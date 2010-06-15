@@ -3,6 +3,7 @@
 {% if section %}
     {% if section.hasChild %}
     {% if section.getActiveProperties %}
+        <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Properties" %}</h3>
         <table class="messages">
             <thead>
                 <tr><th>{% trans "Name" %}</th><th>{% trans "Value" %}</th><th>{% trans "Description" %}</th><th>{% trans "Comment" %}</th><th>{% trans "Created" %}</th>
@@ -30,10 +31,11 @@
     {% endif %}
 
     {% if section.getActiveDatasets %}
+        <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Datasets" %}</h3>
         <table class="messages">
             <thead>
                 <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th>
-                    {% ifequal experiment.owner request.user %}
+                    {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
                     {% endifequal %}
                 </tr>

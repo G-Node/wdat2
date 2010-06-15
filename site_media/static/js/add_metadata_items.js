@@ -4,7 +4,7 @@
             var prop_url = '../../../metadata/property_add/' + t.selected[0].id + '/';
             var new_title = $(document.getElementById("id_add_form_prop_title")).attr('value');
             var new_value = $(document.getElementById("id_add_form_prop_value")).attr('value');
-            $('#add-property').load(
+            $('#form-add-property').load(
                 prop_url, 
                 {section_id:t.selected[0].id, prop_title:new_title, prop_value:new_value, action:'property_add'}, 
                 function(response, status, xhr) {
@@ -12,7 +12,7 @@
                     if (t1 != "0") {
                         var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
                         $('#properties_area').load(load_url, function() {
-                            $('#add-property').toggle();
+                            $('#add-property').hide();
                         })
                     }
                 }
@@ -24,17 +24,21 @@
         var t = $.tree.focused(); 
         if(t.selected) {
             var prop_url = '../../../metadata/dataset_link/' + t.selected[0].id + '/';
-            // create a string with POST data with selected datasets (foreach?)
-            // var sets = {};
+            var post_str = '{';
+            $('#id_dataset_form_datasets :selected').each(function(i, selected){
+                post_str += 'datasets:' + $(selected).val() + ', ';
+            });
+            post_str += "action:'dataset_link'}";
+            var post_data = eval('(' + post_str + ')');
             $('#form-link-dataset').load(
                 prop_url, 
-                {section_id:t.selected[0].id, action:'dataset_link'}, 
+                post_data, 
                 function(response, status, xhr) {
                     var t1 = $(document.getElementById("link-dataset-success-identifier")).attr('value');
                     if (t1 != "0") {
                         var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
                         $('#properties_area').load(load_url, function() {
-                            $('#form-link-dataset').toggle();
+                            $('#add-dataset').hide();
                         })
                     }
                 }

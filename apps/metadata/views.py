@@ -12,7 +12,7 @@ import datetime
 
 from experiments.models import Experiment
 from datasets.models import RDataset
-from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm
+from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm, LinkDatasetForm
 from metadata.models import Section, Property
 
 
@@ -152,6 +152,23 @@ def property_edit(request, id, form_class=EditPropertyForm, template_name="metad
     }, context_instance=RequestContext(request))
 
 
+@login_required
+def dataset_link(request, id, dataset_form_class=LinkDatasetForm, template_name="metadata/dataset_link.html"):
+    section_id = 0
+    dataset_form = dataset_form_class(request.POST, auto_id='id_dataset_form_%s', user=request.user)
+    if request.method == 'POST' and dataset_form.is_valid():
+        section = get_object_or_404(Section, id=id)
+        if request.POST.get("action") == "dataset_link" and section.does_belong_to(request.user):
+            sets = dataset_form.cleaned_data['datasets']
+            for s in sets:
+                section.addLinkedDataset(s)
+            section.save()
+            section_id = section.id
+    return render_to_response(template_name, {
+        "section_id": section_id,
+        "dataset_link_form": dataset_form,
+        }, context_instance=RequestContext(request))
+
 
 @login_required
 def remove_dataset(request, template_name="metadata/dummy.html"):
@@ -159,32 +176,14 @@ def remove_dataset(request, template_name="metadata/dummy.html"):
     if request.method == 'POST' and request.POST.get("action") == "remove_dataset":
         dataset_id = request.POST.get("dataset_id")
         section_id = request.POST.get("section_id")
-        dataset = get_object_or_404(RDataset, id=property_id)
+        dataset = get_object_or_404(RDataset, id=dataset_id)
         section = get_object_or_404(Section, id=section_id)
         if dataset.owner == request.user:
-            dataset.removeLinkedSections(section)
+            section.removeLinkedDataset(dataset)
+            section.save()
             status = True
     return render_to_response(template_name, {
         "status": status,
-        }, context_instance=RequestContext(request))
-
-
-@login_required
-def dataset_link(request, id, dataset_form_class=LinkDatasetForm, template_name="metadata/dataset_link.html"):
-    section_id = 0
-    dataset_form = dataset_form_class(request.POST, auto_id='id_dataset_form_%s')
-    if request.method == 'POST' and dataset_form.is_valid():
-        section = get_object_or_404(Section, id=id)
-        if request.POST.get("action") == "dataset_link" and section.does_belong_to(request.user):
-            # change here
-            sets = dataset_form.cleaned_data['datasets']
-            for s in sets:
-                s.addLinkedSection(section)
-                s.save()
-            section_id = section.id
-    return render_to_response(template_name, {
-        "section_id": section_id,
-        "dataset_form": dataset_form,
         }, context_instance=RequestContext(request))
 
 
