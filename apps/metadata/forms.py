@@ -39,16 +39,26 @@ class AddSectionForm(forms.ModelForm):
 
 
 class AddPropertyForm(forms.ModelForm):
+    prop_value = forms.CharField()
     
     class Meta:
         model = Property
         fields = ['prop_title', 'prop_value']
 
 class EditPropertyForm(forms.ModelForm):
+    prop_value = forms.CharField()
+    # these widgets doesn't work. to be fixed
+    prop_description = forms.CharField(widget=widgets.Textarea(attrs={'cols': 50, 'rows': 2}))
+    prop_comment = forms.CharField(widget=forms.Textarea(attrs={'cols': 50, 'rows': 2}))
     
     class Meta:
         model = Property
         fields = ['prop_title', 'prop_value', 'prop_description', 'prop_comment']
+        # these widgets doesn't work. to be fixed
+        widgets = {
+            'prop_description': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
+            'prop_comment': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
+        }
 
 
 class LinkDatasetForm(forms.Form):
