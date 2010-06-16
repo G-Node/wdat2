@@ -12,7 +12,9 @@ import datetime
 
 from experiments.models import Experiment
 from datasets.models import RDataset
-from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm, LinkDatasetForm
+from datafiles.models import Datafile
+from timeseries.models import TimeSeries
+from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
 from metadata.models import Section, Property
 
 
@@ -153,39 +155,78 @@ def property_edit(request, id, form_class=EditPropertyForm, template_name="metad
 
 
 @login_required
-def dataset_link(request, id, dataset_form_class=LinkDatasetForm, template_name="metadata/dataset_link.html"):
+def object_link(request, id, template_name="metadata/object_link.html"):
     section_id = 0
+    obj_type = None
     # transform dataset<number> into <datasets> querydict to 
     # easy create a form
-    q_dict = ""
+    d_dict = ""
+    f_dict = ""
+    t_dict = ""
     for key, value in request.POST.items():
         if str(key).find("dataset") == 0:
-            q_dict += "datasets=" + value + "&"
-    dataset_form = dataset_form_class(QueryDict(q_dict), auto_id='id_dataset_form_%s', user=request.user)
-    if request.method == 'POST' and dataset_form.is_valid():
+            d_dict += "datasets=" + value + "&"
+        if str(key).find("datafile") == 0:
+            f_dict += "datafiles=" + value + "&"
+        if str(key).find("timeseries") == 0:
+            t_dict += "timeseries=" + value + "&"
+    if request.path.find("dataset_link") > 0:
+        form = LinkDatasetForm(QueryDict(d_dict), auto_id='id_dataset_form_%s', user=request.user)
+        obj_type = "dataset"
+    elif request.path.find("datafile_link") > 0:
+        form = LinkDatafileForm(QueryDict(f_dict), auto_id='id_datafile_form_%s', user=request.user)
+        obj_type = "datafile"
+    elif request.path.find("timeseries_link") > 0:
+        form = LinkTSForm(QueryDict(t_dict), auto_id='id_timeseries_form_%s', user=request.user)
+        obj_type = "timeseries"
+    else:
+        form = LinkDatasetForm(auto_id='id_dataset_form_%s', user=request.user)
+        obj_type = "dataset"
+
+    if request.method == 'POST' and form.is_valid():
         section = get_object_or_404(Section, id=id)
-        if request.POST.get("action") == "dataset_link" and section.does_belong_to(request.user):
-            sets = dataset_form.cleaned_data['datasets']
+        if request.POST.get("action").find("_link") > 0 and section.does_belong_to(request.user):
+            if obj_type == "dataset":
+                sets = form.cleaned_data['datasets']
+            elif obj_type == "datafile":
+                sets = form.cleaned_data['datafiles']
+            elif obj_type == "timeseries":
+                sets = form.cleaned_data['timeseries']
+            else:
+                sets = None
             for s in sets:
-                section.addLinkedDataset(s)
+                section.addLinkedObject(s, obj_type)
             section.save()
             section_id = section.id
     return render_to_response(template_name, {
         "section_id": section_id,
-        "dataset_link_form": dataset_form,
+        "object_form": form,
+        "obj": obj_type,
         }, context_instance=RequestContext(request))
 
 
 @login_required
-def remove_dataset(request, template_name="metadata/dummy.html"):
+def remove_object(request, template_name="metadata/dummy.html"):
     status = False
     if request.method == 'POST' and request.POST.get("action") == "remove_dataset":
-        dataset_id = request.POST.get("dataset_id")
-        section_id = request.POST.get("section_id")
-        dataset = get_object_or_404(RDataset, id=dataset_id)
-        section = get_object_or_404(Section, id=section_id)
+        dataset = get_object_or_404(RDataset, id=request.POST.get("dataset_id"))
+        section = get_object_or_404(Section, id=request.POST.get("section_id"))
         if dataset.owner == request.user:
-            section.removeLinkedDataset(dataset)
+            section.removeLinkedObject(dataset, "dataset")
+            section.save()
+            status = True
+    elif request.method == 'POST' and request.POST.get("action") == "remove_datafile":
+        datafile = get_object_or_404(Datafile, id=request.POST.get("datafile_id"))
+        section = get_object_or_404(Section, id=request.POST.get("section_id"))
+        if datafile.owner == request.user:
+            section.removeLinkedObject(datafile, "datafile")
+            section.save()
+            status = True
+    elif request.method == 'POST' and request.POST.get("action") == "remove_timeseries":
+        timeseries = get_object_or_404(TimeSeries, id=request.POST.get("timeseries_id"))
+        section = get_object_or_404(Section, id=request.POST.get("section_id"))
+        if timeseries.owner == request.user:
+            section.removeLinkedObject(timeseries, "timeseries")
             section.save()
             status = True
     return render_to_response(template_name, {

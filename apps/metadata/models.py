@@ -25,6 +25,8 @@ class Section(models.Model):
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     parent_exprt = models.ForeignKey(Experiment, null=True)
     parent_dataset = models.ForeignKey(RDataset, null=True)
+    parent_datafile = models.ForeignKey(Datafile, null=True)
+    parent_timeseries = models.ForeignKey(TimeSeries, null=True)
     parent_section = models.ForeignKey('self', null=True)
     rel_datasets = models.ManyToManyField(RDataset, related_name="sec_datasets", blank=True, verbose_name=_('related datasets'))
     rel_datafiles = models.ManyToManyField(Datafile, related_name="sec_datafiles",  blank=True, verbose_name=_('related datafiles'))
@@ -63,10 +65,14 @@ class Section(models.Model):
     def get_root(self):
 		if self.parent_section is not None:
 			return self.parent_section.get_root()
-		elif self.parent_dataset is not None:
-			return self.parent_dataset
 		elif self.parent_exprt is not None:
 			return self.parent_exprt
+		elif self.parent_dataset is not None:
+			return self.parent_dataset
+		elif self.parent_datafile is not None:
+			return self.parent_datafile
+		elif self.parent_timeseries is not None:
+			return self.parent_timeseries
 		else:
 			return None
 
@@ -96,12 +102,21 @@ class Section(models.Model):
             return True
         return False
 
-    def addLinkedDataset(self, dataset):
-        self.rel_datasets.add(dataset)
+    def addLinkedObject(self, obj, obj_type):
+        if obj_type == "dataset":
+            self.rel_datasets.add(obj)
+        elif obj_type == "datafile":
+            self.rel_datafiles.add(obj)
+        elif obj_type == "timeseries":
+            self.rel_timeseries.add(obj)
 
-    def removeLinkedDataset(self, dataset):
-        self.rel_datasets.remove(dataset)
-
+    def removeLinkedObject(self, obj, obj_type):
+        if obj_type == "dataset":
+            self.rel_datasets.remove(obj)
+        elif obj_type == "datafile":
+            self.rel_datafiles.remove(obj)
+        elif obj_type == "timeseries":
+            self.rel_timeseries.remove(obj)
 
 
 class Property(models.Model):

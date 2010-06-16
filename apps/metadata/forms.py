@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
+from timeseries.models import TimeSeries
 from metadata.models import Section
 from metadata.models import Property
 from fields.models import MMCFClearField
@@ -77,4 +78,41 @@ class LinkDatasetForm(forms.Form):
         else:
             choices = RDataset.objects.filter(owner=user, current_state=10)
         self.fields['datasets'].queryset = choices
+
+
+class LinkDatafileForm(forms.Form):
+    datafiles = forms.ModelMultipleChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        try:
+            section = kwargs.pop('section')
+        except:
+            section = None
+        super(LinkDatafileForm, self).__init__(*args, **kwargs)
+        if section:
+            for_exclude = section.rel_datafiles.all().values_list("id", flat=True)
+            choices = Datafile.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+        else:
+            choices = Datafile.objects.filter(owner=user, current_state=10)
+        self.fields['datafiles'].queryset = choices
+
+
+class LinkTSForm(forms.Form):
+    timeseries = forms.ModelMultipleChoiceField(queryset=TimeSeries.objects.all().filter(current_state=10))
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        try:
+            section = kwargs.pop('section')
+        except:
+            section = None
+        super(LinkTSForm, self).__init__(*args, **kwargs)
+        if section:
+            for_exclude = section.rel_timeseries.all().values_list("id", flat=True)
+            choices = TimeSeries.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+        else:
+            choices = TimeSeries.objects.filter(owner=user, current_state=10)
+        self.fields['timeseries'].queryset = choices
+
 

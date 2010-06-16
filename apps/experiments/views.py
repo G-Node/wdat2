@@ -16,7 +16,7 @@ from datasets.models import RDataset
 from datafiles.models import Datafile
 from experiments.forms import CreateExperimentForm, ExperimentEditForm, ExperimentShortEditForm, PrivacyEditForm, RemoveDatasetsForm, RemoveDatafilesForm
 from experiments.filters import ExpFilter
-from metadata.forms import AddPropertyForm, EditPropertyForm, LinkDatasetForm
+from metadata.forms import AddPropertyForm, EditPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
 
 @login_required
 def create(request, form_class=CreateExperimentForm,
@@ -135,7 +135,8 @@ def member_experiments(request, template_name="experiments/memberexperiments.htm
 
 @login_required
 def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_form_class=PrivacyEditForm, 
-	dataset_form_class=LinkDatasetForm, property_form_class1=AddPropertyForm, 
+	dataset_form_class=LinkDatasetForm, datafile_form_class=LinkDatafileForm,
+    timeseries_form_class=LinkTSForm, property_form_class1=AddPropertyForm, 
     property_form_class2=EditPropertyForm, template_name="experiments/details.html"):
     # show the experiment details
     experiment = get_object_or_404(Experiment.objects.all(), id=id)
@@ -180,14 +181,14 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 #		dataset_form = dataset_form_class(user=request.user, exprt=experiment)
 
 	    # remove datasets handler
-	    if action == "remove_datasets":
-		a=dset_objects_form.is_valid
-		if dset_objects_form.is_valid():
-		    ids = dset_objects_form.cleaned_data['dset_choices'] 
-		    for rdataset in RDataset.objects.filter(id__in=ids):
-		        rdataset.removeLinkedExperiment(experiment)
-		        rdataset.save()
-		    request.user.message_set.create(message=_("Successfully removed selected datasets from '%s'") % experiment.title)
+	    #if action == "remove_datasets":
+		#a=dset_objects_form.is_valid
+		#if dset_objects_form.is_valid():
+		#    ids = dset_objects_form.cleaned_data['dset_choices'] 
+		#    for rdataset in RDataset.objects.filter(id__in=ids):
+		#        rdataset.removeLinkedExperiment(experiment)
+		#        rdataset.save()
+		#    request.user.message_set.create(message=_("Successfully removed selected datasets from '%s'") % experiment.title)
 
 	    # assign new datafile handler
 	    #if action == "new_datafile":
@@ -202,13 +203,13 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 #		datafile_form = datafile_form_class(user=request.user, exprt=experiment)
 
 	    # remove datafiles handler
-	    if action == "remove_datafiles":
-		if dfile_objects_form.is_valid():
-		    ids = dfile_objects_form.cleaned_data['dfile_choices'] 
-		    for datafile in Datafile.objects.filter(id__in=ids):
-		        datafile.removeLinkedExperiment(experiment)
-		        datafile.save()
-		    request.user.message_set.create(message=_("Successfully removed selected datafiles from '%s'") % experiment.title)
+	    #if action == "remove_datafiles":
+		#if dfile_objects_form.is_valid():
+		#    ids = dfile_objects_form.cleaned_data['dfile_choices'] 
+		#    for datafile in Datafile.objects.filter(id__in=ids):
+		#        datafile.removeLinkedExperiment(experiment)
+		#        datafile.save()
+		#    request.user.message_set.create(message=_("Successfully removed selected datafiles from '%s'") % experiment.title)
     else:
         exp_form = form_class(instance=experiment)
         privacy_form = privacy_form_class(user=request.user, instance=experiment)
@@ -218,6 +219,8 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
     prop_edit_form = property_form_class2(auto_id='id_edit_form_%s')
     dataset_link_form = dataset_form_class(auto_id='id_dataset_form_%s', user=request.user)
+    datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
+    timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
 
     #datasets = experiment.rdataset_set.all().filter(Q(current_state=10))
     #datasets = filter(lambda x: x.is_accessible(request.user), datasets)
@@ -233,10 +236,12 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 	"privacy_form": privacy_form,
 	#"dataset_form": dataset_form,
 	#"datafile_form": datafile_form,
-	"dset_objects_form": dset_objects_form,
-	"dfile_objects_form": dfile_objects_form,
+	#"dset_objects_form": dset_objects_form,
+	#"dfile_objects_form": dfile_objects_form,
     "prop_add_form": prop_add_form,
     "dataset_link_form": dataset_link_form,
+    "datafile_link_form": datafile_link_form,
+    "timeseries_link_form": timeseries_link_form,
     }, context_instance=RequestContext(request))
 
 

@@ -46,21 +46,63 @@
                         <td><a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a></td>
                         <td>{{ dataset.date_added }}</td>
                         {% ifequal dataset.owner request.user %}
-                            <td><nobr><a href="#" onclick="remove_dataset({{ section.id }}, {{ dataset.id }})">{% trans "remove" %}</a></nobr></td>
+                            <td><nobr><a href="#" onclick="remove_object({{ section.id }}, {{ dataset.id }}, 'dataset')">{% trans "remove" %}</a></nobr></td>
                         {% endifequal %}
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-    {% else %}
-    <p>No datasets are linked to this section.</p>
     {% endif %}
 
+    {% if section.getActiveDatafiles %}
+        <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Datafiles" %}</h3>
+        <table class="messages">
+            <thead>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th>
+                    {% ifequal section.get_owner request.user %}
+                    <th>{% trans "Action" %}</th>
+                    {% endifequal %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for datafile in section.getActiveDatafiles %}
+                    <tr>
+                        <td><a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a></td>
+                        <td>{{ datafile.date_added }}</td>
+                        {% ifequal datafile.owner request.user %}
+                            <td><nobr><a href="#" onclick="remove_object({{ section.id }}, {{ datafile.id }}, 'datafile')">{% trans "remove" %}</a></nobr></td>
+                        {% endifequal %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 
-
-
+    {% if section.getActiveTimeSeries %}
+        <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Time Series Data" %}</h3>
+        <table class="messages">
+            <thead>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th>
+                    {% ifequal section.get_owner request.user %}
+                    <th>{% trans "Action" %}</th>
+                    {% endifequal %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for serie in section.getActiveTimeSeries %}
+                    <tr>
+                        <td><a href="{{ serie.get_absolute_url }}">{{ serie.title }}</a></td>
+                        <td>{{ serie.date_created }}</td>
+                        {% ifequal serie.owner request.user %}
+                            <td><nobr><a href="#" onclick="remove_object({{ section.id }}, {{ serie.id }}, 'timeseries')">{% trans "remove" %}</a></nobr></td>
+                        {% endifequal %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 
     {% else %}
-        <span><br>No properties, files or time series found in this section.<br> You may add new properties, link datasets, files or time series records using the navigation above.</span>
+        <span><br>This section is empty.<br>Please use the navigation above to add new properties, link datasets, files or time series records.</span>
     {% endif %}
 {% endif %}

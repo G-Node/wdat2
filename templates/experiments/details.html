@@ -159,6 +159,7 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/hide_metadata_forms.js"></script>
 
     {% if experiment.hasMetadata %}
     <script type="text/javascript">
@@ -167,8 +168,7 @@
             load_meta_tree(3);
             //$.tree.focused().select_branch({{ experiment.get_metadata_root_id }});
             $('#add-property-toggle').click(function() {
-                $('#edit-property').hide();
-                $('#add-dataset').hide();
+                hide_metadata_forms("add-property");
                 $('#add-property').toggle();
                 return false;
             });
@@ -177,9 +177,18 @@
                 $('#add-property .error').autoscroll();
             }
             $('#link-dataset-toggle').click(function() {
-                $('#edit-property').hide();
-                $('#add-property').hide();
+                hide_metadata_forms("add-dataset");
                 $('#add-dataset').toggle();
+                return false;
+            });
+            $('#link-datafile-toggle').click(function() {
+                hide_metadata_forms("add-datafile");
+                $('#add-datafile').toggle();
+                return false;
+            });
+            $('#link-timeseries-toggle').click(function() {
+                hide_metadata_forms("add-timeseries");
+                $('#add-timeseries').toggle();
                 return false;
             });
         });
