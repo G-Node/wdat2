@@ -24,25 +24,12 @@
         var t = $.tree.focused(); 
         if(t.selected) {
             var prop_url = '../../../metadata/dataset_link/' + t.selected[0].id + '/';
-
-            // variant 1
-            //var post_str = '{"datasets":[';
-            //$('#id_dataset_form_datasets :selected').each(function(i, selected){
-            //    post_str += $(selected).val() + ', ';
-            //});
-            //post_str += '], "action":"dataset_link"}';
-
-            // variant 2
             var post_str = '{';
             $('#id_dataset_form_datasets :selected').each(function(i, selected){
-                post_str += '"datasets":' + '"' + $(selected).val() + '", ';
+                post_str += '"dataset' + i + '":' + '"' + $(selected).val() + '", ';
             });
             post_str += '"action":"dataset_link"}';
-
-            //var post_data = eval('(' + post_str + ')');
-
             var post_data = jQuery.parseJSON(post_str);
-
             $('#form-link-dataset').load(
                 prop_url, 
                 post_data,

@@ -1,5 +1,5 @@
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, get_host
+from django.http import HttpResponseRedirect, get_host, QueryDict
 from django.template import RequestContext
 #from django.db.models import Q
 #from django.http import Http404
@@ -155,7 +155,13 @@ def property_edit(request, id, form_class=EditPropertyForm, template_name="metad
 @login_required
 def dataset_link(request, id, dataset_form_class=LinkDatasetForm, template_name="metadata/dataset_link.html"):
     section_id = 0
-    dataset_form = dataset_form_class(request.POST, auto_id='id_dataset_form_%s', user=request.user)
+    # transform dataset<number> into <datasets> querydict to 
+    # easy create a form
+    q_dict = ""
+    for key, value in request.POST.items():
+        if str(key).find("dataset") == 0:
+            q_dict += "datasets=" + value + "&"
+    dataset_form = dataset_form_class(QueryDict(q_dict), auto_id='id_dataset_form_%s', user=request.user)
     if request.method == 'POST' and dataset_form.is_valid():
         section = get_object_or_404(Section, id=id)
         if request.POST.get("action") == "dataset_link" and section.does_belong_to(request.user):
