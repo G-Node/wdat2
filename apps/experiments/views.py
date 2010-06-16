@@ -167,54 +167,9 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 		    request.user.message_set.create(message=_("New privacy settings for '%s' saved") % experiment.title)
 	    else:
 		privacy_form = privacy_form_class(user=request.user, instance=experiment)
-
-	    # assign new dataset handler
-	    #if action == "new_dataset":
-		#dataset_form = dataset_form_class(request.POST, user=request.user, exprt=experiment)
-		#if dataset_form.is_valid():
-		#    sets = dataset_form.cleaned_data['datasets']
-		#    for s in sets:
-	#		s.addLinkedExperiment(experiment)
-	#		s.save()
-	#	    request.user.message_set.create(message=_("Successfully added datasets to '%s'") % experiment.title)
-	#    else:
-#		dataset_form = dataset_form_class(user=request.user, exprt=experiment)
-
-	    # remove datasets handler
-	    #if action == "remove_datasets":
-		#a=dset_objects_form.is_valid
-		#if dset_objects_form.is_valid():
-		#    ids = dset_objects_form.cleaned_data['dset_choices'] 
-		#    for rdataset in RDataset.objects.filter(id__in=ids):
-		#        rdataset.removeLinkedExperiment(experiment)
-		#        rdataset.save()
-		#    request.user.message_set.create(message=_("Successfully removed selected datasets from '%s'") % experiment.title)
-
-	    # assign new datafile handler
-	    #if action == "new_datafile":
-		#datafile_form = datafile_form_class(request.POST, user=request.user, exprt=experiment)
-		#if datafile_form.is_valid():
-		#    sets = datafile_form.cleaned_data['datafiles']
-		#    for s in sets:
-	#		s.addLinkedExperiment(experiment)
-	#		s.save()
-#		    request.user.message_set.create(message=_("Successfully added files to '%s'") % experiment.title)
-#	    else:
-#		datafile_form = datafile_form_class(user=request.user, exprt=experiment)
-
-	    # remove datafiles handler
-	    #if action == "remove_datafiles":
-		#if dfile_objects_form.is_valid():
-		#    ids = dfile_objects_form.cleaned_data['dfile_choices'] 
-		#    for datafile in Datafile.objects.filter(id__in=ids):
-		#        datafile.removeLinkedExperiment(experiment)
-		#        datafile.save()
-		#    request.user.message_set.create(message=_("Successfully removed selected datafiles from '%s'") % experiment.title)
     else:
         exp_form = form_class(instance=experiment)
         privacy_form = privacy_form_class(user=request.user, instance=experiment)
-        #dataset_form = dataset_form_class(user=request.user, exprt=experiment)
-        #datafile_form = datafile_form_class(user=request.user, exprt=experiment)
 
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
     prop_edit_form = property_form_class2(auto_id='id_edit_form_%s')
@@ -222,22 +177,10 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
     datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
 
-    #datasets = experiment.rdataset_set.all().filter(Q(current_state=10))
-    #datasets = filter(lambda x: x.is_accessible(request.user), datasets)
-
-    #datafiles = experiment.datafile_set.all().filter(Q(current_state=10))
-    #datafiles = filter(lambda x: x.is_accessible(request.user), datafiles)
-
     return render_to_response(template_name, {
     "experiment": experiment,
-	#"datasets": datasets,
-	#"datafiles": datafiles,
 	"exp_form": exp_form,
 	"privacy_form": privacy_form,
-	#"dataset_form": dataset_form,
-	#"datafile_form": datafile_form,
-	#"dset_objects_form": dset_objects_form,
-	#"dfile_objects_form": dfile_objects_form,
     "prop_add_form": prop_add_form,
     "dataset_link_form": dataset_link_form,
     "datafile_link_form": datafile_link_form,

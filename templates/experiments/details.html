@@ -152,16 +152,16 @@
 
 {% block extra_body %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
+
+    {% if experiment.hasMetadata %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
-    <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/hide_metadata_forms.js"></script>
-
-    {% if experiment.hasMetadata %}
     <script type="text/javascript">
         $(document.getElementById("sections")).ready(function() {
         // 3 - Section
