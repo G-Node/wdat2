@@ -54,7 +54,7 @@
                     <h2>{% trans "Used in" %}</h2>
                     <table width="100%">
                         {% for experiment in exprts %}
-                            <tr><td><a href="{{ experiment.get_absolute_url }}">{{ experiment.title|truncate_dot:26|escape }}</a></td></tr>
+                            <tr><td>- <a href="{{ experiment.get_absolute_url }}">{{ experiment.title|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
                     </table>                    
                 </div>

@@ -97,6 +97,10 @@ class Section(models.Model):
 
     def getActiveDatafiles(self):
         return self.rel_datafiles.filter(current_state=10)	    
+    def hasDatafile(self, datafile_id):
+        if self.rel_datafiles.filter(current_state=10, id=datafile_id):
+            return True
+        return False
 
     def getActiveTimeSeries(self):
         return self.rel_timeseries.filter(current_state=10)	    

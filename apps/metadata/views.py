@@ -23,7 +23,8 @@ def section_add(request, template_name="metadata/add.html"):
     parent_type = 0
     parent = None
     section_id = None
-    # parent types - "1" - Experiment; "2" - Dataset; "3" - Section; "4" - Time Series (TBI)
+    # parent types - "1" - Experiment; "2" - Dataset; "3" - Section; "4" - Time Series; "5" - Datafile
+    # don't ask why they are in this order, this method needs optimization
     if request.method == 'POST' and request.POST.get("action") == "section_add":
         parent_id = request.POST.get("parent_id")
         section_title = request.POST.get("new_name")
@@ -36,6 +37,9 @@ def section_add(request, template_name="metadata/add.html"):
             parent = get_object_or_404(RDataset, id=parent_id)
         if parent_type == "4":
             parent = get_object_or_404(TimeSeries, id=parent_id)
+        if parent_type == "5":
+            parent = get_object_or_404(Datafile, id=parent_id)
+
         if parent_type == "3":
             if parent.does_belong_to(request.user):
                 section = Section(title=section_title, parent_section=parent)
@@ -43,13 +47,16 @@ def section_add(request, template_name="metadata/add.html"):
                 section_id = section.id
         elif parent.owner == request.user:
             if parent_type == "1":
-                parent = get_object_or_404(Experiment, id=parent_id)
                 section = Section(title=section_title, parent_exprt=parent)
-            else:
-                parent = get_object_or_404(RDataset, id=parent_id)
+            if parent_type == "2":
                 section = Section(title=section_title, parent_dataset=parent)
-            section.save()
-            section_id = section.id
+            if parent_type == "4":
+                section = Section(title=section_title, parent_timeseries=parent)
+            if parent_type == "5":
+                section = Section(title=section_title, parent_datafile=parent)
+            if section:
+                section.save()
+                section_id = section.id
     else:
         section_id = None
     return render_to_response(template_name, {

@@ -8,6 +8,12 @@
 
 {% block head_title %}{{ datafile.title }}{% endblock %}
 
+{% block extra_head %}
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shCore.css"/> 
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shThemeDefault.css"/>
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shTreeDemo.css"/>  
+{% endblock %}
+
 {% block body %}
     
     {% if datafile %}
@@ -43,23 +49,12 @@
                     {% endif %}
                 </div>
             
-                {% if datafile.in_expts.all %}
+                {% if objs %}
                 <div class="friends">
                     <h2>{% trans "Linked to" %}</h2>
                     <table width="100%">
-                        {% for exprt in datafile.in_expts.all %}
-                            <tr><td>- <a href="{{ exprt.get_absolute_url }}">{{ exprt.title|truncate_dot:26|escape }}</a></td></tr>
-                        {% endfor %}
-                    </table>                    
-                </div>
-                {% endif%}
-                
-                {% if datafile.in_datasets.all %}
-                <div class="friends">
-                    <h2>{% trans "Used in" %}</h2>
-                    <table width="100%">
-                        {% for dataset in datafile.in_datasets.all %}
-                            <tr><td>- <a href="{{ dataset.get_absolute_url }}">{{ dataset.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% for obj in objs %}
+                            <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.title|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
                     </table>                    
                 </div>
@@ -92,7 +87,7 @@
             <div class="form-toggle">
                 <p><span id="edit-datafile-toggle">{% trans "Edit details" %}</span></p>
                 
-                <form class="uniForm" id="edit-datafile" method="POST" action="">
+                <form class="uniForm" id="edit-datafile" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ datafile_form|as_uni_form }}
                         <div class="form_block">
@@ -106,7 +101,7 @@
             <div class="form-toggle">
                 <p><span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
                 
-                <form class="uniForm" id="change-privacy" method="POST" action="">
+                <form class="uniForm" id="change-privacy" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ privacy_form|as_uni_form }}
                         <div class="form_block">
@@ -119,10 +114,32 @@
         {% endifequal %}
         <p>You may <a href="{{ datafile.raw_file.url }}">Download</a> {% ifequal request.user datafile.owner %}your{% else %}this{% endifequal %} File.
         
-        <p style="color: grey">Soon HERE you'll be able to preview your file (if it's a voltage trace), test the recording quality,
-        or make some on-line analysis. We are working to be able to provide you more useful tools which may fit your needs.</p>
-        
-    </div>
+
+        {% if datafile.hasMetadata %}
+        <h2>{% trans "Metadata" %}</h2>
+
+        {% ifequal request.user datafile.owner %}
+
+            {% comment %} PAPA is used to indicate which metadata buttons to render, 
+                    depending on object type {% endcomment %}
+            {% with "datafile" as papa %}
+                {% include "metadata/section_buttons.html" %}
+            {% endwith %}
+        {% endifequal %}
+
+        <div style="height: 300px; padding: 0; margin: 0;">
+            {% with datafile as tree_container %}
+                {% include "metadata/sections_tree.html" %}
+            {% endwith %}
+            <div id="properties_area" style="width: 580px; padding-left: 210px">
+                {% include "metadata/properties_list.html" %}
+            </div>
+        </div>
+        {% else %}
+        <p>You don't have metadata assigned to this file. You may start annotating your dataset by <a href="#" onclick="add_root_section({{ datafile.id }}, 5)">adding the Metadata</a>. In order to describe the file structure (sampling rates, number of electrodes, channels etc. with location / offsets in the file) it's better to use <a href="http://signalml.org/" target="blank">SignalML</a> technology.</p>
+        {% endif %}
+            
+        </div>
 
     {% else %}
     <p>There is no data about this file.</p>
@@ -131,9 +148,42 @@
 {% endblock %}
 
 {% block extra_body %}
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
+
+    {% if datafile.hasMetadata %}
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_metadata_items.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/hide_metadata_forms.js"></script>
+    <script type="text/javascript">
+        $(document.getElementById("sections")).ready(function() {
+        // 3 - Section
+            load_meta_tree(3);
+            //$.tree.focused().select_branch({{ experiment.get_metadata_root_id }});
+            $('#add-property-toggle').click(function() {
+                hide_metadata_forms("add-property");
+                $('#add-property').toggle();
+                return false;
+            });
+            if ($('#add-property .error').length) {
+                $('#add-property').show();
+                $('#add-property .error').autoscroll();
+            };
+            $('#link-timeseries-toggle').click(function() {
+                hide_metadata_forms("add-timeseries");
+                $('#add-timeseries').toggle();
+                return false;
+            });
+        });
+    </script>
+    {% endif %}
+
     <script type="text/javascript">
         $(document).ready(function() {
-            $('#edit-datafile').hide();
             $('#edit-datafile-toggle').click(function() {
                 $('#edit-datafile').toggle();
                 $('#edit-datafile').autoscroll();
@@ -142,8 +192,7 @@
             if ($('#edit-datafile .error').length) {
                 $('#edit-datafile').show();
                 $('#edit-datafile .error').autoscroll();
-            }
-            $('#change-privacy').hide();
+            };
             $('#change-privacy-toggle').click(function() {
                 $('#change-privacy').toggle();
                 $('#change-privacy').autoscroll();
@@ -154,12 +203,6 @@
                 $('#change-privacy .error').autoscroll();
             }
         });
-	function unselectAll() {
-		var obj = document.getElementById("id_shared_with");
-		for (var loop=0; loop < obj.options.length; loop++) {
-		obj.options[loop].selected = false;
-		}
-	};
     </script>
     
 {% endblock %}

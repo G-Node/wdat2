@@ -14,7 +14,7 @@ from datasets.models import RDataset
 from datafiles.models import Datafile
 from metadata.models import Section
 from datasets.forms import NewRDatasetForm, RDatasetEditForm, DeleteDatasetsForm, DatasetShortEditForm, PrivacyEditForm
-from metadata.forms import AddPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
+from metadata.forms import AddPropertyForm, LinkDatafileForm, LinkTSForm
 
 @login_required
 def create(request, form_class=NewRDatasetForm, template_name="datasets/new.html"):

@@ -15,7 +15,9 @@ import mimetypes
 import os.path
 
 from datafiles.models import Datafile
+from metadata.models import Section
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
+from metadata.forms import AddPropertyForm, LinkTSForm
 
 #LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
 #logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
@@ -111,7 +113,8 @@ def alldatafiles(request, template_name="datafiles/all.html"):
 
 
 @login_required
-def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_class=PrivacyEditForm, template_name="datafiles/details.html"):
+def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_class=PrivacyEditForm, 
+    timeseries_form_class=LinkTSForm, property_form_class1=AddPropertyForm, template_name="datafiles/details.html"):
     # show the datafile details
 
     datafiles = Datafile.objects.all()
@@ -140,11 +143,25 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
             datafile = privacy_form.save()
     else:
         privacy_form = privacy_form_class(user=request.user, instance=datafile)
+
+    prop_add_form = property_form_class1(auto_id='id_add_form_%s')
+    timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
+
+    # get the parent experiments to which this file is linked to
+    objs = []
+    sections = Section.objects.filter(current_state=10)
+    sections = filter(lambda x: x.hasDatafile(datafile.id), sections)
+    for section in sections:
+        if not section.get_root() in objs:
+            objs.append(section.get_root())
     
     return render_to_response(template_name, {
         "datafile": datafile,
-	"datafile_form": datafile_form,
-	"privacy_form": privacy_form,	
+        "datafile_form": datafile_form,
+        "privacy_form": privacy_form,	
+        "prop_add_form": prop_add_form,
+        "timeseries_link_form": timeseries_link_form,
+        "objs": objs,
     }, context_instance=RequestContext(request))
 
 
