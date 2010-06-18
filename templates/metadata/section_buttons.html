@@ -20,21 +20,33 @@
                     {% include "metadata/property_edit.html" %}
                 </div>
 
-                {% comment %} THE FOLLOWING FORMS MAY BE REUSABLE, BUT ITS RISKY {% endcomment %}
-                {% with dataset_link_form as object_form %}
-                {% with "dataset" as obj %}
-                <div id="form-link-dataset">
-                    {% include "metadata/object_link.html" %}
-                </div>
-                {% endwith %}
-                {% endwith %}
-                {% with datafile_link_form as object_form %}
-                {% with "datafile" as obj %}
-                <div id="form-link-datafile">
-                    {% include "metadata/object_link.html" %}
-                </div>
-                {% endwith %}
-                {% endwith %}
+                {% ifequal papa "experiment" %}
+                    {% with dataset_link_form as object_form %}
+                    {% with "dataset" as obj %}
+                    <div id="form-link-dataset">
+                        {% include "metadata/object_link.html" %}
+                    </div>
+                    {% endwith %}
+                    {% endwith %}
+                    {% with datafile_link_form as object_form %}
+                    {% with "datafile" as obj %}
+                    <div id="form-link-datafile">
+                        {% include "metadata/object_link.html" %}
+                    </div>
+                    {% endwith %}
+                    {% endwith %}
+                {% endifequal %}
+
+                {% ifequal papa "datafile" %}
+                    {% with datafile_link_form as object_form %}
+                    {% with "datafile" as obj %}
+                    <div id="form-link-datafile">
+                        {% include "metadata/object_link.html" %}
+                    </div>
+                    {% endwith %}
+                    {% endwith %}
+                {% endifequal %}
+
                 {% with timeseries_link_form as object_form %}
                 {% with "timeseries" as obj %}
                 <div id="form-link-timeseries">

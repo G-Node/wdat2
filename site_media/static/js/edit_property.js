@@ -5,7 +5,7 @@
             var new_value = $(document.getElementById("id_edit_form_prop_value")).attr('value');
             var new_description = $(document.getElementById("id_edit_form_prop_description")).attr('value');
             var new_comment = $(document.getElementById("id_edit_form_prop_comment")).attr('value');
-            $('#edit-property').load(
+            $('#form-edit-property').load(
                 prop_url, 
                 {prop_title:new_title, prop_value:new_value, prop_description:new_description, prop_comment:new_comment, action:'update_form'}, 
                 function() {
@@ -20,10 +20,14 @@
                         $('#edit-property').hide();
                     }
                 }
-            ); 
+            );
+            var t1 = $(document.getElementById("edit-prop-success-identifier")).attr('value');
+            if (t1 == "0") {
+                $('#edit-property').show();
+            };
         }
         else {
-            $('#edit-property').load(
+            $('#form-edit-property').load(
                 prop_url, 
                 {action:'get_form'}, 
                 function() {

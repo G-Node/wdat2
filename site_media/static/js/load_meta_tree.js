@@ -13,11 +13,11 @@
 					url: "../../../metadata/section_add/", 
 					data: ({ new_id:n_id, new_name:n_name, parent_id:pi, parent_type:par_type, action:'section_add' }), 
                     success: function(data) { 
-                        NODE.setAttribute("id", data);
-                        NODE.firstChild.setAttribute("href", "#");
                         var f1 = data * 1;
+                        NODE.setAttribute("id", f1);
+                        NODE.firstChild.setAttribute("href", "#");
                         var nod = "#"+f1;
-                        $.tree.reference("#sections").refresh(nod);
+                        //$.tree.reference("#sections").refresh(nod);
                         $.tree.focused().select_branch(nod);
                         $.tree.focused().rename();
                     },

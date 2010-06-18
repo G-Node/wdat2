@@ -131,7 +131,12 @@
     <h2>{% trans "Metadata" %}</h2>
 
     {% ifequal request.user experiment.owner %}
-    {% include "metadata/section_buttons.html" %}
+
+        {% comment %} PAPA is used to indicate which buttons to render, 
+                depending on object type {% endcomment %}
+        {% with "experiment" as papa %}
+            {% include "metadata/section_buttons.html" %}
+        {% endwith %}
     {% endifequal %}
 
     <div style="height: 300px; padding: 0; margin: 0;">

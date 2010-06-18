@@ -17,6 +17,10 @@
                     }
                 }
             ); 
+            var t1 = $(document.getElementById("add-prop-success-identifier")).attr('value');
+            if (t1 == "0") {
+                $('#add-property').show();
+            };
         }
         else alert('Please select a section first');
         };
