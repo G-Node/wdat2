@@ -35,17 +35,6 @@ class Experiment(SafetyLevel):
 
     def __unicode__(self):
         return self.title
-    
-    def get_metadata(self):
-        metadata = []
-        for section in self.section_set.filter(current_state=10):
-            metadata.append(section.get_tree())
-        return metadata
-
-    def hasMetadata(self):
-        if self.section_set.filter(current_state=10):
-            return True
-        return False
 
     def get_absolute_url(self):
         return ("experiment_details", [self.pk])

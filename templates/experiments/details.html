@@ -132,7 +132,7 @@
 
     {% ifequal request.user experiment.owner %}
 
-        {% comment %} PAPA is used to indicate which buttons to render, 
+        {% comment %} PAPA is used to indicate which metadata buttons to render, 
                 depending on object type {% endcomment %}
         {% with "experiment" as papa %}
             {% include "metadata/section_buttons.html" %}
@@ -140,8 +140,10 @@
     {% endifequal %}
 
     <div style="height: 300px; padding: 0; margin: 0;">
-        {% include "metadata/sections_tree.html" %}
-        <div id="properties_area" style="height: 300px; width: 580px; padding-left: 210px">
+        {% with experiment as tree_container %}
+            {% include "metadata/sections_tree.html" %}
+        {% endwith %}
+        <div id="properties_area" style="width: 580px; padding-left: 210px">
             {% include "metadata/properties_list.html" %}
         </div>
     </div>
@@ -158,6 +160,7 @@
 {% block extra_body %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
 
     {% if experiment.hasMetadata %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
@@ -165,7 +168,6 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
-    <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/hide_metadata_forms.js"></script>
     <script type="text/javascript">
         $(document.getElementById("sections")).ready(function() {
@@ -180,7 +182,7 @@
             if ($('#add-property .error').length) {
                 $('#add-property').show();
                 $('#add-property .error').autoscroll();
-            }
+            };
             $('#link-dataset-toggle').click(function() {
                 hide_metadata_forms("add-dataset");
                 $('#add-dataset').toggle();

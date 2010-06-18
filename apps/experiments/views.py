@@ -14,9 +14,9 @@ from datetime import timedelta
 from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
-from experiments.forms import CreateExperimentForm, ExperimentEditForm, ExperimentShortEditForm, PrivacyEditForm, RemoveDatasetsForm, RemoveDatafilesForm
+from experiments.forms import CreateExperimentForm, ExperimentEditForm, ExperimentShortEditForm, PrivacyEditForm
 from experiments.filters import ExpFilter
-from metadata.forms import AddPropertyForm, EditPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
+from metadata.forms import AddPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
 
 @login_required
 def create(request, form_class=CreateExperimentForm,
@@ -136,8 +136,7 @@ def member_experiments(request, template_name="experiments/memberexperiments.htm
 @login_required
 def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_form_class=PrivacyEditForm, 
 	dataset_form_class=LinkDatasetForm, datafile_form_class=LinkDatafileForm,
-    timeseries_form_class=LinkTSForm, property_form_class1=AddPropertyForm, 
-    property_form_class2=EditPropertyForm, template_name="experiments/details.html"):
+    timeseries_form_class=LinkTSForm, property_form_class1=AddPropertyForm, template_name="experiments/details.html"):
     # show the experiment details
     experiment = get_object_or_404(Experiment.objects.all(), id=id)
 
@@ -147,8 +146,8 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
         raise Http404
 
     action = request.POST.get("action")
-    dset_objects_form = RemoveDatasetsForm(request.POST or None, user=request.user, exprt=experiment)
-    dfile_objects_form = RemoveDatafilesForm(request.POST or None, user=request.user, exprt=experiment)
+    #dset_objects_form = RemoveDatasetsForm(request.POST or None, user=request.user, exprt=experiment)
+    #dfile_objects_form = RemoveDatafilesForm(request.POST or None, user=request.user, exprt=experiment)
     if request.user == experiment.owner:
 	    # edit details handler
 	    if action == "details_update":
@@ -172,7 +171,6 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
         privacy_form = privacy_form_class(user=request.user, instance=experiment)
 
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
-    prop_edit_form = property_form_class2(auto_id='id_edit_form_%s')
     dataset_link_form = dataset_form_class(auto_id='id_dataset_form_%s', user=request.user)
     datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)

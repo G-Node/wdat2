@@ -9,9 +9,9 @@ from timeseries.models import TimeSeries
 from django.utils.translation import ugettext_lazy as _
 
 class Section(models.Model):
-    # A metadata "Section". Used to organize experiment / dataset
+    # A metadata "Section". Used to organize experiment / dataset / file / timeseries
     # metadata in a tree-like structure. May be linked to Experiment, 
-    # Dataset or itself.
+    # Dataset, File, Timeseries or itself.
     STATES = (
         (10, _('Active')),
         (20, _('Deleted')),
@@ -90,6 +90,10 @@ class Section(models.Model):
 
     def getActiveDatasets(self):
         return self.rel_datasets.filter(current_state=10)	    
+    def hasDataset(self, dataset_id):
+        if self.rel_datasets.filter(current_state=10, id=dataset_id):
+            return True
+        return False
 
     def getActiveDatafiles(self):
         return self.rel_datafiles.filter(current_state=10)	    

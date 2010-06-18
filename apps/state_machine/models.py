@@ -27,6 +27,19 @@ class ObjectState(models.Model):
     def isActive(self):
 	return self.current_state == 10
 
+    # some common methods (not applicable for all objects!)
+    def get_metadata(self):
+        metadata = []
+        for section in self.section_set.filter(current_state=10):
+            metadata.append(section.get_tree())
+        return metadata
+
+    def hasMetadata(self):
+        if self.section_set.filter(current_state=10):
+            return True
+        return False
+
+
 # Safety level represents a level of access to an object by other users
 # Can be Public (all users have access), Friendly (all "friends" have access) and Private
 # (owner and special assignments only). Also handles special assignments (access for

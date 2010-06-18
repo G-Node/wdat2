@@ -12,7 +12,9 @@ from django.contrib.auth.decorators import login_required
 #from photologue.models import *
 from datasets.models import RDataset
 from datafiles.models import Datafile
-from datasets.forms import NewRDatasetForm, RDatasetEditForm, DeleteDatasetsForm, DatasetShortEditForm, PrivacyEditForm, AddDatafileForm, RemoveDatafilesForm
+from metadata.models import Section
+from datasets.forms import NewRDatasetForm, RDatasetEditForm, DeleteDatasetsForm, DatasetShortEditForm, PrivacyEditForm
+from metadata.forms import AddPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
 
 @login_required
 def create(request, form_class=NewRDatasetForm, template_name="datasets/new.html"):
@@ -88,22 +90,22 @@ def alldatasets(request, template_name="datasets/all.html"):
 
 
 @login_required
-def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_class=PrivacyEditForm, datafile_form_class=AddDatafileForm, template_name="datasets/details.html"):
-    """
-    show the dataset details
-    """
-    # change here !!! RDataset.objects.get(id__exact=id) + raise Http404 if nothing
+def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_class=PrivacyEditForm, 
+    datafile_form_class=LinkDatafileForm, timeseries_form_class=LinkTSForm, property_form_class1=AddPropertyForm, 
+    template_name="datasets/details.html"):
+
+   # change here !!! RDataset.objects.get(id__exact=id) + raise Http404 if nothing
     datasets = RDataset.objects.all()
     dataset = get_object_or_404(datasets, id=id)
     datasets = None
     
     # security handler
     if not dataset.is_accessible(request.user):
-	dataset = None
-	raise Http404
+        dataset = None
+        raise Http404
 
     action = request.POST.get("action")
-    dfile_objects_form = RemoveDatafilesForm(request.POST or None, user=request.user, dataset=dataset)
+    #dfile_objects_form = RemoveDatafilesForm(request.POST or None, user=request.user, dataset=dataset)
 
     # edit details handler
     if request.user == dataset.owner and action == "details_update":
@@ -121,37 +123,26 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
     else:
         privacy_form = privacy_form_class(user=request.user, instance=dataset)
 
-    # assign new datafile handler
-    if action == "new_datafile":
-	datafile_form = datafile_form_class(request.POST, user=request.user, dataset=dataset)
-	if datafile_form.is_valid():
-	    sets = datafile_form.cleaned_data['datafiles']
-	    for s in sets:
-		s.addLinkedDataset(dataset)
-		s.save()
-	    request.user.message_set.create(message=_("Successfully added files to '%s'") % dataset.title)
-    else:
-	datafile_form = datafile_form_class(user=request.user, dataset=dataset)
+    prop_add_form = property_form_class1(auto_id='id_add_form_%s')
+    datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
+    timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
 
-    # remove datafiles handler
-    if action == "remove_datafiles":
-	if dfile_objects_form.is_valid():
-	    ids = dfile_objects_form.cleaned_data['dfile_choices'] 
-	    for datafile in Datafile.objects.filter(id__in=ids):
-	        datafile.removeLinkedDataset(dataset)
-	        datafile.save()
-	    request.user.message_set.create(message=_("Successfully removed selected datafiles from '%s'") % dataset.title)
+    # get the parent experiments to which dataset is linked to
+    exprts = []
+    sections = Section.objects.filter(current_state=10)
+    sections = filter(lambda x: x.hasDataset(dataset.id), sections)
+    for section in sections:
+        if not section.get_root() in exprts:
+            exprts.append(section.get_root())
 
-    datafiles = dataset.datafile_set.all().filter(Q(current_state=10))
-    datafiles = filter(lambda x: x.is_accessible(request.user), datafiles)
-    
     return render_to_response(template_name, {
         "dataset": dataset,
-	"datafiles": datafiles,
-	"dataset_form": dataset_form,
-	"privacy_form": privacy_form,
-	"datafile_form": datafile_form,
-	"dfile_objects_form": dfile_objects_form,
+        "dataset_form": dataset_form,
+        "privacy_form": privacy_form,
+        "prop_add_form": prop_add_form,
+        "datafile_link_form": datafile_link_form,
+        "timeseries_link_form": timeseries_link_form,
+        "exprts": exprts,
     }, context_instance=RequestContext(request))
 
 

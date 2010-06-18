@@ -8,8 +8,13 @@
                     <span onclick="$.tree.focused().rename();" id="rename-section-button">{% trans "Rename" %}</span>
                     <span onclick="$.tree.focused().remove();" id="delete-section-button">{% trans "Delete" %}</span>
                     <span id="add-property-toggle">{% trans "Add Property" %}</span>
+                {% ifequal papa "experiment" %}
                     <span id="link-dataset-toggle">{% trans "Link Dataset" %}</span>
                     <span id="link-datafile-toggle">{% trans "Link File" %}</span>
+                {% endifequal %}
+                {% ifequal papa "dataset" %}
+                    <span id="link-datafile-toggle">{% trans "Link File" %}</span>
+                {% endifequal %}
                     <span id="link-timeseries-toggle">{% trans "Link Time Series" %}</span>
 			    </p>
 
@@ -37,7 +42,7 @@
                     {% endwith %}
                 {% endifequal %}
 
-                {% ifequal papa "datafile" %}
+                {% ifequal papa "dataset" %}
                     {% with datafile_link_form as object_form %}
                     {% with "datafile" as obj %}
                     <div id="form-link-datafile">

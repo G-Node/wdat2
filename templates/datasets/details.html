@@ -8,6 +8,12 @@
 
 {% block head_title %}{{ dataset.title }}{% endblock %}
 
+{% block extra_head %}
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shCore.css"/> 
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shThemeDefault.css"/>
+	<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shTreeDemo.css"/>  
+{% endblock %}
+
 {% block body %}
     
     {% if dataset %}
@@ -47,8 +53,8 @@
                 <div class="friends">
                     <h2>{% trans "Used in" %}</h2>
                     <table width="100%">
-                        {% for experiment in dataset.in_experiments.all %}
-                            <tr><td>- <a href="{{ experiment.get_absolute_url }}">{{ experiment.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% for experiment in exprts %}
+                            <tr><td><a href="{{ experiment.get_absolute_url }}">{{ experiment.title|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
                     </table>                    
                 </div>
@@ -105,69 +111,79 @@
                 </form>
             </div>
         {% endifequal %}
-        
     </div>
 
-    <h2>{% trans "Files in this Dataset" %}</h2>
-	    {% ifequal dataset.owner request.user %}
-            <div class="form-toggle">
-                <p><span id="add-datafile-toggle">{% trans "Link File" %}</span></p>
-                
-                <form class="uniForm" id="add-datafile" method="POST" action="" style="display:none">
-                    <fieldset class="inlineLabels">
-                        {{ datafile_form|as_uni_form }}
-                        <div class="form_block">
-                            <input type="hidden" name="action" value="new_datafile" />
-                            <input type="submit" value="{% trans "add" %}"/>
-                        </div>
-                    </fieldset>
-                </form>
-            </div>
-	    {% endifequal %}
-    {% if datafiles %}
-        <form id="delete-datafiles" method="POST" action="">
+    {% if dataset.hasMetadata %}
+    <h2>{% trans "Metadata" %}</h2>
 
-	{{ dfile_objects_form.dfile_choices.errors }}
-        <table class="messages">
-            <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Tags" %}</th><th>{% trans "Volume" %}</th>
-                    {% ifequal dataset.owner request.user %}
-                    <th>{% trans "Action" %}</th>
-                    {% endifequal %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for datafile in datafiles %}
-                    <tr>
-                        <td>
-                            <a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a>
-                        </td>
-                        <td>{% show_tags_for datafile %}</td>
-                        <td>{{ datafile.size }}</td>
-                        {% ifequal datafile.owner request.user %}
-                            <td><nobr><a href="{% url datafile_delete datafile.id %}">{% trans "delete" %}</a> <a href="{{ datafile.raw_file.url }}">{% trans "download" %}</a> <input id="id_dfile_choices_{{ datafile.id }}" type="checkbox" value="{{ datafile.id }}" name="dfile_choices"/></nobr></td>
-                        {% endifequal %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% ifequal dataset.owner request.user %}
-		<input type="hidden" name="action" value="remove_datafiles" />
-		<input type="submit" value="{% trans "remove selected" %}"/>
-        {% endifequal %}
-        </form>
+    {% ifequal request.user dataset.owner %}
 
+        {% comment %} PAPA is used to indicate which metadata buttons to render, 
+                depending on object type {% endcomment %}
+        {% with "dataset" as papa %}
+            {% include "metadata/section_buttons.html" %}
+        {% endwith %}
+    {% endifequal %}
+
+    <div style="height: 300px; padding: 0; margin: 0;">
+        {% with dataset as tree_container %}
+            {% include "metadata/sections_tree.html" %}
+        {% endwith %}
+        <div id="properties_area" style="width: 580px; padding-left: 210px">
+            {% include "metadata/properties_list.html" %}
+        </div>
+    </div>
     {% else %}
-    <p>No datafiles in this dataset. You may <a href="{% url datafile_create %}">upload</a> a new file, or select and <a id="sub-add-datafile" href="#">link</a> an existing one.</p>
+    <p>You don't have metadata assigned to this dataset. You may start annotating your dataset by <a href="#" onclick="add_root_section({{ dataset.id }}, 2)">adding the Metadata</a>.
     {% endif %}
 
-    {% else %}
+
+     {% else %}
     <p>No data about this dataset is found.</p>
     {% endif %}
 
 {% endblock %}
 
 {% block extra_body %}
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
+
+    {% if dataset.hasMetadata %}
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_metadata_items.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/hide_metadata_forms.js"></script>
+    <script type="text/javascript">
+        $(document.getElementById("sections")).ready(function() {
+        // 3 - Section
+            load_meta_tree(3);
+            //$.tree.focused().select_branch({{ experiment.get_metadata_root_id }});
+            $('#add-property-toggle').click(function() {
+                hide_metadata_forms("add-property");
+                $('#add-property').toggle();
+                return false;
+            });
+            if ($('#add-property .error').length) {
+                $('#add-property').show();
+                $('#add-property .error').autoscroll();
+            };
+            $('#link-datafile-toggle').click(function() {
+                hide_metadata_forms("add-datafile");
+                $('#add-datafile').toggle();
+                return false;
+            });
+            $('#link-timeseries-toggle').click(function() {
+                hide_metadata_forms("add-timeseries");
+                $('#add-timeseries').toggle();
+                return false;
+            });
+        });
+    </script>
+    {% endif %}
+
     <script type="text/javascript">
         $(document).ready(function() {
             $('#edit-dataset-toggle').click(function() {
@@ -188,27 +204,6 @@
                 $('#change-privacy').show();
                 $('#change-privacy .error').autoscroll();
             }
-            $('#add-datafile-toggle').click(function() {
-                $('#add-datafile').toggle();
-                $('#add-datafile').autoscroll();
-                return false;
-            });
-            $('#sub-add-datafile').click(function() {
-                $('#add-datafile').toggle();
-                $('#add-datafile').autoscroll();
-                return false;
-            });
-            if ($('#add-datafile .error').length) {
-                $('#add-datafile').show();
-                $('#add-datafile .error').autoscroll();
-            }
         });
-	function unselectAll() {
-		var obj = document.getElementById("id_shared_with");
-		for (var loop=0; loop < obj.options.length; loop++) {
-		obj.options[loop].selected = false;
-		}
-	};
     </script>
-    
 {% endblock %}

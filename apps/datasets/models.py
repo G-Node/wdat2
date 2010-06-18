@@ -31,7 +31,6 @@ class RDataset(SafetyLevel):
     dataset_qty = models.IntegerField(_('dataset quality'), choices=QUALITY, default=4)
     owner = models.ForeignKey(User, related_name="added_datasets", blank=True, null=False)
     in_experiments = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
-    #in_sections = models.ManyToManyField(Section, blank=True, verbose_name=_('related sections'))
     tags = TagField()
 
     def __unicode__(self):
@@ -48,6 +47,9 @@ class RDataset(SafetyLevel):
             return True
         else:
             return False
+
+
+
 
 
     # The methods below are legacy after implementation of 
