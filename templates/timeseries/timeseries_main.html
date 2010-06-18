@@ -11,6 +11,9 @@
 {% block head_title %}{% blocktrans %}My Time Series data{% endblocktrans %}{% endblock %}
 
 {% block extra_head %}
+<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shCore.css"/> 
+<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shThemeDefault.css"/>
+<link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shTreeDemo.css"/>  
 <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.min.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/highcharts.js"></script>
 <script type="text/javascript">
@@ -22,7 +25,7 @@
       zoomType: 'x'
    },
         title: {
-      text: 'my time series'
+      text: '{{ tserie.title }}'
    },
         subtitle: {
       text: 'Click and drag in the plot area to zoom in'
@@ -184,26 +187,32 @@
             <div id="container" style="width: 550px; height: 300px; margin: 0 auto"></div>
 
 
-            {% ifequal request.user t_serie.owner %}
-             
-            {% endifequal %}
-        </div>
-    
-        {% comment %}
+        {% if t_serie.hasMetadata %}
         <h2>{% trans "Metadata" %}</h2>
 
+        {% ifequal request.user t_serie.owner %}
+
+            {% comment %} PAPA is used to indicate which metadata buttons to render, 
+                    depending on object type {% endcomment %}
+            {% with "timeseries" as papa %}
                 {% include "metadata/section_buttons.html" %}
+            {% endwith %}
+        {% endifequal %}
 
-
-            <div style="height: 300px; padding: 0; margin: 0;">
+        <div style="height: 300px; padding: 0; margin: 0;">
+            {% with t_serie as tree_container %}
                 {% include "metadata/sections_tree.html" %}
-                <div id="properties_area" style="height: 300px; width: 580px; padding-left: 210px">
-                    {% include "metadata/properties_list.html" %}
-                </div>
+            {% endwith %}
+            <div id="properties_area" style="width: 580px; padding-left: 210px">
+                {% include "metadata/properties_list.html" %}
             </div>
+        </div>
+        {% else %}
+        <p>You don't have metadata assigned to this time serie. You may want to annotate it by <a href="#" onclick="add_root_section({{ t_serie.id }}, 4)">adding the Metadata</a>.</p>
+        {% endif %}
 
-        {% endcomment %}
-   
+        </div>
+  
     {% else %}
         <p>You don't have any timeseries data uploaded. Try by <a href="#" onclick="$('#add-timeseries').toggle();">uploading new time series</a> data now, or <a href="{% url datafile_create %}">upload data</a> in files.</p>
             <div class="form-toggle">
@@ -225,29 +234,44 @@
 
 {% block extra_body %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
+
+    {% if t_serie.hasMetadata %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
-    <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
-
+    <script type="text/javascript" src="{{ STATIC_URL }}js/hide_metadata_forms.js"></script>
     <script type="text/javascript">
         $(document.getElementById("sections")).ready(function() {
-        // do stuff when div is ready
-            load_meta_tree();
-        });
-    </script>
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $('#edit-experiment-toggle').click(function() {
-                $('#edit-experiment').toggle();
-                $('#edit-experiment').autoscroll();
+        // 3 - Section
+            load_meta_tree(3);
+            //$.tree.focused().select_branch({{ experiment.get_metadata_root_id }});
+            $('#add-property-toggle').click(function() {
+                hide_metadata_forms("add-property");
+                $('#add-property').toggle();
                 return false;
             });
-            if ($('#edit-experiment .error').length) {
-                $('#edit-experiment').show();
-                $('#edit-experiment .error').autoscroll();
+            if ($('#add-property .error').length) {
+                $('#add-property').show();
+                $('#add-property .error').autoscroll();
+            };
+        });
+    </script>
+    {% endif %}
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#edit-timeseries-toggle').click(function() {
+                $('#timeseries-experiment').toggle();
+                $('#timeseries-experiment').autoscroll();
+                return false;
+            });
+            if ($('#timeseries-experiment .error').length) {
+                $('#timeseries-experiment').show();
+                $('#timeseries-experiment .error').autoscroll();
             }
             $('#change-privacy-toggle').click(function() {
                 $('#change-privacy').toggle();
@@ -258,40 +282,6 @@
                 $('#change-privacy').show();
                 $('#change-privacy .error').autoscroll();
             }
-            $('#add-property-toggle').click(function() {
-                $('#add-property').toggle();
-                //$('#add-property').autoscroll();
-                return false;
-            });
-            if ($('#add-property .error').length) {
-                $('#add-property').show();
-                $('#add-property .error').autoscroll();
-            }
-            $('#add-dataset-toggle').click(function() {
-                $('#add-dataset').toggle();
-                $('#add-dataset').autoscroll();
-                return false;
-            });
-            if ($('#add-dataset .error').length) {
-                $('#add-dataset').show();
-                $('#add-dataset .error').autoscroll();
-            }
-            $('#add-datafile-toggle').click(function() {
-                $('#add-datafile').toggle();
-                $('#add-datafile').autoscroll();
-                return false;
-            });
-            if ($('#add-datafile .error').length) {
-                $('#add-datafile').show();
-                $('#add-datafile .error').autoscroll();
-            }
         });
-	function unselectAll() {
-		var obj = document.getElementById("id_shared_with");
-		for (var loop=0; loop < obj.options.length; loop++) {
-		obj.options[loop].selected = false;
-		}
-	};
-
     </script>
 {% endblock %}

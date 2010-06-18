@@ -9,6 +9,7 @@ import datetime
 
 from timeseries.models import TimeSeries
 from timeseries.forms import AddTSfromFieldForm, EditTSForm, DeleteTSForm
+from metadata.forms import AddPropertyForm
 
 
 @login_required
@@ -76,6 +77,8 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         tserie_add_form = AddTSfromFieldForm()
         tserie_edit_form = None
 
+    prop_add_form = AddPropertyForm(auto_id='id_add_form_%s')
+
     return render_to_response(template_name, {
         "timeseries": time_series,
         "t_serie": t_serie,
@@ -83,6 +86,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         "tserie_add_form_status": tserie_add_form_status,
         "tserie_edit_form": tserie_edit_form,
         "tserie_edit_form_status": tserie_edit_form_status,
+        "prop_add_form": prop_add_form,
         }, context_instance=RequestContext(request))
 
 
