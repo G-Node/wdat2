@@ -6,7 +6,7 @@
         <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Properties" %}</h3>
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Name" %}</th><th>{% trans "Value" %}</th><th>{% trans "Description" %}</th><th>{% trans "Comment" %}</th><th>{% trans "Created" %}</th>
+                <tr><th>{% trans "Name" %}</th><th>{% trans "Value" %}</th><th>{% trans "Description" %}</th><th>{% trans "Comment" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
                     {% endifequal %}
@@ -19,7 +19,6 @@
                         <td>{{ property.prop_value }}</td>
                         <td>{{ property.prop_description }}</td>
                         <td>{{ property.prop_comment }}</td>
-                        <td>{{ property.prop_date_created|date:_("DATETIME_FORMAT") }}</td>
                         {% ifequal section.get_owner request.user %}
                             <td><nobr><a href="#" onclick="edit_property({{ property.id }}, 'get')">{% trans "edit" %}</a> <a 
                                 href="#" onclick="delete_property({{ property.id }})">{% trans "delete" %}</a></nobr></td>
