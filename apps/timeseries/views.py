@@ -27,29 +27,25 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         else:
             t_serie = time_series[0]
 
+    action = request.POST.get("action")
+    if action == "timeseries_add":
+        tserie_add_form = AddTSfromFieldForm(request.POST or None)
+        if tserie_add_form.is_valid():
+            tserie = tserie_add_form.save(commit=False)
+            tserie.title = tserie.getNextCounter(request.user)
+            tserie.owner = request.user
+            tserie.save()
+                    
+            request.user.message_set.create(message=_("Successfully created time series '%s'") % tserie.title)
+            redirect_to = reverse("timeseries_main")
+            return HttpResponseRedirect(redirect_to)
+        else:
+            tserie_add_form_status = ""
+
     if t_serie:
         tserie_add_form = AddTSfromFieldForm()
         tserie_edit_form = EditTSForm(instance=t_serie)
         if request.method == 'POST' and request.user == t_serie.owner:
-            action = request.POST.get("action")
-            if action == "timeseries_add":
-                tserie_add_form = AddTSfromFieldForm(request.POST or None)
-
-            if action == "timeseries_add":
-                if tserie_add_form.is_valid():
-                    tserie = tserie_add_form.save(commit=False)
-                    tserie.title = tserie.getNextCounter(request.user)
-                    tserie.owner = request.user
-                    tserie.save()
-                    #dataset_form.save_m2m()
-                    
-                    request.user.message_set.create(message=_("Successfully created time series '%s'") % tserie.title)
-                    #include_kwargs = {"id": dataset.id}
-                    redirect_to = reverse("timeseries_main")
-                    return HttpResponseRedirect(redirect_to)
-                else:
-                    tserie_add_form_status = ""
-
             tserie_edit_form = EditTSForm(request.POST or None, instance=t_serie)
             if action == "timeseries_update":
                 if tserie_edit_form.is_valid():
