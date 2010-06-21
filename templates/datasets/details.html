@@ -66,21 +66,30 @@
         <div class="photo-title">
             <h2>Dataset: {{ dataset.title }} {% if not dataset.isActive %}(DELETED){% endif %}</h2>
         </div>
-        <div class="photo-caption">
-            <p><b>Description: </b>{{ dataset.caption }}</p>
-        </div>
-        <div>
-            <p><b>Date recorded: </b>{{ dataset.date_added }}</p>
-        </div>
-        <div>
-            {% ifnotequal dataset.owner request.user%}
-            <b>Owner: </b>
-            <a href="{% url profile_detail dataset.owner.username %}">{{ dataset.owner.username }}</a>
-            {% endifnotequal %}
-        </div>
-        <div>
-            {% show_tags_for dataset %}
-        </div>
+        <div id="datasethead">
+	        <table>
+	          <tbody>
+	          <tr>
+	            <td><strong>Description:</strong></td>
+	            <td>{{ dataset.caption }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>Date recorded:</strong> </td>
+	            <td>{{ dataset.date_added }}</td>
+	          </tr>
+	          {% ifnotequal dataset.owner request.user%}
+		          <tr>
+		            <td><strong>Owner:</strong></td>
+		            <td><a href="{% url profile_detail dataset.owner.username %}">{{ dataset.owner.username }}</a></td>
+		          </tr>
+	          {% endifnotequal %}
+	          <tr>
+	            <td><strong>&nbsp;</strong></td>
+	            <td>{% show_tags_for dataset %}</td>
+	          </tr>	          
+		     </tbody>
+		   </table>
+        </div>  
         
         {% ifequal request.user dataset.owner %}
             <div class="form-toggle">

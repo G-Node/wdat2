@@ -68,34 +68,43 @@
         <div class="photo-title">
             <h2>{{ experiment.title }} {% if not experiment.isActive %}(DELETED){% endif %}</h2>
         </div>
-        <div class="photo-caption">
-            <p><b>Description: </b>{{ experiment.caption }}</p>
-        </div>
-        <div>
-            <p><b>Date created: </b>{{ experiment.date_created }}</p>
-        </div>
-        <div>
-            <p><b>Experiment type: </b>
-            {% ifequal experiment.exp_type 1 %}electrophysiology{% endifequal %}
-            {% ifequal experiment.exp_type 2 %}behaviour{% endifequal %}
-            {% ifequal experiment.exp_type 3 %}imaging{% endifequal %}
-            {% ifequal experiment.exp_type 4 %}modelling{% endifequal %}
-            {% ifequal experiment.exp_type 5 %}other{% endifequal %}            
-            </p>
-        </div>
-        <div>
-            {% ifnotequal experiment.owner request.user%}
-            <b>Owner: </b>
-            <a href="{% url profile_detail experiment.owner.username %}">{{ experiment.owner.username }}</a>
-            {% endifnotequal %}
-        </div>
-        <div>
-            <p><b>Subject: </b>
-            {{ experiment.subject }}</p>
-        </div>
-        <div>
-            {% show_tags_for experiment %}
-        </div>
+
+        <div id="experimenthead">
+	        <table>
+	          <tbody><tr>
+	            <td><strong>Description:</strong></td>
+	            <td>{{ experiment.caption }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>Date created:</strong> </td>
+	            <td>{{ experiment.date_created }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>Experiment type:</strong></td>
+	            <td>            
+	            {% ifequal experiment.exp_type 1 %}electrophysiology{% endifequal %}
+                {% ifequal experiment.exp_type 2 %}behaviour{% endifequal %}
+                {% ifequal experiment.exp_type 3 %}imaging{% endifequal %}
+                {% ifequal experiment.exp_type 4 %}modelling{% endifequal %}
+                {% ifequal experiment.exp_type 5 %}other{% endifequal %}  
+               </td>
+	          </tr>
+	          {% ifnotequal experiment.owner request.user%}
+	          	<tr>
+	              <td><strong>Owner:</strong></td>
+	              <td><a href="{% url profile_detail experiment.owner.username %}">{{ experiment.owner.username }}</a></td>
+	            </tr>
+	          {% endifnotequal %}
+	          <tr>
+	            <td><strong>Subject:</strong></td>
+	            <td>{{ experiment.subject }}</td>
+	          </tr> 
+	          <tr>
+	            <td><strong>&nbsp;</strong></td>
+	            <td>{% show_tags_for experiment %}</td>
+	          </tr> 
+	         </tbody></table>
+         </div>
         
         {% ifequal request.user experiment.owner %}
             <div class="form-toggle">
