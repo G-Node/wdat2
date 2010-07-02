@@ -146,8 +146,6 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
         raise Http404
 
     action = request.POST.get("action")
-    #dset_objects_form = RemoveDatasetsForm(request.POST or None, user=request.user, exprt=experiment)
-    #dfile_objects_form = RemoveDatafilesForm(request.POST or None, user=request.user, exprt=experiment)
     if request.user == experiment.owner:
 	    # edit details handler
 	    if action == "details_update":
@@ -246,20 +244,4 @@ def experimentDelete(request, id):
     return HttpResponseRedirect(redirect_to)
 
 
-# this view is no longer used, but kept for future purposes.
-"""
-@login_required
-def get_tree(request, id, template_name="metadata/sections_tree.html"):
-  
-    experiment = get_object_or_404(Experiment.objects.all(), id=id)
-    redirect_to = reverse("your_experiments")
-    
-    if experiment.owner != request.user:
-        request.user.message_set.create(message="You can't see data that isn't yours")
-        return HttpResponseRedirect(redirect_to)
-
-    return render_to_response(template_name, {
-        "experiment": experiment,
-    }, context_instance=RequestContext(request))
-"""
 

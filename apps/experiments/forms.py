@@ -12,7 +12,8 @@ from datafiles.models import Datafile
 from fields.models import MMCFClearField
 
 class CreateExperimentForm(forms.ModelForm):
-    title = forms.CharField(initial="[" + str(datetime.now().strftime("%b %d") + "] "), help_text="It's useful to start the name of your experiment by the month / date it was recorded")
+    title = forms.CharField(label="Name", initial="[" + str(datetime.now().strftime("%y-%m-%d") + "] "), help_text="It can be useful to include the date of the experiment in the name.")
+    subject = forms.CharField(label="Topic")
     
     class Meta:
         model = Experiment
@@ -23,7 +24,8 @@ class CreateExperimentForm(forms.ModelForm):
         super(CreateExperimentForm, self).__init__(*args, **kwargs)
         choices = Project.objects.all().filter(Q(creator=user))
         self.fields['in_projects'] = MMCFClearField(queryset=choices)
-        self.fields['in_projects'].label = "Related projects"
+        self.fields['in_projects'].label = "Related to projects"
+        self.fields['in_projects'].help_text = 'List the project or projects in the context of which the experiment was performed. <br>Hold down "Control", or "Command" on a Mac, to select more than one. To clear selection push <span id="clear_selection"><a href="#" onClick="unselectAll()">clear</a></span>.'
         self.fields['safety_level'].help_text = "Nobody can see your PRIVATE experiments. FRIENDLY experiments can be viewed only by people you know. PUBLIC experiments available for everybody."
 
 # legacy form. Check and remove.

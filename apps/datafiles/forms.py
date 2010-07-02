@@ -17,8 +17,8 @@ class NewDatafileForm(forms.ModelForm):
     def __init__(self, user=None, *args, **kwargs):
         self.user = user
         super(NewDatafileForm, self).__init__(*args, **kwargs)
-        self.fields['safety_level'].help_text = "Nobody can see your PRIVATE files. FRIENDLY files can be viewed only by people you know. PUBLIC files available for download for everybody."
-        self.fields['raw_file'].help_text = "Please select a file up to 2GB size. Soon you'll be able to use alternative methods with less restrictions."
+        self.fields['safety_level'].help_text = "Nobody can see your PRIVATE files. FRIENDLY files can be viewed only by users you have assigned as friends. PUBLIC files are available by every user. The privacy level can be modified later, where files can also be shared on an individual basis."
+        self.fields['raw_file'].help_text = "Please select a file up to 2GB size. Soon you'll be able to upload without this restrictions."
 
 class DatafileEditForm(forms.ModelForm):
     

@@ -15,7 +15,7 @@
 {% block body %}
     <h1>{% trans "Create Project" %}</h1>
     
-	<p>{% trans "A <b>Project</b> is a group of scientists working on a common set of tasks. Project contains several experiments, recorded datasets and analytical results. You may join scientific discussions or explore the wiki's inside the project." %}</p>
+	<p>{% trans "A <b>Project</b> contains several experiments, datasets and results. Several researchers can participate. You may join scientific discussions or explore the wiki's inside the project." %}</p>
     {% if user.is_authenticated %}
         <form class="uniForm" id="project_form" method="POST" action="">
             <fieldset class="inlineLabels">

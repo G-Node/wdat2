@@ -12,7 +12,7 @@ from wiki.models import Article
 try:
     WIKI_WORD_RE = settings.WIKI_WORD_RE
 except AttributeError:
-    WIKI_WORD_RE = r'(?:[A-Z]+[a-z]+){2,}'
+    WIKI_WORD_RE = r'(?:[A-Z]+[a-z]+){1,}'
 
 
 wikiword_pattern = re.compile('^' + WIKI_WORD_RE + '$')

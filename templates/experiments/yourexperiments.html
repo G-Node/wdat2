@@ -19,7 +19,7 @@
     <h1>{% trans "My Experiments" %}</h1>
     
     {% if user.is_authenticated %}
-        <p><a href="{% url experiment_create %}">Create</a> an Experiment. Or <a href="#">upload</a> an <a href="#">odML</a> file with experimental data.</p>
+        <p><a href="{% url experiment_create %}">Create</a> an Experiment. Or <a href="{% url datafile_create %}">upload</a> a file with experimental data or metadata.</p>
 
         <p>
             <form method="POST" action="">

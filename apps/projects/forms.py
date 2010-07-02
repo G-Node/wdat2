@@ -16,9 +16,9 @@ else:
 # @@@ we should have auto slugs, even if suggested and overrideable
 
 class ProjectForm(forms.ModelForm):
-    
+    name = forms.CharField(label="Title")
     slug = forms.SlugField(max_length=20,
-        help_text = _("a short version of the name consisting only of letters, numbers, underscores and hyphens."),
+        help_text = _("a short name consisting only of letters, numbers, underscores and hyphens, which is used as an identifier to represent the project."),
         error_message = _("This value must contain only letters, numbers, underscores and hyphens."))
             
     def clean_slug(self):

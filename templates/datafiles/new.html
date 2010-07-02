@@ -9,7 +9,7 @@
 {% block body %}
     <h1>{% trans "Upload a File" %}</h1>
 
-    <p>{% trans "A <b>File</b> is typically a raw data file, recorded within a series of experiments. You can assign some experimental metadata to it. After the upload you may attach this file to some of your experiments." %}</p>
+    <p>{% trans "Here you can upload data files or files with metadata or other content. Your files can then be organized in datasets and assigned to experiments or projects." %}</p>
     {% if user.is_authenticated %}
 
     <div id="upload_btn"></div>
@@ -39,7 +39,7 @@
 {% endblock %}
 
 {% block js %}
-        <link href="{{ MEDIA_URL }}css/upload.css" rel="stylesheet" type="text/css" />
+        <link href="{{ STATIC_URL }}css/upload.css" rel="stylesheet" type="text/css" />
 
         <script charset="utf-8" type="text/javascript">
         //<![CDATA[
@@ -48,7 +48,7 @@
                 {
                         $(function() {
                                 $('#upload_form').uploadProgress({
-                                        jqueryPath: "{{ MEDIA_URL }}js/jquery.js",
+                                        jqueryPath: "{{ STATIC_URL }}js/jquery.js",
                                         progressBar: '#progress_indicator',
                                         progressUrl: '{% url datafiles.views.upload_progress %}',
                                         start: function() {
@@ -57,7 +57,7 @@
                                                 $("#progress_filename").html('Uploading ' + filename + "...");
                                                 $("#progress_container").show();
                                         },
-                                        uploadProgressPath: "{{ MEDIA_URL }}js/jquery.uploadProgress.js",
+                                        uploadProgressPath: "{{ STATIC_URL }}js/jquery.uploadProgress.js",
                                         uploading: function(upload) {
                                                 if (upload.percents == 100) {
                                                         window.clearTimeout(this.timer);

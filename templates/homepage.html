@@ -2,6 +2,7 @@
 
 {% load i18n %}
 {% load ifsetting_tag %}
+{% load uni_form %}
 
 {% block head_title %}{% trans "Welcome" %}{% endblock %}
 
@@ -10,31 +11,38 @@
 {% block contentdiv_class %}welcome{% endblock %}
 
 {% block body %}
-    <h1>{% trans "Welcome to the G-Node" %}</h1>
-    
-    <p>
-        {% blocktrans %}
-The global scale of neuroinformatics offers unprecedented opportunities 
-for scientific collaborations between and among experimental and theoretical 
-neuroscientists. This site was developed to fully harvest these possibilities,
- and to improve key ingredients of neuroscience: data access, data 
-storage, and data analysis. It's free and easy to sign up.
-        {% endblocktrans %}
-    </p>
-    
-    
     <div class="newsbox">
-    <h2>{% trans "About this project" %}</h2>
+    <h2>{% trans "Welcome to the G-Node" %}</h2>
     
     <p>
         {% blocktrans %}
-        This project is developed for neuroscientists to provide them with 
-a useful service of their experimental data- and metadata- management. Here you may
-search for people with similar thesis, look for published experiments, participate in projects and meet people from 
-other labs. It provides secured way of data storage, regular back-ups and user-to-user messaging.
+Here you can access the data management and data sharing platform of the German Neuroinformatics Node. This service is provided for neuroscientists to facilitate data access, data storage, data analysis and data sharing.You may store and organize your data, exchange data with collaborators, search for published data or scientists with similar interests.
         {% endblocktrans %}
     </p>
-    
+
+    <div style="padding-left: 10px;">
+    <form class="login uniForm" method="POST" action="">
+        <fieldset class="inlineLabels">
+            <div class="form_block">
+                <a href="{% url acct_passwd_reset %}">{% trans "Forgot password?" %}</a>
+            </div>
+            {{ form|as_uni_form }}
+            <div class="form_block">
+                <input type="submit" value="{% trans "Log in &raquo;" %}" />
+            </div>
+        </fieldset>
+    </form>
+    </div>
+
+    {% ifsetting ACCOUNT_OPEN_SIGNUP %}
+    {% url acct_signup as signup_url %}
+    <p>
+        {% blocktrans %}
+         No account yet? <a href="{{ signup_url }}">Sign up!</a>
+        {% endblocktrans %}
+    </p>
+    {% endifsetting %}
+
     <p>
         {% blocktrans %}
         For more information about G-Node, see

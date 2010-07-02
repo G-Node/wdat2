@@ -108,7 +108,7 @@
         
         {% ifequal request.user experiment.owner %}
             <div class="form-toggle">
-                <p><span id="edit-experiment-toggle">{% trans "Edit details" %}</span></p>
+                <p>&raquo; <span id="edit-experiment-toggle">{% trans "Edit details" %}</span></p>
                 
                 <form class="uniForm" id="edit-experiment" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
@@ -121,7 +121,7 @@
                 </form>
             </div>
             <div class="form-toggle">
-                <p><span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
+                <p>&raquo; <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
                 
                 <form class="uniForm" id="change-privacy" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">

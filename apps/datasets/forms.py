@@ -21,7 +21,7 @@ class NewRDatasetForm(forms.ModelForm):
         super(NewRDatasetForm, self).__init__(*args, **kwargs)
         choices = Experiment.objects.all().filter(Q(owner=user))
         self.fields['in_experiments'] = MMCFClearField(queryset=choices)
-        self.fields['safety_level'].help_text = "Nobody can see your PRIVATE datasets. FRIENDLY datasets can be viewed only by people you know. PUBLIC datasets available for everybody."
+        self.fields['safety_level'].help_text = "Nobody can see your PRIVATE datasets. FRIENDLY datasets can be viewed only by users you have assigned as friends. PUBLIC datasets available for every user."
 
 # legacy form. Check and remove.
 class RDatasetEditForm(forms.ModelForm):

@@ -105,7 +105,6 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
         raise Http404
 
     action = request.POST.get("action")
-    #dfile_objects_form = RemoveDatafilesForm(request.POST or None, user=request.user, dataset=dataset)
 
     # edit details handler
     if request.user == dataset.owner and action == "details_update":

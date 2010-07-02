@@ -6,7 +6,6 @@
 {% load pagination_tags %}
 {% load order_by %}
 {% load extra_tagging_tags %}
-{% load tribes_tags %}
 {% load sorting_tags %}
 {% load truncate_filter %}
 
@@ -16,7 +15,7 @@
 {% block body %}
     <h1>{% trans "My Datasets" %}</h1>
     
-    <p>{% trans "A <b>dataset</b> is used to group several raw data files, recorded within experiment. You can create a <b>dataset</b> and attach any of your files to it. Any <b>dataset</b> may be futher linked to the experiment, published or shared with people you know." %}</p>
+    <p>{% trans "A <b>dataset</b> is used to group several files. You can create a <b>dataset</b> and attach any of your files to it. Any <b>dataset</b> may be futher linked to the experiment, published or shared with people you know." %}</p>
     {% if user.is_authenticated %}
 
 

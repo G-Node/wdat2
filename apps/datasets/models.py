@@ -23,6 +23,7 @@ class RDataset(SafetyLevel):
         (3, u'medium'),
         (4, u'good'),
         (5, u'excellent'),
+        (6, u'n/a'),
     )
 
     title = models.CharField(_('title'), max_length=200)

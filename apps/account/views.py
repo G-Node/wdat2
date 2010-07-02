@@ -45,6 +45,8 @@ def login(request, form_class=LoginForm, template_name="account/login.html",
         "url_required": url_required,
     }
     ctx.update(extra_context)
+    if request.path.find("login") < 0:
+        template_name = "homepage.html"
     return render_to_response(template_name, ctx,
         context_instance = RequestContext(request)
     )
