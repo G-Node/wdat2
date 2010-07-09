@@ -40,20 +40,27 @@ def section_add(request, template_name="metadata/add.html"):
         if parent_type == "5":
             parent = get_object_or_404(Datafile, id=parent_id)
 
+        # identify the position in the tree
+        sec_childs = parent.section_set.all().order_by("-tree_position")
+        if sec_childs:
+            tree_pos = int(sec_childs.all()[0].tree_position) + 1
+        else:
+            tree_pos = 1
+
         if parent_type == "3":
             if parent.does_belong_to(request.user):
-                section = Section(title=section_title, parent_section=parent)
+                section = Section(title=section_title, parent_section=parent, tree_position=tree_pos)
                 section.save()
                 section_id = section.id
         elif parent.owner == request.user:
             if parent_type == "1":
-                section = Section(title=section_title, parent_exprt=parent)
+                section = Section(title=section_title, parent_exprt=parent, tree_position=tree_pos)
             if parent_type == "2":
-                section = Section(title=section_title, parent_dataset=parent)
+                section = Section(title=section_title, parent_dataset=parent, tree_position=tree_pos)
             if parent_type == "4":
-                section = Section(title=section_title, parent_timeseries=parent)
+                section = Section(title=section_title, parent_timeseries=parent, tree_position=tree_pos)
             if parent_type == "5":
-                section = Section(title=section_title, parent_datafile=parent)
+                section = Section(title=section_title, parent_datafile=parent, tree_position=tree_pos)
             if section:
                 section.save()
                 section_id = section.id
@@ -88,6 +95,93 @@ def section_edit(request, template_name="metadata/dummy.html"):
         if section.does_belong_to(request.user):
             section.rename(new_title)
             status = True
+    return render_to_response(template_name, {
+        "status": status,
+        }, context_instance=RequestContext(request))
+
+
+@login_required
+def section_move(request, template_name="metadata/move_copy.html"):
+    status = 0
+    if request.method == 'POST' and request.POST.get("action") == "section_move":
+        selected_id = request.POST.get("selected_id")
+        reference_id = request.POST.get("reference_id")
+        pos_type = request.POST.get("pos_type")
+        section = get_object_or_404(Section, id=selected_id)
+        ref_section = get_object_or_404(Section, id=reference_id)
+        if section.does_belong_to(request.user):
+            if pos_type == "inside":
+                section.parent_section = ref_section
+                section.tree_position = 1
+                section.save()
+                status = 1
+            elif pos_type == "after":
+                parent = ref_section.getParentSection()
+                if parent:
+                    section.tree_position = ref_section.tree_position + 1
+                    if parent.getMaxChildPos() > ref_section.tree_position:
+                        for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
+                            #if sec.tree_position > ref_section.tree_position:
+                            sec.tree_position += 1
+                            sec.save()
+                    section.parent_section = parent
+                    section.save()
+                    status = 1
+            elif pos_type == "before":
+                parent = ref_section.getParentSection()
+                if parent:
+                    section.tree_position = ref_section.tree_position
+                    for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
+                        #if sec.tree_position >= ref_section.tree_position:
+                        sec.tree_position += 1
+                        sec.save()
+                    section.parent_section = parent
+                    section.save()
+                    status = 1
+    return render_to_response(template_name, {
+        "status": status,
+        }, context_instance=RequestContext(request))
+
+
+@login_required
+def section_copy(request, template_name="metadata/move_copy.html"):
+    status = 0
+    if request.method == 'POST' and request.POST.get("action") == "section_copy":
+        selected_id = request.POST.get("selected_id")
+        reference_id = request.POST.get("reference_id")
+        pos_type = request.POST.get("pos_type")
+        section = get_object_or_404(Section, id=selected_id)
+        ref_section = get_object_or_404(Section, id=reference_id)
+        if section.does_belong_to(request.user):
+            if pos_type == "inside":
+                status = ref_section.copy_section(section, 1)
+                #top_sec = Section.objects.get(id=data[0])
+                #status = '{' + top_sec.get_tree_JSON() + '}'
+            elif pos_type == "after":
+                parent = ref_section.getParentSection()
+                if parent:
+                    if parent.getMaxChildPos() > ref_section.tree_position:
+                        for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
+                            #if sec.tree_position > ref_section.tree_position:
+                            sec.tree_position += 1
+                            sec.save()
+                    status = parent.copy_section(section, ref_section.tree_position + 1)
+                    #top_sec = Section.objects.get(id=data[0])
+                    #status = '{' + top_sec.get_tree_JSON() + '}'
+                else:
+                    status = -1
+            elif pos_type == "before":
+                parent = ref_section.getParentSection()
+                if parent:
+                    for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
+                        #if sec.tree_position >= ref_section.tree_position:
+                        sec.tree_position += 1
+                        sec.save()
+                    status = parent.copy_section(section, ref_section.tree_position - 1)
+                    #top_sec = Section.objects.get(id=data[0])
+                    #status = '{' + top_sec.get_tree_JSON() + '}'
+                else:
+                    status = -1
     return render_to_response(template_name, {
         "status": status,
         }, context_instance=RequestContext(request))

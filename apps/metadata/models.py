@@ -7,6 +7,7 @@ from datafiles.models import Datafile
 from timeseries.models import TimeSeries
 
 from django.utils.translation import ugettext_lazy as _
+from django.shortcuts import get_object_or_404
 
 class Section(models.Model):
     # A metadata "Section". Used to organize experiment / dataset / file / timeseries
@@ -31,6 +32,7 @@ class Section(models.Model):
     rel_datasets = models.ManyToManyField(RDataset, related_name="sec_datasets", blank=True, verbose_name=_('related datasets'))
     rel_datafiles = models.ManyToManyField(Datafile, related_name="sec_datafiles",  blank=True, verbose_name=_('related datafiles'))
     rel_timeseries = models.ManyToManyField(TimeSeries, related_name="sec_timeseries", blank=True, verbose_name=_('related time series'))
+    tree_position = models.IntegerField(_('tree position'))
 
     def __unicode__(self):
         return self.title
@@ -81,8 +83,19 @@ class Section(models.Model):
         sec_tree.append(self.id)
         sec_tree.append(self.title)
         if self.section_set.filter(current_state=10):
-            for section in self.section_set.filter(current_state=10):
+            for section in self.section_set.filter(current_state=10).order_by("tree_position"):
                 sec_tree.append(section.get_tree())
+        return sec_tree
+
+    def get_tree_JSON(self):
+        sec_tree = '"' + str(self.id) + '": { "ids": "'
+        for section in self.section_set.filter(current_state=10).order_by("tree_position"):
+            sec_tree += str(section.id) + ', '
+        sec_tree += '", '
+        if self.section_set.filter(current_state=10):
+            for section in self.section_set.filter(current_state=10).order_by("tree_position"):
+                sec_tree += section.get_tree_JSON()
+        sec_tree += '}, '
         return sec_tree
 
     def getActiveProperties(self):
@@ -109,6 +122,43 @@ class Section(models.Model):
         if self.getActiveProperties() or self.getActiveDatasets() or self.getActiveDatafiles() or self.getActiveTimeSeries():
             return True
         return False
+
+    def getMaxChildPos(self):
+        sec_childs = self.section_set.all().order_by("-tree_position")
+        if sec_childs:
+            tree_pos = int(sec_childs.all()[0].tree_position)
+        else:
+            tree_pos = 0
+        return tree_pos
+
+    def copy_section(self, section, pos):
+        res_tree = []
+        # make a copy of a section
+        section_id = int(section.id)
+        section.id = None
+        section.parent_section = self
+        section.tree_position = pos
+        section.save()
+        cp_section = Section.objects.get(id=section_id)
+        new_id = section.id
+        res_tree.append(new_id)
+        # copy all properties
+        for prop in cp_section.getActiveProperties():
+            prop.id = None
+            prop.parent_section = new_id
+            prop.save()
+            prop.setParent(new_id)
+        # recursively copy sections inside
+        for sec in cp_section.section_set.filter(current_state=10).order_by("tree_position"):
+            res_tree.append(section.copy_section(sec, sec.tree_position))
+        return res_tree
+
+
+    def getParentSection(self):
+        if self.parent_section:
+            return self.parent_section
+        else:
+            return None
 
     def addLinkedObject(self, obj, obj_type):
         if obj_type == "dataset":
@@ -165,6 +215,10 @@ class Property(models.Model):
             self.prop_description = description
         if comment:
             self.prop_comment = comment
+
+    def setParent(self, par_id):
+        self.prop_parent_section = Section.objects.get(id=par_id)
+        self.save()
 
     def deleteObject(self):
         if not self.current_state == 30: 

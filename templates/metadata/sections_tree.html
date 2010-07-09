@@ -1,5 +1,12 @@
 {% load metadata_extras %}
 
+    <div style="width: 200px;">
 	<div class="demo source" id="sections">
         {{ tree_container.get_metadata|metadata_tree }} 
   	</div>
+    <div style="float: left; padding-top: 2px;">
+		<input type="button" onclick='$.tree.focused().cut();' value="Cut" /> 
+		<input type="button" onclick='$.tree.focused().copy();' value="Copy" /> 
+		<input type="button" onclick='$.tree.focused().paste();' value="Paste" /> 
+    </div>
+    </div>

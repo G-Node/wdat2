@@ -7,6 +7,10 @@ urlpatterns = patterns('',
     url(r'^section_delete/$', 'metadata.views.section_delete', name='section_delete'),
     # edit section
     url(r'^section_edit/$', 'metadata.views.section_edit', name='section_edit'),
+    # move section
+    url(r'^section_move/$', 'metadata.views.section_move', name='section_move'),
+    # copy section
+    url(r'^section_copy/$', 'metadata.views.section_copy', name='section_copy'),
 
     # properties list
     url(r'^properties_list/(?P<id>\d+)/$', 'metadata.views.properties_list', name="properties_list"),
