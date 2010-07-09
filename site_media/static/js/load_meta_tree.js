@@ -77,19 +77,7 @@
                             $.tree.rollback(RB);
                         }
                         else {
-                            //var new_id = NODE.id + "_copy";
-                            //var NEW_NODE = document.getElementById(new_id);
-                            //NODE.setAttribute("id", res);
-                            //TREE_OBJ.refresh();
-                            //$.tree.refresh();
-                            //var sec_tree = jQuery.parseJSON(data.replace(/&quot;/g, '"'));
-                            //var p1 = 0;
-                            //var p2 = 0;
-                            //var num = "";
-                            //p1 = data.search("[");
-                            //p2 = data.search(",");
-                            //num = data.substr(p1+1, p2-2);
-                            //a.push(num);
+                            // update all ids in the tree
                             leaf_update(data, NODE);
                         }
                     },
@@ -99,29 +87,27 @@
 	    });
         };
         function leaf_update(data, NODE) {
-            var i = 0;
             var j = 0;
             var q1 = 0;
             var q2 = 0;
-            var num = "";
-            var a = ""; // templorary variable for processing
+            var num = ""; // id of the leaf
+            var a = ""; // just templorary variable for processing
             var b = 0; // end position of the complex element
             var c = 0; // counter for DOM nodes
             var d = 0; // flag indicating simple/complex element (number of "[" or "]" inside)
-            var n = data.length;
             var datastr = data;
 
             var p1 = datastr.search(/\[/);
             var p2 = datastr.search(/\]/);
             var p3 = datastr.search(/,/);
-            if (p2 > p3) {
+            if (p2 > p3 && p3 > -1) {
                 num = datastr.substr(p1+1, p3-2);
             }
             else {
                 num = datastr.substr(p1+1, p2-2);
             };
             NODE.setAttribute("id", num);
-            datastr = datastr.substr(p3 + 2, n - p3 + 1);
+            datastr = datastr.substr(p3 + 2, data.length - p3 + 1);
 
             while (datastr.length > 2) {
                 a = datastr;
@@ -143,7 +129,7 @@
                 } while (j > 0);
                 // if next element is complex
                 if (d > 2) {
-                    //searching for the end of next element (equal number of '][')
+                    // getting complex element
                     a = datastr.substr(0, b);
                     leaf_update(a, NODE.children[1].children[c]);
                     datastr = datastr.substr(b + 2, datastr.length - b - 2);
@@ -154,8 +140,7 @@
                     p3 = datastr.search(/,/);
                     num = datastr.substr(p1+1, p2-2);
                     NODE.children[1].children[c].setAttribute("id", num);
-                    i = p2 + 3;
-                    datastr = datastr.substr(i, datastr.length - i + 1);
+                    datastr = datastr.substr(p2 + 3, datastr.length - p2 - 2);
                 };
                 c += 1;
                 d = 0;
