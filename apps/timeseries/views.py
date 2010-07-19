@@ -21,7 +21,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
     tserie_edit_form_status = "none"
 
     time_series = TimeSeries.objects.filter(current_state=10)
-    time_series = time_series.order_by("-date_created")
+    time_series = time_series.order_by("-title")
     time_series = filter(lambda x: x.is_accessible(request.user), time_series)
     # insert some security here!!!
     if time_series:
@@ -48,23 +48,24 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         tserie_add_form = AddTSfromFieldForm()
 
     if action == "add_from_file":
-        add_from_file_form = AddTSfromFileForm(request.POST or None)
+        add_from_file_form = AddTSfromFileForm(request.POST or None, user=request.user)
         if add_from_file_form.is_valid():
             c = 0
-            for item in add_from_file_form.cleaned_data:
-                tserie = TimeSeries(data=item, data_type=add_from_file_form.fields['data_type'], time_step=add_from_file_form.fields['time_step'],
-                    time_step_items=add_from_file_form.fields['time_step_items'])
+            #d1 = add_from_file_form.cleaned_data['datafile']
+            for item in add_from_file_form.cleaned_data['datafile']:
+                tserie = TimeSeries(data=item[0], data_type=add_from_file_form.cleaned_data['data_type'], time_step=add_from_file_form.cleaned_data['time_step'],
+                    time_step_items=add_from_file_form.cleaned_data['time_step_items'], tags=add_from_file_form.cleaned_data['tags'])
                 tserie.title = tserie.getNextCounter(request.user)
                 tserie.owner = request.user
                 tserie.save()
                 c += 1
-            request.user.message_set.create(message=_("Successfully created time series '%s'") % tserie.title)
+            request.user.message_set.create(message=_("Successfully extracted and created '%s' time series") % c)
             redirect_to = reverse("timeseries_main")
             return HttpResponseRedirect(redirect_to)
         else:
             add_from_file_status = ""
     else:
-        add_from_file_form = AddTSfromFileForm()
+        add_from_file_form = AddTSfromFileForm(user=request.user)
 
     if t_serie:
         # edit details handler

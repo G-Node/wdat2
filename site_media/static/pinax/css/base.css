@@ -1117,6 +1117,7 @@ ul#messages li a {
   font-weight:normal;
   text-decoration:underline;
   cursor:pointer;	
+  padding: 0px 5px 0px 5px;
 }
 .form-toggle p span:HOVER  {
   /*color:#11589A;*/
@@ -1124,6 +1125,7 @@ ul#messages li a {
   font-weight:normal;
   text-decoration:none;
   cursor:pointer;	
+  padding: 0px 5px 0px 5px;
 }
 /*
 .form-toggle p {

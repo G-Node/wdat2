@@ -14,13 +14,14 @@ class NewRDatasetForm(forms.ModelForm):
     
     class Meta:
         model = RDataset
-        fields = ['title', 'safety_level', 'dataset_qty', 'in_experiments', 'caption', 'tags']
+        fields = ['title', 'safety_level', 'caption', 'tags']
 
     def __init__(self, user=None, *args, **kwargs):
         self.user = user
         super(NewRDatasetForm, self).__init__(*args, **kwargs)
-        choices = Experiment.objects.all().filter(Q(owner=user))
-        self.fields['in_experiments'] = MMCFClearField(queryset=choices)
+        # legacy assignment of dataset to experiments
+        #choices = Experiment.objects.all().filter(Q(owner=user))
+        #self.fields['in_experiments'] = MMCFClearField(queryset=choices)
         self.fields['safety_level'].help_text = "Nobody can see your PRIVATE datasets. FRIENDLY datasets can be viewed only by users you have assigned as friends. PUBLIC datasets available for every user."
 
 # legacy form. Check and remove.

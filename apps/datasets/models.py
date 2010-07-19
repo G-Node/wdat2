@@ -29,8 +29,10 @@ class RDataset(SafetyLevel):
     title = models.CharField(_('title'), max_length=200)
     caption = models.TextField(_('caption'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
+    # the following field is legacy after rel. 2; remove if not used in 2011
     dataset_qty = models.IntegerField(_('dataset quality'), choices=QUALITY, default=4)
     owner = models.ForeignKey(User, related_name="added_datasets", blank=True, null=False)
+    # the following field is legacy after rel. 2; remove if not used in 2011
     in_experiments = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
     tags = TagField()
 
@@ -49,21 +51,19 @@ class RDataset(SafetyLevel):
         else:
             return False
 
-
-
-
-
-    # The methods below are legacy after implementation of 
-    # the metadata section/property objects. So only applicable
-    # for older objects in the database. Remove when no longer
-    # required.
-    
     def file_volume_count(self):
         volume = 0
         datafiles = self.datafile_set.all().filter(Q(current_state=10))
         for datafile in datafiles:
             volume += datafile.raw_file.size
         return volume
+
+
+
+    # The methods below are legacy after implementation of 
+    # the metadata section/property objects. So only applicable
+    # for older objects in the database. Remove when no longer
+    # required (in 2011).
     
     def get_min_file_date(self):
 	# may use this method for Django 1.2

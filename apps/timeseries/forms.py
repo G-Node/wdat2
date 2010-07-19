@@ -5,6 +5,7 @@ from datetime import datetime
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.template.defaultfilters import filesizeformat
 
 from experiments.models import Experiment
 from datasets.models import RDataset
@@ -56,29 +57,33 @@ class AddTSfromFieldForm(forms.ModelForm):
         self.fields['data_type'].help_text = 'ANALOG - typically a voltage trace. SPIKES - typically a sequence of "0, 0, 0, 1, 0", representing spike times.'
 
 
-class AddTSfromFileForm(forms.Form):
-    datafiles = forms.ModelChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
+class AddTSfromFileForm(forms.ModelForm):
+    datafile = forms.ModelChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
     
-    def clean_data(self):
-        datafile = self.cleaned_data["datafiles"]
+    def clean_datafile(self):
+        datafile = self.cleaned_data["datafile"]
         r = reg_csv()
         res = []
-        with open(settings.MEDIA_ROOT + str(datafile.raw_file), 'r') as f:
-            read_data = f.readline()
-            while read_data:
-                values = r.findall(read_data)
-                cleaned_data = ''
-                for value in values:
-                    try:
-                        a = float(value)
-                        cleaned_data += ', ' + str(a)
-                    except:
-                        raise forms.ValidationError(_('The data given is not a set of comma-separated float / integer values. Please check your input: %s') % value)
-                if len(cleaned_data) > 0:
-                    cleaned_data = cleaned_data[2:]
-                res.append(cleaned_data)
+        d = settings.MEDIA_ROOT + str(datafile.raw_file)
+        if datafile.raw_file.size > settings.MAX_FILE_PROCESSING_SIZE:
+            raise forms.ValidationError(_('The file size exceeds the limit: %s') % filesizeformat(datafile.raw_file.size))
+        else:
+            with open(settings.MEDIA_ROOT + str(datafile.raw_file), 'r') as f:
                 read_data = f.readline()
-            return res
+                while read_data:
+                    values = r.findall(read_data)
+                    cleaned_data = ''
+                    for value in values:
+                        try:
+                            a = float(value)
+                            cleaned_data += ', ' + str(a)
+                        except:
+                            raise forms.ValidationError(_('The data given is not a set of comma-separated float / integer values. Please check your input: %s') % value)
+                    if len(cleaned_data) > 0:
+                        cleaned_data = cleaned_data[2:]
+                    res.append([cleaned_data])
+                    read_data = f.readline()
+                return res
 
     class Meta:
         model = TimeSeries
@@ -88,7 +93,8 @@ class AddTSfromFileForm(forms.Form):
         user = kwargs.pop('user')
         super(AddTSfromFileForm, self).__init__(*args, **kwargs)
         choices = Datafile.objects.filter(owner=user, current_state=10)
-        self.fields['datafiles'].queryset = choices
+        self.fields['datafile'].queryset = choices
+        self.fields['datafile'].help_text = 'Please select a file containing time series data. Each line in the file must have comma-separated values (floats or integers). Example: "0.8386, -0.8372, 0.839, -0.84, 0.8389". File size should not exceed ' + filesizeformat(settings.MAX_FILE_PROCESSING_SIZE) + '.'
 
     
 class EditTSForm(forms.ModelForm):
