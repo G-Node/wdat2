@@ -11,11 +11,13 @@ from timeseries.models import TimeSeries
 from timeseries.forms import AddTSfromFieldForm, AddTSfromFileForm, EditTSForm, DeleteTSForm, PrivacyEditForm
 from metadata.forms import AddPropertyForm
 from metadata.models import Section
+from datasets.models import RDataset
 
 
 @login_required
 def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.html"):
     t_serie = None
+    dataset = None
     tserie_add_form_status = "none"
     add_from_file_status = "none"
     tserie_edit_form_status = "none"
@@ -51,14 +53,35 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         add_from_file_form = AddTSfromFileForm(request.POST or None, user=request.user)
         if add_from_file_form.is_valid():
             c = 0
-            #d1 = add_from_file_form.cleaned_data['datafile']
+            selection = add_from_file_form.cleaned_data['selection']
+            if selection == "1":
+                # get dataset for assignment
+                dataset = add_from_file_form.cleaned_data['my_datasets']
+                if not (dataset.owner == request.user):
+                    raise Http404
+                if Section.objects.filter(parent_dataset=dataset):
+                    dataset_section = Section.objects.filter(current_state=10, parent_dataset=dataset)[0]
+                else:
+                    dataset_section = Section(title="metadata root", parent_dataset=dataset, tree_position=1)
+                    dataset_section.save()
+            elif selection == "2":
+                # create new dataset
+                dataset = RDataset(title=add_from_file_form.cleaned_data['new_dataset'], owner=request.user)
+                dataset.save()
+                dataset_section = Section(title="metadata root", parent_dataset=dataset, tree_position=1)
+                dataset_section.save()
             for item in add_from_file_form.cleaned_data['datafile']:
                 tserie = TimeSeries(data=item[0], data_type=add_from_file_form.cleaned_data['data_type'], time_step=add_from_file_form.cleaned_data['time_step'],
                     time_step_items=add_from_file_form.cleaned_data['time_step_items'], tags=add_from_file_form.cleaned_data['tags'])
                 tserie.title = tserie.getNextCounter(request.user)
                 tserie.owner = request.user
                 tserie.save()
+                if dataset:
+                    dataset_section.addLinkedObject(tserie, "timeseries")
                 c += 1
+            if dataset:
+                dataset.save()
+                dataset_section.save()
             request.user.message_set.create(message=_("Successfully extracted and created '%s' time series") % c)
             redirect_to = reverse("timeseries_main")
             return HttpResponseRedirect(redirect_to)

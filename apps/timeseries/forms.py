@@ -59,9 +59,9 @@ class AddTSfromFieldForm(forms.ModelForm):
 
 class AddTSfromFileForm(forms.ModelForm):
     datafile = forms.ModelChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
-    selection = forms.ModelChoiceField(queryset=((0, _('Do nothing')), (1, _('Link time series to existing Dataset')), (2, _('Create new Dataset and link time series'))))
-    datasets = forms.ModelChoiceField(queryset=RDataset.objects.all().filter(current_state=10))
-    new_dataset = forms.CharField(_('new dataset name'), blank=True)
+    selection = forms.ChoiceField(label='Organize', required=False)
+    my_datasets = forms.ModelChoiceField(queryset=RDataset.objects.all().filter(current_state=10), required=False)
+    new_dataset = forms.CharField(label='New dataset name', required=False)
     
     def clean_datafile(self):
         datafile = self.cleaned_data["datafile"]
@@ -97,7 +97,9 @@ class AddTSfromFileForm(forms.ModelForm):
         super(AddTSfromFileForm, self).__init__(*args, **kwargs)
         choices = Datafile.objects.filter(owner=user, current_state=10)
         datasets = RDataset.objects.filter(owner=user, current_state=10)
-        self.fields['datasets'].queryset = datasets
+        self.fields['my_datasets'].queryset = datasets
+        self.fields['selection'].choices=((0, _('Do nothing')), (1, _('Link time series to existing Dataset')), (2, _('Create new Dataset and link time series')))
+        self.fields['selection'].help_text = 'If you want to organize extracted time series in a Dataset, please select an option above.'
         self.fields['datafile'].queryset = choices
         self.fields['datafile'].help_text = 'Please select a file containing time series data. Each line in the file must have comma-separated values (floats or integers). Example: "0.8386, -0.8372, 0.839, -0.84, 0.8389". File size should not exceed ' + filesizeformat(settings.MAX_FILE_PROCESSING_SIZE) + '.'
         self.fields['tags'].help_text = 'Values above will be applied to all time series, which are going to be created.'

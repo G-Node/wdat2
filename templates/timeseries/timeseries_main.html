@@ -197,7 +197,7 @@
                         {{ add_from_file_form|as_uni_form }}
                         <div class="form_block">
                             <input type="hidden" name="action" value="add_from_file" />
-                            <input type="submit" value="parse the file and create time series"/>
+                            <input type="submit" value="extract time series"/>
                         </div>
                     </fieldset>
                 </form>
@@ -318,4 +318,22 @@
         });
     </script>
     {% endif %}
+    <script type="text/javascript">
+            $('#id_selection').change(function() {
+                var sel = $("#id_selection").find(':selected').val();
+                if (sel=='0') {
+                    $('#div_id_my_datasets').hide();
+                    $('#div_id_new_dataset').hide();
+                };
+                if (sel=='1') {
+                    $('#div_id_my_datasets').show();
+                    $('#div_id_new_dataset').hide();
+                };
+                if (sel=='2') {
+                    $('#div_id_my_datasets').hide();
+                    $('#div_id_new_dataset').show();
+                };
+            })
+            .trigger('change');
+    </script>
 {% endblock %}
