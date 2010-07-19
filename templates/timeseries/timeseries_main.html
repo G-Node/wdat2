@@ -133,20 +133,21 @@
                 </div>
         {% endifequal %}
 
+            {% if objs %}
             <div class="friends">
                 <h2>{% trans "Linked to" %}</h2>
                 {% comment %}
                 <h2>{% trans "From Experiments" %}</h2>
                 <p>Select an experiment to browse time series data, associated with it. Or push <a href="{% url timeseries_main %}">"View all"</a> to browse all your recorded time series.</p>
                 {% endcomment %}
-                {% if objs %}
                     <table width="100%">
                         {% for obj in objs %}
                             <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.title|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
                     </table>                    
-                {% endif%}
+
             </div>
+            {% endif%}
 
             <div class="friends">
                 <h2>{% trans "Time Series" %}</h2>

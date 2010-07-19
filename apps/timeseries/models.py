@@ -32,7 +32,7 @@ class TimeSeries(SafetyLevel):
     data_type = models.IntegerField(_('data type'), choices=TYPES, default=10)
     start_time = models.DateTimeField(_('start time'), default=datetime.now, blank=True)
     time_step = models.IntegerField(_('data timestep'), default=1)
-    time_step_items = models.IntegerField(_('data timestep'), choices=ITEMS  , default=21)
+    time_step_items = models.IntegerField(_('units'), choices=ITEMS  , default=21)
     tags = TagField()
 
     def __unicode__(self):
