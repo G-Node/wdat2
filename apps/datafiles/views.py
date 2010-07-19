@@ -123,8 +123,8 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
     
     # security handler
     if not datafile.is_accessible(request.user):
-	experiment = None
-	raise Http404
+        datafile = None
+    raise Http404
 
     action = request.POST.get("action")
 
@@ -144,19 +144,30 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
     else:
         privacy_form = privacy_form_class(user=request.user, instance=datafile)
 
+    # templates for metadata. can't move to state_mashine due to import error
+    metadata_defaults = []
+    for section in Section.objects.filter(current_state=10, is_template=True):
+        if not section.parent_section:
+            metadata_defaults.append(section.get_tree())
+    for section in Section.objects.filter(current_state=10, user_custom=datafile.owner):
+        if not section.parent_section:
+            metadata_defaults.append(section.get_tree())
+
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
 
-    # get the parent experiments to which this file is linked to
+    # get the parent objects to which this file is linked to
     objs = []
     sections = Section.objects.filter(current_state=10)
     sections = filter(lambda x: x.hasDatafile(datafile.id), sections)
     for section in sections:
-        if not section.get_root() in objs:
+        rt = section.get_root()
+        if rt and (not rt in objs):
             objs.append(section.get_root())
     
     return render_to_response(template_name, {
         "datafile": datafile,
+        "metadata_defaults": metadata_defaults,
         "datafile_form": datafile_form,
         "privacy_form": privacy_form,	
         "prop_add_form": prop_add_form,

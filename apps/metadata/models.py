@@ -32,14 +32,23 @@ class Section(models.Model):
     rel_datasets = models.ManyToManyField(RDataset, related_name="sec_datasets", blank=True, verbose_name=_('related datasets'))
     rel_datafiles = models.ManyToManyField(Datafile, related_name="sec_datafiles",  blank=True, verbose_name=_('related datafiles'))
     rel_timeseries = models.ManyToManyField(TimeSeries, related_name="sec_timeseries", blank=True, verbose_name=_('related time series'))
+    # position in the tree. to be able to move up and down
     tree_position = models.IntegerField(_('tree position'))
+    # field indicates whether it is a "template" section
+    is_template = models.BooleanField(_('is template'), default="False")
+    # for "template" section this is a pointer to a user, who created this default
+    # template. if "NULL" - all users see section as a "template" (odML vocabulary)
+    user_custom = models.ForeignKey(User, blank=True, null=True)
 
     def __unicode__(self):
         return self.title
 
     def get_owner(self):
         metadata_root = self.get_root()
-        return metadata_root.owner
+        if metadata_root:
+            return metadata_root.owner
+        else:
+            return None
 
     def does_belong_to(self, user):
 		metadata_root = self.get_root()
@@ -48,10 +57,15 @@ class Section(models.Model):
 		return False
 
     def is_accessible(self, user):
-        if self.get_root().is_accessible(user):
-            return True
+        # indicates whether this section belongs to some complex object
+        if self.get_root():
+            if self.get_root().is_accessible(user):
+                return True
+            else:
+                return False
+        # if there is no "root" object, then it's a template
         else:
-            return False
+            return True
 
     def rename(self, new_title):
         self.title = new_title
@@ -117,6 +131,10 @@ class Section(models.Model):
 
     def getActiveTimeSeries(self):
         return self.rel_timeseries.filter(current_state=10)	    
+    def hasTimeSeries(self, tserie_id):
+        if self.rel_timeseries.filter(current_state=10, id=tserie_id):
+            return True
+        return False
 
     def hasChild(self):
         if self.getActiveProperties() or self.getActiveDatasets() or self.getActiveDatafiles() or self.getActiveTimeSeries():
@@ -138,6 +156,7 @@ class Section(models.Model):
         section.id = None
         section.parent_section = self
         section.tree_position = pos
+        #section.date_created = datetime.now # setup later
         section.save()
         cp_section = Section.objects.get(id=section_id)
         new_id = section.id
@@ -146,8 +165,18 @@ class Section(models.Model):
         for prop in cp_section.getActiveProperties():
             prop.id = None
             prop.parent_section = new_id
+            #prop.prop_date_created = datetime.now # setup later
             prop.save()
             prop.setParent(new_id)
+        # copy all linked objects
+        for dataset in cp_section.rel_datasets.filter(current_state=10):
+            section.addLinkedObject(dataset, "dataset")
+        for datafile in cp_section.rel_datafiles.filter(current_state=10):
+            section.addLinkedObject(datafile, "datafile")
+        for timeseries in cp_section.rel_timeseries.filter(current_state=10):
+            section.addLinkedObject(timeseries, "timeseries")
+        section.save()
+
         # recursively copy sections inside
         for sec in cp_section.section_set.filter(current_state=10).order_by("tree_position"):
             res_tree.append(section.copy_section(sec, sec.tree_position))

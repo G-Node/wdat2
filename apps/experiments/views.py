@@ -17,6 +17,7 @@ from datafiles.models import Datafile
 from experiments.forms import CreateExperimentForm, ExperimentEditForm, ExperimentShortEditForm, PrivacyEditForm
 from experiments.filters import ExpFilter
 from metadata.forms import AddPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
+from metadata.models import Section
 
 @login_required
 def create(request, form_class=CreateExperimentForm,
@@ -168,6 +169,15 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
         exp_form = form_class(instance=experiment)
         privacy_form = privacy_form_class(user=request.user, instance=experiment)
 
+    # templates for metadata. can't move to state_mashine due to import error
+    metadata_defaults = []
+    for section in Section.objects.filter(current_state=10, is_template=True):
+        if not section.parent_section:
+            metadata_defaults.append(section.get_tree())
+    for section in Section.objects.filter(current_state=10, user_custom=experiment.owner):
+        if not section.parent_section:
+            metadata_defaults.append(section.get_tree())
+
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
     dataset_link_form = dataset_form_class(auto_id='id_dataset_form_%s', user=request.user)
     datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
@@ -175,6 +185,7 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
 
     return render_to_response(template_name, {
     "experiment": experiment,
+    "metadata_defaults": metadata_defaults,
 	"exp_form": exp_form,
 	"privacy_form": privacy_form,
     "prop_add_form": prop_add_form,

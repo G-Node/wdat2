@@ -1,7 +1,36 @@
+<script type="text/javascript">
         function load_meta_tree(par_type) {
-	    $("#sections").tree({
-		ui : {theme_name : "apple"},
-		callback : { 
+        var s = new Array();
+        s.push("{{ tree_container.get_metadata_root_id }}");
+        $("#sections").tree({
+        opened : s,
+        ui : {theme_name : "classic"},
+        {% ifnotequal request.user tree_container.owner %}
+            types : {
+                "default" : {
+                    draggable: false,
+                    renameable: false,
+                    deletable: false,
+                    creatable: false,
+                    max_children: 50,
+                }
+            },
+        {% endifnotequal %}
+        rules: {
+            multitree: "all",
+        },
+        callback : { 
+			onselect : function (NODE, TREE_OBJ) {
+                $('#properties_area').hide();
+				var n_id =  NODE.id;
+                //n_id = n_id.replace("_copy", "");
+                var prop_url = '../../../metadata/properties_list/' + n_id + '/';
+                $('#properties_area').load(prop_url, function() {
+                    $('#properties_area').show();
+                    }
+                );
+			},
+        {% ifequal request.user tree_container.owner %}
 			oncreate : function (NODE, REF_NODE, TYPE, TREE_OBJ, RB) {
                 //if(TYPE != "inside") REF_NODE = $(REF_NODE).parent("li:eq(0)");
                 var pi = TREE_OBJ.parent(NODE).attr('id')
@@ -41,16 +70,6 @@
 					data: ({ node_id:n_id, action:'section_delete' }), 
 				}); 
 			},  
-			onselect : function (NODE, TREE_OBJ) {
-                $('#properties_area').hide();
-				var n_id =  NODE.id;
-                //n_id = n_id.replace("_copy", "");
-                var prop_url = '../../../metadata/properties_list/' + n_id + '/';
-                $('#properties_area').load(prop_url, function() {
-                    $('#properties_area').show();
-                    }
-                );
-			},
             onmove : function (NODE,REF_NODE,TYPE,TREE_OBJ,RB) {
 				$.ajax( { 
 					type: "POST", 
@@ -73,7 +92,7 @@
 					data: ({ selected_id:n_id, reference_id:REF_NODE.id, pos_type:TYPE, action:'section_copy' }), 
                     success: function(data, status, XHR) {
                         var res = data.length;
-                        if (res < 2) {
+                        if (res < 3) {
                             $.tree.rollback(RB);
                         }
                         else {
@@ -82,7 +101,29 @@
                         }
                     },
 				}); 
+            },
+            ondrop : function (NODE,REF_NODE,TYPE,TREE_OBJ) {
+                var n_id = NODE.id;
+                //n_id = n_id.replace("_copy", "");
+				$.ajax( { 
+					type: "POST", 
+					url: "../../../metadata/section_copy/", 
+					data: ({ selected_id:n_id, reference_id:REF_NODE.id, pos_type:TYPE, action:'section_copy' }), 
+                    success: function(data, status, XHR) {
+                        var res = data.length;
+                        if (res < 3) {
+                            // no rollback object..
+                            //$.tree.rollback(RB);
+                            alert("Object wasn't created properly. Please refresh the page and try again.");
+                        }
+                        else {
+                            // update all ids in the tree
+                            leaf_update(data, NODE);
+                        }
+                    },
+				}); 
             }  
+        {% endifequal %}
 		} 
 	    });
         };
@@ -147,4 +188,4 @@
                 b = 0;
             };
         };
-
+</script>

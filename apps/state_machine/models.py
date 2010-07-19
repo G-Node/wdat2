@@ -27,12 +27,19 @@ class ObjectState(models.Model):
     def isActive(self):
 	return self.current_state == 10
 
-    # some common methods (not applicable for all objects!)
+    # some common methods (applicable for "metadata" objects only!)
     def get_metadata(self):
         metadata = []
         for section in self.section_set.filter(current_state=10):
             metadata.append(section.get_tree())
         return metadata
+
+    # method is needed to keep the first level of metadata tree opened
+    def get_metadata_root_id(self):
+        if self.section_set.filter(current_state=10):
+            return self.section_set.filter(current_state=10)[0].id
+        else:
+            return None
 
     def hasMetadata(self):
         if self.section_set.filter(current_state=10):

@@ -107,55 +107,42 @@
          </div>
         
         {% ifequal request.user experiment.owner %}
-            <div class="form-toggle">
-                <p>&raquo; <span id="edit-experiment-toggle">{% trans "Edit details" %}</span></p>
-                
-                <form class="uniForm" id="edit-experiment" method="POST" action="" style="display:none">
-                    <fieldset class="inlineLabels">
-                        {{ exp_form|as_uni_form }}
-                        <div class="form_block">
-                            <input type="hidden" name="action" value="details_update" />
-                            <input type="submit" value="{% trans "update" %}"/>
-                        </div>
-                    </fieldset>
-                </form>
-            </div>
-            <div class="form-toggle">
-                <p>&raquo; <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
-                
-                <form class="uniForm" id="change-privacy" method="POST" action="" style="display:none">
-                    <fieldset class="inlineLabels">
-                        {{ privacy_form|as_uni_form }}
-                        <div class="form_block">
-                            <input type="hidden" name="action" value="privacy_update" />
-                            <input type="submit" value="{% trans "update" %}"/>
-                        </div>
-                    </fieldset>
-                </form>
-            </div>            
+            {% with exp_form as edit_form %}
+                {% include "state_machine/edit_details.html" %}
+            {% endwith %}
+
+            {% with privacy_form as privacy_form %}
+                {% include "state_machine/edit_privacy.html" %}
+            {% endwith %}        
         {% endifequal %}
     </div>
     
     {% if experiment.hasMetadata %}
     <h2>{% trans "Metadata" %}</h2>
 
+    {% with experiment as tree_container %}
     {% ifequal request.user experiment.owner %}
-
-        {% comment %} PAPA is used to indicate which metadata buttons to render, 
-                depending on object type {% endcomment %}
+        {% comment %} PAPA is used to indicate which metadata buttons to render, depending on object type {% endcomment %}
         {% with "experiment" as papa %}
             {% include "metadata/section_buttons.html" %}
         {% endwith %}
+        <div id="form-add-section" style="padding: 0; margin: 0; display:none">
+            {% include "metadata/section_add.html" %}
+            <div id="default_properties_area" style="height: 207px; width: 500px; padding-left: 10px; overflow: auto;">
+                {% include "metadata/properties_list.html" %}
+            </div>
+        </div>
     {% endifequal %}
 
-    <div style="padding: 0; margin: 0;">
-        {% with experiment as tree_container %}
+    <div style="padding: 6px 0px 0px 0px; margin: 0;">
             {% include "metadata/sections_tree.html" %}
-        {% endwith %}
-        <div id="properties_area" style="width: 580px; padding-left: 210px">
+        <div id="properties_area" style="width: 515px; padding-left: 210px">
             {% include "metadata/properties_list.html" %}
         </div>
     </div>
+    {% endwith %}
+
+
     {% else %}
     <p>You don't have metadata assigned to this experiment. You may start annotating your experiment by <a href="#" onclick="add_root_section({{ experiment.id }}, 1)">adding the Metadata</a>.</p>
     {% endif %}
@@ -170,19 +157,22 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/edit_details_privacy.js"></script>
 
     {% if experiment.hasMetadata %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_metadata_items.js"></script>
-    <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/hide_metadata_forms.js"></script>
+    {% with experiment as tree_container %}
+        {% include "metadata/load_meta_tree.html" %}
+    {% endwith %}
     <script type="text/javascript">
         $(document.getElementById("sections")).ready(function() {
         // 3 - Section
             load_meta_tree(3);
-            //$.tree.focused().select_branch({{ experiment.get_metadata_root_id }});
+            load_default_meta_tree(3);
             $('#add-property-toggle').click(function() {
                 hide_metadata_forms("add-property");
                 $('#add-property').toggle();
@@ -210,27 +200,4 @@
         });
     </script>
     {% endif %}
-
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $('#edit-experiment-toggle').click(function() {
-                $('#edit-experiment').toggle();
-                $('#edit-experiment').autoscroll();
-                return false;
-            });
-            if ($('#edit-experiment .error').length) {
-                $('#edit-experiment').show();
-                $('#edit-experiment .error').autoscroll();
-            }
-            $('#change-privacy-toggle').click(function() {
-                $('#change-privacy').toggle();
-                $('#change-privacy').autoscroll();
-                return false;
-            });
-            if ($('#change-privacy .error').length) {
-                $('#change-privacy').show();
-                $('#change-privacy .error').autoscroll();
-            }
-        });
-    </script>
 {% endblock %}

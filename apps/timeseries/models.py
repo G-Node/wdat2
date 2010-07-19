@@ -60,7 +60,7 @@ class TimeSeries(SafetyLevel):
         self.save()
 
     def getNextCounter(self, user):
-        c = TimeSeries.objects.count()
+        c = TimeSeries.objects.filter(owner=user).count()
         title = (_("%s") % c)
         while len(title) < 8:
             title = "0" + title

@@ -102,10 +102,50 @@
     {% if timeseries %}
 
         <div class="right_panel">
+        {% ifequal t_serie.owner request.user %}
+                <div class="friends">
+                    {% if t_serie.is_Public %}
+                    <h2>{% trans "Privacy" %}</h2>
+                    <p>This Time Serie is <b style="color: red">Public</b> and available for other users. Members of this site may explore this Time Serie.</p>
+                    {% else %}
+                    <h2>{% trans "Shared with:" %}</h2>
+                        {% if t_serie.is_Friendly %}
+                            <p>All people you know
+                            {% if t_serie.shared_with.all %}
+                            , and </p>
+                                {% for exp_member in t_serie.shared_with.all %}
+                                        <span><a href="{% url profile_detail exp_member.username %}" title="{{ exp_member.username }}">{{ exp_member.username }}</a>, </span>
+                                {% endfor %}
+                            {% else %}
+                                .</p>
+                            {% endif %}
+                        {% else %}
+                            {% if t_serie.shared_with.all %}
+                                {% for exp_member in t_serie.shared_with.all %}
+                                        <span><a href="{% url profile_detail exp_member.username %}" title="{{ exp_member.username }}">{{ exp_member.username }}</a>, </span>
+                                {% endfor %}
+                            {% else %}
+                                <p><b>Nobody</b>. Only YOU can see this Time Serie.</p>
+                            {% endif %}
+                        {% endif %}
+                        <p>Please note, it's always ONLY YOUR exclusive right to MANAGE your Time Series data, changing its properties and privacy settings.</p>
+                    {% endif %}
+                </div>
+        {% endifequal %}
+
             <div class="friends">
+                <h2>{% trans "Linked to" %}</h2>
+                {% comment %}
                 <h2>{% trans "From Experiments" %}</h2>
                 <p>Select an experiment to browse time series data, associated with it. Or push <a href="{% url timeseries_main %}">"View all"</a> to browse all your recorded time series.</p>
-                <p>HERE GOES THE TABLE WITH EXPERIMENTS</p>
+                {% endcomment %}
+                {% if objs %}
+                    <table width="100%">
+                        {% for obj in objs %}
+                            <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>                    
+                {% endif%}
             </div>
 
             <div class="friends">
@@ -113,19 +153,19 @@
         	        <form id="delete-exprts" method="POST" action="">
                     {% autopaginate timeseries 15 %}
                     <table width="100%">
+                        <tr><th>{% trans "No." %}</th><th>{% trans "Owner" %}</th></tr>
                         {% for tserie in timeseries %}
                             <tr>
-                                <td>- <a href="{{ tserie.get_absolute_url }}">{{ tserie.title|truncate_dot:26|escape }}</a></td>
+                                <td>- <a href="{{ tserie.get_absolute_url }}">{{ tserie.title|truncate_dot:10|escape }}</a></td>
+                                <td><a href="{% url profile_detail tserie.owner.username %}" title="{{ tserie.owner.username }}">{{ tserie.owner.username }}</a></td>
 				                {% ifequal user tserie.owner %}
 				                <td align=right><input id="id_serie_choices_{{ tserie.id }}" type="checkbox" value="{{ tserie.id }}" name="serie_choices"/></td>
 				                {% endifequal %}
                             </tr>
                         {% endfor %}
                     </table>    
-		            {% ifequal user t_serie.owner %}
 			            <input type="hidden" name="action" value="timeseries_delete"/>
 			            <input type="submit" value="delete selected"/>
-		            {% endifequal %}
 
                 	{% paginate %}
                     </form>
@@ -134,79 +174,92 @@
 
         <div class="left_panel">
 
-            <div class="form-toggle">
-                <p>
-                    <span id="add-timeseries-toggle" onclick="$('#edit-timeseries').hide(); $('#add-timeseries').toggle();">{% trans "Add Time Series" %}</span>
-                    <span id="edit-timeseries-toggle" onclick="$('#add-timeseries').hide(); $('#edit-timeseries').toggle();">{% trans "Edit Properties" %}</span>
-                </p>
-
-                <div id="form-add-timeseries">
-                    <form class="uniForm" id="add-timeseries" method="POST" action="" style="display:{{ tserie_add_form_status }}">
-                        <fieldset class="inlineLabels">
-                            {{ tserie_add_form|as_uni_form }}
-                            <div class="form_block">
-                                <input type="hidden" name="action" value="timeseries_add" />
-                                <input type="submit" value="create"/>
-                            </div>
-                        </fieldset>
-                    </form>
-                </div>
-
-                <div id="form-edit-timeseries">
-                    <form class="uniForm" id="edit-timeseries" method="POST" action="" style="display:{{ tserie_edit_form_status }}">
-                        <fieldset class="inlineLabels">
-                            {{ tserie_edit_form|as_uni_form }}
-                            <div class="form_block">
-                                <input type="hidden" name="action" value="timeseries_update" />
-                                <input type="submit" value="update"/>
-                            </div>
-                        </fieldset>
-                    </form>
-                </div>
-            </div>         
-
-            <div class="photo-title">
-                <h2>{{ t_serie.title }} {% if not t_serie.isActive %}(DELETED){% endif %}</h2>
+        <div class="form-toggle">
+            <p>
+                <span id="add-timeseries-toggle" onclick="$('#edit-timeseries').hide(); $('#add-from-file').hide(); $('#add-timeseries').toggle();">{% trans "Add Time Serie" %}</span>
+                <span id="add-from-file-toggle" onclick="$('#edit-timeseries').hide(); $('#add-timeseries').hide(); $('#add-from-file').toggle();">{% trans "Add Time Series from File" %}</span>
+            </p>
+            <div id="form-add-timeseries">
+                <form class="uniForm" id="add-timeseries" method="POST" action="" style="display:{{ tserie_add_form_status }}">
+                    <fieldset class="inlineLabels">
+                        {{ tserie_add_form|as_uni_form }}
+                        <div class="form_block">
+                            <input type="hidden" name="action" value="timeseries_add" />
+                            <input type="submit" value="create"/>
+                        </div>
+                    </fieldset>
+                </form>
             </div>
-            <div class="photo-caption">
-                <p><b>Description: </b>{{ t_serie.description }}</p>
+            <div id="form-add-from-file">
+                <form class="uniForm" id="add-from-file" method="POST" action="" style="display:{{ add_from_file_status }}">
+                    <fieldset class="inlineLabels">
+                        {{ add_from_file_form|as_uni_form }}
+                        <div class="form_block">
+                            <input type="hidden" name="action" value="add_from_file" />
+                            <input type="submit" value="parse the file and create time series"/>
+                        </div>
+                    </fieldset>
+                </form>
             </div>
-            <div>
-                <p><b>Date created: </b>{{ t_serie.date_created }}</p>
-            </div>
-            <div>
-                {% ifnotequal t_serie.owner request.user%}
-                <b>Owner: </b>
-                <a href="{% url profile_detail t_serie.owner.username %}">{{ t_serie.owner.username }}</a>
-                {% endifnotequal %}
-            </div>
-            <div>
-                {% show_tags_for t_serie %}
-            </div>
+        </div>         
 
-            <div id="container" style="width: 550px; height: 300px; margin: 0 auto"></div>
+        <div class="photo-title">
+            <h2>{{ t_serie.title }} {% if not t_serie.isActive %}(DELETED){% endif %}</h2>
+        </div>
+        <div class="photo-caption">
+            <p><b>Description: </b>{{ t_serie.description }}</p>
+        </div>
+        <div>
+            <p><b>Date created: </b>{{ t_serie.date_created }}</p>
+        </div>
+        <div>
+            {% ifnotequal t_serie.owner request.user%}
+            <b>Owner: </b>
+            <a href="{% url profile_detail t_serie.owner.username %}">{{ t_serie.owner.username }}</a>
+            {% endifnotequal %}
+        </div>
+        <div>
+            {% show_tags_for t_serie %}
+        </div>
 
+        {% ifequal request.user t_serie.owner %}
+            {% with tserie_edit_form as edit_form %}
+                {% include "state_machine/edit_details.html" %}
+            {% endwith %}
+
+            {% with privacy_form as privacy_form %}
+                {% include "state_machine/edit_privacy.html" %}
+            {% endwith %}
+        {% endifequal %}
+
+        <div id="container" style="width: 700px; height: 300px; margin: 0 auto"></div>
 
         {% if t_serie.hasMetadata %}
         <h2>{% trans "Metadata" %}</h2>
 
+        {% with t_serie as tree_container %}
         {% ifequal request.user t_serie.owner %}
-
             {% comment %} PAPA is used to indicate which metadata buttons to render, 
                     depending on object type {% endcomment %}
             {% with "timeseries" as papa %}
                 {% include "metadata/section_buttons.html" %}
             {% endwith %}
+            <div id="form-add-section" style="padding: 0; margin: 0; display:none">
+                {% include "metadata/section_add.html" %}
+                <div id="default_properties_area" style="height: 209px; width: 500px; padding-left: 10px; overflow: auto;">
+                    {% include "metadata/properties_list.html" %}
+                </div>
+            </div>
         {% endifequal %}
 
-        <div style="padding: 0; margin: 0;">
-            {% with t_serie as tree_container %}
+        <div style="padding: 6px 0px 0px 0px; margin: 0;">
                 {% include "metadata/sections_tree.html" %}
-            {% endwith %}
-            <div id="properties_area" style="width: 580px; padding-left: 210px">
+            <div id="properties_area" style="width: 515px; padding-left: 210px">
                 {% include "metadata/properties_list.html" %}
             </div>
         </div>
+        {% endwith %}
+
         {% else %}
         <p>You don't have metadata assigned to this recording trace. You may want to annotate it by <a href="#" onclick="add_root_section({{ t_serie.id }}, 4)">adding the Metadata</a>.</p>
         {% endif %}
@@ -236,19 +289,22 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/clear_selection.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/edit_details_privacy.js"></script>
 
     {% if t_serie.hasMetadata %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_metadata_items.js"></script>
-    <script type="text/javascript" src="{{ STATIC_URL }}js/load_meta_tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/hide_metadata_forms.js"></script>
+    {% with t_serie as tree_container %}
+        {% include "metadata/load_meta_tree.html" %}
+    {% endwith %}
     <script type="text/javascript">
         $(document.getElementById("sections")).ready(function() {
         // 3 - Section
             load_meta_tree(3);
-            //$.tree.focused().select_branch({{ experiment.get_metadata_root_id }});
+            load_default_meta_tree(3);
             $('#add-property-toggle').click(function() {
                 hide_metadata_forms("add-property");
                 $('#add-property').toggle();
@@ -261,27 +317,4 @@
         });
     </script>
     {% endif %}
-
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $('#edit-timeseries-toggle').click(function() {
-                $('#timeseries-experiment').toggle();
-                $('#timeseries-experiment').autoscroll();
-                return false;
-            });
-            if ($('#timeseries-experiment .error').length) {
-                $('#timeseries-experiment').show();
-                $('#timeseries-experiment .error').autoscroll();
-            }
-            $('#change-privacy-toggle').click(function() {
-                $('#change-privacy').toggle();
-                $('#change-privacy').autoscroll();
-                return false;
-            });
-            if ($('#change-privacy .error').length) {
-                $('#change-privacy').show();
-                $('#change-privacy .error').autoscroll();
-            }
-        });
-    </script>
 {% endblock %}

@@ -15,6 +15,7 @@ from datafiles.models import Datafile
 from metadata.models import Section
 from datasets.forms import NewRDatasetForm, RDatasetEditForm, DeleteDatasetsForm, DatasetShortEditForm, PrivacyEditForm
 from metadata.forms import AddPropertyForm, LinkDatafileForm, LinkTSForm
+from metadata.models import Section
 
 @login_required
 def create(request, form_class=NewRDatasetForm, template_name="datasets/new.html"):
@@ -122,6 +123,15 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
     else:
         privacy_form = privacy_form_class(user=request.user, instance=dataset)
 
+    # templates for metadata. can't move to state_mashine due to import error
+    metadata_defaults = []
+    for section in Section.objects.filter(current_state=10, is_template=True):
+        if not section.parent_section:
+            metadata_defaults.append(section.get_tree())
+    for section in Section.objects.filter(current_state=10, user_custom=dataset.owner):
+        if not section.parent_section:
+            metadata_defaults.append(section.get_tree())
+
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
     datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
@@ -136,6 +146,7 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
 
     return render_to_response(template_name, {
         "dataset": dataset,
+        "metadata_defaults": metadata_defaults,
         "dataset_form": dataset_form,
         "privacy_form": privacy_form,
         "prop_add_form": prop_add_form,

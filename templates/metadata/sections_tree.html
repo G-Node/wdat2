@@ -1,12 +1,17 @@
 {% load metadata_extras %}
+{% load i18n %}
 
     <div style="width: 200px;">
 	<div class="demo source" id="sections">
         {{ tree_container.get_metadata|metadata_tree }} 
   	</div>
-    <div style="float: left; padding-top: 2px;">
-		<input type="button" onclick='$.tree.focused().cut();' value="Cut" /> 
-		<input type="button" onclick='$.tree.focused().copy();' value="Copy" /> 
-		<input type="button" onclick='$.tree.focused().paste();' value="Paste" /> 
+    {% ifequal request.user tree_container.owner %}
+    <div class="form-toggle" style="float: left; padding-top: 2px; width: 120px;">
+    <p>
+		<span onclick='$.tree.focused().cut();' style="padding: 0 5px 0 5px">{% trans "Cut" %}</span>
+		<span onclick='$.tree.focused().copy();' style="padding: 0 5px 0 5px">{% trans "Copy" %}</span> 
+		<span onclick='$.tree.focused().paste();' style="padding: 0 5px 0 5px">{% trans "Paste" %}</span>
+    </p>
     </div>
+    {% endifequal %}
     </div>

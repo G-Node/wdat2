@@ -152,34 +152,26 @@ def section_copy(request, template_name="metadata/move_copy.html"):
         pos_type = request.POST.get("pos_type")
         section = get_object_or_404(Section, id=selected_id)
         ref_section = get_object_or_404(Section, id=reference_id)
-        if section.does_belong_to(request.user):
+        if section.does_belong_to(request.user) or (section.is_template and (section.user_custom is None)) or (section.is_template and (section.user_custom == request.user)):
             if pos_type == "inside":
                 status = ref_section.copy_section(section, 1)
-                #top_sec = Section.objects.get(id=data[0])
-                #status = '{' + top_sec.get_tree_JSON() + '}'
             elif pos_type == "after":
                 parent = ref_section.getParentSection()
                 if parent:
                     if parent.getMaxChildPos() > ref_section.tree_position:
                         for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
-                            #if sec.tree_position > ref_section.tree_position:
                             sec.tree_position += 1
                             sec.save()
                     status = parent.copy_section(section, ref_section.tree_position + 1)
-                    #top_sec = Section.objects.get(id=data[0])
-                    #status = '{' + top_sec.get_tree_JSON() + '}'
                 else:
                     status = -1
             elif pos_type == "before":
                 parent = ref_section.getParentSection()
                 if parent:
                     for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
-                        #if sec.tree_position >= ref_section.tree_position:
                         sec.tree_position += 1
                         sec.save()
                     status = parent.copy_section(section, ref_section.tree_position - 1)
-                    #top_sec = Section.objects.get(id=data[0])
-                    #status = '{' + top_sec.get_tree_JSON() + '}'
                 else:
                     status = -1
     return render_to_response(template_name, {
