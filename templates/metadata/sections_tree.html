@@ -6,11 +6,13 @@
         {{ tree_container.get_metadata|metadata_tree }} 
   	</div>
     {% ifequal request.user tree_container.owner %}
-    <div class="form-toggle" style="float: left; padding-top: 2px; width: 120px;">
+    <div class="form-toggle" style="float: left; padding-top: 2px; width: 190px;">
     <p>
-		<span onclick='$.tree.focused().cut();' style="padding: 0 5px 0 5px">{% trans "Cut" %}</span>
-		<span onclick='$.tree.focused().copy();' style="padding: 0 5px 0 5px">{% trans "Copy" %}</span> 
-		<span onclick='$.tree.focused().paste();' style="padding: 0 5px 0 5px">{% trans "Paste" %}</span>
+		<input type="text" value="" size="14" />
+		<span onclick='var t = $.tree.focused(); if(t.selected) $.tree.focused().search($(this).prev().val()); else alert("Select a tree first");'>{% trans "Search" %}</span>
+		<span onclick='$.tree.focused().cut();'>{% trans "Cut" %}</span>
+		<span onclick='$.tree.focused().copy();'>{% trans "Copy" %}</span> 
+		<span onclick='$.tree.focused().paste();'>{% trans "Paste" %}</span>
     </p>
     </div>
     {% endifequal %}

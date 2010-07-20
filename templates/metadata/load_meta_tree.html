@@ -122,7 +122,17 @@
                         }
                     },
 				}); 
-            }  
+            },
+            onsearch : function (NODES, TREE_OBJ) {
+                var t = $.tree.focused(); 
+                if (t.selected) {
+                    TREE_OBJ.container.find('.search').removeClass('search');
+                    NODES.addClass('search');
+                }
+                else {
+                    alert("Select a tree first");
+                }
+            }
         {% endifequal %}
 		} 
 	    });

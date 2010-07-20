@@ -45,6 +45,7 @@ a:hover, a:active, a.aktiv:link, a.aktiv:visited, a.aktiv:hover, a.aktiv:active
    text-decoration: none;
    font-weight: normal;
 }
+a.search { color:green !important; }
 
 img
 { 

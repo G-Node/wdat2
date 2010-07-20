@@ -35,7 +35,7 @@ class Section(models.Model):
     # position in the tree. to be able to move up and down
     tree_position = models.IntegerField(_('tree position'))
     # field indicates whether it is a "template" section
-    is_template = models.BooleanField(_('is template'), default="False")
+    is_template = models.BooleanField(_('is template'), default=False)
     # for "template" section this is a pointer to a user, who created this default
     # template. if "NULL" - all users see section as a "template" (odML vocabulary)
     user_custom = models.ForeignKey(User, blank=True, null=True)
