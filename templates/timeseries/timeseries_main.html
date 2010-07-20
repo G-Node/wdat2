@@ -7,6 +7,7 @@
 {% load truncate_filter %}
 {% load tagging_tags %}
 {% load extra_tagging_tags %}
+{% load timeseries_tags %}
 
 {% block head_title %}{% blocktrans %}My Time Series data{% endblocktrans %}{% endblock %}
 
@@ -99,9 +100,9 @@
 
 {% block body %}
 
-    {% if timeseries %}
-
         <div class="right_panel">
+
+        {% if t_serie %}
         {% ifequal t_serie.owner request.user %}
                 <div class="friends">
                     {% if t_serie.is_Public %}
@@ -133,7 +134,7 @@
                 </div>
         {% endifequal %}
 
-            {% if objs %}
+        {% if objs %}
             <div class="friends">
                 <h2>{% trans "Linked to" %}</h2>
                 {% comment %}
@@ -147,10 +148,18 @@
                     </table>                    
 
             </div>
-            {% endif%}
+        {% endif%}
+        {% endif %}
 
             <div class="friends">
                 <h2>{% trans "Time Series" %}</h2>
+                    <form method="GET" action="">
+                        <input type="text" name="search" value="{{ search_terms }}" />
+                        <input type="submit" value="Search" />
+                        {% if search_terms %}
+                            <a href="{% clear_search_url request %}">Clear Search</a>
+                        {% endif %}
+                    </form>
         	        <form id="delete-exprts" method="POST" action="">
                     {% autopaginate timeseries 15 %}
                     <table width="100%">
@@ -173,8 +182,8 @@
             </div>
         </div>
 
-        <div class="left_panel">
 
+        <div class="left_panel">
         <div class="form-toggle">
             <p>
                 <span id="add-timeseries-toggle" onclick="$('#edit-timeseries').hide(); $('#add-from-file').hide(); $('#add-timeseries').toggle();">{% trans "Add Time Serie" %}</span>
@@ -204,6 +213,7 @@
             </div>
         </div>         
 
+        {% if t_serie %}
         <div class="photo-title">
             <h2>{{ t_serie.title }} {% if not t_serie.isActive %}(DELETED){% endif %}</h2>
         </div>
@@ -264,25 +274,13 @@
         {% else %}
         <p>You don't have metadata assigned to this recording trace. You may want to annotate it by <a href="#" onclick="add_root_section({{ t_serie.id }}, 4)">adding the Metadata</a>.</p>
         {% endif %}
+   
+        {% else %}
+        <p>No timeseries found.</p>
+        <p>Try to enter new time series data manually, or <a href="{% url datafile_create %}">upload data</a> in files, and extract it further using the buttons above.</p>
+        {% endif %}
 
         </div>
-  
-    {% else %}
-        <p>You don't have any timeseries data uploaded. Try by <a href="#" onclick="$('#add-timeseries').toggle();">uploading new time series</a> data now, or <a href="{% url datafile_create %}">upload data</a> in files.</p>
-            <div class="form-toggle">
-                <div id="form-add-timeseries">
-                    <form class="uniForm" id="add-timeseries" method="POST" action="" style="display:none">
-                        <fieldset class="inlineLabels">
-                            {{ tserie_add_form|as_uni_form }}
-                            <div class="form_block">
-                                <input type="hidden" name="action" value="timeseries_add" />
-                                <input type="submit" value="create"/>
-                            </div>
-                        </fieldset>
-                    </form>
-                </div>
-            </div>
-    {% endif %}
     
 {% endblock %}
 

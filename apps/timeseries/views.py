@@ -21,13 +21,18 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
     tserie_add_form_status = "none"
     add_from_file_status = "none"
     tserie_edit_form_status = "none"
+    objs = []
 
     time_series = TimeSeries.objects.filter(current_state=10)
+    search_terms = request.GET.get('search', '')
+    if search_terms:
+        time_series = (time_series.filter(title__icontains=search_terms) |
+            time_series.filter(description__icontains=search_terms))
     time_series = time_series.order_by("-title")
     time_series = filter(lambda x: x.is_accessible(request.user), time_series)
     # insert some security here!!!
     if time_series:
-        if id:
+        if id and not search_terms:
             t_serie = get_object_or_404(TimeSeries, id=id)
         else:
             t_serie = time_series[0]
@@ -91,6 +96,13 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         add_from_file_form = AddTSfromFileForm(user=request.user)
 
     if t_serie:
+        # get the parent objects to which this t_serie is linked to
+        sections = Section.objects.filter(current_state=10)
+        sections = filter(lambda x: x.hasTimeSeries(t_serie.id), sections)
+        for section in sections:
+            rt = section.get_root()
+            if rt and (not rt in objs):
+                objs.append(section.get_root())
         # edit details handler
         tserie_edit_form = EditTSForm(instance=t_serie)
         # edit privacy handler    
@@ -136,15 +148,6 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
 
     prop_add_form = AddPropertyForm(auto_id='id_add_form_%s')
 
-    # get the parent objects to which this t_serie is linked to
-    objs = []
-    sections = Section.objects.filter(current_state=10)
-    sections = filter(lambda x: x.hasTimeSeries(t_serie.id), sections)
-    for section in sections:
-        rt = section.get_root()
-        if rt and (not rt in objs):
-            objs.append(section.get_root())
-
     return render_to_response(template_name, {
         "timeseries": time_series,
         "t_serie": t_serie,
@@ -158,6 +161,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         "tserie_edit_form_status": tserie_edit_form_status,
         "prop_add_form": prop_add_form,
         "objs": objs,
+        "search_terms": search_terms,
         }, context_instance=RequestContext(request))
 
 
