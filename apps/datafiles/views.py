@@ -124,7 +124,7 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
     # security handler
     if not datafile.is_accessible(request.user):
         datafile = None
-    raise Http404
+        raise Http404
 
     action = request.POST.get("action")
 
