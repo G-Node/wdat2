@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 
 from projects.models import Project, ProjectMember
 from experiments.models import Experiment
+from datasets.models import RDataset
+from datafiles.models import Datafile
 from django.conf import settings
 
 if "notification" in settings.INSTALLED_APPS:
@@ -82,26 +84,43 @@ class AddUserForm(forms.Form):
             #notification.send([new_member], "projects_added_as_member", {"adder": user, "project": self.project})
         user.message_set.create(message="added %s to project" % new_member)
 
-class AddExperimentForm(forms.Form):
-    experiments = forms.ModelMultipleChoiceField(queryset=Experiment.objects.all().filter(current_state=10))
+class AddObjectForm(forms.Form):
     
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
         project = kwargs.pop('project')
-        super(AddExperimentForm, self).__init__(*args, **kwargs)
-	for_exclude = project.experiment_set.all().values_list("id", flat=True)
-        choices = Experiment.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
-        self.fields['experiments'].queryset = choices
+        obj_type = kwargs.pop('obj_type')
+        super(AddObjectForm, self).__init__(*args, **kwargs)
+        if obj_type == "experiment":
+            for_exclude = project.experiment_set.all().values_list("id", flat=True)
+            choices = Experiment.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+        elif obj_type == "dataset":
+            for_exclude = project.rdataset_set.all().values_list("id", flat=True)
+            choices = RDataset.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+        elif obj_type == "datafile":
+            for_exclude = project.datafile_set.all().values_list("id", flat=True)
+            choices = Datafile.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+        else:
+            choices = None
+        self.fields['objects_to_add'] = forms.ModelMultipleChoiceField(queryset=choices)
 
-class RemoveExperimentForm(forms.Form):
+class RemoveObjectForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
         project = kwargs.pop('project')
-        super(RemoveExperimentForm, self).__init__(*args, **kwargs)
-	values = project.experiment_set.all().filter(Q(current_state=10))
-	values = filter(lambda x: x.is_accessible(user), values)
-        self.fields['exprt_choices'] = forms.MultipleChoiceField(
+        obj_type = kwargs.pop('obj_type')
+        super(RemoveObjectForm, self).__init__(*args, **kwargs)
+        if obj_type == "experiment":
+            values = project.experiment_set.all().filter(Q(current_state=10))
+        elif obj_type == "dataset":
+            values = project.rdataset_set.all().filter(Q(current_state=10))
+        elif obj_type == "datafile":
+            values = project.datafile_set.all().filter(Q(current_state=10))
+        else:
+            values = []
+        values = filter(lambda x: x.is_accessible(user), values)
+        self.fields['for_remove_choices'] = forms.MultipleChoiceField(
             choices=[(c.id, c.title) for c in values], required=False,
             widget=widgets.CheckboxSelectMultiple)
 

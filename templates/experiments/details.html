@@ -120,31 +120,33 @@
     {% if experiment.hasMetadata %}
     <h2>{% trans "Metadata" %}</h2>
 
-    {% with experiment as tree_container %}
-    {% ifequal request.user experiment.owner %}
-        {% comment %} PAPA is used to indicate which metadata buttons to render, depending on object type {% endcomment %}
-        {% with "experiment" as papa %}
-            {% include "metadata/section_buttons.html" %}
-        {% endwith %}
-        <div id="form-add-section" style="padding: 0; margin: 0; display:none">
-            {% include "metadata/section_add.html" %}
-            <div id="default_properties_area" style="height: 207px; width: 500px; padding-left: 10px; overflow: auto;">
+        {% with experiment as tree_container %}
+        {% ifequal request.user experiment.owner %}
+            {% comment %} PAPA is used to indicate which metadata buttons to render, depending on object type {% endcomment %}
+            {% with "experiment" as papa %}
+                {% include "metadata/section_buttons.html" %}
+            {% endwith %}
+            <div id="form-add-section" style="padding: 0; margin: 0; display:none">
+                {% include "metadata/section_add.html" %}
+                <div id="default_properties_area" style="height: 207px; width: 500px; padding-left: 10px; overflow: auto;">
+                    {% include "metadata/properties_list.html" %}
+                </div>
+            </div>
+        {% endifequal %}
+
+        <div style="padding: 6px 0px 0px 0px; margin: 0;">
+                {% include "metadata/sections_tree.html" %}
+            <div id="properties_area" style="width: 515px; padding-left: 210px">
                 {% include "metadata/properties_list.html" %}
             </div>
         </div>
-    {% endifequal %}
-
-    <div style="padding: 6px 0px 0px 0px; margin: 0;">
-            {% include "metadata/sections_tree.html" %}
-        <div id="properties_area" style="width: 515px; padding-left: 210px">
-            {% include "metadata/properties_list.html" %}
-        </div>
-    </div>
-    {% endwith %}
+        {% endwith %}
 
 
     {% else %}
-    <p>You don't have metadata assigned to this experiment. You may start annotating your experiment by <a href="#" onclick="add_root_section({{ experiment.id }}, 1)">adding the Metadata</a>.</p>
+        {% ifequal request.user experiment.owner %}
+            <p>You don't have metadata assigned to this experiment. You may start annotating your experiment by <a href="#" onclick="add_root_section({{ experiment.id }}, 1)">adding the Metadata</a>.</p>
+        {% endifequal %}
     {% endif %}
 
     {% else %}

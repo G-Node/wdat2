@@ -67,7 +67,7 @@ class PrivacyEditForm(forms.ModelForm):
     # the metadata section/property objects. So only applicable
     # for older objects in the database. Remove when no longer
     # required.
-
+"""
 class AddDatasetForm(forms.Form):
     datasets = forms.ModelMultipleChoiceField(queryset=RDataset.objects.all().filter(current_state=10))
     
@@ -113,4 +113,4 @@ class RemoveDatafilesForm(forms.Form):
         self.fields['dfile_choices'] = forms.MultipleChoiceField(
             choices=[(c.id, c.title) for c in values], required=False,
             widget=widgets.CheckboxSelectMultiple)
-
+"""

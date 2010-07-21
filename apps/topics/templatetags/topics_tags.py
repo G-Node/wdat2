@@ -12,6 +12,13 @@ def show_topic(context, topic):
     }
 register.inclusion_tag("topics/topic_item.html", takes_context=True)(show_topic)
 
+def show_short_topic(context, topic):
+    return {
+        "topic": topic,
+        "group": context.get("group"),
+    }
+register.inclusion_tag("topics/short_topic_item.html", takes_context=True)(show_short_topic)
+
 class TopicsForGroupNode(template.Node):
     def __init__(self, group_name, context_name):
         self.group = template.Variable(group_name)

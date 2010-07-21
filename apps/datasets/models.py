@@ -5,7 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from state_machine.models import SafetyLevel
 from experiments.models import Experiment
-#from metadata.models import Section
+from pinax.apps.projects.models import Project
 from django.db.models import Q
 #from django.db.models import Min, Max
 from friends.models import Friendship
@@ -34,6 +34,7 @@ class RDataset(SafetyLevel):
     owner = models.ForeignKey(User, related_name="added_datasets", blank=True, null=False)
     # the following field is legacy after rel. 2; remove if not used in 2011
     in_experiments = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
+    in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     tags = TagField()
 
     def __unicode__(self):
@@ -42,6 +43,12 @@ class RDataset(SafetyLevel):
     def get_absolute_url(self):
         return ("dataset_details", [self.pk])
     get_absolute_url = models.permalink(get_absolute_url)
+
+    def addLinkedProject(self, project):
+        self.in_projects.add(project)
+
+    def removeLinkedProject(self, project):
+        self.in_projects.remove(project)
 
     # defines whether an object (dataset) is accessible for a given user
     # <<< better to migrate it inside the state_machine with the "owner" property >>>
@@ -88,9 +95,4 @@ class RDataset(SafetyLevel):
     def get_active_datafiles(self):
         return self.datafile_set.all().filter(Q(current_state=10))
 
-    def addLinkedExperiment(self, experiment):
-	self.in_experiments.add(experiment)
-
-    def removeLinkedExperiment(self, experiment):
-	self.in_experiments.remove(experiment)
 

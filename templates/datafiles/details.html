@@ -122,7 +122,9 @@
         {% endwith %}
 
         {% else %}
+        {% ifequal request.user datafile.owner %}
         <p>You don't have metadata assigned to this file. You may start annotating your dataset by <a href="#" onclick="add_root_section({{ datafile.id }}, 5)">adding the Metadata</a>. In order to describe the file structure (sampling rates, number of electrodes, channels etc. with location / offsets in the file) it's better to use <a href="http://signalml.org/" target="blank">SignalML</a> technology.</p>
+        {% endifequal %}
         {% endif %}
             
         </div>

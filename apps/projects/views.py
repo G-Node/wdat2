@@ -8,6 +8,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 from experiments.models import Experiment
+from datasets.models import RDataset
+from datafiles.models import Datafile
 
 from django.conf import settings
 
@@ -19,7 +21,7 @@ else:
 from django.db.models import Q
 from friends.models import FriendshipManager
 from projects.models import Project, ProjectMember
-from projects.forms import ProjectForm, ProjectUpdateForm, AddUserForm, AddExperimentForm, RemoveExperimentForm
+from projects.forms import ProjectForm, ProjectUpdateForm, AddUserForm, AddObjectForm, RemoveObjectForm
 
 TOPIC_COUNT_SQL = """
 SELECT COUNT(*)
@@ -133,7 +135,7 @@ def your_projects(request, template_name="projects/your_projects.html"):
 
 
 @login_required
-def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form_class=AddUserForm, experiment_form_class=AddExperimentForm, 
+def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form_class=AddUserForm, 
         template_name="projects/project.html"):
     project = get_object_or_404(Project, slug=group_slug)
     
@@ -142,57 +144,127 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
     else:
         is_member = project.user_is_member(request.user)
 
-    # update details handler    
-    action = request.POST.get("action")
-    if request.user == project.creator and action == "update":
-        project_form = form_class(request.POST, instance=project)
-        if project_form.is_valid():
-            project = project_form.save()
-    else:
-        project_form = form_class(instance=project)
+    if request.user == project.creator:
+        # update details handler    
+        action = request.POST.get("action")
+        if request.user == project.creator and action == "update":
+            project_form = form_class(request.POST, instance=project)
+            if project_form.is_valid():
+                project = project_form.save()
+        else:
+            project_form = form_class(instance=project)
 
-    # add new member handler
-    if request.user == project.creator and action == "add":
-        adduser_form = adduser_form_class(request.POST, project=project)
-        if adduser_form.is_valid():
-            adduser_form.save(request.user)
-            adduser_form = adduser_form_class(project=project) # clear form
-    else:
-        adduser_form = adduser_form_class(project=project)
+        # add new member handler
+        if request.user == project.creator and action == "add":
+            adduser_form = adduser_form_class(request.POST, project=project)
+            if adduser_form.is_valid():
+                adduser_form.save(request.user)
+                adduser_form = adduser_form_class(project=project) # clear form
+        else:
+            adduser_form = adduser_form_class(project=project)
 
-    # linking experiment handler
-    if action == "link_experiments":
-	experiments_form = experiment_form_class(request.POST, user=request.user, project=project)
-	if experiments_form.is_valid():
-	    sets = experiments_form.cleaned_data['experiments']
-	    for s in sets:
-		s.addLinkedProject(project)
-		s.save()
-	    request.user.message_set.create(message=_("Successfully linked experiments to '%s'") % project.slug)
-    else:
-	experiments_form = experiment_form_class(user=request.user, project=project)
+        # assign new experiment handler
+        if action == "new_experiment":
+            exprt_form = AddObjectForm(request.POST, user=request.user, project=project, obj_type="experiment")
+            if exprt_form.is_valid():
+                sets = exprt_form.cleaned_data['objects_to_add']
+                for s in sets:
+                    s.addLinkedProject(project)
+                    s.save()
+                request.user.message_set.create(message=_("Successfully added experiments to '%s'") % project.slug)
+        else:
+            exprt_form = AddObjectForm(user=request.user, project=project, obj_type="experiment")
 
-    # remove experiments handler
-    remove_exprts_form = RemoveExperimentForm(request.POST or None, user=request.user, project=project)
-    if action == "remove_experiments":
-	if remove_exprts_form.is_valid():
-	    ids = remove_exprts_form.cleaned_data['exprt_choices'] 
-	    for experiment in Experiment.objects.filter(id__in=ids):
-	        experiment.removeLinkedProject(project)
-	        experiment.save()
-	    request.user.message_set.create(message=_("Successfully removed selected experiments from '%s'") % project.slug)
+        # remove experiments handler
+        if action == "remove_experiments":
+            exprt_remove_form = RemoveObjectForm(request.POST or None, user=request.user, project=project, obj_type="experiment")
+            if exprt_remove_form.is_valid():
+                ids = exprt_remove_form.cleaned_data['for_remove_choices'] 
+                for exprt in Experiment.objects.filter(id__in=ids):
+                    exprt.removeLinkedProject(project)
+                    exprt.save()
+                request.user.message_set.create(message=_("Successfully removed selected experiments from '%s'") % project.slug)
+        else:
+            exprt_remove_form = RemoveObjectForm(user=request.user, project=project, obj_type="experiment")
+
+        # assign new dataset handler
+        if action == "new_dataset":
+            dataset_form = AddObjectForm(request.POST, user=request.user, project=project, obj_type="dataset")
+            if dataset_form.is_valid():
+                sets = dataset_form.cleaned_data['objects_to_add']
+                for s in sets:
+                    s.addLinkedProject(project)
+                    s.save()
+                request.user.message_set.create(message=_("Successfully added datasets to '%s'") % project.slug)
+        else:
+            dataset_form = AddObjectForm(user=request.user, project=project, obj_type="dataset")
+
+        # remove datasets handler
+        if action == "remove_datasets":
+            dataset_remove_form = RemoveObjectForm(request.POST or None, user=request.user, project=project, obj_type="dataset")
+            if dataset_remove_form.is_valid():
+                ids = dataset_remove_form.cleaned_data['for_remove_choices'] 
+                for dataset in RDataset.objects.filter(id__in=ids):
+                    dataset.removeLinkedProject(project)
+                    dataset.save()
+                request.user.message_set.create(message=_("Successfully removed selected datasets from '%s'") % project.slug)
+        else:
+            dataset_remove_form = RemoveObjectForm(user=request.user, project=project, obj_type="dataset")
+
+        # assign new datafile handler
+        if action == "new_datafile":
+            datafile_form = AddObjectForm(request.POST, user=request.user, project=project, obj_type="datafile")
+            if datafile_form.is_valid():
+                sets = datafile_form.cleaned_data['objects_to_add']
+                for s in sets:
+                    s.addLinkedProject(project)
+                    s.save()
+                request.user.message_set.create(message=_("File(s) were successfully added to '%s'") % project.slug)
+        else:
+            datafile_form = AddObjectForm(user=request.user, project=project, obj_type="datafile")
+
+        # remove datafiles handler
+        if action == "remove_datafiles":
+            datafile_remove_form = RemoveObjectForm(request.POST or None, user=request.user, project=project, obj_type="datafile")
+            if datafile_remove_form.is_valid():
+                ids = datafile_remove_form.cleaned_data['for_remove_choices'] 
+                for datafile in Datafile.objects.filter(id__in=ids):
+                    datafile.removeLinkedProject(project)
+                    datafile.save()
+                request.user.message_set.create(message=_("Successfully removed selected datafiles from '%s'") % project.slug)
+        else:
+            datafile_remove_form = RemoveObjectForm(user=request.user, project=project, obj_type="datafile")
+    else:
+        adduser_form = None
+        project_form = None
+        exprt_form = None
+        exprt_remove_form = None
+        dataset_form = None
+        dataset_remove_form = None
+        datafile_form = None
+        datafile_remove_form = None
 
     experiments = project.experiment_set.all().filter(Q(current_state=10))
     experiments = filter(lambda x: x.is_accessible(request.user), experiments)
-    
+    datasets = project.rdataset_set.all().filter(Q(current_state=10))
+    datasets = filter(lambda x: x.is_accessible(request.user), datasets)
+    datafiles = project.datafile_set.all().filter(Q(current_state=10))
+    datafiles = filter(lambda x: x.is_accessible(request.user), datafiles)
+
     return render_to_response(template_name, {
         "project_form": project_form,
         "adduser_form": adduser_form,
         "project": project,
         "group": project, # @@@ this should be the only context var for the project
         "is_member": is_member,
-	"experiments": experiments,
-	"experiments_form": experiments_form,
-	"remove_exprts_form": remove_exprts_form,
+        "experiments": experiments,
+        "exprt_form": exprt_form,
+        "exprt_remove_form": exprt_remove_form,
+        "datasets": datasets,
+        "dataset_form": dataset_form,
+        "dataset_remove_form": dataset_remove_form,
+        "datafiles": datafiles,
+        "datafile_form": datafile_form,
+        "datafile_remove_form": datafile_remove_form,
     }, context_instance=RequestContext(request))
 

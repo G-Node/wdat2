@@ -272,7 +272,9 @@
         {% endwith %}
 
         {% else %}
+        {% ifequal request.user t_serie.owner %}
         <p>You don't have metadata assigned to this recording trace. You may want to annotate it by <a href="#" onclick="add_root_section({{ t_serie.id }}, 4)">adding the Metadata</a>.</p>
+        {% endifequal %}
         {% endif %}
    
         {% else %}

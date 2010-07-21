@@ -9,7 +9,7 @@
     <div class="form-toggle" style="float: left; padding-top: 2px; width: 190px;">
     <p>
 		<input type="text" value="" size="14" />
-		<span onclick='var t = $.tree.focused(); if(t.selected) $.tree.focused().search($(this).prev().val()); else alert("Select a tree first");'>{% trans "Search" %}</span>
+		<span onclick='var t = $.tree.focused(); if(t.selected) $.tree.focused().search($(this).prev().val()); else alert("Select any section in the tree first");'>{% trans "Search" %}</span>
 		<span onclick='$.tree.focused().cut();'>{% trans "Cut" %}</span>
 		<span onclick='$.tree.focused().copy();'>{% trans "Copy" %}</span> 
 		<span onclick='$.tree.focused().paste();'>{% trans "Paste" %}</span>

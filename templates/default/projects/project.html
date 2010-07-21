@@ -34,122 +34,7 @@
                     {% if project.members.all|length|divisibleby:"3" %}{% else %}</tr>{% endif %}
                 </table>
             </div>
-	    {% if experiments %}
-            <div class="friends">
-                <h2>{% trans "Experiments" %}</h2>
-                <table width="100%">
-                    {% for experiment in experiments %}
-                        <tr><td>- <a href="{{ experiment.get_absolute_url }}">{{ experiment.title }}</a></td></tr>
-                    {% endfor %}
-                </table>
-            </div>
-	    {% endif %}
-        </div>
-    {% endif %}
-    
-    <div style="width: 700px;">
-        
-        <h1>{% trans "Project" %} {{ project.name }}</h1>
-        
-        
-         <div id="projecthead">
-	        <table>
-	          <tbody>
-	          <tr>
-	            <td><strong>{% trans "Slug:" %}</strong></td>
-	            <td>{{ project.slug }}</td>
-	          </tr>
-	          <tr>
-	            <td><strong>{% trans "Creator:" %}</strong> </td>
-	            <td><a href="{% url profile_detail project.creator.username %}">{{ project.creator }}</a></td>
-	          </tr>
-	          <tr>
-	            <td><strong>{% trans "Created:" %}</strong></td>
-	            <td>{{ project.created|date }}</td>
-	          </tr>
-	          <tr>
-	            <td><strong>&nbsp;</strong></td>
-	            <td>{% show_tags_for project %}</td>
-	          </tr>	          
-		     </tbody>
-		   </table>
-        </div>          
-	          
-        <!-- 
-        <p>
-            <strong>{% trans "Slug:" %}</strong> <tt>{{ project.slug }}</tt><br />
-            <strong>{% trans "Creator:" %}</strong> <a href="{% url profile_detail project.creator.username %}">{{ project.creator }}</a><br />
-            <strong>{% trans "Created:" %}</strong> {{ project.created|date }}
-            <br />
-            {% show_tags_for project %}
-        </p>
-        -->
-        
-        <p>{{ project.description }}</p>
-        
-        {% ifequal user project.creator %}
-            <div class="form-toggle">
-                <p>&raquo; <span id="edit-project-toggle">{% trans "Edit details" %}</span></p>
-                
-                <form class="uniForm" id="edit-project" method="POST" action="">
-                    <fieldset class="inlineLabels">
-                        {{ project_form|as_uni_form }}
-                        <div class="form_block">
-                            <input type="hidden" name="action" value="update" />
-                            <input type="submit" value="{% trans "update" %}"/>
-                        </div>
-                    </fieldset>
-                </form>
-            </div>
-            
-        {% endifequal %}
-        
-        {% if user.is_authenticated %}
-            <div>
-                {% if is_member %}
-                    {% ifequal user project.creator %}
-                        <p>You are the creator of this project.</p>
-                        
-                        <div class="form-toggle">
-                            <p>&raquo; <span id="add-member-toggle">{% trans "Add new member" %}</span></p>
-                            
-                            <form class="uniForm" id="add-member" method="POST" action="">
-                                <fieldset class="inlineLabels">
-                                    {{ adduser_form|as_uni_form }}
-                                    <div class="form_block">
-                                        <input type="hidden" name="action" value="add" />
-                                        <input type="submit" value="{% trans "add" %}"/>
-                                    </div>
-                                </fieldset>
-                            </form>
-                        </div>
 
-			{% if project.private %}
-                        <p>{% silk "status_busy" %} <a href="#" onclick="$('#change_privacy_form').toggle(); return false;">{% trans "Make it Public" %}</a><p>
-                         <form class="delete_form" id="change_privacy_form" action="{% url project_publish project.slug %}" method="POST" style="display: none;">
-                             <input type="submit" value="{% trans "Publish Project" %}" />
-                        </form>
-	                {% else %}
-                        <p>{% silk "status_online" %} <a href="#" onclick="$('#change_privacy_form').toggle(); return false;">{% trans "Retreat to Private" %}</a><p>
-                         <form class="delete_form" id="change_privacy_form" action="{% url project_publish project.slug %}" method="POST" style="display: none;">
-                             <input type="submit" value="{% trans "Make Project Private" %}" />
-                        </form>
-			{% endif %}
-
-                        <p>{% silk "delete" %} <a href="#" onclick="$('#delete_project_form').toggle(); return false;">{% trans "Delete project" %}</a><p>
-                         <form class="delete_form" id="delete_project_form" action="{% url project_delete project.slug %}" method="POST" style="display: none;">
-                             <input type="submit" value="{% trans "Delete Project" %}" /> (only if there's no members in project)
-                        </form>
-                    {% else %}
-                        <p>You are member of this project.</p>
-                    {% endifequal %}
-                {% else %}
-                    <p>It is up to the creator of this project (<a href="{% url profile_detail project.creator.username %}">{{ project.creator }}</a>) to add you.</p>
-                {% endif %}
-            </div>
-        {% endif %}
-        
-        {% if user.is_authenticated %}
             <h2>{% trans "Discussion Topics" %}{% if project.topics.all.count %} ({{ project.topics.all.count }}){% endif %}</h2>
             
             {% get_topics_for_group project as topic_queryset %}
@@ -186,7 +71,154 @@
                 </p>
             {% endif %}
             
+        </div>
+    {% endif %}
+    
+{% comment %} ----------------------------------------------------------------------- {% endcomment %}
+
+    <div style="width: 700px;">
+        
+        <h1>{% trans "Project" %} {{ project.name }}</h1>
+        
+        
+         <div id="projecthead">
+	        <table>
+	          <tbody>
+	          <tr>
+	            <td><strong>{% trans "Slug:" %}</strong></td>
+	            <td>{{ project.slug }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>{% trans "Creator:" %}</strong> </td>
+	            <td><a href="{% url profile_detail project.creator.username %}">{{ project.creator }}</a></td>
+	          </tr>
+	          <tr>
+	            <td><strong>{% trans "Created:" %}</strong></td>
+	            <td>{{ project.created|date }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>&nbsp;</strong></td>
+	            <td>{% show_tags_for project %}</td>
+	          </tr>	          
+		     </tbody>
+		   </table>
+        </div>          
+	          
+        <p>{{ project.description }}</p>
+        
+        {% ifequal user project.creator %}
+            <div class="form-toggle">
+                <p>&raquo; <span id="edit-project-toggle">{% trans "Edit details" %}</span></p>
+                
+                <form class="uniForm" id="edit-project" method="POST" action="" style="display:none">
+                    <fieldset class="inlineLabels">
+                        {{ project_form|as_uni_form }}
+                        <div class="form_block">
+                            <input type="hidden" name="action" value="update" />
+                            <input type="submit" value="{% trans "update" %}"/>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+            
+        {% endifequal %}
+        
+        {% if user.is_authenticated %}
+            <div>
+                {% if is_member %}
+                    {% ifequal user project.creator %}
+                        <p>You are the creator of this project.</p>
+                        
+                        <div class="form-toggle">
+                            <p>&raquo; <span id="add-member-toggle">{% trans "Add new member" %}</span></p>
+                            
+                            <form class="uniForm" id="add-member" method="POST" action="" style="display:none">
+                                <fieldset class="inlineLabels">
+                                    {{ adduser_form|as_uni_form }}
+                                    <div class="form_block">
+                                        <input type="hidden" name="action" value="add" />
+                                        <input type="submit" value="{% trans "add" %}"/>
+                                    </div>
+                                </fieldset>
+                            </form>
+                        </div>
+
+			{% if project.private %}
+                        <p>{% silk "status_busy" %} <a href="#" onclick="$('#change_privacy_form').toggle(); return false;">{% trans "Make it Public" %}</a><p>
+                         <form class="delete_form" id="change_privacy_form" action="{% url project_publish project.slug %}" method="POST" style="display: none;">
+                             <input type="submit" value="{% trans "Publish Project" %}" />
+                        </form>
+	                {% else %}
+                        <p>{% silk "status_online" %} <a href="#" onclick="$('#change_privacy_form').toggle(); return false;">{% trans "Retreat to Private" %}</a><p>
+                         <form class="delete_form" id="change_privacy_form" action="{% url project_publish project.slug %}" method="POST" style="display: none;">
+                             <input type="submit" value="{% trans "Make Project Private" %}" />
+                        </form>
+			{% endif %}
+
+                        <p>{% silk "delete" %} <a href="#" onclick="$('#delete_project_form').toggle(); return false;">{% trans "Delete project" %}</a><p>
+                         <form class="delete_form" id="delete_project_form" action="{% url project_delete project.slug %}" method="POST" style="display: none;">
+                             <input type="submit" value="{% trans "Delete Project" %}" /> (only if there's no members in project)
+                        </form>
+                    {% else %}
+                        <p>You are member of this project.</p>
+                    {% endifequal %}
+                {% else %}
+                    <p>It is up to the creator of this project (<a href="{% url profile_detail project.creator.username %}">{{ project.creator }}</a>) to add you.</p>
+                {% endif %}
+            </div>
         {% endif %}
+
+{% comment %} ----------------------------------------------------------------------- {% endcomment %}
+
+        <h2>{% trans "Related Experiments" %}</h2>
+            {% with "experiment" as obj %}
+            {% ifequal project.creator user %}
+                {% with exprt_form as object_form %}
+                    {% include "projects/link_object.html" %}
+                {% endwith %}
+            {% endifequal %}
+
+            {% with experiments as objects %}
+            {% with exprt_remove_form as obj_remove_form %}
+                    {% include "projects/linked_item.html" %}
+            {% endwith %}
+            {% endwith %}
+            {% endwith %}
+
+{% comment %} ----------------------------------------------------------------------- {% endcomment %}
+
+        <h2>{% trans "Related Datasets" %}</h2>
+            {% with "dataset" as obj %}
+            {% ifequal project.creator user %}
+                {% with dataset_form as object_form %}
+                    {% include "projects/link_object.html" %}
+                {% endwith %}
+            {% endifequal %}
+
+            {% with datasets as objects %}
+            {% with dataset_remove_form as obj_remove_form %}
+                    {% include "projects/linked_item.html" %}
+            {% endwith %}
+            {% endwith %}
+            {% endwith %}
+
+{% comment %} ----------------------------------------------------------------------- {% endcomment %}
+
+        <h2>{% trans "Related Datafiles" %}</h2>
+            {% with "datafile" as obj %}
+            {% ifequal project.creator user %}
+                {% with datafile_form as object_form %}
+                    {% include "projects/link_object.html" %}
+                {% endwith %}
+            {% endifequal %}
+
+            {% with datafiles as objects %}
+            {% with datafile_remove_form as obj_remove_form %}
+                    {% include "projects/linked_item.html" %}
+            {% endwith %}
+            {% endwith %}
+            {% endwith %}
+
     </div>
 
     {% endif %}
@@ -196,7 +228,6 @@
 {% block extra_body %}
     <script type="text/javascript">
         $(document).ready(function() {
-            $('#edit-project').hide();
             $('#edit-project-toggle').click(function() {
                 $('#edit-project').toggle();
                 $('#edit-project').autoscroll();
@@ -206,7 +237,6 @@
                 $('#edit-project').show();
                 $('#edit-project .error').autoscroll();
             }
-            $('#add-member').hide();
             $('#add-member-toggle').click(function() {
                 $('#add-member').toggle();
                 $('#add-member').autoscroll();
@@ -215,6 +245,33 @@
             if ($('#add-member .error').length) {
                 $('#add-member').show();
                 $('#add-member .error').autoscroll();
+            }
+            $('#add-experiment-toggle').click(function() {
+                $('#add-experiment').toggle();
+                $('#add-experiment').autoscroll();
+                return false;
+            });
+            if ($('#add-experiment .error').length) {
+                $('#add-experiment').show();
+                $('#add-experiment .error').autoscroll();
+            }
+            $('#add-dataset-toggle').click(function() {
+                $('#add-dataset').toggle();
+                $('#add-dataset').autoscroll();
+                return false;
+            });
+            if ($('#add-dataset .error').length) {
+                $('#add-dataset').show();
+                $('#add-dataset .error').autoscroll();
+            }
+            $('#add-datafile-toggle').click(function() {
+                $('#add-datafile').toggle();
+                $('#add-datafile').autoscroll();
+                return false;
+            });
+            if ($('#add-datafile .error').length) {
+                $('#add-datafile').show();
+                $('#add-datafile .error').autoscroll();
             }
         });
     </script>

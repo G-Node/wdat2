@@ -9,6 +9,7 @@ from django.template.defaultfilters import filesizeformat
 from datasets.models import RDataset
 from experiments.models import Experiment
 from friends.models import Friendship
+from pinax.apps.projects.models import Project
 from django.db.models import Q
 
 from tagging.fields import TagField
@@ -46,6 +47,7 @@ class Datafile(SafetyLevel):
     # the following 2 field are legacy after rel. 2; remove if not used in 2011
     in_datasets = models.ManyToManyField(RDataset, blank=True, verbose_name=_('related datasets'))
     in_expts = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
+    in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     raw_file = models.FileField(_('data file'), upload_to="data/")
     tags = TagField()
 
@@ -55,6 +57,12 @@ class Datafile(SafetyLevel):
     def get_absolute_url(self):
         return ("datafile_details", [self.pk])
     get_absolute_url = models.permalink(get_absolute_url)
+
+    def addLinkedProject(self, project):
+        self.in_projects.add(project)
+
+    def removeLinkedProject(self, project):
+        self.in_projects.remove(project)
 
     # defines whether an object (dataset) is accessible for a given user
     # <<< better to migrate it inside the state_machine with the "owner" property >>>

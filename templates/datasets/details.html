@@ -128,7 +128,9 @@
     {% endwith %}
 
     {% else %}
+    {% ifequal request.user dataset.owner %}
     <p>You don't have metadata assigned to this dataset. You may start annotating your dataset by <a href="#" onclick="add_root_section({{ dataset.id }}, 2)">adding the Metadata</a>.</p>
+    {% endifequal %}
     {% endif %}
 
 

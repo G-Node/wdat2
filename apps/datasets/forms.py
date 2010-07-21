@@ -62,6 +62,12 @@ class PrivacyEditForm(forms.ModelForm):
         choices = User.objects.exclude(id__exact=user.id)
         self.fields['shared_with'] = MMCFClearField(queryset=choices)
 
+
+    # The classes below are legacy after implementation of 
+    # the metadata section/property objects. So only applicable
+    # for older objects in the database. Remove when no longer
+    # required.
+"""
 class AddDatafileForm(forms.Form):
     datafiles = forms.ModelMultipleChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
     
@@ -84,4 +90,4 @@ class RemoveDatafilesForm(forms.Form):
         self.fields['dfile_choices'] = forms.MultipleChoiceField(
             choices=[(c.id, c.title) for c in values], required=False,
             widget=widgets.CheckboxSelectMultiple)
-
+"""
