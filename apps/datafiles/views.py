@@ -56,6 +56,7 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
             if datafile_form.is_valid():
                 datafile = datafile_form.save(commit=False)
                 datafile.owner = request.user
+                datafile.title = request.FILES['raw_file'].name
                 datafile.save()
 		datafile_form.save_m2m()
                 request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)

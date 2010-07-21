@@ -123,7 +123,7 @@ class EditTSForm(forms.ModelForm):
 
     class Meta:
         model = TimeSeries
-        fields = ['description', 'data', 'data_type', 'start_time', 
+        fields = ['caption', 'data', 'data_type', 'start_time', 
             'time_step', 'time_step_items', 'tags']
 
     def __init__(self, *args, **kwargs):

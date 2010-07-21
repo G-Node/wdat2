@@ -147,7 +147,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
     if request.user == project.creator:
         # update details handler    
         action = request.POST.get("action")
-        if request.user == project.creator and action == "update":
+        if action == "update":
             project_form = form_class(request.POST, instance=project)
             if project_form.is_valid():
                 project = project_form.save()
@@ -155,7 +155,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             project_form = form_class(instance=project)
 
         # add new member handler
-        if request.user == project.creator and action == "add":
+        if action == "add":
             adduser_form = adduser_form_class(request.POST, project=project)
             if adduser_form.is_valid():
                 adduser_form.save(request.user)

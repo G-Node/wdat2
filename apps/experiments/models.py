@@ -7,31 +7,28 @@ from state_machine.models import SafetyLevel
 from pinax.apps.projects.models import Project
 from friends.models import Friendship
 
-#from photologue.models import *
-
 from tagging.fields import TagField
-
 from django.utils.translation import ugettext_lazy as _
 
 class Experiment(SafetyLevel):
     # An experiment with its details and links to projects
 
-    EXPERIMENT_TYPES = (
-        (1, u'electrophysiology'),
-        (2, u'behaviour'),
-        (3, u'imaging'),
-        (4, u'modelling'),
-        (5, u'other'),
-    )
+    #EXPERIMENT_TYPES = (
+    #    (1, u'electrophysiology'),
+    #    (2, u'behaviour'),
+    #    (3, u'imaging'),
+    #    (4, u'modelling'),
+    #    (5, u'other'),
+    #)
 
     title = models.CharField(_('title'), max_length=100)
     caption = models.TextField(_('caption'), blank=True)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     owner = models.ForeignKey(User, blank=True, null=True)
-    exp_type = models.IntegerField(_('experiment type'), choices=EXPERIMENT_TYPES, default=1)
-    subject = models.CharField(_('subject'), max_length=100)
+    #exp_type = models.IntegerField(_('experiment type'), choices=EXPERIMENT_TYPES, default=1)
+    #subject = models.CharField(_('subject'), max_length=100)
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
-    tags = TagField()
+    tags = TagField(_('keywords'))
 
     def __unicode__(self):
         return self.title
@@ -41,10 +38,10 @@ class Experiment(SafetyLevel):
     get_absolute_url = models.permalink(get_absolute_url)
 
     def addLinkedProject(self, project):
-	self.in_projects.add(project)
+        self.in_projects.add(project)
 
     def removeLinkedProject(self, project):
-	self.in_projects.remove(project)
+        self.in_projects.remove(project)
 
     # defines whether an object (dataset) is accessible for a given user
     # <<< better to migrate it inside the state_machine with the "owner" property >>>

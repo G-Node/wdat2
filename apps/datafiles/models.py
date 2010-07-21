@@ -39,17 +39,17 @@ class FileSystemStorage(storage.FileSystemStorage):
 
 class Datafile(SafetyLevel):
     # A datafile with its details and raw data files
-    title = models.CharField(_('title'), max_length=200)
+    title = models.CharField(_('title'), blank=True, max_length=200)
     caption = models.TextField(_('caption'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
-    recording_date = models.DateTimeField(_('recording date'), default=datetime.now)
+    #recording_date = models.DateTimeField(_('recording date'), default=datetime.now)
     owner = models.ForeignKey(User, related_name="related_file", blank=True, null=True)
     # the following 2 field are legacy after rel. 2; remove if not used in 2011
-    in_datasets = models.ManyToManyField(RDataset, blank=True, verbose_name=_('related datasets'))
-    in_expts = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
+    #in_datasets = models.ManyToManyField(RDataset, blank=True, verbose_name=_('related datasets'))
+    #in_expts = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     raw_file = models.FileField(_('data file'), upload_to="data/")
-    tags = TagField()
+    tags = TagField(_('keywords'))
 
     def __unicode__(self):
         return self.title
@@ -77,21 +77,3 @@ class Datafile(SafetyLevel):
         return filesizeformat(self.raw_file.size)
 
 
-
-
-    # The methods below are legacy after implementation of 
-    # the metadata section/property objects. So only applicable
-    # for older objects in the database. Remove when no longer
-    # required (in 2011).
-
-    def addLinkedExperiment(self, experiment):
-	self.in_expts.add(experiment)
-
-    def removeLinkedExperiment(self, experiment):
-	self.in_expts.remove(experiment)
-
-    def addLinkedDataset(self, dataset):
-	self.in_datasets.add(dataset)
-
-    def removeLinkedDataset(self, dataset):
-	self.in_datasets.remove(dataset)

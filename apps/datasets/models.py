@@ -17,25 +17,25 @@ class RDataset(SafetyLevel):
     """
     A dataset with its details
     """
-    QUALITY = (
-        (1, u'low'),
-        (2, u'average'),
-        (3, u'medium'),
-        (4, u'good'),
-        (5, u'excellent'),
-        (6, u'n/a'),
-    )
+    #QUALITY = (
+    #    (1, u'low'),
+    #    (2, u'average'),
+    #    (3, u'medium'),
+    #    (4, u'good'),
+    #    (5, u'excellent'),
+    #    (6, u'n/a'),
+    #)
 
     title = models.CharField(_('title'), max_length=200)
     caption = models.TextField(_('caption'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
     # the following field is legacy after rel. 2; remove if not used in 2011
-    dataset_qty = models.IntegerField(_('dataset quality'), choices=QUALITY, default=4)
+    #dataset_qty = models.IntegerField(_('dataset quality'), choices=QUALITY, default=4)
     owner = models.ForeignKey(User, related_name="added_datasets", blank=True, null=False)
     # the following field is legacy after rel. 2; remove if not used in 2011
-    in_experiments = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
+    #in_experiments = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
-    tags = TagField()
+    tags = TagField(_('keywords'))
 
     def __unicode__(self):
         return self.title
@@ -60,9 +60,9 @@ class RDataset(SafetyLevel):
 
     def file_volume_count(self):
         volume = 0
-        datafiles = self.datafile_set.all().filter(Q(current_state=10))
-        for datafile in datafiles:
-            volume += datafile.raw_file.size
+        #datafiles = self.datafile_set.all().filter(Q(current_state=10))
+        #for datafile in datafiles:
+        #    volume += datafile.raw_file.size
         return volume
 
 

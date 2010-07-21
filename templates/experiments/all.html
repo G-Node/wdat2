@@ -32,7 +32,7 @@
     {% autopaginate experiments 20 %}
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Owner" %}</th><th>{% trans "Title" %}</th><th>{% trans "Type" %}</th><th>{% trans "Created" %}</th><th>{% trans "In Projects" %}</th></tr>
+                <tr><th>{% trans "Owner" %}</th><th>{% trans "Title" %}</th><th>{% trans "Created" %}</th><th>{% trans "In Projects" %}</th></tr>
             </thead>
             <tbody>
                 {% for experiment in experiments %}
@@ -43,15 +43,8 @@
                             <div class="details"><a href="{% url profile_detail experiment.owner.username %}" title="{{ experiment.owner.username }}">{{ experiment.owner.username }}</a></div>
 			</td>
 			{% endcomment %}
-			<td><a href="{% url profile_detail experiment.owner.username %}" title="{{ experiment.owner.username }}">{{ experiment.owner.username }}</a></td>
+		            	<td><a href="{% url profile_detail experiment.owner.username %}" title="{{ experiment.owner.username }}">{{ experiment.owner.username }}</a></td>
                         <td><a href="{{ experiment.get_absolute_url }}">{{ experiment.title }}</a><br><span style="color: grey">{{ experiment.caption }}</span></td>
-			<td>
-			    {% ifequal experiment.exp_type 1 %}electrophysiology{% endifequal %}
-			    {% ifequal experiment.exp_type 2 %}behaviour{% endifequal %}
-			    {% ifequal experiment.exp_type 3 %}imaging{% endifequal %}
-			    {% ifequal experiment.exp_type 4 %}modelling{% endifequal %}
-			    {% ifequal experiment.exp_type 5 %}other{% endifequal %}
-			</td>
                         <td>{{ experiment.date_created }}</td>
                         <td>
 			{% for proj in experiment.in_projects.all %}

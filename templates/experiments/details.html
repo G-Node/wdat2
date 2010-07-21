@@ -79,15 +79,6 @@
 	            <td><strong>Date created:</strong> </td>
 	            <td>{{ experiment.date_created }}</td>
 	          </tr>
-	          <tr>
-	            <td><strong>Experiment type:</strong></td>
-	            <td>            
-	            {% ifequal experiment.exp_type 1 %}electrophysiology{% endifequal %}
-                {% ifequal experiment.exp_type 2 %}behaviour{% endifequal %}
-                {% ifequal experiment.exp_type 3 %}imaging{% endifequal %}
-                {% ifequal experiment.exp_type 4 %}modelling{% endifequal %}
-                {% ifequal experiment.exp_type 5 %}other{% endifequal %}  
-               </td>
 	          </tr>
 	          {% ifnotequal experiment.owner request.user%}
 	          	<tr>
@@ -95,10 +86,6 @@
 	              <td><a href="{% url profile_detail experiment.owner.username %}">{{ experiment.owner.username }}</a></td>
 	            </tr>
 	          {% endifnotequal %}
-	          <tr>
-	            <td><strong>Subject:</strong></td>
-	            <td>{{ experiment.subject }}</td>
-	          </tr> 
 	          <tr>
 	            <td><strong>&nbsp;</strong></td>
 	            <td>{% show_tags_for experiment %}</td>

@@ -14,7 +14,7 @@ from datetime import timedelta
 from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
-from experiments.forms import CreateExperimentForm, ExperimentEditForm, ExperimentShortEditForm, PrivacyEditForm
+from experiments.forms import CreateExperimentForm, ExperimentShortEditForm, PrivacyEditForm
 from experiments.filters import ExpFilter
 from metadata.forms import AddPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
 from metadata.models import Section
@@ -194,44 +194,6 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
     "timeseries_link_form": timeseries_link_form,
     }, context_instance=RequestContext(request))
 
-
-@login_required
-def edit(request, id, form_class=ExperimentEditForm, template_name="experiments/edit.html"):
-    # edit a experiment and its metadata
-    
-    experiments = Experiment.objects.all()
-    experiment = get_object_or_404(experiments, id=id)
-
-    if request.method == "POST":
-        if experiment.owner != request.user:
-            request.user.message_set.create(message="You can't edit experiments that aren't yours")
-            
-            include_kwargs = {"id": experiment.id}
-            redirect_to = reverse("experiment_details", kwargs=include_kwargs)
-            return HttpResponseRedirect(reverse('experiment_details', args=(experiment.id,)))
-
-        if request.POST["action"] == "update":
-            experiment_form = form_class(request.user, request.POST, instance=experiment)
-            if experiment_form.is_valid():
-                experimentobj = experiment_form.save(commit=False)
-                experimentobj.save()
-		experiment_form.save_m2m()
-                
-                request.user.message_set.create(message=_("Successfully updated experiment '%s'") % experiment.title)
-                
-                include_kwargs = {"id": experiment.id}
-                redirect_to = reverse("experiment_details", kwargs=include_kwargs)
-                return HttpResponseRedirect(redirect_to)
-        else:
-            experiment_form = form_class(instance=experiment)
-
-    else:
-        experiment_form = form_class(instance=experiment)
-
-    return render_to_response(template_name, {
-        "experiment_form": experiment_form,
-        "experiment": experiment,
-    }, context_instance=RequestContext(request))
 
 @login_required
 def experimentDelete(request, id):

@@ -71,9 +71,6 @@
             <p><b>Description: </b>{{ datafile.caption }}</p>
         </div>
         <div>
-            <p><b>Date recorded: </b>{{ datafile.recording_date|date:_("DATETIME_FORMAT") }}</p>
-        </div>
-        <div>
             {% ifnotequal datafile.owner request.user%}
             <b>Owner: </b>
             <a href="{% url profile_detail datafile.owner.username %}">{{ datafile.owner.username }}</a>

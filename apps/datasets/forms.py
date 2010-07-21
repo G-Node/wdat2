@@ -4,6 +4,7 @@ from datetime import datetime
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Q
 from django.contrib.auth.models import User
+from pinax.apps.projects.models import Project
 
 from datasets.models import RDataset
 from datafiles.models import Datafile
@@ -19,9 +20,10 @@ class NewRDatasetForm(forms.ModelForm):
     def __init__(self, user=None, *args, **kwargs):
         self.user = user
         super(NewRDatasetForm, self).__init__(*args, **kwargs)
-        # legacy assignment of dataset to experiments
-        #choices = Experiment.objects.all().filter(Q(owner=user))
-        #self.fields['in_experiments'] = MMCFClearField(queryset=choices)
+        choices = Project.objects.all().filter(Q(creator=user))
+        self.fields['in_projects'] = MMCFClearField(queryset=choices)
+        self.fields['in_projects'].label = "Related to projects"
+        self.fields['in_projects'].help_text = 'List the project or projects in the context of which the experiment was performed. <br>Hold down "Control", or "Command" on a Mac, to select more than one. To clear selection push <span id="clear_selection"><a href="#" onClick="unselectAll()">clear</a></span>.'
         self.fields['safety_level'].help_text = "Nobody can see your PRIVATE datasets. FRIENDLY datasets can be viewed only by users you have assigned as friends. PUBLIC datasets available for every user."
 
 # legacy form. Check and remove.
@@ -48,7 +50,7 @@ class DatasetShortEditForm(forms.ModelForm):
     
     class Meta:
         model = RDataset
-        fields = ('title', 'dataset_qty', 'caption', 'tags')
+        fields = ('title', 'caption', 'tags')
         
 class PrivacyEditForm(forms.ModelForm):
     

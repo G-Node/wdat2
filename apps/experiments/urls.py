@@ -14,6 +14,4 @@ urlpatterns = patterns('',
     url(r'^create/$', 'experiments.views.create', name="experiment_create"),
     #delete experiment
     url(r'^delete/(?P<id>\d+)/$', 'experiments.views.experimentDelete', name='experiment_delete'),
-    #edit experiment
-    url(r'^edit/(?P<id>\d+)/$', 'experiments.views.edit', name='experiment_edit'),
 )

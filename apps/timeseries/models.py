@@ -25,7 +25,7 @@ class TimeSeries(SafetyLevel):
         (23, _('ns')),
     )
     title = models.CharField(_('title'), max_length=100)
-    description = models.TextField(_('description'), blank=True)
+    caption = models.TextField(_('description'), blank=True)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     owner = models.ForeignKey(User, editable=False)
     data = models.TextField(_('data'), blank=True)
@@ -33,7 +33,7 @@ class TimeSeries(SafetyLevel):
     start_time = models.DateTimeField(_('start time'), default=datetime.now, blank=True)
     time_step = models.IntegerField(_('data timestep'), default=1)
     time_step_items = models.IntegerField(_('units'), choices=ITEMS  , default=21)
-    tags = TagField()
+    tags = TagField(_('keywords'))
 
     def __unicode__(self):
         return self.title

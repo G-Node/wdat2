@@ -49,14 +49,24 @@
                     {% endif %}
                 </div>
             
-                {% if dataset.in_experiments.all %}
+                {% if exprts or dataset.in_projects.all %}
                 <div class="friends">
+                    {% if dataset.in_projects.all  %}
                     <h2>{% trans "Used in" %}</h2>
+                    <table width="100%">
+                        {% for proj in dataset.in_projects.all %}
+                            <tr><td>- <a href="{{ proj.get_absolute_url }}">{{ proj.slug|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>
+                    {% endif%}
+                    {% if exprts %}
+                    <h2>{% trans "Linked to" %}</h2>
                     <table width="100%">
                         {% for experiment in exprts %}
                             <tr><td>- <a href="{{ experiment.get_absolute_url }}">{{ experiment.title|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
-                    </table>                    
+                    </table>
+                    {% endif%}
                 </div>
                 {% endif%}
             </div>

@@ -23,11 +23,44 @@ c) Changes in pinax-source/lib/python2.6/site-packages/wiki:
 
 """
 
+# -------------------------------------------------------------------------- #
+Release 2 - what to do
+1. 
+deleted fields:
+
+experiments_experiment.exp_type
+experiments_experiment.subject
+
+datasets_dataset.dataset_qty
+datasets_dataset.in_exprts
+
+datafiles_datafile.recording_date
+datafiles_datafile.in_datasets
+datafiles_datafile.in_expts
+
+So for each experiment do
+INSERT INTO `metadata_section` VALUES ('', '10', 'metadata root', '', '2010-08-02 10:41:43', <exper_id>, NULL, NULL, NULL, NULL, 1, 0, NULL)
+INSERT INTO `metadata_property` VALUES ('', '10', 'Subject', <subject_from_exprt>, '', '', '', '2010-05-27 05:43:36', <section_id>)
+INSERT INTO `metadata_property` VALUES ('', '10', 'Experiment Type', <type_of_exprt>, '', '', '', '2010-05-27 05:43:36', <section_id>)
+
+So for each dataset do
+INSERT INTO `metadata_section` VALUES ('', '10', 'metadata root', '', '2010-08-02 10:41:43', NULL, <dataset_id>, NULL, NULL, NULL, 1, 0, NULL)
+INSERT INTO `metadata_property` VALUES ('', '10', 'Dataset Quality', <qty>, '', '', '', '2010-05-27 05:43:36', <section_id>)
+
+So for each datafile do
+INSERT INTO `metadata_section` VALUES ('', '10', 'metadata root', '', '2010-08-02 10:41:43', NULL, <datafile_id>, NULL, NULL, NULL, 1, 0, NULL)
+INSERT INTO `metadata_property` VALUES ('', '10', 'Recording Date', <date>, '', '', '', '2010-05-27 05:43:36', <section_id>)
+
+2. Links
+
+
+3. odML vocabularies load
+
+4. Datafile.title = remove NOT NULL
 
 
 
-
-
+# -------------------------------------------------------------------------- #
 
 
 --find-links=http://pypi.pinaxproject.com

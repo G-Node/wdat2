@@ -32,7 +32,7 @@
     {% autopaginate datafiles 20 %}    
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Owner" %}</th><th>{% trans "Title" %}</th><th>{% trans "Caption" %}</th><th>{% trans "Created" %}</th><th>{% trans "Size" %}</th><th>{% trans "Link" %}</th></tr>
+                <tr><th>{% trans "Owner" %}</th><th>{% trans "Title" %}</th><th>{% trans "Caption" %}</th><th>{% trans "Size" %}</th><th>{% trans "Link" %}</th></tr>
             </thead>
             <tbody>
                 {% for datafile in datafiles %}
@@ -40,7 +40,6 @@
                         <td><a href="{% url profile_detail datafile.owner.username %}" title="{{ datafile.owner.username }}">{{ datafile.owner.username }}</a></td>
                         <td><a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a></td>
                         <td>{{ datafile.caption|truncatewords:20 }}</td>
-                        <td>{{ datafile.recording_date|date:_("DATETIME_FORMAT") }}</td>
                         <td>{{ datafile.size }}</td>
                         <td><a href="{{ datafile.raw_file.url }}">{% trans "download" %}</a></td>
                     </tr>
