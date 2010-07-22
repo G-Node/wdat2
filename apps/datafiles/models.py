@@ -16,6 +16,10 @@ from tagging.fields import TagField
 
 from django.utils.translation import ugettext_lazy as _
 
+def make_upload_path(instance, filename):
+    """Generates upload path for FileField"""
+    return "data/%s/%s" % (instance.owner.username, filename)
+
 class FileSystemStorage(storage.FileSystemStorage):
     """
     Subclass Django's standard FileSystemStorage to fix permissions
@@ -48,7 +52,7 @@ class Datafile(SafetyLevel):
     #in_datasets = models.ManyToManyField(RDataset, blank=True, verbose_name=_('related datasets'))
     #in_expts = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
-    raw_file = models.FileField(_('data file'), upload_to="data/")
+    raw_file = models.FileField(_('data file'), upload_to=make_upload_path)
     tags = TagField(_('keywords'))
 
     def __unicode__(self):
