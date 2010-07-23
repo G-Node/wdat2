@@ -57,10 +57,12 @@ def profile(request, username, template_name="profiles/profile.html", extra_cont
         extra_context = {}
     
     other_user = get_object_or_404(User, username=username)
+    # patch for excluded microblogging
+    is_following = False
     
     if request.user.is_authenticated():
         is_friend = Friendship.objects.are_friends(request.user, other_user)
-        is_following = Following.objects.is_following(request.user, other_user)
+        #is_following = Following.objects.is_following(request.user, other_user)
         other_friends = Friendship.objects.friends_for_user(other_user)
         if request.user == other_user:
             is_me = True
