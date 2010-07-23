@@ -1,9 +1,6 @@
 {% load i18n %}
 {% load uni_form %}
 
-            <div class="form-toggle">
-                <p><span id="edit-details-toggle">{% trans "Edit details" %}</span></p>
-                
                 <form class="uniForm" id="edit-details" method="POST" action="" style="display:none">
                     <fieldset class="inlineLabels">
                         {{ edit_form|as_uni_form }}
@@ -13,4 +10,3 @@
                         </div>
                     </fieldset>
                 </form>
-            </div>

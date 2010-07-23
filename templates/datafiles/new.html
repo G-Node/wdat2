@@ -9,12 +9,11 @@
 {% block body %}
     <h1>{% trans "Upload a File" %}</h1>
 
-    <p>{% trans "Here you can upload data files or files with metadata or other content. Your files can then be organized in datasets and assigned to experiments or projects." %}</p>
-    {% if user.is_authenticated %}
-
     <div id="upload_btn"></div>
 
     <form id="upload_form" method="POST" enctype="multipart/form-data" action="" class="uniForm">
+    <p>{% trans "Here you can upload data files or files with metadata or other content. Your files can then be organized in datasets and assigned to experiments or projects." %}</p>
+    {% if user.is_authenticated %}
         <fieldset class="inlineLabels">
             {{ datafile_form|as_uni_form }}
             <div class="form_block">

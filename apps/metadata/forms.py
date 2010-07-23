@@ -6,7 +6,6 @@ from pinax.apps.projects.models import Project
 from django.db.models import Q
 from django.contrib.auth.models import User
 
-
 from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile

@@ -81,6 +81,9 @@
         </div>
         
         {% ifequal request.user datafile.owner %}
+            <div class="form-toggle">
+                <p><span id="edit-details-toggle">{% trans "Edit details" %}</span>
+                <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
             {% with datafile_form as edit_form %}
                 {% include "state_machine/edit_details.html" %}
             {% endwith %}
@@ -88,6 +91,7 @@
             {% with privacy_form as privacy_form %}
                 {% include "state_machine/edit_privacy.html" %}
             {% endwith %}
+            </div>
         {% endifequal %}
         <p>You may <a href="{{ datafile.raw_file.url }}">Download</a> {% ifequal request.user datafile.owner %}your{% else %}this{% endifequal %} File.
         

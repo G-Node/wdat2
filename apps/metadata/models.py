@@ -205,6 +205,27 @@ class Section(models.Model):
         elif obj_type == "timeseries":
             self.rel_timeseries.remove(obj)
 
+    # the following method doesn't work actually.
+    def get_parents_as_string(self, obj, obj_type):
+        # get the parent objects to which this file is linked to
+        # types: "dataset", "datafile", "timeseries"
+        objs = []
+        s = ''
+        sections = Section.objects.filter(current_state=10)
+        if obj_type == "dataset":
+            sections = filter(lambda x: x.hasDataset(obj.id), sections)
+        if obj_type == "datafile":
+            sections = filter(lambda x: x.hasDatafile(obj.id), sections)
+        if obj_type == "timeseries":
+            sections = filter(lambda x: x.hasTimeSeries(obj.id), sections)
+        else:
+            sections = []
+        for section in sections:
+            rt = section.get_root()
+            if rt and (not rt in objs):
+                objs.append(section.get_root())
+                s += ', <a href="' + rt.get_absolute_url + '">' + rt.title + '</a>'
+        return s
 
 class Property(models.Model):
     # A metadata "Property". Defines any kind of metadata property 

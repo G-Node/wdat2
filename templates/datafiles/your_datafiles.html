@@ -35,13 +35,18 @@
             
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Size" %}</th><th>{% trans "State" %}</th><th>{% trans "Action" %}</th><th>{% trans "Select" %}</th></tr>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Size" %}</th><th>{% trans "Linked to" %}</th><th>{% trans "State" %}</th><th>{% trans "Action" %}</th><th>{% trans "Select" %}</th></tr>
             </thead>
             <tbody>
                 {% for datafile in datafiles %}
                     <tr>
                         <td><a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a></td>
                         <td>{{ datafile.size }}</td>
+                        <td>
+                            {% for prj in datafile.in_projects.all %}
+                                <span><a href="{{ prj.get_absolute_url }}">{{ prj.slug }}</a>, </span>
+                            {% endfor %}
+                        </td>
                         <td>{% if datafile.is_Public %}<b style="color: red">Public</b>{% endif %}{% if datafile.is_Friendly %}Friendly{% endif %}{% if datafile.is_Private %}Private{% endif %}</td>
                         <td><nobr><a href="{% url datafile_delete datafile.id %}">{% trans "delete" %}</a> <a href="{{ datafile.raw_file.url }}">{% trans "download" %}</a></nobr></td>
                         <td><input id="id_set_choices_{{ datafile.id }}" type="checkbox" value="{{ datafile.id }}" name="set_choices"/></td>

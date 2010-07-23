@@ -13,6 +13,7 @@
                         <th>{% trans "Title" %}</th>
                         <th>{% trans "Caption" %}</th>
                         <th>{% trans "Keywords" %}</th>
+                        <th>{% trans "State" %}</th>
                         {% ifequal project.creator user %}
                             <th>{% trans "Action" %}</th>
                         {% endifequal %}
@@ -26,6 +27,7 @@
                     </td>
                     <td>{{ o.caption|truncate_dot:150|escape }}</td>
                     <td>{% show_tags_for o %}</td>
+                    <td>{% if o.is_Public %}<b style="color: red">Public</b>{% endif %}{% if o.is_Friendly %}Friendly{% endif %}{% if o.is_Private %}Private{% endif %}</td>
                     {% ifequal project.creator user %}
                         <td><nobr><input id="id_for_remove_choices_{{ o.id }}" type="checkbox" value="{{ o.id }}" name="for_remove_choices"/></nobr></td>
                     {% endifequal %}

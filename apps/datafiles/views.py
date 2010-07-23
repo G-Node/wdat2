@@ -87,7 +87,7 @@ def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):
             request.user.message_set.create(message=_("Successfully deleted the requested datafiles."))
             redirect_to = reverse("your_datafiles")
             return HttpResponseRedirect(redirect_to)
-	    
+
     return render_to_response(template_name, {
         "datafiles": datafiles,
     }, context_instance=RequestContext(request))

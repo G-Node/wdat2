@@ -60,6 +60,7 @@ class RDataset(SafetyLevel):
 
     def file_volume_count(self):
         volume = 0
+        #sections = self.section_set.all().filter(Q(current_state=10))
         #datafiles = self.datafile_set.all().filter(Q(current_state=10))
         #for datafile in datafiles:
         #    volume += datafile.raw_file.size

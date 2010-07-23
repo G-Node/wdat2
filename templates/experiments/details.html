@@ -94,13 +94,17 @@
          </div>
         
         {% ifequal request.user experiment.owner %}
+            <div class="form-toggle">
+                <p><span id="edit-details-toggle">{% trans "Edit details" %}</span>
+                <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
             {% with exp_form as edit_form %}
                 {% include "state_machine/edit_details.html" %}
             {% endwith %}
 
             {% with privacy_form as privacy_form %}
                 {% include "state_machine/edit_privacy.html" %}
-            {% endwith %}        
+            {% endwith %}
+            </div>
         {% endifequal %}
     </div>
     

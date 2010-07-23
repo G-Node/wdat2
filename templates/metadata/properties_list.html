@@ -33,7 +33,7 @@
         <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Datasets" %}</h3>
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th><th>{% trans "Volume" %}</th><th>{% trans "State" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
                     {% endifequal %}
@@ -44,6 +44,8 @@
                     <tr>
                         <td><a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a></td>
                         <td>{{ dataset.date_added }}</td>
+                        <td>{{ dataset.file_volume_count|filesizeformat }}</td>
+                        <td>{% if dataset.is_Public %}<b style="color: red">Public</b>{% endif %}{% if dataset.is_Friendly %}Friendly{% endif %}{% if dataset.is_Private %}Private{% endif %}</td>
                         {% ifequal dataset.owner request.user %}
                             <td><nobr><a href="#" onclick="remove_object({{ section.id }}, {{ dataset.id }}, 'dataset')">{% trans "remove" %}</a></nobr></td>
                         {% endifequal %}
@@ -57,7 +59,7 @@
         <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Datafiles" %}</h3>
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th><th>{% trans "Size" %}</th><th>{% trans "State" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
                     {% endifequal %}
@@ -68,6 +70,8 @@
                     <tr>
                         <td><a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a></td>
                         <td>{{ datafile.date_added }}</td>
+                        <td>{{ datafile.size }}</td>
+                        <td>{% if datafile.is_Public %}<b style="color: red">Public</b>{% endif %}{% if datafile.is_Friendly %}Friendly{% endif %}{% if datafile.is_Private %}Private{% endif %}</td>
                         {% ifequal datafile.owner request.user %}
                             <td><nobr><a href="#" onclick="remove_object({{ section.id }}, {{ datafile.id }}, 'datafile')">{% trans "remove" %}</a></nobr></td>
                         {% endifequal %}
@@ -81,7 +85,7 @@
         <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Time Series Data" %}</h3>
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th><th>{% trans "Type" %}</th><th>{% trans "State" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
                     {% endifequal %}
@@ -92,6 +96,8 @@
                     <tr>
                         <td><a href="{{ serie.get_absolute_url }}">{{ serie.title }}</a></td>
                         <td>{{ serie.date_created }}</td>
+                        <td>{% ifequal serie.data_type 10 %}ANALOG{% endifequal %}{% ifequal serie.data_type 20 %}SPIKE{% endifequal %}</td>
+                        <td>{% if serie.is_Public %}<b style="color: red">Public</b>{% endif %}{% if serie.is_Friendly %}Friendly{% endif %}{% if serie.is_Private %}Private{% endif %}</td>
                         {% ifequal serie.owner request.user %}
                             <td><nobr><a href="#" onclick="remove_object({{ section.id }}, {{ serie.id }}, 'timeseries')">{% trans "remove" %}</a></nobr></td>
                         {% endifequal %}

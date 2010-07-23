@@ -11,9 +11,7 @@ from experiments.models import Experiment
 from friends.models import Friendship
 from pinax.apps.projects.models import Project
 from django.db.models import Q
-
 from tagging.fields import TagField
-
 from django.utils.translation import ugettext_lazy as _
 
 def make_upload_path(instance, filename):
@@ -67,6 +65,7 @@ class Datafile(SafetyLevel):
 
     def removeLinkedProject(self, project):
         self.in_projects.remove(project)
+
 
     # defines whether an object (dataset) is accessible for a given user
     # <<< better to migrate it inside the state_machine with the "owner" property >>>

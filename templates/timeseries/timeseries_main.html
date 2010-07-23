@@ -10,6 +10,7 @@
 {% load timeseries_tags %}
 
 {% block head_title %}{% blocktrans %}My Time Series data{% endblocktrans %}{% endblock %}
+{% block subnavi4_class %}aktiv{% endblock %}
 
 {% block extra_head %}
 <link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/shCore.css"/> 
@@ -40,7 +41,7 @@
    },
    yAxis: {
       title: {
-         text: 'Voltage'
+         text: ''
       },
       //min: 0.6,
       startOnTick: false,
@@ -50,7 +51,7 @@
       formatter: function() {
          return '<b>'+ (this.point.name || this.series.name) +'</b><br>'+
             Highcharts.dateFormat('%A %B %e %Y', this.x) + ':<br>'+
-            'V(t) = '+ Highcharts.numberFormat(this.y, 2) +' mV';
+            'Value = '+ Highcharts.numberFormat(this.y, 2) +' mV';
       }
    },
    legend: {
@@ -86,7 +87,7 @@
 
    series: [{
       type: 'area',
-      name: 'Voltage dynamics, V(t)',
+      name: '',
       pointInterval: {{ t_serie.getTimeStep }},
       pointStart: Date.UTC({{ t_serie.start_time|date:"Y, m, d" }}),
       data: [
@@ -234,6 +235,9 @@
         </div>
 
         {% ifequal request.user t_serie.owner %}
+            <div class="form-toggle">
+                <p><span id="edit-details-toggle">{% trans "Edit details" %}</span>
+                <span id="change-privacy-toggle">{% trans "Privacy Settings" %}</span></p>
             {% with tserie_edit_form as edit_form %}
                 {% include "state_machine/edit_details.html" %}
             {% endwith %}
@@ -241,6 +245,7 @@
             {% with privacy_form as privacy_form %}
                 {% include "state_machine/edit_privacy.html" %}
             {% endwith %}
+            </div>
         {% endifequal %}
 
         <div id="container" style="width: 700px; height: 300px; margin: 0 auto"></div>
@@ -273,7 +278,7 @@
 
         {% else %}
         {% ifequal request.user t_serie.owner %}
-        <p>You don't have metadata assigned to this recording trace. You may want to annotate it by <a href="#" onclick="add_root_section({{ t_serie.id }}, 4)">adding the Metadata</a>.</p>
+        <p>You don't have metadata assigned to this recording. You may want to annotate it by <a href="#" onclick="add_root_section({{ t_serie.id }}, 4)">adding the Metadata</a>.</p>
         {% endifequal %}
         {% endif %}
    

@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load extra_tagging_tags %}
 
-<dt>{{ project.name }} (<a href="{{ project.get_absolute_url }}">{{ project.slug }}</a>)</dt>
+<dt><a href="{{ project.get_absolute_url }}">{{ project.name }}</a> (<a href="{{ project.get_absolute_url }}">{{ project.slug }}</a>)</dt>
 <dd>{{ project.description }}
     <div class="stats">
         {% ifequal request.user project.creator %}You are an <b>Owner</b> of this project.
