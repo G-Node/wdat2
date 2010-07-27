@@ -71,22 +71,27 @@ class AddTSfromFileForm(forms.ModelForm):
         if datafile.raw_file.size > settings.MAX_FILE_PROCESSING_SIZE:
             raise forms.ValidationError(_('The file size exceeds the limit: %s') % filesizeformat(datafile.raw_file.size))
         else:
-            with open(settings.MEDIA_ROOT + str(datafile.raw_file), 'r') as f:
+            #with open(settings.MEDIA_ROOT + str(datafile.raw_file), 'r') as f:
+            try:
+                f = open(settings.MEDIA_ROOT + str(datafile.raw_file), 'r')
+            except:
+                raise forms.ValidationError(_('The given datafile cannot be opened for reading. Please check the file has ASCII formatting.'))
+            read_data = f.readline()
+            while read_data:
+                values = r.findall(read_data)
+                cleaned_data = ''
+                for value in values:
+                    try:
+                        a = float(value)
+                        cleaned_data += ', ' + str(a)
+                    except:
+                        raise forms.ValidationError(_('The data given is not a set of comma-separated float / integer values. Please check your input: %s') % value)
+                if len(cleaned_data) > 0:
+                    cleaned_data = cleaned_data[2:]
+                res.append([cleaned_data])
                 read_data = f.readline()
-                while read_data:
-                    values = r.findall(read_data)
-                    cleaned_data = ''
-                    for value in values:
-                        try:
-                            a = float(value)
-                            cleaned_data += ', ' + str(a)
-                        except:
-                            raise forms.ValidationError(_('The data given is not a set of comma-separated float / integer values. Please check your input: %s') % value)
-                    if len(cleaned_data) > 0:
-                        cleaned_data = cleaned_data[2:]
-                    res.append([cleaned_data])
-                    read_data = f.readline()
-                return res
+            f.close()
+            return res
 
     class Meta:
         model = TimeSeries

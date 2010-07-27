@@ -284,11 +284,11 @@ class ChangePasswordForm(UserForm):
 
     def __init__(self, *args, **kwargs):
         super(ChangePasswordForm, self).__init__(*args, **kwargs)
-	self.ldapuser = False
-	if settings.AUTH_LDAP_SWITCHED_ON:
+        self.ldapuser = False
+        if settings.AUTH_LDAP_SWITCHED_ON:
             self.l = LDAPBackend()
-	    self.ldap_user = self.l.getUser(username=self.user.username)
-	    if self.ldap_user:
+            self.ldap_user = self.l.getUser(username=self.user.username)
+            if self.ldap_user:
                 self.ldapuser = True
 
     def clean_oldpassword(self):
@@ -310,9 +310,12 @@ class ChangePasswordForm(UserForm):
     
     def save(self):
         self.user.set_password(self.cleaned_data['password1'])
-        if(self.ldapuser == True):
+        a = self.l
+        u = self.ldap_user
+        if (self.ldapuser == True):
             change = self.l.changePassword(self.user.username, self.cleaned_data['oldpassword'], self.cleaned_data['password1'])
-	    if not change: raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
+        if not change: 
+            raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
        	self.user.save()
         self.user.message_set.create(message=ugettext(u"Password successfully changed."))
         return self.user
