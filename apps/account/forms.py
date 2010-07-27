@@ -310,12 +310,10 @@ class ChangePasswordForm(UserForm):
     
     def save(self):
         self.user.set_password(self.cleaned_data['password1'])
-        a = self.l
-        u = self.ldap_user
         if (self.ldapuser == True):
             change = self.l.changePassword(self.user.username, self.cleaned_data['oldpassword'], self.cleaned_data['password1'])
-        if not change: 
-            raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
+        if not (change == True): 
+            raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later. Error '%s'") % change)
        	self.user.save()
         self.user.message_set.create(message=ugettext(u"Password successfully changed."))
         return self.user
@@ -339,7 +337,7 @@ class SetPasswordForm(UserForm):
 	    ldap_user = l.getUser(username=self.user.username)
 	    if ldap_user:
                 change = l.changePassword(self.user.username, None, self.cleaned_data['password1'])
-	        if not change: raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
+	        if not (change == True): raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
 	# reset in django
         self.user.set_password(self.cleaned_data["password1"])
         self.user.save()
@@ -412,7 +410,7 @@ class ResetPasswordKeyForm(forms.Form):
 	    ldap_user = l.getUser(username=user.username)
 	    if ldap_user:
                 change = l.changePassword(user.username, None, self.cleaned_data['password1'])
-	        if not change: raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
+	        if not (change == True): raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
         user.set_password(self.cleaned_data["password1"])
         user.save()
         user.message_set.create(message=ugettext(u"Password successfully changed."))

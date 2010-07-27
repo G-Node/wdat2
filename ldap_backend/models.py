@@ -169,12 +169,12 @@ class LDAPBackend:
 	    #ldif = modlist.modifyModlist(old,new)
 	    #c.modify_s(dn,ldif)
             c.passwd_s(self.username, self.password, newpassword)
-	    c.unbind_s()
+            c.unbind_s()
             return True
         except ldap.LDAPError, e:
-            return False
+            return e
         except ldap.INVALID_CREDENTIALS, e:
-            return False
+            return e
 
     """ currently not used """
     def addUser(self, username=None, oldpassword=None, newpassword=None):
