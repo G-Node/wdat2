@@ -111,31 +111,69 @@ def section_move(request, template_name="metadata/move_copy.html"):
         ref_section = get_object_or_404(Section, id=reference_id)
         if section.does_belong_to(request.user):
             if pos_type == "inside":
+                section.clean_parent()
                 section.parent_section = ref_section
                 section.tree_position = 1
                 section.save()
                 status = 1
             elif pos_type == "after":
-                parent = ref_section.getParentSection()
+                parent = ref_section.getParentObject()
                 if parent:
                     section.tree_position = ref_section.tree_position + 1
-                    if parent.getMaxChildPos() > ref_section.tree_position:
-                        for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
-                            #if sec.tree_position > ref_section.tree_position:
-                            sec.tree_position += 1
-                            sec.save()
-                    section.parent_section = parent
+                    if isinstance(parent, Section):
+                        secs = parent.section_set.filter(tree_position__gt=ref_section.tree_position)
+                        section.parent_section = parent
+                    elif isinstance(parent, Experiment):
+                        secs = Section.objects.filter(parent_exprt=parent).filter(tree_position__gt=ref_section.tree_position)
+                        section.clean_parent()
+                        section.parent_exprt = parent
+                    elif isinstance(parent, RDataset):
+                        secs = Section.objects.filter(parent_dataset=parent).filter(tree_position__gt=ref_section.tree_position)
+                        section.clean_parent()
+                        section.parent_dataset = parent
+                    elif isinstance(parent, Datafile):
+                        secs = Section.objects.filter(parent_datafile=parent).filter(tree_position__gt=ref_section.tree_position)
+                        section.clean_parent()
+                        section.parent_datafile = parent
+                    elif isinstance(parent, TimeSeries):
+                        secs = Section.objects.filter(parent_timeseries=parent).filter(tree_position__gt=ref_section.tree_position)
+                        section.clean_parent()
+                        section.parent_timeseries = parent
+                    else:
+                        secs = []
+                    # moving positions
+                    for sec in secs:
+                        sec.increaseTreePos()
                     section.save()
                     status = 1
             elif pos_type == "before":
-                parent = ref_section.getParentSection()
+                parent = ref_section.getParentObject()
                 if parent:
                     section.tree_position = ref_section.tree_position
-                    for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
-                        #if sec.tree_position >= ref_section.tree_position:
-                        sec.tree_position += 1
-                        sec.save()
-                    section.parent_section = parent
+                    if isinstance(parent, Section):
+                        secs = parent.section_set.filter(tree_position__gte=ref_section.tree_position)
+                        section.parent_section = parent
+                    elif isinstance(parent, Experiment):
+                        secs = Section.objects.filter(parent_exprt=parent).filter(tree_position__gte=ref_section.tree_position)
+                        section.clean_parent()
+                        section.parent_exprt = parent
+                    elif isinstance(parent, RDataset):
+                        secs = Section.objects.filter(parent_dataset=parent).filter(tree_position__gte=ref_section.tree_position)
+                        section.clean_parent()
+                        section.parent_dataset = parent
+                    elif isinstance(parent, Datafile):
+                        secs = Section.objects.filter(parent_datafile=parent).filter(tree_position__gte=ref_section.tree_position)
+                        section.clean_parent()
+                        section.parent_datafile = parent
+                    elif isinstance(parent, TimeSeries):
+                        secs = Section.objects.filter(parent_timeseries=parent).filter(tree_position__gte=ref_section.tree_position)
+                        section.clean_parent()
+                        section.parent_timeseries = parent
+                    else:
+                        secs = []
+                    # moving positions
+                    for sec in secs:
+                        sec.increaseTreePos()
                     section.save()
                     status = 1
     return render_to_response(template_name, {
@@ -146,6 +184,7 @@ def section_move(request, template_name="metadata/move_copy.html"):
 @login_required
 def section_copy(request, template_name="metadata/move_copy.html"):
     status = 0
+    prnt = 1
     if request.method == 'POST' and request.POST.get("action") == "section_copy":
         selected_id = request.POST.get("selected_id")
         reference_id = request.POST.get("reference_id")
@@ -156,22 +195,58 @@ def section_copy(request, template_name="metadata/move_copy.html"):
             if pos_type == "inside":
                 status = ref_section.copy_section(section, 1)
             elif pos_type == "after":
-                parent = ref_section.getParentSection()
+                parent = ref_section.getParentObject()
                 if parent:
-                    if parent.getMaxChildPos() > ref_section.tree_position:
-                        for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
-                            sec.tree_position += 1
-                            sec.save()
-                    status = parent.copy_section(section, ref_section.tree_position + 1)
+                    #if parent.getMaxChildPos() > ref_section.tree_position:
+                    if isinstance(parent, Section):
+                        secs = parent.section_set.filter(tree_position__gt=ref_section.tree_position)
+                        prnt = 0
+                    elif isinstance(parent, Experiment):
+                        secs = Section.objects.filter(parent_exprt=parent).filter(tree_position__gt=ref_section.tree_position)
+                    elif isinstance(parent, RDataset):
+                        secs = Section.objects.filter(parent_dataset=parent).filter(tree_position__gt=ref_section.tree_position)
+                    elif isinstance(parent, Datafile):
+                        secs = Section.objects.filter(parent_datafile=parent).filter(tree_position__gt=ref_section.tree_position)
+                    elif isinstance(parent, TimeSeries):
+                        secs = Section.objects.filter(parent_timeseries=parent).filter(tree_position__gt=ref_section.tree_position)
+                    else:
+                        secs = []
+                    # moving positions
+                    for sec in secs:
+                        sec.increaseTreePos()
+                    if prnt:
+                        # parent is "complex" oblect - Experiment, Dataset etc.
+                        status = ref_section.copy_section(section, ref_section.tree_position + 1, 1)
+                    else:
+                        # parent is "simple" oblect - Section
+                        status = parent.copy_section(section, ref_section.tree_position + 1)
                 else:
                     status = -1
             elif pos_type == "before":
-                parent = ref_section.getParentSection()
+                parent = ref_section.getParentObject()
                 if parent:
-                    for sec in parent.section_set.filter(tree_position__gt=ref_section.tree_position):
-                        sec.tree_position += 1
-                        sec.save()
-                    status = parent.copy_section(section, ref_section.tree_position - 1)
+                    if isinstance(parent, Section):
+                        secs = parent.section_set.filter(tree_position__gte=ref_section.tree_position)
+                        prnt = 0
+                    elif isinstance(parent, Experiment):
+                        secs = Section.objects.filter(parent_exprt=parent).filter(tree_position__gte=ref_section.tree_position)
+                    elif isinstance(parent, RDataset):
+                        secs = Section.objects.filter(parent_dataset=parent).filter(tree_position__gte=ref_section.tree_position)
+                    elif isinstance(parent, Datafile):
+                        secs = Section.objects.filter(parent_datafile=parent).filter(tree_position__gte=ref_section.tree_position)
+                    elif isinstance(parent, TimeSeries):
+                        secs = Section.objects.filter(parent_timeseries=parent).filter(tree_position__gte=ref_section.tree_position)
+                    else:
+                        secs = []
+                    # moving positions
+                    for sec in secs:
+                        sec.increaseTreePos()
+                    if prnt:
+                        # parent is "complex" oblect - Experiment, Dataset etc.
+                        status = ref_section.copy_section(section, ref_section.tree_position, 1)
+                    else:
+                        # parent is "simple" oblect - Section
+                        status = parent.copy_section(section, ref_section.tree_position)
                 else:
                     status = -1
     return render_to_response(template_name, {

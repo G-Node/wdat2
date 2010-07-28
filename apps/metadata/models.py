@@ -149,13 +149,26 @@ class Section(models.Model):
             tree_pos = 0
         return tree_pos
 
-    def copy_section(self, section, pos):
+    def copy_section(self, section, pos, prnt=0):
         res_tree = []
-        # make a copy of a section
+        # make a copy of a section, self = a place to copy
         section_id = int(section.id)
         section.id = None
-        section.parent_section = self
+        if prnt:
+            # parent object is not a Section
+            prn_obj = self.getParentObject()
+            if isinstance(prn_obj, Experiment):
+                section.parent_exprt = prn_obj
+            elif isinstance(prn_obj, RDataset):
+                section.parent_dataset = prn_obj
+            elif isinstance(prn_obj, Datafile):
+                section.parent_datafile = prn_obj
+            elif isinstance(prn_obj, TimeSeries):
+                section.parent_timeseries = prn_obj
+        else:
+            section.parent_section = self
         section.tree_position = pos
+        section.is_template = 0
         #section.date_created = datetime.now # setup later
         section.save()
         cp_section = Section.objects.get(id=section_id)
@@ -182,12 +195,41 @@ class Section(models.Model):
             res_tree.append(section.copy_section(sec, sec.tree_position))
         return res_tree
 
-
     def getParentSection(self):
         if self.parent_section:
             return self.parent_section
         else:
             return None
+
+    def getParentObject(self):
+        if self.parent_section:
+            return self.parent_section
+        else:
+            if self.parent_exprt:
+                return self.parent_exprt
+            elif self.parent_dataset:
+                return self.parent_dataset
+            elif self.parent_datafile:
+                return self.parent_datafile
+            elif self.parent_timeseries:
+                return self.parent_timeseries
+            else:
+                return None
+
+    def increaseTreePos(self):
+        a = self.tree_position
+        self.tree_position = a + 1
+        self.save()
+        #b = self.tree_position
+        #f = y5
+
+    def clean_parent(self):
+        self.parent_section = None
+        self.parent_exprt = None
+        self.parent_dataset = None
+        self.parent_datafile = None
+        self.parent_timeseries = None
+        self.save()
 
     def addLinkedObject(self, obj, obj_type):
         if obj_type == "dataset":

@@ -1,9 +1,9 @@
 <script type="text/javascript">
         function load_meta_tree(par_type) {
-        var s = new Array();
-        s.push("{{ tree_container.get_metadata_root_id }}");
+        //var s = new Array();
+        //s.push("{{ tree_container.get_metadata_root_id }}");
         $("#sections").tree({
-        opened : s,
+        //opened : s,
         ui : {theme_name : "classic"},
         {% ifnotequal request.user tree_container.owner %}
             types : {
@@ -130,6 +130,7 @@
         {% endifequal %}
 		} 
 	    });
+        $("#sections").show();
         };
         function leaf_update(data, NODE) {
             var j = 0;

@@ -2,7 +2,7 @@
 {% load i18n %}
 
     <div style="width: 200px;">
-	<div class="demo source" id="sections">
+	<div class="demo source" id="sections" style="display: none;">
         {{ tree_container.get_metadata|metadata_tree }} 
   	</div>
     {% ifequal request.user tree_container.owner %}

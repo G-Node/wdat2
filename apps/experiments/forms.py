@@ -13,7 +13,7 @@ from fields.models import MMCFClearField
 
 class CreateExperimentForm(forms.ModelForm):
     title = forms.CharField(label="Name", initial="[" + str(datetime.now().strftime("%y-%m-%d") + "] "), help_text="It can be useful to include the date of the experiment in the name.")
-    subject = forms.CharField(label="Topic")
+    #subject = forms.CharField(label="Topic")
     
     class Meta:
         model = Experiment

@@ -30,7 +30,7 @@ class ObjectState(models.Model):
     # some common methods (applicable for "metadata" objects only!)
     def get_metadata(self):
         metadata = []
-        for section in self.section_set.filter(current_state=10):
+        for section in self.section_set.filter(current_state=10).order_by("tree_position"):
             metadata.append(section.get_tree())
         return metadata
 

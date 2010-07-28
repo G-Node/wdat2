@@ -15,7 +15,7 @@
             <tbody>
                 {% for property in section.getActiveProperties %}
                     <tr>
-                        <td><a href="#">{{ property.prop_title }}</a></td>
+                        <td><a href="#" alt="{{ property.prop_name_definition }}" title="{{ property.prop_name_definition }}">{{ property.prop_title }}</a></td>
                         <td>{{ property.prop_value }}</td>
                         <td>{{ property.prop_description }}</td>
                         <td>{{ property.prop_comment }}</td>
