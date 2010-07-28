@@ -45,20 +45,27 @@ class AddPropertyForm(forms.ModelForm):
         model = Property
         fields = ['prop_title', 'prop_value']
 
+
 class EditPropertyForm(forms.ModelForm):
-    prop_value = forms.CharField()
-    # these widgets doesn't work. to be fixed
-    prop_description = forms.CharField(required=False, widget=widgets.Textarea(attrs={'cols': 50, 'rows': 2}))
-    prop_comment = forms.CharField(required=False, widget=forms.Textarea(attrs={'cols': 50, 'rows': 2}))
+    prop_value = forms.CharField(required=False, widget=widgets.TextInput())
+    prop_description = forms.CharField(required=False, widget=widgets.TextInput())
+    prop_comment = forms.CharField(required=False, widget=forms.TextInput())
+    prop_name_definition = forms.CharField(required=False, widget=forms.TextInput())
     
     class Meta:
         model = Property
-        fields = ['prop_title', 'prop_value', 'prop_description', 'prop_comment']
-        # these widgets doesn't work. to be fixed
-        widgets = {
-            'prop_description': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
-            'prop_comment': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
-        }
+        fields = ['prop_title', 'prop_value']
+
+    def __init__(self, *args, **kwargs):
+        try:
+            prop = kwargs.pop('prop')
+        except:
+            prop = None
+        super(EditPropertyForm, self).__init__(*args, **kwargs)
+        self.fields['prop_value'].initial = prop.prop_value
+        self.fields['prop_description'].initial = prop.prop_description
+        self.fields['prop_comment'].initial = prop.prop_comment
+        self.fields['prop_name_definition'].initial = prop.prop_name_definition
 
 
 class LinkDatasetForm(forms.Form):

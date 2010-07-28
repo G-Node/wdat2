@@ -298,7 +298,7 @@ class Property(models.Model):
         else:
             return False
 
-    def update(self, title, value, description, comment):
+    def update(self, title, value, description, comment, definition):
         if title:
             self.prop_title = title
         if value:
@@ -307,6 +307,8 @@ class Property(models.Model):
             self.prop_description = description
         if comment:
             self.prop_comment = comment
+        if definition:
+            self.prop_name_definition = definition
 
     def setParent(self, par_id):
         self.prop_parent_section = Section.objects.get(id=par_id)

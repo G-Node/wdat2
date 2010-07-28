@@ -15,6 +15,9 @@
                             $('#add-property').hide();
                         })
                     }
+                    else {
+                        $('#add-property').show();
+                    }
                 }
             ); 
             var t1 = $(document.getElementById("add-prop-success-identifier")).attr('value');

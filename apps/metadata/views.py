@@ -305,15 +305,16 @@ def property_edit(request, id, form_class=EditPropertyForm, template_name="metad
     sel_property = get_object_or_404(Property, id=id)
 
     if request.method == "POST" and request.POST.get("action") == 'update_form':
-        property_form = form_class(request.POST, auto_id='id_edit_form_%s')
+        property_form = form_class(request.POST, auto_id='id_edit_form_%s', prop=sel_property)
         if property_form.is_valid() and sel_property.does_belong_to(request.user):
             #sel_property = property_form.save(commit=False)
-            sel_property.update(request.POST.get("prop_title"), request.POST.get("prop_value"), request.POST.get("prop_description"), request.POST.get("prop_comment"))
+            sel_property.update(request.POST.get("prop_title"), request.POST.get("prop_value"), 
+                request.POST.get("prop_description"), request.POST.get("prop_comment"), request.POST.get("prop_definition"))
             sel_property.save()
             property_id = sel_property.id
             upd_result = property_id
     elif request.method == "POST" and request.POST.get("action") == 'get_form':
-        property_form = form_class(auto_id='id_edit_form_%s', instance=sel_property)
+        property_form = form_class(auto_id='id_edit_form_%s', instance=sel_property, prop=sel_property)
     
     return render_to_response(template_name, {
         "upd_result": upd_result,
