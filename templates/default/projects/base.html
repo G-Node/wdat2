@@ -16,7 +16,7 @@
     <ul>
         {% if user.is_authenticated %}
             <li class="{% block subnavi2_class %}{% endblock %}"><a href="{% url project_create %}">{% trans "Create a Project" %}</a></li>
-            <li class="{% block subnavi1_class %}{% endblock %} first"><a href="{% url your_projects %} ">{% trans "Your Projects" %}</a></li>
+            <li class="{% block subnavi1_class %}{% endblock %} first"><a href="{% url your_projects %} ">{% trans "My Projects" %}</a></li>
 	        <li class="{% block subnavi3_class %}{% endblock %}"><a href="{% url project_list %}">{% trans "Public Projects" %}</a></li>
         {% endif %}
     </ul>
