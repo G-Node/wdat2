@@ -86,7 +86,7 @@ class SignupForm(forms.Form):
             widget = forms.TextInput()
         )
     name = forms.CharField(label=_("Full Name"), max_length=30, widget=forms.TextInput())
-    location = forms.CharField(label=_("Location"), max_length=30, widget=forms.TextInput())
+    location = forms.CharField(label=_("Affiliation"), max_length=30, widget=forms.TextInput())
     captcha = CaptchaField(label=_("Please type in these letters"))
     
     confirmation_key = forms.CharField(max_length=40, required=False, widget=forms.HiddenInput())
