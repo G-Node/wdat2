@@ -148,7 +148,7 @@ class LDAPBackend:
         c = self.connection()
         if(c is None):
             return False
-	c.unbind_s()
+        c.unbind_s()
         return True
 
     """ Change Password! """
@@ -163,11 +163,11 @@ class LDAPBackend:
             if(c is None):
                 return False
             if(self.oldpw == False): self.password = None
-	    # another way to modify password. if passwd_s() doesn't work
-	    #old = {'userPassword':self.password}
-	    #new = {'userPassword':newpassword}
-	    #ldif = modlist.modifyModlist(old,new)
-	    #c.modify_s(dn,ldif)
+            # another way to modify password. if passwd_s() doesn't work
+            #old = {'userPassword':self.password}
+            #new = {'userPassword':newpassword}
+            #ldif = modlist.modifyModlist(old,new)
+            #c.modify_s(dn,ldif)
             c.passwd_s(self.username, self.password, newpassword)
             c.unbind_s()
             return True
