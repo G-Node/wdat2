@@ -362,8 +362,9 @@ class ResetPasswordForm(forms.Form):
             )).hexdigest()
             
             # save it to the password reset model
-            password_reset = PasswordReset(user=user, temp_key=temp_key)
-            password_reset.save()
+            if not PasswordReset.objects.filter(user=user, temp_key=temp_key, reset=False):
+                password_reset = PasswordReset(user=user, temp_key=temp_key)
+                password_reset.save()
             
             current_site = Site.objects.get_current()
             domain = unicode(current_site.domain)
@@ -400,16 +401,17 @@ class ResetPasswordKeyForm(forms.Form):
     def save(self):
         # get the password_reset object
         temp_key = self.cleaned_data.get("temp_key")
-        password_reset = PasswordReset.objects.get(temp_key__exact=temp_key)
+        password_reset = PasswordReset.objects.get(temp_key__exact=temp_key, reset=False)
         
         # now set the new user password
         user = User.objects.get(passwordreset__exact=password_reset)
         # reset the password in LDAP, if ldapuser
         if settings.AUTH_LDAP_SWITCHED_ON:
             l = LDAPBackend()
+            # must be done of behalf of LDAP manager
             ldap_user = l.getUser(username=user.username)
             if ldap_user:
-                change = l.changePassword(user.username, None, self.cleaned_data['password1'])
+                change = l.resetPassword(user.username, self.cleaned_data['password1'])
             if not (change == True): raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
         user.set_password(self.cleaned_data["password1"])
         user.save()

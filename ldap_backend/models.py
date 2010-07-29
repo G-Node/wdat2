@@ -108,6 +108,7 @@ class LDAPBackend:
         username = data[0][1][self.username_field][0]
 
         """ Set the e-mail if the directory holds it, otherwise fake it. """
+        # currently works wrong!! TODO
         if(self.mailDirectory == True and 'mail' in list(data[0][1].keys())):
             email = data[0][1]['mail'][0]
         else:
@@ -175,6 +176,33 @@ class LDAPBackend:
             return e
         except ldap.INVALID_CREDENTIALS, e:
             return e
+
+    """ Reset Password! """
+    def resetPassword(self, username=None, newpassword=None):
+        """ TODO: Use getUser to get the user ... use user to login,
+            if it works, change password, filter by oldpw """
+        try:
+            data = self.getUser(username)
+            usr_to_change = data[0][0]
+            self.username = getattr(settings, 'AUTH_LDAP_BASE_USER')
+            self.password = getattr(settings, 'AUTH_LDAP_BASE_PASS')
+            c = self.connection()
+            if(c is None):
+                return False
+            if(self.oldpw == False): self.password = None
+            # another way to modify password. if passwd_s() doesn't work
+            #old = {'userPassword':self.password}
+            #new = {'userPassword':newpassword}
+            #ldif = modlist.modifyModlist(old,new)
+            #c.modify_s(dn,ldif)
+            c.passwd_s(usr_to_change, None, newpassword)
+            c.unbind_s()
+            return True
+        except ldap.LDAPError, e:
+            return e
+        except ldap.INVALID_CREDENTIALS, e:
+            return e
+
 
     """ currently not used """
     def addUser(self, username=None, oldpassword=None, newpassword=None):
