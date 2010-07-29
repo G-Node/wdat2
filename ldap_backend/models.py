@@ -4,6 +4,7 @@ from django.conf import settings
 import django.dispatch
 import ldap
 import ldap.modlist as modlist
+from emailconfirmation.models import EmailAddress
 
 import logging
 
@@ -133,6 +134,7 @@ class LDAPBackend:
                     user.is_staff = False
                     user.groups.add(Group.objects.get(name=self.django_group))
                     user.save()
+                    EmailAddress(user=user, email=email, verified=True, primary=True).save()
             auth_ldap_user.send(sender=self, user=user)
             connection.unbind_s()
             return user
