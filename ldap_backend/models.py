@@ -40,7 +40,7 @@ class LDAPBackend:
         self.auth_field = getattr(settings, 'AUTH_LDAP_FIELD_USERAUTH', 'uid')
         self.auth_group = getattr(settings, 'AUTH_LDAP_FIELD_AUTHUNIT', 'People')
         self.oldpw = getattr(settings, 'AUTH_LDAP_OLDPW', False)
-        self.mailDirectory = getattr(settings, 'AUTH_LDAP_WITHDRAW_EMAIL', False)
+        self.mailDirectory = getattr(settings, 'AUTH_LDAP_WITHDRAW_EMAIL', True)
         VERSION = getattr(settings, 'AUTH_LDAP_VERSION', 3)
         if(VERSION == 2):
             self.protocol_version = ldap.VERSION2
@@ -123,7 +123,9 @@ class LDAPBackend:
             return None
         else:
             try:
-                user = User.objects.get(username__exact=username)	
+                user = User.objects.get(username__exact=username)
+                user.email = email
+                user.save()
             except Exception, e:
                 if(create == True):
                     user = User.objects.create_user(username, email)
@@ -132,7 +134,7 @@ class LDAPBackend:
                     user.groups.add(Group.objects.get(name=self.django_group))
                     user.save()
             auth_ldap_user.send(sender=self, user=user)
-	    connection.unbind_s()
+            connection.unbind_s()
             return user
 
     """ We are using the models storage, so this shall remain unchanged """
