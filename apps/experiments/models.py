@@ -13,13 +13,13 @@ from django.utils.translation import ugettext_lazy as _
 class Experiment(SafetyLevel):
     # An experiment with its details and links to projects
 
-    #EXPERIMENT_TYPES = (
-    #    (1, u'electrophysiology'),
-    #    (2, u'behaviour'),
-    #    (3, u'imaging'),
-    #    (4, u'modelling'),
-    #    (5, u'other'),
-    #)
+    EXPERIMENT_TYPES = (
+        (1, u'electrophysiology'),
+        (2, u'behaviour'),
+        (3, u'imaging'),
+        (4, u'modelling'),
+        (5, u'other'),
+    )
 
     title = models.CharField(_('title'), max_length=100)
     caption = models.TextField(_('caption'), blank=True)

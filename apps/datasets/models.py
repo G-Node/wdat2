@@ -17,14 +17,14 @@ class RDataset(SafetyLevel):
     """
     A dataset with its details
     """
-    #QUALITY = (
-    #    (1, u'low'),
-    #    (2, u'average'),
-    #    (3, u'medium'),
-    #    (4, u'good'),
-    #    (5, u'excellent'),
-    #    (6, u'n/a'),
-    #)
+    QUALITY = (
+        (1, u'low'),
+        (2, u'average'),
+        (3, u'medium'),
+        (4, u'good'),
+        (5, u'excellent'),
+        (6, u'n/a'),
+    )
 
     title = models.CharField(_('title'), max_length=200)
     caption = models.TextField(_('caption'), blank=True)
