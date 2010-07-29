@@ -25,11 +25,11 @@ c) Changes in pinax-source/lib/python2.6/site-packages/wiki:
 
 # -------------------------------------------------------------------------- #
 Release 2 - what to do
-5. Match SETTINGS.PY, add new values
+1. Match SETTINGS.PY, add new values
 
-0. delete unused tables
+2. delete unused tables
 
-1. deleted fields:
+3. deleted fields:
 
 experiments_experiment.exp_type
 experiments_experiment.subject
@@ -54,14 +54,13 @@ So for each datafile do
 INSERT INTO `metadata_section` VALUES ('', '10', 'metadata root', '', '2010-08-02 10:41:43', NULL, <datafile_id>, NULL, NULL, NULL, 1, 0, NULL)
 INSERT INTO `metadata_property` VALUES ('', '10', 'Recording Date', <date>, '', '', '', '2010-05-27 05:43:36', <section_id>)
 
-1.5 Delete fields themselves!!
+4. Delete fields themselves!!
 
-2. Links
+5. old links - datasets to experiments etc., link through metadata
 
+6. odML vocabularies load
 
-3. odML vocabularies load
-
-4. Datafile.title = remove 'NOT NULL' from the DB
+7. Datafile.title = remove 'NOT NULL' from the DB
 
 
 
