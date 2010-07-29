@@ -127,6 +127,8 @@ class LDAPBackend:
                 user = User.objects.get(username__exact=username)
                 user.email = email
                 user.save()
+                if not EmailAddress.objects.filter(user=user, email=email, verified=True, primary=True):
+                    EmailAddress(user=user, email=email, verified=True, primary=True).save()
             except Exception, e:
                 if(create == True):
                     user = User.objects.create_user(username, email)
