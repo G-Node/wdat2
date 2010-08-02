@@ -33,7 +33,6 @@
       text: 'Click and drag in the plot area to zoom in'
    },
    xAxis: {
-      type: 'datetime',
       maxZoom: 2 * {{ t_serie.getTimeStep }}, 
       title: {
          text: null
@@ -49,9 +48,9 @@
    },
    tooltip: {
       formatter: function() {
-         return '<b>'+ (this.point.name || this.series.name) +'</b><br>'+
-            Highcharts.dateFormat('%A %B %e %Y', this.x) + ':<br>'+
-            'Value = '+ Highcharts.numberFormat(this.y, 2) +' mV';
+         return 'x: ' + Highcharts.numberFormat(this.x, 2) + '<br>' +
+            'y: '+ Highcharts.numberFormat(this.y, 2) +' mV';
+
       }
    },
    legend: {
@@ -89,7 +88,7 @@
       type: 'area',
       name: '',
       pointInterval: {{ t_serie.getTimeStep }},
-      pointStart: Date.UTC({{ t_serie.start_time|date:"Y, m, d" }}),
+      pointStart: 0,
       data: [
         {{ t_serie.getData }}
       ]
