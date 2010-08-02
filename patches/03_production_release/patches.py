@@ -23,7 +23,7 @@ class migration():
         a = 0
         for exprt in Experiment.objects.all():
             if not Section.objects.filter(parent_exprt=exprt):
-                section = Section(title="metadata root", parent_exprt=exprt, tree_position=1)
+                section = Section(title="root section", parent_exprt=exprt, tree_position=1)
                 section.save()
             else:
                 section = Section.objects.filter(parent_exprt=exprt)[0]
@@ -57,7 +57,7 @@ class migration():
         a = 0
         for dataset in RDataset.objects.all():
             if not Section.objects.filter(parent_dataset=dataset):
-                section = Section(title="metadata root", parent_dataset=dataset, tree_position=1)
+                section = Section(title="root section", parent_dataset=dataset, tree_position=1)
                 section.save()
             else:
                 section = Section.objects.filter(parent_dataset=dataset)[0]
@@ -87,7 +87,7 @@ class migration():
         a = 0
         for datafile in Datafile.objects.all():
             if not Section.objects.filter(parent_datafile=datafile):
-                section = Section(title="metadata root", parent_datafile=datafile, tree_position=1)
+                section = Section(title="root section", parent_datafile=datafile, tree_position=1)
                 section.save()
             else:
                 section = Section.objects.filter(parent_datafile=datafile)[0]

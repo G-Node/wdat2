@@ -108,12 +108,13 @@
     </div>
     
     {% if experiment.hasMetadata %}
-    <h2>{% trans "Metadata" %}</h2>
+    <h2>{% trans "Related Data and Metadata" %}</h2>
 
         {% with experiment as tree_container %}
         {% ifequal request.user experiment.owner %}
             {% comment %} PAPA is used to indicate which metadata buttons to render, depending on object type {% endcomment %}
             {% with "experiment" as papa %}
+            <p>Please use the area below to link data and annotate your experiment, using odML sections and properties. You may build a tree of sections according to the structure of your Experiment, and link Datasets, Files or Time Series to any place within it. Use properties as metadata descriptors. Search, copy and paste functions may help you to save time.</p>
                 {% include "metadata/section_buttons.html" %}
             {% endwith %}
             <div id="form-add-section" style="padding: 0; margin: 0; display:none">
@@ -135,7 +136,7 @@
 
     {% else %}
         {% ifequal request.user experiment.owner %}
-            <p>You don't have metadata assigned to this experiment. You may start annotating your experiment by <a href="#" onclick="add_root_section({{ experiment.id }}, 1)">adding the Metadata</a>.</p>
+            <p>You don't have any DATA or METADATA assigned to this experiment. You may start linking DATA and / or annotating your experiment using odML sections and properties. Start by <a href="#" onclick="add_root_section({{ experiment.id }}, 1)">adding a root section</a> now.</p>
         {% endifequal %}
     {% endif %}
 

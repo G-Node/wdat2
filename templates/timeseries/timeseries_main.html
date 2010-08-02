@@ -250,7 +250,7 @@
         <div id="container" style="width: 700px; height: 300px; margin: 0 auto"></div>
         {% if t_serie.hasChunks %}
         <form method="GET" action="">
-             <p><input type="submit" value="Display" /> next {{ max_datapoints_display }} datapoints starting as of <input type="text" name="chunks_start" value="{{ chunks_start }}" /> x-value.</p>
+             <p>This time serie has {{ t_serie.datapointsCount }} datapoints. To view next {{ max_datapoints_display }} points as of <input style="width: 50px;" type="text" name="chunks_start" value="{{ chunks_start }}" /> please click <input type="submit" value="Display" /></p>
         </form>
         {% endif %}
 

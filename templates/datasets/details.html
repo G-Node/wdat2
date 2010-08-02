@@ -117,12 +117,13 @@
     </div>
 
     {% if dataset.hasMetadata %}
-    <h2>{% trans "Metadata" %}</h2>
+    <h2>{% trans "Related Data and Metadata" %}</h2>
 
     {% with dataset as tree_container %}
     {% ifequal request.user dataset.owner %}
         {% comment %} PAPA is used to indicate which metadata buttons to render, depending on object type {% endcomment %}
         {% with "dataset" as papa %}
+        <p>Please use the area below to organize Data in this Dataset - create sections you need, link Files or Time Series, or add Metadata properties. You may build any tree structure that is required for the Dataset. Use properties as Metadata descriptors. Search, copy and paste functions may help you to save time.</p>
             {% include "metadata/section_buttons.html" %}
         {% endwith %}
         <div id="form-add-section" style="padding: 0; margin: 0; display:none">
@@ -143,7 +144,7 @@
 
     {% else %}
     {% ifequal request.user dataset.owner %}
-    <p>You don't have metadata assigned to this dataset. You may start annotating your dataset by <a href="#" onclick="add_root_section({{ dataset.id }}, 2)">adding the Metadata</a>.</p>
+    <p>This Dataset has no DATA or METADATA yet. Please link Files or Time Series, as well as metadata using odML sections and properties. Start by <a href="#" onclick="add_root_section({{ dataset.id }}, 2)">adding a root section</a> now.</p>
     {% endifequal %}
     {% endif %}
 

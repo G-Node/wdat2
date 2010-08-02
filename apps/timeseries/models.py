@@ -67,11 +67,21 @@ class TimeSeries(SafetyLevel):
             title = "0" + title
         return title
 
+    def hasChunks(self):
+        if len(self.data.split(', ')) > settings.MAX_DATAPOINTS_DISPLAY:
+            return True
+        else:
+            return False
+
+    def datapointsCount(self):
+        return len(self.data.split(', '))
+
     def getData(self):
         return self.data
 
     def getDataChunk(self, start_point):
         result = ""
+        st = start_point
         f1 = self.data.split(', ')
         if self.hasChunks():
             if start_point > 0 and start_point < len(f1):
@@ -81,18 +91,13 @@ class TimeSeries(SafetyLevel):
                     f2 = f1[start_point:]
             else:
                 f2 = f1[:settings.MAX_DATAPOINTS_DISPLAY]
+                st = 0
             for a in f2:
                 result += ', ' + str(a)
             result = result[2:]
         else:
             result = self.getData()
-        return result
-
-    def hasChunks(self):
-        if len(self.data.split(', ')) > settings.MAX_DATAPOINTS_DISPLAY:
-            return True
-        else:
-            return False
+        return result, st
 
     def getTimeStep(self):
         return self.time_step

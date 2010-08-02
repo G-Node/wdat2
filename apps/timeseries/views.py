@@ -104,7 +104,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
             chunks_start = int(ch_st)
         except:
             chunks_start = 0
-        data_chunks = t_serie.getDataChunk(chunks_start)
+        data_chunks, chunks_start = t_serie.getDataChunk(chunks_start)
         # get the parent objects to which this t_serie is linked to
         sections = Section.objects.filter(current_state=10)
         sections = filter(lambda x: x.hasTimeSeries(t_serie.id), sections)

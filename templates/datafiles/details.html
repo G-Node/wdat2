@@ -97,13 +97,14 @@
         
 
         {% if datafile.hasMetadata %}
-        <h2>{% trans "Metadata" %}</h2>
+        <h2>{% trans "Related Data and Metadata" %}</h2>
 
         {% with datafile as tree_container %}
         {% ifequal request.user datafile.owner %}
             {% comment %} PAPA is used to indicate which metadata buttons to render, 
                     depending on object type {% endcomment %}
             {% with "datafile" as papa %}
+            <p>You may describe the contents of the file using odML sections and properties. Please use the area below to annotate - create a tree of sections you need, describe Metadata using properties, link Time Series to any section within the tree. Search, copy and paste functions may help you to save time.</p>
                 {% include "metadata/section_buttons.html" %}
             {% endwith %}
             <div id="form-add-section" style="padding: 0; margin: 0; display:none">
@@ -124,7 +125,8 @@
 
         {% else %}
         {% ifequal request.user datafile.owner %}
-        <p>You don't have metadata assigned to this file. You may start annotating your dataset by <a href="#" onclick="add_root_section({{ datafile.id }}, 5)">adding the Metadata</a>. In order to describe the file structure (sampling rates, number of electrodes, channels etc. with location / offsets in the file) it's better to use <a href="http://signalml.org/" target="blank">SignalML</a> technology.</p>
+
+        <p>This File has no METADATA yet. You may describe the contents of the File (as well as link your Time Series to it) using odML sections and properties. Start by <a href="#" onclick="add_root_section({{ datafile.id }}, 5)">adding the root section</a> now.</p>
         {% endifequal %}
         {% endif %}
             
