@@ -4,6 +4,7 @@ from datetime import datetime
 #from metadata.models import Section
 from state_machine.models import SafetyLevel
 from tagging.fields import TagField
+from django.conf import settings
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -69,8 +70,45 @@ class TimeSeries(SafetyLevel):
     def getData(self):
         return self.data
 
+    def getDataChunk(self, start_point):
+        result = ""
+        f1 = self.data.split(', ')
+        if self.hasChunks():
+            if start_point > 0 and start_point < len(f1):
+                if start_point + settings.MAX_DATAPOINTS_DISPLAY < len(f1):
+                    f2 = f1[start_point:start_point + settings.MAX_DATAPOINTS_DISPLAY]
+                else:
+                    f2 = f1[start_point:]
+            else:
+                f2 = f1[:settings.MAX_DATAPOINTS_DISPLAY]
+            for a in f2:
+                result += ', ' + str(a)
+            result = result[2:]
+        else:
+            result = self.getData()
+        return result
+
+    def hasChunks(self):
+        if len(self.data.split(', ')) > settings.MAX_DATAPOINTS_DISPLAY:
+            return True
+        else:
+            return False
+
     def getTimeStep(self):
         return self.time_step
 
+"""
+    def getDataChunks1(self):
+        a = 0
+        result = []
+        data = self.data.split(', ')
+        while a < len(data):
+            x = data[a:]
+            if len(x) < 1000:
+                result.append(str(data[a:]))
+            else:
+                result.append(str(data[a:a+999]))
+            a += 1000
+        return result"""
 
 

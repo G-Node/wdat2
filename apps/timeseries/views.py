@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 import datetime
 
 from timeseries.models import TimeSeries
@@ -21,13 +22,14 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
     tserie_add_form_status = "none"
     add_from_file_status = "none"
     tserie_edit_form_status = "none"
+    chunks_start = 0
     objs = []
 
     time_series = TimeSeries.objects.filter(current_state=10)
     search_terms = request.GET.get('search', '')
     if search_terms:
         time_series = (time_series.filter(title__icontains=search_terms) |
-            time_series.filter(description__icontains=search_terms))
+            time_series.filter(caption__icontains=search_terms))
     time_series = time_series.order_by("-title")
     time_series = filter(lambda x: x.is_accessible(request.user), time_series)
     # insert some security here!!!
@@ -96,6 +98,13 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         add_from_file_form = AddTSfromFileForm(user=request.user)
 
     if t_serie:
+        # get requested data chunk to display
+        ch_st = request.GET.get('chunks_start', '')
+        try:
+            chunks_start = int(ch_st)
+        except:
+            chunks_start = 0
+        data_chunks = t_serie.getDataChunk(chunks_start)
         # get the parent objects to which this t_serie is linked to
         sections = Section.objects.filter(current_state=10)
         sections = filter(lambda x: x.hasTimeSeries(t_serie.id), sections)
@@ -136,6 +145,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
     else:
         tserie_edit_form = None
         privacy_form = None
+        data_chunks = []
 
     # templates for metadata. can't move to state_mashine due to import error
     metadata_defaults = []
@@ -151,6 +161,8 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
     return render_to_response(template_name, {
         "timeseries": time_series,
         "t_serie": t_serie,
+        "data_chunks": data_chunks,
+        "chunks_start": chunks_start,
         "metadata_defaults": metadata_defaults,
         "tserie_add_form": tserie_add_form,
         "add_from_file_form": add_from_file_form,
@@ -162,6 +174,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         "prop_add_form": prop_add_form,
         "objs": objs,
         "search_terms": search_terms,
+        "max_datapoints_display": settings.MAX_DATAPOINTS_DISPLAY,
         }, context_instance=RequestContext(request))
 
 

@@ -88,9 +88,9 @@
       type: 'area',
       name: '',
       pointInterval: {{ t_serie.getTimeStep }},
-      pointStart: 0,
+      pointStart: {{ chunks_start }},
       data: [
-        {{ t_serie.getData }}
+        {{ data_chunks }}
       ]
    }]
 })
@@ -248,6 +248,11 @@
         {% endifequal %}
 
         <div id="container" style="width: 700px; height: 300px; margin: 0 auto"></div>
+        {% if t_serie.hasChunks %}
+        <form method="GET" action="">
+             <p><input type="submit" value="Display" /> next {{ max_datapoints_display }} datapoints starting as of <input type="text" name="chunks_start" value="{{ chunks_start }}" /> x-value.</p>
+        </form>
+        {% endif %}
 
         {% if t_serie.hasMetadata %}
         <h2>{% trans "Metadata" %}</h2>
