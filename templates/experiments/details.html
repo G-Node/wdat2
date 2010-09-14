@@ -50,16 +50,23 @@
                     {% endif %}
                 </div>
 
-                {% if experiment.in_projects.all %}
                 <div class="friends">
-                    <h2>{% trans "In the scope of" %}</h2>
-                    <table width="100%">
+                    <h2>{% trans "Linked to:" %}</h2>
+                    {% if experiment.in_projects.all %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Projects</th></tr>
+                        </thead>
                         {% for project in experiment.in_projects.all %}
                             <tr><td>- <a href="{{ project.get_absolute_url }}">{{ project.slug|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
-                    </table>                    
+                    </table>
+                    {% else %}
+                        <p>This Experiment is not linked to any Project in the system.</p>
+                    {% endif%}
+                    <p>You may link objects using the metadata "sections" from the object's details page.</p>
                 </div>
-                {% endif%}
+
 
             </div>
         {% endifequal %}

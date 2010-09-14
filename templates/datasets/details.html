@@ -49,26 +49,34 @@
                     {% endif %}
                 </div>
             
-                {% if exprts or dataset.in_projects.all %}
                 <div class="friends">
-                    {% if dataset.in_projects.all  %}
-                    <h2>{% trans "Used in" %}</h2>
-                    <table width="100%">
-                        {% for proj in dataset.in_projects.all %}
-                            <tr><td>- <a href="{{ proj.get_absolute_url }}">{{ proj.slug|truncate_dot:26|escape }}</a></td></tr>
+                    <h2>{% trans "Linked to:" %}</h2>
+                    {% if dataset.in_projects.all %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Projects</th></tr>
+                        </thead>
+                        {% for obj in dataset.in_projects.all %}
+                            <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.slug|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
                     </table>
-                    {% endif%}
+                    {% endif%} 
                     {% if exprts %}
-                    <h2>{% trans "Linked to" %}</h2>
-                    <table width="100%">
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Experiments</th></tr>
+                        </thead>
                         {% for experiment in exprts %}
                             <tr><td>- <a href="{{ experiment.get_absolute_url }}">{{ experiment.title|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
                     </table>
+                    {% endif%} 
+                    {% if exprts or dataset.in_projects.all %}
+                    {% else %}
+                        <p>This Dataset is not linked to any object in the system.</p>
                     {% endif%}
+                    <p>You may link objects using the metadata "sections" from the object's details page.</p>
                 </div>
-                {% endif%}
             </div>
         {% endifequal %}    
     

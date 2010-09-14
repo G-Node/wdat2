@@ -15,6 +15,8 @@ import mimetypes
 import os.path
 
 from datafiles.models import Datafile
+from datasets.models import RDataset
+from experiments.models import Experiment
 from metadata.models import Section
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
 from metadata.forms import AddPropertyForm, LinkTSForm
@@ -27,18 +29,12 @@ def upload_progress(request):
     Return JSON object with information about the progress of an upload.
     """
     if 'HTTP_X_PROGRESS_ID' in request.META:
-	#LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
-	#logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
         progress_id = request.META['HTTP_X_PROGRESS_ID']
-        #logging.debug('%s - is the X progress ID', progress_id)
-        #logging.debug('and a request ---- %s', request)
         from django.utils import simplejson
-	#cache_key = "%s_%s" % ("127.0.0.1", progress_id)
         cache_key = "%s_%s" % (request.META['REMOTE_ADDR'], progress_id)
         data = cache.get(cache_key)
         #logging.debug('%s - cache key', cache_key)
         json = simplejson.dumps(data)
-        #logging.debug('%s - and its corresponding JSON', json)
         return HttpResponse(json)
     else:
         #logging.error("Received progress report request without X-Progress-ID header. request.META: %s" % request.META)
@@ -158,13 +154,17 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
 
     # get the parent objects to which this file is linked to
-    objs = []
+    par_datasets = []
+    par_exprts = []
     sections = Section.objects.filter(current_state=10)
     sections = filter(lambda x: x.hasDatafile(datafile.id), sections)
     for section in sections:
         rt = section.get_root()
-        if rt and (not rt in objs):
-            objs.append(section.get_root())
+        if rt and (not rt in par_datasets) and (not rt in par_exprts):
+            if isinstance(rt, RDataset):
+                par_datasets.append(rt)
+            elif isinstance(rt, Experiment):
+                par_exprts.append(rt)
     
     return render_to_response(template_name, {
         "datafile": datafile,
@@ -173,7 +173,8 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
         "privacy_form": privacy_form,	
         "prop_add_form": prop_add_form,
         "timeseries_link_form": timeseries_link_form,
-        "objs": objs,
+        "par_datasets": par_datasets,
+        "par_exprts": par_exprts,
     }, context_instance=RequestContext(request))
 
 

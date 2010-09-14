@@ -12,7 +12,9 @@ from timeseries.models import TimeSeries
 from timeseries.forms import AddTSfromFieldForm, AddTSfromFileForm, EditTSForm, DeleteTSForm, PrivacyEditForm
 from metadata.forms import AddPropertyForm
 from metadata.models import Section
+from datafiles.models import Datafile
 from datasets.models import RDataset
+from experiments.models import Experiment
 
 
 @login_required
@@ -23,7 +25,9 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
     add_from_file_status = "none"
     tserie_edit_form_status = "none"
     chunks_start = 0
-    objs = []
+    par_datasets = []
+    par_exprts = []
+    par_datafiles = []
 
     time_series = TimeSeries.objects.filter(current_state=10)
     search_terms = request.GET.get('search', '')
@@ -112,8 +116,13 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         sections = filter(lambda x: x.hasTimeSeries(t_serie.id), sections)
         for section in sections:
             rt = section.get_root()
-            if rt and (not rt in objs):
-                objs.append(section.get_root())
+            if rt:
+                if isinstance(rt, RDataset) and (not rt in par_datasets):
+                    par_datasets.append(rt)
+                elif isinstance(rt, Experiment) and (not rt in par_exprts):
+                    par_exprts.append(rt)
+                elif isinstance(rt, Datafile) and (not rt in par_datafiles):
+                    par_datafiles.append(rt)
         # edit details handler
         tserie_edit_form = EditTSForm(instance=t_serie)
         # edit privacy handler    
@@ -174,7 +183,9 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         "privacy_form": privacy_form,
         "tserie_edit_form_status": tserie_edit_form_status,
         "prop_add_form": prop_add_form,
-        "objs": objs,
+        "par_datasets": par_datasets,
+        "par_exprts": par_exprts,
+        "par_datafiles": par_datafiles,
         "search_terms": search_terms,
         "max_datapoints_display": settings.MAX_DATAPOINTS_DISPLAY,
         }, context_instance=RequestContext(request))

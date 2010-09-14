@@ -48,17 +48,45 @@
                         <p>Please note, it's always ONLY YOUR exclusive right to MANAGE your files, changing its properties and privacy settings.</p>
                     {% endif %}
                 </div>
-            
-                {% if objs %}
+
                 <div class="friends">
-                    <h2>{% trans "Linked to" %}</h2>
-                    <table width="100%">
-                        {% for obj in objs %}
+                    <h2>{% trans "Linked to:" %}</h2>
+                    {% if datafile.in_projects.all %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Projects</th></tr>
+                        </thead>
+                        {% for obj in datafile.in_projects.all %}
+                            <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.slug|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>
+                    {% endif%} 
+                    {% if par_exprts %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Experiments</th></tr>
+                        </thead>
+                        {% for obj in par_exprts %}
                             <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.title|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
-                    </table>                    
+                    </table>
+                    {% endif%}            
+                    {% if par_datasets %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Datasets</th></tr>
+                        </thead>
+                        {% for obj in par_datasets %}
+                            <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>
+                    {% endif%}
+                    {% if par_datasets or par_exprts or datafile.in_projects.all %}
+                    {% else %}
+                        <p>This file is not linked to any object in the system.</p>
+                    {% endif%}
+                    <p>You may link objects using the metadata "sections" from the object's details page.</p>
                 </div>
-                {% endif%}
                 
             </div>
         {% endifequal %}

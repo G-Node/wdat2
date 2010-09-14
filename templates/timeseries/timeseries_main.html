@@ -134,21 +134,44 @@
                 </div>
         {% endifequal %}
 
-        {% if objs %}
-            <div class="friends">
-                <h2>{% trans "Linked to" %}</h2>
-                {% comment %}
-                <h2>{% trans "From Experiments" %}</h2>
-                <p>Select an experiment to browse time series data, associated with it. Or push <a href="{% url timeseries_main %}">"View all"</a> to browse all your recorded time series.</p>
-                {% endcomment %}
-                    <table width="100%">
-                        {% for obj in objs %}
+                <div class="friends">
+                    <h2>{% trans "Linked to:" %}</h2>
+                    {% if par_exprts %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Experiments</th></tr>
+                        </thead>
+                        {% for obj in par_exprts %}
                             <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.title|truncate_dot:26|escape }}</a></td></tr>
                         {% endfor %}
-                    </table>                    
-
-            </div>
-        {% endif%}
+                    </table>
+                    {% endif%}            
+                    {% if par_datasets %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Datasets</th></tr>
+                        </thead>
+                        {% for obj in par_datasets %}
+                            <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>
+                    {% endif%}
+                    {% if par_datafiles %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        <thead>
+                            <tr><th align="left">Files</th></tr>
+                        </thead>
+                        {% for obj in par_datafiles %}
+                            <tr><td>- <a href="{{ obj.get_absolute_url }}">{{ obj.title|truncate_dot:26|escape }}</a></td></tr>
+                        {% endfor %}
+                    </table>
+                    {% endif%}
+                    {% if par_datasets or par_exprts or par_datafiles %}
+                    {% else %}
+                        <p>This Time Serie is not linked to any object in the system.</p>
+                    {% endif%}
+                    <p>You may link objects using the metadata "sections" from the object's details page.</p>
+                </div>
         {% endif %}
 
             <div class="friends">
