@@ -22,7 +22,7 @@ class Experiment(SafetyLevel):
     )
 
     title = models.CharField(_('title'), max_length=100)
-    caption = models.TextField(_('caption'), blank=True)
+    caption = models.TextField(_('description'), blank=True)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     owner = models.ForeignKey(User, blank=True, null=True)
     #exp_type = models.IntegerField(_('experiment type'), choices=EXPERIMENT_TYPES, default=1)

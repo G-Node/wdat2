@@ -269,6 +269,27 @@ class Section(models.Model):
                 s += ', <a href="' + rt.get_absolute_url + '">' + rt.title + '</a>'
         return s
 
+    def get_objects_count(self):
+        # return sequence: datasets no, datafiles no, time series no, files volume
+        datasets_no = 0
+        datafiles_no = 0
+        timeseries_no = 0
+        files_vo = 0
+        datasets_no += self.rel_datasets.filter(current_state=10).count()
+        datafiles_no += self.rel_datafiles.filter(current_state=10).count()
+        timeseries_no += self.rel_timeseries.filter(current_state=10).count()
+        for f in self.rel_datafiles.filter(current_state=10):
+            files_vo += f.raw_file.size
+        if self.section_set.all().filter(current_state=10):
+            for section in self.section_set.all().filter(current_state=10):
+                s1, s2, s3, s4 = section.get_objects_count()
+                datasets_no += s1
+                datafiles_no += s2
+                timeseries_no += s3
+                files_vo += s4
+        return datasets_no, datafiles_no, timeseries_no, files_vo
+
+
 class Property(models.Model):
     # A metadata "Property". Defines any kind of metadata property 
     # and may be linked to the section.

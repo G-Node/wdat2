@@ -84,9 +84,19 @@
 	            <td>{{ dataset.caption }}</td>
 	          </tr>
 	          <tr>
-	            <td><strong>Date created:</strong> </td>
-	            <td>{{ dataset.date_added }}</td>
+	            <td><strong>Date Created:</strong> </td>
+	            <td>{{ dataset.date_added|date:"Y-m-d H:i" }}</td>
 	          </tr>
+	          <tr>
+	            <td><strong>Objects Totals:</strong> </td>
+	            <td>{{ dataset.objects_count_str }}</td>
+	          </tr>
+{% comment %}
+	          <tr>
+	            <td><strong>Volume (linked files):</strong> </td>
+	            <td>{{ dataset.file_volume_count|filesizeformat }}</td>
+	          </tr>
+{% endcomment %}
 	          {% ifnotequal dataset.owner request.user%}
 		          <tr>
 		            <td><strong>Owner:</strong></td>

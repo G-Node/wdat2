@@ -36,14 +36,14 @@
 
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Created" %}</th><th>{% trans "Volume" %}</th><th>{% trans "State" %}</th><th>{% trans "Action" %}</th><th>{% trans "Select" %}</th></tr>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Created" %}</th><th>{% trans "Objects" %}</th><th>{% trans "State" %}</th><th>{% trans "Action" %}</th><th>{% trans "Select" %}</th></tr>
             </thead>
             <tbody>
                 {% for dataset in datasets %}
                     <tr>
                         <td><a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a></td>
                         <td>{{ dataset.date_added|date:"Y-m-d H:i" }}</td>
-                        <td>{{ dataset.file_volume_count|filesizeformat }}</td>
+                        <td>{{ dataset.objects_count_str }}</td>
                         <td>{% if dataset.is_Public %}<b style="color: red">Public</b>{% endif %}{% if dataset.is_Friendly %}Friendly{% endif %}{% if dataset.is_Private %}Private{% endif %}</td>
                         <td><nobr><a href="{% url dataset_delete dataset.id %}">{% trans "delete" %}</a></nobr></td>
                         <td><input id="id_set_choices_{{ dataset.id }}" type="checkbox" value="{{ dataset.id }}" name="set_choices"/></td>

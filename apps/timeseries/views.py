@@ -36,6 +36,8 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
     if time_series:
         if id and not search_terms:
             t_serie = get_object_or_404(TimeSeries, id=id)
+            if not t_serie.is_accessible(request.user):
+                t_serie = None
         else:
             t_serie = time_series[0]
 

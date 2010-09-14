@@ -14,7 +14,7 @@ from datetime import timedelta
 from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
-from experiments.forms import CreateExperimentForm, ExperimentShortEditForm, PrivacyEditForm
+from experiments.forms import CreateExperimentForm, ExperimentShortEditForm, PrivacyEditForm, DeleteExperimentsForm
 from experiments.filters import ExpFilter
 from metadata.forms import AddPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
 from metadata.models import Section
@@ -52,6 +52,18 @@ def yourexperiments(request, template_name="experiments/yourexperiments.html"):
     """
     experiments for the currently authenticated user
     """
+    set_objects_form = DeleteExperimentsForm(request.POST or None, user=request.user)
+    action = request.POST.get("action")
+    if request.method == 'POST' and action == "delete":
+        if set_objects_form.is_valid():
+            ids = set_objects_form.cleaned_data['set_choices'] # [u'39', u'20', u'18']
+            for exprt in Experiment.objects.filter(id__in=ids):
+                if exprt.owner == request.user:
+                    exprt.deleteObject()
+                    exprt.save()
+                else:
+                    raise Http404
+            request.user.message_set.create(message=("Successfully deleted requested experiments. All related objects are still available"))
     
     experiments = Experiment.objects.filter(owner=request.user, current_state=10)
     experiments = experiments.order_by("-date_created")
@@ -60,8 +72,8 @@ def yourexperiments(request, template_name="experiments/yourexperiments.html"):
     prev_month = today.month - 1
     prev_year = today.year
     if prev_month == 0:
-	prev_month = 12
-	prev_year = prev_year - 1
+        prev_month = 12
+        prev_year = prev_year - 1
     f_1 = 'all'
     f_2 = 'last week'
     f_3 = 'last month'
@@ -69,12 +81,12 @@ def yourexperiments(request, template_name="experiments/yourexperiments.html"):
     f_5 = str(datetime.date(prev_year, prev_month, 1).strftime("%B %Y"))
 
     if request.POST.get("fltr"):
-	fltr = request.POST.get("fltr")
+        fltr = request.POST.get("fltr")
     else:
-	fltr = "all"
+        fltr = "all"
     
     if 'filter_choice' in request.POST:
-	fltr = request.POST.get("filter_choice")
+        fltr = request.POST.get("filter_choice")
 	if fltr == 'last week':
 	    days = timedelta(days=6)
 	    experiments = experiments.filter(date_created__range=(today - days, today))
@@ -88,12 +100,12 @@ def yourexperiments(request, template_name="experiments/yourexperiments.html"):
 	    
     return render_to_response(template_name, {
         "experiments": experiments,
-	"fltr": fltr,
-	"f_1": f_1,
-	"f_2": f_2,
-	"f_3": f_3,
-	"f_4": f_4,
-	"f_5": f_5,
+        "fltr": fltr,
+        "f_1": f_1,
+        "f_2": f_2,
+        "f_3": f_3,
+        "f_4": f_4,
+        "f_5": f_5,
     }, context_instance=RequestContext(request))
 
 @login_required

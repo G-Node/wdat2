@@ -14,9 +14,9 @@ from django.db.models import Q
 from tagging.fields import TagField
 from django.utils.translation import ugettext_lazy as _
 
-def make_upload_path(instance, filename):
+def make_upload_path(self, filename):
     """Generates upload path for FileField"""
-    return "data/%s/%s" % (instance.owner.username, filename)
+    return "data/%s/%s" % (self.owner.username, filename)
 
 class FileSystemStorage(storage.FileSystemStorage):
     """
@@ -42,7 +42,7 @@ class FileSystemStorage(storage.FileSystemStorage):
 class Datafile(SafetyLevel):
     # A datafile with its details and raw data files
     title = models.CharField(_('title'), blank=True, max_length=200)
-    caption = models.TextField(_('caption'), blank=True)
+    caption = models.TextField(_('description'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
     #recording_date = models.DateTimeField(_('recording date'), default=datetime.now)
     owner = models.ForeignKey(User, related_name="related_file", blank=True, null=True)

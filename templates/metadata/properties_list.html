@@ -33,7 +33,7 @@
         <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Datasets" %}</h3>
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th><th>{% trans "Volume" %}</th><th>{% trans "State" %}</th>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "Date created" %}</th><th>{% trans "Objects" %}</th><th>{% trans "State" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
                     {% endifequal %}
@@ -44,7 +44,7 @@
                     <tr>
                         <td><a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a></td>
                         <td>{{ dataset.date_added }}</td>
-                        <td>{{ dataset.file_volume_count|filesizeformat }}</td>
+                        <td>{{ dataset.objects_count_str }}</td>
                         <td>{% if dataset.is_Public %}<b style="color: red">Public</b>{% endif %}{% if dataset.is_Friendly %}Friendly{% endif %}{% if dataset.is_Private %}Private{% endif %}</td>
                         {% ifequal dataset.owner request.user %}
                             <td><nobr><a href="#" onclick="remove_object({{ section.id }}, {{ dataset.id }}, 'dataset')">{% trans "remove" %}</a></nobr></td>

@@ -34,7 +34,8 @@ class ExperimentShortEditForm(forms.ModelForm):
     class Meta:
         model = Experiment
         fields = ('title', 'caption', 'tags')
-        
+
+
 class PrivacyEditForm(forms.ModelForm):
 
     class Meta:
@@ -49,4 +50,14 @@ class PrivacyEditForm(forms.ModelForm):
 	# another way how to keep empty values
 	#self.fields['shared_with'].empty_label="--(nobody)--"
 	#self.fields['shared_with'].required=False
+
+
+class DeleteExperimentsForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        super(DeleteExperimentsForm, self).__init__(*args, **kwargs)
+        self.fields['set_choices'] = forms.MultipleChoiceField(
+            choices=[(c.id, c.title) for c in Experiment.objects.filter(Q(current_state=10, owner=user))],
+            widget=widgets.CheckboxSelectMultiple)
 

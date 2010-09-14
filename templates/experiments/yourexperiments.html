@@ -76,10 +76,12 @@
     {% if experiments %}
     {% autosort experiments %}
     {% autopaginate experiments %}
+
+        <form method="POST" action="">
         
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "In Projects" %}</th><th>{% trans "Created" %}</th><th>{% trans "State" %}</th><th>{% trans "Action" %}</th></tr>
+                <tr><th>{% trans "Title" %}</th><th>{% trans "In Projects" %}</th><th>{% trans "Created" %}</th><th>{% trans "State" %}</th><th>{% trans "Action" %}</th><th>{% trans "Select" %}</th></tr>
             </thead>
             <tbody>
                 {% for experiment in experiments %}
@@ -93,11 +95,17 @@
                         <td>{{ experiment.date_created }}</td>
                         <td>{% if experiment.is_Public %}<b style="color: red">Public</b>{% endif %}{% if experiment.is_Friendly %}Friendly{% endif %}{% if experiment.is_Private %}Private{% endif %}</td>
                         <td><nobr><a href="{% url experiment_delete experiment.id %}">{% trans "delete" %}</a></nobr></td>
+                        <td><input id="id_set_choices_{{ experiment.id }}" type="checkbox" value="{{ experiment.id }}" name="set_choices"/></td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% paginate %}
+
+        <input type="hidden" name="action" value="delete" />
+        <input type="submit" value="{% trans "delete selected" %}"/>
+
+        </form>
     {% else %}
     <p>No experiments were found.</p>
     {% endif %}

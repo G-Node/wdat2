@@ -15,55 +15,55 @@ INSERT INTO `metadata_section` VALUES ('', '10', 'Subject', '', '2010-07-09 10:4
 
 
 SUBSECTIONS
-INSERT INTO `metadata_section` VALUES ('', '10', 'Experiment', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Experiment' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Behavior', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Experiment' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Electrophysiology', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Experiment' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Imaging', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Experiment' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Modeling', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Experiment' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Psychophysics', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Experiment' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
+INSERT INTO `metadata_section` VALUES ('', '10', 'Experiment', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 44, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Behavior', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 44, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Electrophysiology', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 44, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Imaging', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 44, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Modeling', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 44, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Psychophysics', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 44, 1, 1, NULL);
 
-INSERT INTO `metadata_section` VALUES ('', '10', 'Amplifier', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Attenuator', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'CameraObjective', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'DataAcquisition', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Eyetracker', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Filter', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Filterset', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'HardwareItem', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'ImageAcquisition', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Lightsource', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Microscope', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'MicroscopeObjective', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Scanner', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'StimulusIsolator', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareProperties' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
+INSERT INTO `metadata_section` VALUES ('', '10', 'Amplifier', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Attenuator', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'CameraObjective', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'DataAcquisition', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Eyetracker', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Filter', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Filterset', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'HardwareItem', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'ImageAcquisition', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Lightsource', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Microscope', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'MicroscopeObjective', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Scanner', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'StimulusIsolator', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 45, 1, 1, NULL);
 
-INSERT INTO `metadata_section` VALUES ('', '10', 'Amplifier', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Attenuator', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'CameraObjective', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'DataAcquisition', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Eyetracker', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Filter', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Filterset', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'HardwareItem', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'ImageAcquisition', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Lightsource', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Microscope', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'MicroscopeObjective', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Scanner', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'StimulusIsolator', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='HardwareSettings' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
+INSERT INTO `metadata_section` VALUES ('', '10', 'Amplifier', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Attenuator', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'CameraObjective', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'DataAcquisition', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Eyetracker', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Filter', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Filterset', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'HardwareItem', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'ImageAcquisition', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Lightsource', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Microscope', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'MicroscopeObjective', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Scanner', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'StimulusIsolator', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 46, 1, 1, NULL);
 
-INSERT INTO `metadata_section` VALUES ('', '10', 'DC', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Gabor', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Grating', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Pulse', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Movie', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Ramp', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'RandomDot', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Sawtooth', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Sinewave', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'Squarewave', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'StimulusChannel', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
-INSERT INTO `metadata_section` VALUES ('', '10', 'WhiteNoise', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, (SELECT id FROM `metadata_section` WHERE `title`='Stimulus' AND `is_template`=1 AND `user_custom_id` IS NULL AND `parent_section_id` IS NULL), 1, 1, NULL)
+INSERT INTO `metadata_section` VALUES ('', '10', 'DC', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Gabor', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Grating', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Pulse', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Movie', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Ramp', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'RandomDot', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Sawtooth', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Sinewave', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'Squarewave', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'StimulusChannel', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
+INSERT INTO `metadata_section` VALUES ('', '10', 'WhiteNoise', '', '2010-07-09 10:41:43', NULL, NULL, NULL, NULL, 51, 1, 1, NULL);
 
 
 

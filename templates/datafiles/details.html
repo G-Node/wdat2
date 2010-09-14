@@ -67,19 +67,36 @@
         <div class="photo-title">
             <h2>File: {{ datafile.title }} {% if not datafile.isActive %}(DELETED){% endif %}</h2>
         </div>
-        <div class="photo-caption">
-            <p><b>Description: </b>{{ datafile.caption }}</p>
-        </div>
-        <div>
-            {% ifnotequal datafile.owner request.user%}
-            <b>Owner: </b>
-            <a href="{% url profile_detail datafile.owner.username %}">{{ datafile.owner.username }}</a>
-            {% endifnotequal %}
-        </div>
-        <div>
-            {% show_tags_for datafile %}
-        </div>
-        
+
+        <div id="datasethead">
+	        <table>
+	          <tbody>
+	          <tr>
+	            <td><strong>Description:</strong></td>
+	            <td>{{ datafile.caption }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>Date Created:</strong> </td>
+	            <td>{{ datafile.date_added|date:"Y-m-d H:i" }}</td>
+	          </tr>
+	          <tr>
+	            <td><strong>Volume:</strong> </td>
+	            <td>{{ datafile.size }}</td>
+	          </tr>
+	          {% ifnotequal datafile.owner request.user%}
+		          <tr>
+		            <td><strong>Owner:</strong></td>
+		            <td><a href="{% url profile_detail dataset.owner.username %}">{{ datafile.owner.username }}</a></td>
+		          </tr>
+	          {% endifnotequal %}
+	          <tr>
+	            <td><strong>&nbsp;</strong></td>
+	            <td>{% show_tags_for datafile %}</td>
+	          </tr>	          
+		     </tbody>
+		   </table>
+        </div>  
+
         {% ifequal request.user datafile.owner %}
             <div class="form-toggle">
                 <p><span id="edit-details-toggle">{% trans "Edit details" %}</span>
