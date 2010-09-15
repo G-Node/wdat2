@@ -28,6 +28,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
     par_datasets = []
     par_exprts = []
     par_datafiles = []
+    first_section_id = 0
 
     time_series = TimeSeries.objects.filter(current_state=10)
     search_terms = request.GET.get('search', '')
@@ -153,6 +154,8 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
                     request.user.message_set.create(message=_("Successfully deleted selected %s time series") % len(ids))
                     redirect_to = reverse("timeseries_main")
                     return HttpResponseRedirect(redirect_to)
+        if t_serie.section_set.all():
+            first_section_id = t_serie.section_set.all()[0].id
     else:
         tserie_edit_form = None
         privacy_form = None
@@ -188,6 +191,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         "par_datafiles": par_datafiles,
         "search_terms": search_terms,
         "max_datapoints_display": settings.MAX_DATAPOINTS_DISPLAY,
+        "first_section_id": first_section_id,
         }, context_instance=RequestContext(request))
 
 

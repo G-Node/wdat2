@@ -165,7 +165,11 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
                 par_datasets.append(rt)
             elif isinstance(rt, Experiment):
                 par_exprts.append(rt)
-    
+
+    first_section_id = 0
+    if datafile.section_set.all():
+        first_section_id = datafile.section_set.all()[0].id
+
     return render_to_response(template_name, {
         "datafile": datafile,
         "metadata_defaults": metadata_defaults,
@@ -175,6 +179,7 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
         "timeseries_link_form": timeseries_link_form,
         "par_datasets": par_datasets,
         "par_exprts": par_exprts,
+        "first_section_id": first_section_id,
     }, context_instance=RequestContext(request))
 
 

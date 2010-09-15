@@ -3,9 +3,9 @@
 {% if section %}
     {% if section.hasChild %}
     {% if section.getActiveProperties %}
-        <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Properties" %}</h3>
+        <h2>{% trans "Properties" %}</h2>
         <table class="messages">
-            <thead>
+            <thead style="color: grey;">
                 <tr><th>{% trans "Name" %}</th><th>{% trans "Value" %}</th><th>{% trans "Description" %}</th><th>{% trans "Comment" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
@@ -30,9 +30,9 @@
     {% endif %}
 
     {% if section.getActiveDatasets %}
-        <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Datasets" %}</h3>
+        <h2>{% trans "Datasets" %}</h2>
         <table class="messages">
-            <thead>
+            <thead style="color: grey;">
                 <tr><th>{% trans "Title" %}</th><th>{% trans "Date created" %}</th><th>{% trans "Objects" %}</th><th>{% trans "State" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
@@ -56,9 +56,9 @@
     {% endif %}
 
     {% if section.getActiveDatafiles %}
-        <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Datafiles" %}</h3>
+        <h2>{% trans "Datafiles" %}</h2>
         <table class="messages">
-            <thead>
+            <thead style="color: grey;">
                 <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th><th>{% trans "Size" %}</th><th>{% trans "State" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>
@@ -82,9 +82,9 @@
     {% endif %}
 
     {% if section.getActiveTimeSeries %}
-        <h3 style="margin:0; padding: 10px 10px 10px 0px">{% trans "Time Series Data" %}</h3>
+        <h2>{% trans "Time Series Data" %}</h2>
         <table class="messages">
-            <thead>
+            <thead style="color: grey;">
                 <tr><th>{% trans "Title" %}</th><th>{% trans "Date recorded" %}</th><th>{% trans "Type" %}</th><th>{% trans "State" %}</th>
                     {% ifequal section.get_owner request.user %}
                     <th>{% trans "Action" %}</th>

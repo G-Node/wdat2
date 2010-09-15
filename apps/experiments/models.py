@@ -51,5 +51,3 @@ class Experiment(SafetyLevel):
         else:
             return False
 
-
-

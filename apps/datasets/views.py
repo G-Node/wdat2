@@ -144,6 +144,10 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
         if not section.get_root() in exprts:
             exprts.append(section.get_root())
 
+    first_section_id = 0
+    if dataset.section_set.all():
+        first_section_id = dataset.section_set.all()[0].id
+
     return render_to_response(template_name, {
         "dataset": dataset,
         "metadata_defaults": metadata_defaults,
@@ -153,6 +157,7 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
         "datafile_link_form": datafile_link_form,
         "timeseries_link_form": timeseries_link_form,
         "exprts": exprts,
+        "first_section_id": first_section_id,
     }, context_instance=RequestContext(request))
 
 

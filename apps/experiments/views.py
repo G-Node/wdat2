@@ -195,6 +195,10 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
     datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
 
+    first_section_id = 0
+    if experiment.section_set.all():
+        first_section_id = experiment.section_set.all()[0].id
+
     return render_to_response(template_name, {
     "experiment": experiment,
     "metadata_defaults": metadata_defaults,
@@ -204,6 +208,7 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
     "dataset_link_form": dataset_link_form,
     "datafile_link_form": datafile_link_form,
     "timeseries_link_form": timeseries_link_form,
+    "first_section_id": first_section_id,
     }, context_instance=RequestContext(request))
 
 

@@ -20,6 +20,9 @@
             multitree: "all",
         },
         callback : { 
+			onload : function (TREE_OBJ) {
+                $.tree.focused().select_branch("#"+{{ first_section_id }});
+			},
 			onselect : function (NODE, TREE_OBJ) {
                 $('#properties_area').hide();
 				var n_id =  NODE.id;
