@@ -92,7 +92,7 @@
 				<span><a href="{{ proj.get_absolute_url }}">{{ proj.slug }}</a>, </span>
 			{% endfor %}
 			</td>
-                        <td>{{ experiment.date_created }}</td>
+                        <td><nobr>{{ experiment.date_created|date:"Y-m-d H:i" }}</nobr></td>
                         <td>{% if experiment.is_Public %}<b style="color: red">Public</b>{% endif %}{% if experiment.is_Friendly %}Friendly{% endif %}{% if experiment.is_Private %}Private{% endif %}</td>
                         <td><nobr><a href="{% url experiment_delete experiment.id %}">{% trans "delete" %}</a></nobr></td>
                         <td><input id="id_set_choices_{{ experiment.id }}" type="checkbox" value="{{ experiment.id }}" name="set_choices"/></td>

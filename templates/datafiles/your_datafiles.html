@@ -35,13 +35,15 @@
             
         <table class="messages">
             <thead>
-                <tr><th>{% trans "Title" %}</th><th>{% trans "Size" %}</th><th>{% trans "Linked to" %}</th><th>{% trans "State" %}</th><th>{% trans "Action" %}</th><th>{% trans "Select" %}</th></tr>
+                <tr><th>{% trans "Name" %}</th><th>{% trans "Description" %}</th><th>{% trans "Date Created" %}</th><th>{% trans "Size" %}</th><th>{% trans "Linked To" %}</th><th>{% trans "State" %}</th><th>{% trans "Action" %}</th><th>{% trans "Select" %}</th></tr>
             </thead>
             <tbody>
                 {% for datafile in datafiles %}
                     <tr>
                         <td><a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a></td>
-                        <td>{{ datafile.size }}</td>
+                        <td><span style="color: grey">{{ datafile.caption|truncate_dot:100|escape }}</span></td>
+                        <td><nobr>{{ datafile.date_added|date:"Y-m-d H:i" }}</nobr></td>
+                        <td><nobr>{{ datafile.size }}</nobr></td>
                         <td>
                             {% for prj in datafile.in_projects.all %}
                                 <span><a href="{{ prj.get_absolute_url }}">{{ prj.slug }}</a>, </span>

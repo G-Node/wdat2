@@ -84,7 +84,7 @@
 	          </tr>
 	          <tr>
 	            <td><strong>Date created:</strong> </td>
-	            <td>{{ experiment.date_created }}</td>
+	            <td>{{ experiment.date_created|date:"Y-m-d H:i" }}</td>
 	          </tr>
 	          {% ifnotequal experiment.owner request.user%}
 	          	<tr>

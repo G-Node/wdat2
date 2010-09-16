@@ -45,7 +45,7 @@
 			{% endcomment %}
 		            	<td><a href="{% url profile_detail experiment.owner.username %}" title="{{ experiment.owner.username }}">{{ experiment.owner.username }}</a></td>
                         <td><a href="{{ experiment.get_absolute_url }}">{{ experiment.title }}</a><br><span style="color: grey">{{ experiment.caption }}</span></td>
-                        <td>{{ experiment.date_created }}</td>
+                        <td><nobr>{{ experiment.date_created|date:"Y-m-d H:i" }}</nobr></td>
                         <td>
 			{% for proj in experiment.in_projects.all %}
 				<span><a href="{{ proj.get_absolute_url }}">{{ proj.slug }}</a>, </span>

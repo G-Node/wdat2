@@ -42,7 +42,7 @@
                 {% for dataset in datasets %}
                     <tr>
                         <td><a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a></td>
-                        <td>{{ dataset.date_added|date:"Y-m-d H:i" }}</td>
+                        <td><nobr>{{ dataset.date_added|date:"Y-m-d H:i" }}</nobr></td>
                         <td>{{ dataset.objects_count_str }}</td>
                         <td>{% if dataset.is_Public %}<b style="color: red">Public</b>{% endif %}{% if dataset.is_Friendly %}Friendly{% endif %}{% if dataset.is_Private %}Private{% endif %}</td>
                         <td><nobr><a href="{% url dataset_delete dataset.id %}">{% trans "delete" %}</a></nobr></td>

@@ -41,7 +41,7 @@ class FileSystemStorage(storage.FileSystemStorage):
 
 class Datafile(SafetyLevel):
     # A datafile with its details and raw data files
-    title = models.CharField(_('title'), blank=True, max_length=200)
+    title = models.CharField(_('name'), blank=True, max_length=200)
     caption = models.TextField(_('description'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
     #recording_date = models.DateTimeField(_('recording date'), default=datetime.now)
