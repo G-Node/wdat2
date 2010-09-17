@@ -34,7 +34,7 @@
 		
 		<!-- LOGO -->
 		<div id="logo">
-			<a href="/"><img src="{{ STATIC_URL }}pinax/images/img/logo.gif" alt="G-Node" border="0" /></a>
+			<a href="/"><img src="{{ STATIC_URL }}{{ ADDED_URL }}pinax/images/img/logo.gif" alt="G-Node" border="0" /></a>
 		</div>
 		
 		<!-- LOGO PARTNER -->
@@ -119,7 +119,7 @@
           <li class="{% block navi_profile_class %}{% endblock %}" id="tab_profile"><a href="{% url profile_detail user %}">{% trans "Profile" %}</a></li>
           <li class="{% block navi_inbox_class %}{% endblock %}" id="tab_inbox"><a href="{% url messages_inbox %}">{% trans "Inbox" %} ({{ combined_inbox_count }})</a></li>
           {% if user.is_staff %}
-              <li class="{% block navi_dashboard_class %}{% endblock %}" id="tab_dashboard"><a href="/system_dashboard/">{% trans "Dashboard" %}</a></li>
+              <li class="{% block navi_dashboard_class %}{% endblock %}" id="tab_dashboard"><a href="{% url state_overview %}">{% trans "Dashboard" %}</a></li>
           {% endif %}
 
         {% endspaceless %}</ul>

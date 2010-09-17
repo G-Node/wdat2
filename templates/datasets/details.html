@@ -82,7 +82,7 @@
     
     <div class="left_panel">
         <div class="photo-title">
-            <h2>My Dataset: {{ dataset.title }} {% if not dataset.isActive %}(DELETED){% endif %}</h2>
+            <h2>Dataset: {{ dataset.title }} {% if not dataset.isActive %}(DELETED){% endif %}</h2>
         </div>
         <div id="datasethead">
 	        <table>
@@ -212,9 +212,9 @@
                 $('#add-timeseries').toggle();
                 return false;
             });
-        });
-        $(document.ready(function() {
-                $('#add-datafile').show();
+            //$("#sections").jstree("select_node", "#test2");
+            $('#add-datafile').show();
+            $.tree.focused().select_branch("#"+{{ first_section_id }});
         });
     </script>
     {% endif %}

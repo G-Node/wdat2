@@ -9,6 +9,12 @@ from blog.models import Post
 
 _inbox_count_sources = None
 
+from template_utils.context_processors import settings_processor
+
+pinax_settings = settings_processor(
+    'CONTACT_EMAIL', 'SITE_NAME', 'STATIC_URL', 'ADDED_URL'
+)
+
 def inbox_count_sources():
     global _inbox_count_sources
     if _inbox_count_sources is None:

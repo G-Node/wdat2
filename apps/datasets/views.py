@@ -32,6 +32,10 @@ def create(request, form_class=NewRDatasetForm, template_name="datasets/new.html
                 dataset.owner = request.user
                 dataset.save()
                 dataset_form.save_m2m()
+
+                # create default section to add files
+                section = Section(title="link files here", parent_dataset=dataset, tree_position=1)
+                section.save()
                 
                 request.user.message_set.create(message=_("Successfully created dataset '%s'") % dataset.title)
                 include_kwargs = {"id": dataset.id}

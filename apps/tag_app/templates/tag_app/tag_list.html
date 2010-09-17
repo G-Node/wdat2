@@ -5,6 +5,6 @@
 {% if tags %}
     {% silk "tag_blue" %}
     {% for tag in tags %}
-        <a href="/tags/{{ tag }}">{{ tag }}</a>
+        <a href="/{{ ADDED_URL }}tags/{{ tag }}">{{ tag }}</a>
     {% endfor %}
 {% endif %}
