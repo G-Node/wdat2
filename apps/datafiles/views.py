@@ -166,9 +166,11 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
             elif isinstance(rt, Experiment):
                 par_exprts.append(rt)
 
+    # get the id of the first available section to select it in the tree (onload)
     first_section_id = 0
-    if datafile.section_set.all():
-        first_section_id = datafile.section_set.all()[0].id
+    sections = datafile.section_set.filter(current_state=10).order_by("tree_position")
+    if sections:
+        first_section_id = sections[0].id
 
     return render_to_response(template_name, {
         "datafile": datafile,

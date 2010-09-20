@@ -145,12 +145,15 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
     sections = Section.objects.filter(current_state=10)
     sections = filter(lambda x: x.hasDataset(dataset.id), sections)
     for section in sections:
-        if not section.get_root() in exprts:
-            exprts.append(section.get_root())
+        rt = section.get_root()
+        if not rt in exprts:
+            exprts.append(rt)
 
+    # get the id of the first available section to select it in the tree (onload)
     first_section_id = 0
-    if dataset.section_set.all():
-        first_section_id = dataset.section_set.all()[0].id
+    sections = dataset.section_set.filter(current_state=10).order_by("tree_position")
+    if sections:
+        first_section_id = sections[0].id
 
     return render_to_response(template_name, {
         "dataset": dataset,

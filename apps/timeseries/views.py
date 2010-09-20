@@ -154,8 +154,10 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
                     request.user.message_set.create(message=_("Successfully deleted selected %s time series") % len(ids))
                     redirect_to = reverse("timeseries_main")
                     return HttpResponseRedirect(redirect_to)
-        if t_serie.section_set.all():
-            first_section_id = t_serie.section_set.all()[0].id
+        # get the id of the first available section to select it in the tree (onload)
+        s_c = t_serie.section_set.filter(current_state=10).order_by("tree_position")
+        if s_c:
+            first_section_id = s_c[0].id
     else:
         tserie_edit_form = None
         privacy_form = None
