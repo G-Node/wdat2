@@ -192,7 +192,9 @@ class Section(models.Model):
 
         # recursively copy sections inside
         for sec in cp_section.section_set.filter(current_state=10).order_by("tree_position"):
-            res_tree.append(section.copy_section(sec, sec.tree_position))
+            # this is to exclude self-recursion
+            if not (sec.id == section.id):
+                res_tree.append(section.copy_section(sec, sec.tree_position))
         return res_tree
 
     def getParentSection(self):

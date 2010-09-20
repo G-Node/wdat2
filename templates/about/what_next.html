@@ -6,10 +6,20 @@
 {% block head_title %}{% trans "What Next?" %}{% endblock %}
 
 {% block body %}
-    <h1>{% trans "What Next?" %}</h1>
-    
+    <h1>Welcome to the G-Node Data Platform!</h1>
+
     {% if user.is_authenticated %}
-        <p>The the menu on the top right provides access to the mainly used functions. Here are some suggestions:</p>
+        <p>Here you can upload and organize your data and share selected data with your collaborators.</p>
+
+        <p>Data organization is structured around three main concepts, <b>Projects</b>, <b>Experiments</b>, and <b>Datasets</b>. The main menu at the top of each page reflects this structure.</p>
+
+        <p>Uploaded <b>files</b> containing experimental data, metadata, or other information can be grouped flexibly into <b>datasets</b>. <b>Experiments</b> can be used to group files and datasets that belong to the same experiment. <b>Projects</b> can be used to organize experiments, datasets and files on a certain topic or investigation.</p>
+
+        <p>In addition to grouping and organizing files, it is possible to <b>annotate</b> data by adding metadata in a structured hierarchy of metadata items and sections. This can also be used for a refined structured hierarchical organization of your data. This functionality is currently at an experimental stage and feedback from users is highly welcome.</p>
+
+        <p>By default, data are visible and accessible only to the user who owns them. To <b>exchange data</b> with your collaborators or other scientists, you can make selected files, datasets, experiments, or whole projects available to specified other registered users. Or you can make them public, which means that all registered users can access them.</p>
+
+        <p>To start, it may be useful to go to the <b>Data</b> section and upload some files containing data and metadata, and to group them in a meaningful way by creating respective datasets, experiments, or projects. The menu at the top provides access to the main sections. Here are some shortcuts to suggested tasks:</p>
         
         <dl class="what_next">
             <dt><a href="{% url datafile_create %}">upload data</a></dt>
