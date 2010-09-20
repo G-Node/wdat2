@@ -8,3 +8,4 @@ media/
 patches/
 settings.py
 *~
+*.pyc
