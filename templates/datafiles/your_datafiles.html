@@ -15,7 +15,7 @@
 {% block body %}
     <h1>{% trans "My Datafiles" %}</h1>
     
-    <p>{% trans "A <b>file</b> is typically a raw data file, recorded within experiment. Any <b>file</b> may be futher published or shared with other users." %}</p>
+    <p>{% trans "Files may contain data, <b>metadata</b>, or other information. Files file may be grouped into <b>Datasets</b>, linked to <b>Experiments</b> or <b>Projects</b>, and can be published or shared with other users." %}</p>
     {% if user.is_authenticated %}
     
     {% if not datafiles %}

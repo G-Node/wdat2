@@ -16,7 +16,7 @@
 {% block body %}
     <h1>{% trans "Public Projects" %}</h1>
     
-    <p>{% trans "A <b>Project</b> is a group of scientists working on a common set of tasks. Project contains several experiments, recorded datasets and analytical results. You may join scientific discussions or explore the wiki's inside the project." %}</p>
+    <p>{% trans "A Project can contain several <b>experiments</b>, <b>datasets</b>, and associated <b>files</b>. You can invite other users to join your <b>project</b> for collaborative work, scientific discussions, or to exchange information via <b>wiki pages</b>." %}</p>
     {% if user.is_authenticated %}
             <p><a href="{% url project_create %}">Create</a> your own project.</p>
 
