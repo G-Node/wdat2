@@ -50,7 +50,7 @@ class Datafile(SafetyLevel):
     #in_datasets = models.ManyToManyField(RDataset, blank=True, verbose_name=_('related datasets'))
     #in_expts = models.ManyToManyField(Experiment, blank=True, verbose_name=_('related experiments'))
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
-    raw_file = models.FileField(_('data file'), upload_to=make_upload_path)
+    raw_file = models.FileField(_('data file'), upload_to="data/") # or make_upload_path.. which doesn't work in PROD
     tags = TagField(_('keywords'))
 
     def __unicode__(self):
