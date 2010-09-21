@@ -114,7 +114,7 @@
 	          {% ifnotequal datafile.owner request.user%}
 		          <tr>
 		            <td><strong>Owner:</strong></td>
-		            <td><a href="{% url profile_detail dataset.owner.username %}">{{ datafile.owner.username }}</a></td>
+		            <td><a href="{% url profile_detail datafile.owner.username %}">{{ datafile.owner.username }}</a></td>
 		          </tr>
 	          {% endifnotequal %}
 	          <tr>
