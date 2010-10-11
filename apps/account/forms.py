@@ -4,9 +4,7 @@ import datetime
 from django.conf import settings
 from django import forms
 from django.template.loader import render_to_string
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _, ugettext
-from django.utils.encoding import smart_unicode
 from django.utils.hashcompat import sha_constructor
 
 from pinax.core.utils import get_send_mail
@@ -27,8 +25,7 @@ from account.models import update_other_services
 from account.models import OtherServiceInfo
 
 from captcha.fields import CaptchaField
-from ldap_backend.models import LDAPBackend, getLDAPGroup
-from django.contrib.auth.models import Group
+from ldap_backend.models import LDAPBackend
 
 alnum_re = re.compile(r'^\w+$')
 
@@ -93,45 +90,43 @@ class SignupForm(forms.Form):
     ip_address = forms.CharField(label= _("IP"), max_length=15, required=False, widget=forms.HiddenInput())
 
     def __init__(self, *args, **kwargs):
-	meta = kwargs.pop('meta')
+        meta = kwargs.pop('meta')
         super(SignupForm, self).__init__(*args, **kwargs)
-	if settings.AUTH_LDAP_SWITCHED_ON:
-	    self.l = LDAPBackend()
-	if getattr(settings, 'BEHIND_PROXY', False):
+        if settings.AUTH_LDAP_SWITCHED_ON:
+            self.l = LDAPBackend()
+        if getattr(settings, 'BEHIND_PROXY', False):
             self.fields['ip_address'].initial = meta['HTTP_X_FORWARDED_FOR']
-	else:
-	    self.fields['ip_address'].initial = meta['REMOTE_ADDR']
-    
+        else:
+            self.fields['ip_address'].initial = meta['REMOTE_ADDR']
+
     def clean_username(self):
-	err = "This username is already taken. Please choose another."
+        err = "This username is already taken. Please choose another."
         if not alnum_re.search(self.cleaned_data["username"]):
             raise forms.ValidationError(_("Usernames can only contain letters, numbers and underscores."))
         try:
             user = User.objects.get(username__iexact=self.cleaned_data["username"])
         except User.DoesNotExist:
-	    if settings.AUTH_LDAP_SWITCHED_ON:
+            if settings.AUTH_LDAP_SWITCHED_ON:
 	        # Checking also in LDAP
-		if self.l.getUser(username=self.cleaned_data["username"]) == []:
-		    return self.cleaned_data["username"]
-		else:
-		    err = "Sorry, there is a temporary maintenance in Name server is going. Please try again in 15 mins."
-	    else:
-		return self.cleaned_data["username"]
+                if self.l.getUser(username=self.cleaned_data["username"]) == []:
+                    return self.cleaned_data["username"]
+                else:
+                    err = "Sorry, there is a temporary maintenance in Name server is going. Please try again in 15 mins."
+            else:
+                return self.cleaned_data["username"]
         raise forms.ValidationError(_("%s" % err))
     
     def clean(self):
         if "password1" in self.cleaned_data and "password2" in self.cleaned_data:
             if self.cleaned_data["password1"] != self.cleaned_data["password2"]:
                 raise forms.ValidationError(_("You must type the same password each time."))
-	
-	# check that no more than MAX_REGISTR_FROM_IP_DAILY registrations can be performed per one day
-	ip_addr = self.cleaned_data['ip_address']
-	check_day = datetime.date.today() - datetime.timedelta(1)
-	addresses = OtherServiceInfo.objects.filter(key='ip_address', value=ip_addr)
-	addresses = addresses.filter(user__in=User.objects.extra(where=['date_joined>%s'], params=[check_day]))
-	
-	if addresses.count() > settings.MAX_REGISTR_FROM_IP_DAILY:
-	    raise forms.ValidationError(_("Too many registrations from your IP address. If that's a mistake please contact site administrator."))
+        # check that no more than MAX_REGISTR_FROM_IP_DAILY registrations can be performed per one day
+        ip_addr = self.cleaned_data['ip_address']
+        check_day = datetime.date.today() - datetime.timedelta(1)
+        addresses = OtherServiceInfo.objects.filter(key='ip_address', value=ip_addr)
+        addresses = addresses.filter(user__in=User.objects.extra(where=['date_joined>%s'], params=[check_day]))
+        if addresses.count() > settings.MAX_REGISTR_FROM_IP_DAILY:
+            raise forms.ValidationError(_("Too many registrations from your IP address. If that's a mistake please contact site administrator."))
 
         return self.cleaned_data
     
@@ -170,24 +165,24 @@ class SignupForm(forms.Form):
                 new_user.message_set.create(message=ugettext(u"Confirmation email sent to %(email)s") % {'email': email})
                 EmailAddress.objects.add_email(new_user, email)
 
-	# saving the IP address of the newbie        
-	#ip_addr = self.cleaned_data['ip_address']
-	if getattr(settings, 'BEHIND_PROXY', False):
+        # saving the IP address of the newbie        
+        #ip_addr = self.cleaned_data['ip_address']
+        if getattr(settings, 'BEHIND_PROXY', False):
             ip_addr = meta['HTTP_X_FORWARDED_FOR']
-	else:
-	    ip_addr = meta['REMOTE_ADDR']
-	update_other_services(new_user, ip_address=ip_addr)
+        else:
+            ip_addr = meta['REMOTE_ADDR']
+        update_other_services(new_user, ip_address=ip_addr)
 
-	# updating Profile
-	prfl = Profile.objects.get(user=new_user)
-	prfl.name = self.cleaned_data['name']
-	prfl.location = self.cleaned_data['location']
-	prfl.save()
+        # updating Profile
+        prfl = Profile.objects.get(user=new_user)
+        prfl.name = self.cleaned_data['name']
+        prfl.location = self.cleaned_data['location']
+        prfl.save()
 
         if settings.ACCOUNT_EMAIL_VERIFICATION:
             new_user.is_active = False
             new_user.save()
-	
+
         return username, password # required for authenticate()
 
 
@@ -298,10 +293,10 @@ class ChangePasswordForm(UserForm):
                 raise forms.ValidationError(("Your old password was entered incorrectly. Please enter it again."))
             return old_password
         else:
-            if not self.l.checkPassword(self.user.username,old_password):
+            if not self.l.checkPassword(self.user.username,     old_password):
                 raise forms.ValidationError(("Your old LDAP password was entered incorrectly. Please enter it again."))
             return old_password
-    
+
     def clean_password2(self):
         if "password1" in self.cleaned_data and "password2" in self.cleaned_data:
             if self.cleaned_data["password1"] != self.cleaned_data["password2"]:
@@ -331,14 +326,14 @@ class SetPasswordForm(UserForm):
         return self.cleaned_data["password2"]
     
     def save(self):
-	# reset the password in LDAP, if ldapuser
-	if settings.AUTH_LDAP_SWITCHED_ON:
-	    l = LDAPBackend()
-	    ldap_user = l.getUser(username=self.user.username)
-	    if ldap_user:
+        # reset the password in LDAP, if ldapuser
+        if settings.AUTH_LDAP_SWITCHED_ON:
+            l = LDAPBackend()
+            ldap_user = l.getUser(username=self.user.username)
+            if ldap_user:
                 change = l.changePassword(self.user.username, None, self.cleaned_data['password1'])
-	        if not (change == True): raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
-	# reset in django
+                if not (change == True): raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
+	    # reset in django
         self.user.set_password(self.cleaned_data["password1"])
         self.user.save()
         self.user.message_set.create(message=ugettext(u"Password successfully set."))
