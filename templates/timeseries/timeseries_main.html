@@ -277,7 +277,7 @@
         </form>
         {% endif %}
 
-        {% if t_serie.hasMetadata %}
+        {% if t_serie.has_metadata %}
         <h2>{% trans "Metadata" %}</h2>
 
         {% with t_serie as tree_container %}
@@ -324,7 +324,7 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_details_privacy.js"></script>
 
-    {% if t_serie.hasMetadata %}
+    {% if t_serie.has_metadata %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>

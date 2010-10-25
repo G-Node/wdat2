@@ -2,13 +2,13 @@ from django.db import models
 from django.contrib.auth.models import User
 from datetime import datetime
 #from metadata.models import Section
-from state_machine.models import SafetyLevel
+from state_machine.models import SafetyLevel, MetadataManager
 from tagging.fields import TagField
 from django.conf import settings
 
 from django.utils.translation import ugettext_lazy as _
 
-class TimeSeries(SafetyLevel):
+class TimeSeries(SafetyLevel, MetadataManager):
     # A class representing timeseries data. May be linked to a section in 
     # the metadata.
     TYPES = (
