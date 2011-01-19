@@ -207,6 +207,11 @@ class Section(models.Model):
         # make a copy of a section, self = a place to copy
         section_id = int(section.id)
         section.id = None
+        section.parent_exprt = None
+        section.parent_dataset = None
+        section.parent_datafile = None
+        section.parent_timeseries = None
+        section.parent_section = None
         if prnt:
             # parent object is not a Section
             prn_obj = self.getParentObject()
