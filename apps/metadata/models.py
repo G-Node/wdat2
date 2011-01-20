@@ -9,19 +9,18 @@ from timeseries.models import TimeSeries
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
 
+STATES = (
+    (10, _('Active')),
+    (20, _('Deleted')),
+    (30, _('Archived')),
+)
+
 class Section(models.Model):
     """
     Class represents a metadata "Section". Used to organize experiment / dataset
      / file / timeseries metadata in a tree-like structure. May be linked to 
     Experiment, Dataset, File, Timeseries or itself.
     """
-    STATES = (
-        (10, _('Active')),
-        (20, _('Deleted')),
-        (30, _('Archived')),
-    )
-    # the state is not inherited from state_machine module due to 
-    # the complexity of the DB structure
     current_state = models.IntegerField(_('state'), choices=STATES, default=10)
     title = models.CharField(_('title'), max_length=100)
     description = models.TextField(_('description'), blank=True)
@@ -47,35 +46,12 @@ class Section(models.Model):
     def __unicode__(self):
         return self.title
 
-    #################
-    # GET OPERATORS #
-    #################
-
-    def get_owner(self):
-        metadata_root = self.get_root()
-        if metadata_root:
-            return metadata_root.owner
-        else:
-            return None
-
-    def does_belong_to(self, user):
-        metadata_root = self.get_root()
-        if metadata_root is not None:
-            if metadata_root.owner == user: return True
-        return False
-
-    def is_accessible(self, user):
-        # indicates whether this section belongs to some complex object
-        if self.get_root():
-            if self.get_root().is_accessible(user):
-                return True
-            else:
-                return False
-        # if there is no "root" object, then it's a template
-        else:
-            return True
-
     def get_root(self):
+        """
+        Returns the root of the metadata tree ("odML document"), in other words,
+        Experiment, or Dataset or etc., to which current metadata tree is 
+        attached to.
+        """
         if self.parent_section is not None:
             return self.parent_section.get_root()
         elif self.parent_exprt is not None:
@@ -88,6 +64,23 @@ class Section(models.Model):
             return self.parent_timeseries
         else:
             return None
+
+    def get_owner(self):
+        metadata_root = self.get_root()
+        if metadata_root:
+            return metadata_root.owner
+        return None
+
+    def does_belong_to(self, user):
+        if self.get_owner() == user:
+            return True
+        return False
+
+    def is_accessible(self, user):
+        if not self.is_template:
+            if not self.get_root().is_accessible(user):
+                return False
+        return True
 
     def get_tree(self):
         sec_tree = []
@@ -109,13 +102,7 @@ class Section(models.Model):
         sec_tree += '}, '
         return sec_tree
 
-    def getParentSection(self):
-        if self.parent_section:
-            return self.parent_section
-        else:
-            return None
-
-    def getParentObject(self):
+    def get_parent(self):
         if self.parent_section:
             return self.parent_section
         else:
@@ -127,69 +114,56 @@ class Section(models.Model):
                 return self.parent_datafile
             elif self.parent_timeseries:
                 return self.parent_timeseries
-            else:
-                return None
+        return None
 
-    def getActiveProperties(self):
+    def get_active_properties(self):
         return self.property_set.filter(current_state=10)	    
 
-    def getActiveDatasets(self):
+    def get_active_datasets(self):
         return self.rel_datasets.filter(current_state=10)	    
-    def hasDataset(self, dataset_id):
+    def has_dataset(self, dataset_id):
         if self.rel_datasets.filter(current_state=10, id=dataset_id):
             return True
         return False
 
-    def getActiveDatafiles(self):
+    def get_active_datafiles(self):
         return self.rel_datafiles.filter(current_state=10)	    
-    def hasDatafile(self, datafile_id):
+    def has_datafile(self, datafile_id):
         if self.rel_datafiles.filter(current_state=10, id=datafile_id):
             return True
         return False
 
-    def getActiveTimeSeries(self):
+    def get_active_timeseries(self):
         return self.rel_timeseries.filter(current_state=10)	    
-    def hasTimeSeries(self, tserie_id):
+    def has_timeserie(self, tserie_id):
         if self.rel_timeseries.filter(current_state=10, id=tserie_id):
             return True
         return False
 
-    def hasChild(self):
-        if self.getActiveProperties() or self.getActiveDatasets() or self.getActiveDatafiles() or self.getActiveTimeSeries():
+    def has_child(self):
+        if self.get_active_properties() or self.get_active_datasets() or self.get_active_datafiles() or self.get_active_timeseries():
             return True
         return False
 
-    def getMaxChildPos(self):
-        sec_childs = self.section_set.all().order_by("-tree_position")
-        if sec_childs:
-            tree_pos = int(sec_childs.all()[0].tree_position)
-        else:
-            tree_pos = 0
-        return tree_pos
-
-    def get_objects_count(self):
-        # return sequence: datasets no, datafiles no, time series no, files volume
-        datasets_no = 0
-        datafiles_no = 0
-        timeseries_no = 0
+    def get_objects_count(self, r=True):
+        """
+        Returns sequence: datasets #, datafiles #, time series #, files volume
+        Recursive, if r is True
+        """
         files_vo = 0
-        datasets_no += self.rel_datasets.filter(current_state=10).count()
-        datafiles_no += self.rel_datafiles.filter(current_state=10).count()
-        timeseries_no += self.rel_timeseries.filter(current_state=10).count()
+        datasets_no = self.rel_datasets.filter(current_state=10).count()
+        datafiles_no = self.rel_datafiles.filter(current_state=10).count()
+        timeseries_no = self.rel_timeseries.filter(current_state=10).count()
         for f in self.rel_datafiles.filter(current_state=10):
             files_vo += f.raw_file.size
-        if self.section_set.all().filter(current_state=10):
+        if r:
             for section in self.section_set.all().filter(current_state=10):
-                s1, s2, s3, s4 = section.get_objects_count()
-                datasets_no += s1
-                datafiles_no += s2
-                timeseries_no += s3
-                files_vo += s4
+                    s1, s2, s3, s4 = section.get_objects_count()
+                    datasets_no += s1
+                    datafiles_no += s2
+                    timeseries_no += s3
+                    files_vo += s4
         return datasets_no, datafiles_no, timeseries_no, files_vo
-
-    ######################
-    # SECTION OPERATIONS #
-    ######################
 
     def rename(self, new_title):
         self.title = new_title
@@ -202,9 +176,12 @@ class Section(models.Model):
             return True
         return False
 
-    def copy_section(self, section, pos, prnt=0):
+    def copy_section(self, section, pos, prnt=False):
+        """
+        Makes a copy of a given section, placing a copy into self.
+        If prnt is True, then section stays at the top (root) of the document.
+        """
         res_tree = []
-        # make a copy of a section, self = a place to copy
         section_id = int(section.id)
         section.id = None
         section.parent_exprt = None
@@ -214,7 +191,7 @@ class Section(models.Model):
         section.parent_section = None
         if prnt:
             # parent object is not a Section
-            prn_obj = self.getParentObject()
+            prn_obj = self.get_parent()
             if isinstance(prn_obj, Experiment):
                 section.parent_exprt = prn_obj
             elif isinstance(prn_obj, RDataset):
@@ -233,7 +210,7 @@ class Section(models.Model):
         new_id = section.id
         res_tree.append(new_id)
         # copy all properties
-        for prop in cp_section.getActiveProperties():
+        for prop in cp_section.get_active_properties():
             prop.id = None
             prop.parent_section = new_id
             #prop.prop_date_created = datetime.now # setup later
@@ -256,8 +233,7 @@ class Section(models.Model):
         return res_tree
 
     def increaseTreePos(self):
-        a = self.tree_position
-        self.tree_position = a + 1
+        self.tree_position += 1
         self.save()
 
     def clean_parent(self):
@@ -290,13 +266,6 @@ class Property(models.Model):
     Class represents a metadata "Property". Defines any kind of metadata 
     property and may be linked to the Section.
     """
-    STATES = (
-        (10, _('Active')),
-        (20, _('Deleted')),
-        (30, _('Archived')),
-    )
-    # the state is not inherited from state_machine module due to 
-    # the complexity of the DB structure
     current_state = models.IntegerField(_('state'), choices=STATES, default=10)
     prop_title = models.CharField(_('title'), max_length=100)
     prop_value = models.TextField(_('value'), blank=True)

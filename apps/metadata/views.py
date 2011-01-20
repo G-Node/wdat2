@@ -117,7 +117,7 @@ def section_move(request, template_name="metadata/move_copy.html"):
                 section.save()
                 status = 1
             elif pos_type == "after":
-                parent = ref_section.getParentObject()
+                parent = ref_section.get_parent()
                 if parent:
                     section.tree_position = ref_section.tree_position + 1
                     if isinstance(parent, Section):
@@ -147,7 +147,7 @@ def section_move(request, template_name="metadata/move_copy.html"):
                     section.save()
                     status = 1
             elif pos_type == "before":
-                parent = ref_section.getParentObject()
+                parent = ref_section.get_parent()
                 if parent:
                     section.tree_position = ref_section.tree_position
                     if isinstance(parent, Section):
@@ -195,9 +195,8 @@ def section_copy(request, template_name="metadata/move_copy.html"):
             if pos_type == "inside":
                 status = ref_section.copy_section(section, 1)
             elif pos_type == "after":
-                parent = ref_section.getParentObject()
+                parent = ref_section.get_parent()
                 if parent:
-                    #if parent.getMaxChildPos() > ref_section.tree_position:
                     if isinstance(parent, Section):
                         secs = parent.section_set.filter(tree_position__gt=ref_section.tree_position)
                         prnt = 0
@@ -216,14 +215,14 @@ def section_copy(request, template_name="metadata/move_copy.html"):
                         sec.increaseTreePos()
                     if prnt:
                         # parent is "complex" oblect - Experiment, Dataset etc.
-                        status = ref_section.copy_section(section, ref_section.tree_position + 1, 1)
+                        status = ref_section.copy_section(section, ref_section.tree_position + 1, True)
                     else:
                         # parent is "simple" oblect - Section
                         status = parent.copy_section(section, ref_section.tree_position + 1)
                 else:
                     status = -1
             elif pos_type == "before":
-                parent = ref_section.getParentObject()
+                parent = ref_section.get_parent()
                 if parent:
                     if isinstance(parent, Section):
                         secs = parent.section_set.filter(tree_position__gte=ref_section.tree_position)
@@ -243,7 +242,7 @@ def section_copy(request, template_name="metadata/move_copy.html"):
                         sec.increaseTreePos()
                     if prnt:
                         # parent is "complex" oblect - Experiment, Dataset etc.
-                        status = ref_section.copy_section(section, ref_section.tree_position, 1)
+                        status = ref_section.copy_section(section, ref_section.tree_position, True)
                     else:
                         # parent is "simple" oblect - Section
                         status = parent.copy_section(section, ref_section.tree_position)

@@ -143,7 +143,7 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
     # get the parent experiments to which dataset is linked to
     exprts = []
     sections = Section.objects.filter(current_state=10)
-    sections = filter(lambda x: x.hasDataset(dataset.id), sections)
+    sections = filter(lambda x: x.has_dataset(dataset.id), sections)
     for section in sections:
         rt = section.get_root()
         if not rt in exprts:

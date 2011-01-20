@@ -1,8 +1,8 @@
 {% load i18n %}
 
 {% if section %}
-    {% if section.hasChild %}
-    {% if section.getActiveProperties %}
+    {% if section.has_child %}
+    {% if section.get_active_properties %}
         <h2>{% trans "Properties" %}</h2>
         <table class="messages">
             <thead style="color: grey;">
@@ -13,7 +13,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for property in section.getActiveProperties %}
+                {% for property in section.get_active_properties %}
                     <tr>
                         <td><a href="#" alt="{{ property.prop_name_definition }}" title="{{ property.prop_name_definition }}">{{ property.prop_title }}</a></td>
                         <td>{{ property.prop_value }}</td>
@@ -29,7 +29,7 @@
         </table>
     {% endif %}
 
-    {% if section.getActiveDatasets %}
+    {% if section.get_active_datasets %}
         <h2>{% trans "Datasets" %}</h2>
         <table class="messages">
             <thead style="color: grey;">
@@ -40,7 +40,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for dataset in section.getActiveDatasets %}
+                {% for dataset in section.get_active_datasets %}
                     <tr>
                         <td><a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a></td>
                         <td>{{ dataset.date_added }}</td>
@@ -55,7 +55,7 @@
         </table>
     {% endif %}
 
-    {% if section.getActiveDatafiles %}
+    {% if section.get_active_datafiles %}
         <h2>{% trans "Datafiles" %}</h2>
         <table class="messages">
             <thead style="color: grey;">
@@ -66,7 +66,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for datafile in section.getActiveDatafiles %}
+                {% for datafile in section.get_active_datafiles %}
                     <tr>
                         <td><a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a></td>
                         <td>{{ datafile.date_added }}</td>
@@ -81,7 +81,7 @@
         </table>
     {% endif %}
 
-    {% if section.getActiveTimeSeries %}
+    {% if section.get_active_timeseries %}
         <h2>{% trans "Time Series Data" %}</h2>
         <table class="messages">
             <thead style="color: grey;">
@@ -92,7 +92,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for serie in section.getActiveTimeSeries %}
+                {% for serie in section.get_active_timeseries %}
                     <tr>
                         <td><a href="{{ serie.get_absolute_url }}">{{ serie.title }}</a></td>
                         <td>{{ serie.date_created }}</td>
