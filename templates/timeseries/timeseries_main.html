@@ -33,7 +33,7 @@
       text: 'Click and drag in the plot area to zoom in'
    },
    xAxis: {
-      maxZoom: 2 * {{ t_serie.getTimeStep }}, 
+      maxZoom: 2 * {{ t_serie.get_time_step }}, 
       title: {
          text: null
       }
@@ -87,7 +87,7 @@
    series: [{
       type: 'area',
       name: '',
-      pointInterval: {{ t_serie.getTimeStep }},
+      pointInterval: {{ t_serie.get_time_step }},
       pointStart: {{ chunks_start }},
       data: [
         {{ data_chunks }}
@@ -271,9 +271,9 @@
         {% endifequal %}
 
         <div id="container" style="width: 700px; height: 300px; margin: 0 auto"></div>
-        {% if t_serie.hasChunks %}
+        {% if t_serie.has_chunks %}
         <form method="GET" action="">
-             <p>This time serie has {{ t_serie.datapointsCount }} datapoints. To view next {{ max_datapoints_display }} points as of <input style="width: 50px;" type="text" name="chunks_start" value="{{ chunks_start }}" /> please click <input type="submit" value="Display" /></p>
+             <p>This time serie has {{ t_serie.datapoints_count }} datapoints. To view next {{ max_datapoints_display }} points as of <input style="width: 50px;" type="text" name="chunks_start" value="{{ chunks_start }}" /> please click <input type="submit" value="Display" /></p>
         </form>
         {% endif %}
 

@@ -51,7 +51,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         tserie_add_form = AddTSfromFieldForm(request.POST or None)
         if tserie_add_form.is_valid():
             tserie = tserie_add_form.save(commit=False)
-            tserie.title = tserie.getNextCounter(request.user)
+            tserie.title = tserie.get_next_counter(request.user)
             tserie.owner = request.user
             tserie.save()
                     
@@ -87,7 +87,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
             for item in add_from_file_form.cleaned_data['datafile']:
                 tserie = TimeSeries(data=item[0], data_type=add_from_file_form.cleaned_data['data_type'], time_step=add_from_file_form.cleaned_data['time_step'],
                     time_step_items=add_from_file_form.cleaned_data['time_step_items'], tags=add_from_file_form.cleaned_data['tags'])
-                tserie.title = tserie.getNextCounter(request.user)
+                tserie.title = tserie.get_next_counter(request.user)
                 tserie.owner = request.user
                 tserie.save()
                 if dataset:
@@ -111,7 +111,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
             chunks_start = int(ch_st)
         except:
             chunks_start = 0
-        data_chunks, chunks_start = t_serie.getDataChunk(chunks_start)
+        data_chunks, chunks_start = t_serie.get_data_chunk(chunks_start)
         # get the parent objects to which this t_serie is linked to
         sections = Section.objects.filter(current_state=10)
         sections = filter(lambda x: x.has_timeserie(t_serie.id), sections)
