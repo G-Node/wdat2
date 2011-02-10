@@ -106,7 +106,7 @@
 	          
         <p>{{ project.description }}</p>
         
-        {% ifequal user project.creator %}
+        {% if is_creator %}
             <div class="form-toggle">
                 <p>&raquo; <span id="edit-project-toggle">{% trans "Edit details" %}</span></p>
                 
@@ -121,12 +121,12 @@
                 </form>
             </div>
             
-        {% endifequal %}
+        {% endif %}
         
         {% if user.is_authenticated %}
             <div>
                 {% if is_member %}
-                    {% ifequal user project.creator %}
+                    {% if is_creator %}
                         <p>You are the creator of this project.</p>
                         
                         <div class="form-toggle">
@@ -161,7 +161,7 @@
                         </form>
                     {% else %}
                         <p>You are member of this project.</p>
-                    {% endifequal %}
+                    {% endif %}
                 {% else %}
                     <p>It is up to the creator of this project (<a href="{% url profile_detail project.creator.username %}">{{ project.creator }}</a>) to add you.</p>
                 {% endif %}
@@ -172,11 +172,11 @@
 
         <h2>{% trans "Related Experiments" %}</h2>
             {% with "experiment" as obj %}
-            {% ifequal project.creator user %}
+            {% if is_creator or is_member %}
                 {% with exprt_form as object_form %}
                     {% include "projects/link_object.html" %}
                 {% endwith %}
-            {% endifequal %}
+            {% endif %}
 
             {% with experiments as objects %}
             {% with exprt_remove_form as obj_remove_form %}
@@ -189,11 +189,11 @@
 
         <h2>{% trans "Related Datasets" %}</h2>
             {% with "dataset" as obj %}
-            {% ifequal project.creator user %}
+            {% if is_creator or is_member %}
                 {% with dataset_form as object_form %}
                     {% include "projects/link_object.html" %}
                 {% endwith %}
-            {% endifequal %}
+            {% endif %}
 
             {% with datasets as objects %}
             {% with dataset_remove_form as obj_remove_form %}
@@ -206,11 +206,11 @@
 
         <h2>{% trans "Related Datafiles" %}</h2>
             {% with "datafile" as obj %}
-            {% ifequal project.creator user %}
+            {% if is_creator or is_member %}
                 {% with datafile_form as object_form %}
                     {% include "projects/link_object.html" %}
                 {% endwith %}
-            {% endifequal %}
+            {% endif %}
 
             {% with datafiles as objects %}
             {% with datafile_remove_form as obj_remove_form %}

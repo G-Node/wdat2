@@ -138,15 +138,17 @@ def your_projects(request, template_name="projects/your_projects.html"):
 def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form_class=AddUserForm, 
         template_name="projects/project.html"):
     project = get_object_or_404(Project, slug=group_slug)
-    
+    is_creator = False
+
     if not request.user.is_authenticated():
         is_member = False
     else:
         is_member = project.user_is_member(request.user)
 
+    action = request.POST.get("action")
     if request.user == project.creator:
+        is_creator = True
         # update details handler    
-        action = request.POST.get("action")
         if action == "update":
             project_form = form_class(request.POST, instance=project)
             if project_form.is_valid():
@@ -162,7 +164,11 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
                 adduser_form = adduser_form_class(project=project) # clear form
         else:
             adduser_form = adduser_form_class(project=project)
+    else:
+        adduser_form = None
+        project_form = None
 
+    if request.user == project.creator or is_member:
         # assign new experiment handler
         if action == "new_experiment":
             exprt_form = AddObjectForm(request.POST, user=request.user, project=project, obj_type="experiment")
@@ -235,8 +241,6 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
         else:
             datafile_remove_form = RemoveObjectForm(user=request.user, project=project, obj_type="datafile")
     else:
-        adduser_form = None
-        project_form = None
         exprt_form = None
         exprt_remove_form = None
         dataset_form = None
@@ -257,6 +261,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
         "project": project,
         "group": project, # @@@ this should be the only context var for the project
         "is_member": is_member,
+        "is_creator": is_creator,
         "experiments": experiments,
         "exprt_form": exprt_form,
         "exprt_remove_form": exprt_remove_form,

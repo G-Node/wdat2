@@ -12,11 +12,12 @@
                     <tr>
                         <th>{% trans "Title" %}</th>
                         <th>{% trans "Caption" %}</th>
+                        <th>{% trans "Owner" %}</th>
                         <th>{% trans "Keywords" %}</th>
                         <th>{% trans "State" %}</th>
-                        {% ifequal project.creator user %}
+                        {% if is_creator or is_member %}
                             <th>{% trans "Action" %}</th>
-                        {% endifequal %}
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -26,20 +27,23 @@
                         <a href="{{ o.get_absolute_url }}">{{ o.title }}</a>
                     </td>
                     <td>{{ o.caption|truncate_dot:150|escape }}</td>
+                    <td><a href="{% url profile_detail o.owner.username %}">{{ o.owner.username }}</a></td>
                     <td>{% show_tags_for o %}</td>
                     <td>{% if o.is_Public %}<b style="color: red">Public</b>{% endif %}{% if o.is_Friendly %}Friendly{% endif %}{% if o.is_Private %}Private{% endif %}</td>
-                    {% ifequal project.creator user %}
-                        <td><nobr><input id="id_for_remove_choices_{{ o.id }}" type="checkbox" value="{{ o.id }}" name="for_remove_choices"/></nobr></td>
-                    {% endifequal %}
+                    {% if is_creator or is_member %}
+                        <td><nobr><input id="id_for_remove_choices_{{ o.id }}" type="checkbox" 
+                            value="{{ o.id }}" name="for_remove_choices" {% if not is_creator %}{% ifnotequal o.owner user %}disabled{% endifnotequal %}{% endif %}/></nobr>
+                        </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
                 </tbody>
             </table>
     	{% paginate %}
-            {% ifequal project.creator user %}
+            {% if is_creator or is_member %}
                 <input type="hidden" name="action" value="remove_{{ obj }}s" />
                 <input type="submit" value="{% trans "remove selected" %}"/>
-            {% endifequal %}
+            {% endif %}
         </form>
         {% else %}
             <p>No {{ obj }}s are linked to the project.</p>
