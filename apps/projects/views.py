@@ -169,7 +169,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             if exprt_form.is_valid():
                 sets = exprt_form.cleaned_data['objects_to_add']
                 for s in sets:
-                    s.addLinkedProject(project)
+                    s.add_linked_project(project)
                     s.save()
                 request.user.message_set.create(message=_("Successfully added experiments to '%s'") % project.slug)
         else:
@@ -181,7 +181,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             if exprt_remove_form.is_valid():
                 ids = exprt_remove_form.cleaned_data['for_remove_choices'] 
                 for exprt in Experiment.objects.filter(id__in=ids):
-                    exprt.removeLinkedProject(project)
+                    exprt.remove_linked_project(project)
                     exprt.save()
                 request.user.message_set.create(message=_("Successfully removed selected experiments from '%s'") % project.slug)
         else:
@@ -193,7 +193,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             if dataset_form.is_valid():
                 sets = dataset_form.cleaned_data['objects_to_add']
                 for s in sets:
-                    s.addLinkedProject(project)
+                    s.add_linked_project(project)
                     s.save()
                 request.user.message_set.create(message=_("Successfully added datasets to '%s'") % project.slug)
         else:
@@ -205,7 +205,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             if dataset_remove_form.is_valid():
                 ids = dataset_remove_form.cleaned_data['for_remove_choices'] 
                 for dataset in RDataset.objects.filter(id__in=ids):
-                    dataset.removeLinkedProject(project)
+                    dataset.remove_linked_project(project)
                     dataset.save()
                 request.user.message_set.create(message=_("Successfully removed selected datasets from '%s'") % project.slug)
         else:
@@ -217,7 +217,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             if datafile_form.is_valid():
                 sets = datafile_form.cleaned_data['objects_to_add']
                 for s in sets:
-                    s.addLinkedProject(project)
+                    s.add_linked_project(project)
                     s.save()
                 request.user.message_set.create(message=_("File(s) were successfully added to '%s'") % project.slug)
         else:
@@ -229,7 +229,7 @@ def project(request, group_slug=None, form_class=ProjectUpdateForm, adduser_form
             if datafile_remove_form.is_valid():
                 ids = datafile_remove_form.cleaned_data['for_remove_choices'] 
                 for datafile in Datafile.objects.filter(id__in=ids):
-                    datafile.removeLinkedProject(project)
+                    datafile.remove_linked_project(project)
                     datafile.save()
                 request.user.message_set.create(message=_("Successfully removed selected datafiles from '%s'") % project.slug)
         else:

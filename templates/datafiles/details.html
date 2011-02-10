@@ -114,7 +114,7 @@
 	          {% ifnotequal datafile.owner request.user%}
 		          <tr>
 		            <td><strong>Owner:</strong></td>
-		            <td><a href="{% url profile_detail dataset.owner.username %}">{{ datafile.owner.username }}</a></td>
+		            <td><a href="{% url profile_detail datafile.owner.username %}">{{ datafile.owner.username }}</a></td>
 		          </tr>
 	          {% endifnotequal %}
 	          <tr>
@@ -141,7 +141,7 @@
         <p>You may <a href="{{ datafile.raw_file.url }}">Download</a> {% ifequal request.user datafile.owner %}your{% else %}this{% endifequal %} File.
         
 
-        {% if datafile.hasMetadata %}
+        {% if datafile.has_metadata %}
         <h2>{% trans "Related Data and Metadata" %}</h2>
 
         {% with datafile as tree_container %}
@@ -189,7 +189,7 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/add_root_section.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_details_privacy.js"></script>
 
-    {% if datafile.hasMetadata %}
+    {% if datafile.has_metadata %}
     <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.tree.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/delete_metadata_items.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/edit_property.js"></script>

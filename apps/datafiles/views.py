@@ -157,7 +157,7 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
     par_datasets = []
     par_exprts = []
     sections = Section.objects.filter(current_state=10)
-    sections = filter(lambda x: x.hasDatafile(datafile.id), sections)
+    sections = filter(lambda x: x.has_datafile(datafile.id), sections)
     for section in sections:
         rt = section.get_root()
         if rt and (not rt in par_datasets) and (not rt in par_exprts):

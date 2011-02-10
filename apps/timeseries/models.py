@@ -2,13 +2,13 @@ from django.db import models
 from django.contrib.auth.models import User
 from datetime import datetime
 #from metadata.models import Section
-from state_machine.models import SafetyLevel
+from state_machine.models import SafetyLevel, MetadataManager
 from tagging.fields import TagField
 from django.conf import settings
 
 from django.utils.translation import ugettext_lazy as _
 
-class TimeSeries(SafetyLevel):
+class TimeSeries(SafetyLevel, MetadataManager):
     # A class representing timeseries data. May be linked to a section in 
     # the metadata.
     TYPES = (
@@ -60,30 +60,52 @@ class TimeSeries(SafetyLevel):
         self.title = new_title
         self.save()
 
-    def getNextCounter(self, user):
+    def get_next_counter(self, user):
+        """
+        Next number to automatically assign as a name to the next Time Serie.
+        """
         c = TimeSeries.objects.filter(owner=user).count()
         title = (_("%s") % c)
         while len(title) < 8:
             title = "0" + title
         return title
 
-    def hasChunks(self):
+    def datapoints_count(self):
+        """
+        Number of datapoints.
+        """
+        return len(self.data.split(', '))
+
+    def get_data(self):
+        return self.data
+
+    def get_data_list(self):
+        """
+        Returns a list of data values.
+        """
+        l = []
+        for s in self.data.split(', '):
+            l.append(float(s))
+        return l
+
+    def has_chunks(self):
+        """
+        True if there is more datapoints than can be displayed on the page.
+        """
         if len(self.data.split(', ')) > settings.MAX_DATAPOINTS_DISPLAY:
             return True
         else:
             return False
 
-    def datapointsCount(self):
-        return len(self.data.split(', '))
-
-    def getData(self):
-        return self.data
-
-    def getDataChunk(self, start_point):
+    def get_data_chunk(self, start_point):
+        """
+        Returns a chunk of data starting from a given point. Used to display data
+        on the page.
+        """
         result = ""
         st = start_point
         f1 = self.data.split(', ')
-        if self.hasChunks():
+        if self.has_chunks():
             if start_point > 0 and start_point < len(f1):
                 if start_point + settings.MAX_DATAPOINTS_DISPLAY < len(f1):
                     f2 = f1[start_point:start_point + settings.MAX_DATAPOINTS_DISPLAY]
@@ -96,14 +118,14 @@ class TimeSeries(SafetyLevel):
                 result += ', ' + str(a)
             result = result[2:]
         else:
-            result = self.getData()
+            result = self.get_data()
         return result, st
 
-    def getTimeStep(self):
+    def get_time_step(self):
         return self.time_step
 
 """
-    def getDataChunks1(self):
+    def get_data_chunks(self):
         a = 0
         result = []
         data = self.data.split(', ')

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.shortcuts import render_to_response
-from django.http import HttpResponseRedirect, HttpResponseForbidden, Http404
+from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.db.models import Q
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
@@ -56,12 +56,12 @@ def signup(request, form_class=SignupForm,
     if success_url is None:
         success_url = get_default_redirect(request)
     if request.method == "POST":
-	# assign an IP from request META instead of taking value from hidden field, may be hacked
-	real_post = request.POST.copy()
-	if getattr(settings, 'BEHIND_PROXY', False):
+        # assign an IP from request META instead of taking value from hidden field, may be hacked
+        real_post = request.POST.copy()
+        if getattr(settings, 'BEHIND_PROXY', False):
             real_post['ip_address'] = request.META['HTTP_X_FORWARDED_FOR']
-	else:
-	    real_post['ip_address'] = request.META['REMOTE_ADDR']
+        else:
+            real_post['ip_address'] = request.META['REMOTE_ADDR']
         form = form_class(real_post or None, meta=request.META)
         if form.is_valid():
             username, password = form.save(meta=request.META)

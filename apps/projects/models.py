@@ -10,7 +10,6 @@ from groups.base import Group
 class Project(Group):
     
     member_users = models.ManyToManyField(User, through="ProjectMember", verbose_name=_('members'))
-    
     # private means only members can see the project
     private = models.BooleanField(_('private'), default=True)
     
