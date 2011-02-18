@@ -16,7 +16,9 @@ urlpatterns = patterns('',
     #delete datafile
     url(r'^delete/(?P<id>\d+)/$', 'datafiles.views.datafileDelete', name='datafile_delete'),
     
-    # test upload
-    #url(r'^test_upload/$', 'datafiles.views.test_upload', name='test_upload'),
+    # test GWT upload pages
+    url(r'^upload_page/$', 'datafiles.views.upload_page', name='upload_page'),
+    url(r'^upload_file/$', 'datafiles.views.upload_file', name='upload_file'),
+    # file upload status for progress bar 
     url(r'^upload_progress/$', 'datafiles.views.upload_progress', name='upload_progress'),
 )

@@ -63,20 +63,18 @@
 		$(this).bind('submit', function() {
 			var uuid = "";
 			for (i = 0; i < 32; i++) { uuid += Math.floor(Math.random() * 16).toString(16); }
-			
-                        /* update uuid */
-                        options.uuid = uuid;
-			/* start callback */
-                        options.start();
-
-			/* patch the form-action tag to include the progress-id 
-                           if X-Progress-ID has been already added just replace it */
-                        if(old_id = /X-Progress-ID=([^&]+)/.exec($(this).attr("action"))) {
-                          var action = $(this).attr("action").replace(old_id[1], uuid);
-                          $(this).attr("action", action);
-                        } else {
-			  $(this).attr("action", jQuery(this).attr("action") + "?X-Progress-ID=" + uuid);
-			}
+                /* update uuid */
+                options.uuid = uuid;
+                /* start callback */
+                options.start();
+                /* patch the form-action tag to include the progress-id 
+                if X-Progress-ID has been already added just replace it */
+                if(old_id = /X-Progress-ID=([^&]+)/.exec($(this).attr("action"))) {
+                    var action = $(this).attr("action").replace(old_id[1], uuid);
+                    $(this).attr("action", action);
+                } else {
+                    $(this).attr("action", jQuery(this).attr("action") + "?X-Progress-ID=" + uuid);
+                }
 			var uploadProgress = $.browser.safari ? progressFrame.jQuery.uploadProgress : jQuery.uploadProgress;
 			options.timer = window.setInterval(function() { uploadProgress(this, options) }, options.interval);
 		});
@@ -94,21 +92,17 @@ jQuery.uploadProgress = function(e, options) {
 		success: function(upload) {
 			if (upload.state == 'uploading') {
 				upload.percents = Math.floor((upload.received / upload.size)*1000)/10;
-				
 				var bar = $.browser.safari ? $(options.progressBar, parent.document) : $(options.progressBar);
 				bar.css({width: upload.percents+'%'});
 			  	options.uploading(upload);
 			}
-			
 			if (upload.state == 'done' || upload.state == 'error') {
 				window.clearTimeout(options.timer);
 				options.complete(upload);
 			}
-			
 			if (upload.state == 'done') {
 				options.success(upload);
 			}
-			
 			if (upload.state == 'error') {
 				options.error(upload);
 			}

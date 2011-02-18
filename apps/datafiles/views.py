@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
+from django.utils import simplejson
 
 import logging
 import mimetypes
@@ -18,11 +19,72 @@ from datafiles.models import Datafile
 from datasets.models import RDataset
 from experiments.models import Experiment
 from metadata.models import Section
-from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
+from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm, GWTDatafileForm
 from metadata.forms import AddPropertyForm, LinkTSForm
 
-#LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
+#LOG_FILENAME = '/home/sobolev/apps/pinax-source/g-node-portal/logs/test_update.txt'
 #logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
+
+"""
+Multiple file upload handling using XHR/Google Web Toolkit as a Client:
+- upload_page
+- upload_file
+"""
+def upload_page(request):
+    """
+    Return XML object with information about the progress of an upload.
+    """
+    # This is a default XML response. Used by gwtupload to initiate the upload.
+    response = '<?xml version="1.0" encoding="UTF-8"?>\n<response><blobstore>false</blobstore></response>'
+    if request.GET.get("X-Progress-ID"):
+        progress_id = request.GET.get("X-Progress-ID")
+        cache_key = "%s_%s" % (request.META['REMOTE_ADDR'], progress_id)
+        if cache.get("cancel_" + cache_key):
+            # send a "cancelled" response if a request to cancel was received previously
+            response = '<?xml version="1.0" encoding="UTF-8"?>\n<response><canceled>true</canceled>\n<finished>canceled</finished></response>'
+            cache.delete("cancel_" + cache_key)
+        else:
+            data = cache.get(cache_key)
+            if data:
+                # file is being uploaded. send an upload progress update
+                rec = str(data['received'])
+                tot = str(data['size'])
+                percent = str(int(round((float(data['received'])/float(data['size']))*100)))
+                response = '<?xml version="1.0" encoding="UTF-8"?>\n<response><percent>'
+                response += percent + '</percent>\n<currentBytes>'
+                response += rec + '</currentBytes>\n<totalBytes>'
+                response += tot + '</totalBytes></response>'
+                # check whether user wants to cancel upload
+                if request.GET.get("cancel") == "true":
+                    # cancel the upload
+                    data['cancelled'] = 1
+                    cache.set(cache_key, data)
+                    # indicate for the next time to send a "cancelled" response
+                    cache.set("cancel_" + cache_key, {'cancel': 'true'})
+            else:
+                # file has been uploaded successfully
+                response = "<response><wait>listener is null</wait></response>"
+    return HttpResponse(response, mimetype="application/xml")
+
+def upload_file(request, form_class=GWTDatafileForm):
+    """
+    Accepts file upload.
+    """
+    #logging.debug('%s - file request received.', request)
+    response = "Save crashed."
+    if request.method == 'POST':
+        datafile_form = form_class(request.POST, request.FILES)
+        if datafile_form.is_valid():
+            datafile = datafile_form.save(commit=False)
+            datafile.owner = request.user
+            datafile.title = request.FILES['raw_file'].name
+            datafile.save()
+            datafile_form.save_m2m()
+            #request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)
+            response = datafile.title + " - file saved successfully."
+            #logging.debug('%s - file saved successfully.', datafile.title)
+    return HttpResponse(response)
+
 
 def upload_progress(request):
     """
@@ -30,14 +92,11 @@ def upload_progress(request):
     """
     if 'HTTP_X_PROGRESS_ID' in request.META:
         progress_id = request.META['HTTP_X_PROGRESS_ID']
-        from django.utils import simplejson
         cache_key = "%s_%s" % (request.META['REMOTE_ADDR'], progress_id)
         data = cache.get(cache_key)
-        #logging.debug('%s - cache key', cache_key)
         json = simplejson.dumps(data)
         return HttpResponse(json)
     else:
-        #logging.error("Received progress report request without X-Progress-ID header. request.META: %s" % request.META)
         return HttpResponseBadRequest('Server Error: You must provide X-Progress-ID header or query param.')
 
 
@@ -47,19 +106,17 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
     datafile_form = form_class(request.user)
     if request.method == 'POST':
         if request.POST.get("action_1") == "upload":
-            #logging.debug('start uploading the file')
             datafile_form = form_class(request.user, request.POST, request.FILES)
             if datafile_form.is_valid():
                 datafile = datafile_form.save(commit=False)
                 datafile.owner = request.user
                 datafile.title = request.FILES['raw_file'].name
                 datafile.save()
-		datafile_form.save_m2m()
+                datafile_form.save_m2m()
                 request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)
                 include_kwargs = {"id": datafile.id}
-		redirect_to = reverse("your_datafiles")
-		return HttpResponseRedirect(redirect_to)
-                
+                redirect_to = reverse("your_datafiles")
+                return HttpResponseRedirect(redirect_to)
     return render_to_response(template_name, {
         "datafile_form": datafile_form,
     }, context_instance=RequestContext(request))
