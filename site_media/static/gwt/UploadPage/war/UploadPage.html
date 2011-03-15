@@ -1,38 +1,16 @@
-<!doctype html>
-<!-- The DOCTYPE declaration above will set the    -->
-<!-- browser's rendering engine into               -->
-<!-- "Standards Mode". Replacing this declaration  -->
-<!-- with a "Quirks Mode" doctype may lead to some -->
-<!-- differences in layout.                        -->
+{% extends "datafiles/base.html" %}
 
-<html>
-  <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+{% load i18n %}
 
-    <!--                                                               -->
-    <!-- Consider inlining CSS to reduce the number of requested files -->
-    <!--                                                               -->
+{% block extra_head %}
     <link type="text/css" rel="stylesheet" href="UploadPage.css">
-
-    <!--                                           -->
-    <!-- Any title is fine                         -->
-    <!--                                           -->
-    <title>Web Application Starter Project</title>
-    
-    <!--                                           -->
-    <!-- This script loads your compiled module.   -->
-    <!-- If you add any GWT meta tags, they must   -->
-    <!-- be added before this line.                -->
-    <!--                                           -->
     <script type="text/javascript" language="javascript" src="uploadpage/uploadpage.nocache.js"></script>
-  </head>
+{% endblock %}
 
-  <!--                                           -->
-  <!-- The body can have arbitrary html, or      -->
-  <!-- you can leave the body empty if you want  -->
-  <!-- to create a completely dynamic UI.        -->
-  <!--                                           -->
-  <body>
+{% block head_title %}{% blocktrans %}New files upload{% endblocktrans %}{% endblock %}
+{% block subnavi1_class %}aktiv{% endblock %}
+
+{% block body %}
 
     <!-- OPTIONAL: include this if you want history support -->
     <iframe src="javascript:''" id="__gwt_historyFrame" tabIndex='-1' style="position:absolute;width:0;height:0;border:0"></iframe>
@@ -45,16 +23,18 @@
       </div>
     </noscript>
 
-    <h1>Multiple file upload page project</h1>
+    {% if user.is_authenticated %}
+    <h1>{% trans "Upload Files" %}</h1>
 
-    	<ul>
-			<li>Multiple uploader using the provided <i>'BasicProgressBar'</i>. <br/>
-			It has the limitations of 3 successful uploads, and no repeated files.<br/>
-			It uses the browser input file widget.    
-			  <div id="default" class="upldContainer"></div>
-			</li>
-		</ul>
-		<p id="thumbnails" class="thumbsContainer"></p>
+        <p>Here you can upload your data. You can upload several files at once; files will be uploaded one by one.</p>
 
-  </body>
-</html>
+        <div id="default" class="upldContainer"></div>
+
+        <p id="thumbnails" class="thumbsContainer"></p>
+    {% else %}
+        {% url acct_signup as signup_url %}
+        {% url acct_login as login_url %}
+        <p>{% blocktrans %}<a href="{{ signup_url }}">Sign up</a> and <a href="{{ login_url }}">log in </a> to upload and share your own files.{% endblocktrans %}</p>
+    {% endif %}
+{% endblock %}
+

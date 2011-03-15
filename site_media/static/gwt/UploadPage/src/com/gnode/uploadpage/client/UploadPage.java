@@ -33,21 +33,22 @@ public class UploadPage implements EntryPoint {
 	      panelImages.add(image);
 	    }
 	  };
-
+	
 	  public void onModuleLoad() {
 	    // Attach the image viewer to the document
 	    RootPanel.get("thumbnails").add(panelImages);
 	    
 	    // Create a new uploader panel and attach it to the document
 	    MultiUploader defaultUploader = new MultiUploader();
+		//Uploader defaultUploader = new Uploader();
 	    RootPanel.get("default").add(defaultUploader);
 	    // Add a finish handler which will load the image once the upload finishes
 	    defaultUploader.addOnFinishUploadHandler(onFinishUploaderHandler);
-	    defaultUploader.setMaximumFiles(3);
+	    defaultUploader.setMaximumFiles(100);
 	    defaultUploader.setFileInputPrefix("default");
 	    // You can add customized parameters to servlet call 
-	    //defaultUploader.setServletPath(defaultUploader.getServletPath() + "?foo=bar");
-	    defaultUploader.setServletPath("http://localhost/datafiles/upload_page/?foo=bar");
+	    defaultUploader.setServletPath(defaultUploader.getServletPath() + "?foo=bar");
+	    //defaultUploader.setServletPath("{{ STATIC_URL }}http://localhost/datafiles/upload_page/");
 	    defaultUploader.avoidRepeatFiles(true);
 
 	  }

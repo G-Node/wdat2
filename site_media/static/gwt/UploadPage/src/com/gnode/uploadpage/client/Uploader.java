@@ -531,7 +531,8 @@ public class Uploader extends Composite implements IsUpdateable, IUploader, HasJ
     uploadForm.setMethod(FormPanel.METHOD_POST);
     uploadForm.setAction(servletPath);
     createNewProgressId();
-    uploadForm.setAction("http://localhost/datafiles/upload_file/?X-Progress-ID=" + X_PROGRESS_ID);
+    uploadForm.setAction(servletPath);
+    //uploadForm.setAction("http://localhost/datafiles/upload_file/?X-Progress-ID=" + X_PROGRESS_ID);
     uploadForm.addSubmitHandler(onSubmitFormHandler);
     uploadForm.addSubmitCompleteHandler(onSubmitCompleteHandler);
     uploaderPanel = new HorizontalPanel();
@@ -832,7 +833,7 @@ public class Uploader extends Composite implements IsUpdateable, IUploader, HasJ
     fileInput.setEnabled(enabled);
     setFileInputSize(DEFAULT_FILEINPUT_SIZE);
     /* Change for Django: we always pass same field name, but 
-     * an X-Progress-ID as a request parameter (to track upload). 
+     * different X-Progress-ID as a request parameter (to track upload). 
     */
     //assignNewNameToFileInput();
     fileInput.setName("raw_file");
@@ -997,7 +998,7 @@ public class Uploader extends Composite implements IsUpdateable, IUploader, HasJ
   }
   
   /**
-   * Change the fileInput name, because the server uses it as an uniq identifier.
+   * Change the fileInput name, because the server uses it as an unique identifier.
    */
   protected void assignNewNameToFileInput() {
     String fileInputName = (fileInputPrefix + "-" + Math.random()).replaceAll("\\.", "");

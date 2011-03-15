@@ -25,11 +25,13 @@ from metadata.forms import AddPropertyForm, LinkTSForm
 #LOG_FILENAME = '/home/sobolev/apps/pinax-source/g-node-portal/logs/test_update.txt'
 #logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
 
-"""
-Multiple file upload handling using XHR/Google Web Toolkit as a Client:
-- upload_page
-- upload_file
-"""
+#===============================================================================
+# MULTIPLE FILE UPLOAD VIEWS
+# Multiple file upload handling using XHR/Google Web Toolkit as a Client:
+# - upload_page
+# - upload_file
+#===============================================================================
+
 def upload_page(request):
     """
     Return XML object with information about the progress of an upload.
@@ -86,6 +88,14 @@ def upload_file(request, form_class=GWTDatafileForm):
     return HttpResponse(response)
 
 
+@login_required
+def create_multiple(request, template_name="gwt/UploadPage/war/UploadPageProd.html"):
+    return render_to_response(template_name, {}, context_instance=RequestContext(request))
+
+#===============================================================================
+# SINGLE FILE UPLOAD VIEWS
+#===============================================================================
+
 def upload_progress(request):
     """
     Return JSON object with information about the progress of an upload.
@@ -98,7 +108,6 @@ def upload_progress(request):
         return HttpResponse(json)
     else:
         return HttpResponseBadRequest('Server Error: You must provide X-Progress-ID header or query param.')
-
 
 @login_required
 def create(request, form_class=NewDatafileForm, template_name="datafiles/new.html"):
@@ -121,6 +130,9 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
         "datafile_form": datafile_form,
     }, context_instance=RequestContext(request))
 
+#===============================================================================
+# REGULAR VIEWS
+#===============================================================================
 
 @login_required
 def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):

@@ -51,7 +51,7 @@ import com.google.gwt.user.client.ui.Widget;
  * so the user can add new files to the queue while they are being uploaded
  * </p>
  */
-public class MultiUploader extends Composite implements IUploader {
+public class SingleUploader extends Composite implements IUploader {
 
   IUploader.OnStatusChangedHandler statusChangeHandler = new IUploader.OnStatusChangedHandler() {
     public void onStatusChanged(IUploader uploader) {
@@ -119,7 +119,7 @@ public class MultiUploader extends Composite implements IUploader {
    * Uses the default status widget and the standard input file.
    * 
    */
-  public MultiUploader() {
+  public SingleUploader() {
     this(FileInputType.BROWSER_INPUT, new BaseUploadStatus());
   }
   
@@ -131,7 +131,7 @@ public class MultiUploader extends Composite implements IUploader {
    *   file input to use
    */
   @UiConstructor
-  public MultiUploader(FileInputType type) {
+  public SingleUploader(FileInputType type) {
     this(type, new BaseUploadStatus());
   }
   
@@ -143,7 +143,7 @@ public class MultiUploader extends Composite implements IUploader {
    * @param status
    *   Customized status widget to use
    */
-  public MultiUploader(FileInputType type, IUploadStatus status) {
+  public SingleUploader(FileInputType type, IUploadStatus status) {
     fileInputType = type;
     statusWidget = status;
     initWidget(multiUploaderPanel);
@@ -157,7 +157,7 @@ public class MultiUploader extends Composite implements IUploader {
    * @param status
    *   Customized status widget to use
    */
-  public MultiUploader(IUploadStatus status) {
+  public SingleUploader(IUploadStatus status) {
     this(FileInputType.BROWSER_INPUT, status);
   }
 
@@ -169,7 +169,7 @@ public class MultiUploader extends Composite implements IUploader {
    * @param fileInput
    *   Customized file input
    */
-  public MultiUploader(IUploadStatus status, IFileInput fileInput) {
+  public SingleUploader(IUploadStatus status, IFileInput fileInput) {
     this(status);
     setFileInput(fileInput);
   }
@@ -542,7 +542,7 @@ public class MultiUploader extends Composite implements IUploader {
     }
 
     // Create a new uploader
-    currentUploader = getUploaderInstance(); //here autoupload is set up
+    currentUploader = getUploaderInstance();
     uploaders.add(currentUploader);
     currentUploader.setStatusWidget(statusWidget);
     if (lastUploader != null) {
