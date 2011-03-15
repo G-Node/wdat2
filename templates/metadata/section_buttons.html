@@ -21,6 +21,7 @@
                 {% endifequal %}
                     <span id="link-timeseries-toggle">{% trans "Link Time Series" %}</span>
             {% endifnotequal %}
+                    <span id="import-odml-toggle">{% trans "Import from odML" %}</span>
 			    </p>
 
                 <div id="form-add-property">
@@ -66,6 +67,14 @@
                 {% endwith %}
                 {% endwith %}
             {% endifnotequal %}
+
+                {% with odml_import_form as object_form %}
+                {% with "odml" as obj %}
+                <div id="form-import-odml">
+                    {% include "metadata/import_odml.html" %}
+                </div>
+                {% endwith %}
+                {% endwith %}
             </div>         
   
 

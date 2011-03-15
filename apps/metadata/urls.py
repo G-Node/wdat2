@@ -25,6 +25,9 @@ urlpatterns = patterns('',
     # link timeseries
     url(r'^timeseries_link/(?P<id>\d+)/$', 'metadata.views.object_link', name="timeseries_link"),
 
+    # import odml
+    url(r'^import_odml/(?P<id>\d+)/$', 'metadata.views.import_odml', name="import_odml"),
+
     # remove property
     url(r'^property_delete/$', 'metadata.views.property_delete', name='property_delete'),
     # remove dataset

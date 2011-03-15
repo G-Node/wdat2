@@ -20,7 +20,7 @@ from datasets.models import RDataset
 from experiments.models import Experiment
 from metadata.models import Section
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm, GWTDatafileForm
-from metadata.forms import AddPropertyForm, LinkTSForm
+from metadata.forms import AddPropertyForm, LinkTSForm, importOdML
 
 #LOG_FILENAME = '/home/sobolev/apps/pinax-source/g-node-portal/logs/test_update.txt'
 #logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
@@ -221,6 +221,7 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
 
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
+    odml_import_form = importOdML(auto_id='id_odml_form_%s', user=request.user)
 
     # get the parent objects to which this file is linked to
     par_datasets = []
@@ -248,6 +249,7 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
         "privacy_form": privacy_form,	
         "prop_add_form": prop_add_form,
         "timeseries_link_form": timeseries_link_form,
+        "odml_import_form": odml_import_form,
         "par_datasets": par_datasets,
         "par_exprts": par_exprts,
         "first_section_id": first_section_id,

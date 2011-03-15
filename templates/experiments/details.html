@@ -197,6 +197,11 @@
                 $('#add-timeseries').toggle();
                 return false;
             });
+            $('#import-odml-toggle').click(function() {
+                hide_metadata_forms("import-odml");
+                $('#add-odml').toggle();
+                return false;
+            });
         });
     </script>
     {% endif %}

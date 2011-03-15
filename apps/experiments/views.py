@@ -16,7 +16,7 @@ from datasets.models import RDataset
 from datafiles.models import Datafile
 from experiments.forms import CreateExperimentForm, ExperimentShortEditForm, PrivacyEditForm, DeleteExperimentsForm
 from experiments.filters import ExpFilter
-from metadata.forms import AddPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
+from metadata.forms import AddPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm, importOdML
 from metadata.models import Section
 
 @login_required
@@ -194,6 +194,7 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
     dataset_link_form = dataset_form_class(auto_id='id_dataset_form_%s', user=request.user)
     datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
+    odml_import_form = importOdML(auto_id='id_odml_form_%s', user=request.user)
 
     # get the id of the first available section to select it in the tree (onload)
     first_section_id = 0
@@ -210,6 +211,7 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
     "dataset_link_form": dataset_link_form,
     "datafile_link_form": datafile_link_form,
     "timeseries_link_form": timeseries_link_form,
+    "odml_import_form": odml_import_form,
     "first_section_id": first_section_id,
     }, context_instance=RequestContext(request))
 
