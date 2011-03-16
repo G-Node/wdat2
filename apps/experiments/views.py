@@ -197,22 +197,23 @@ def experimentdetails(request, id, form_class=ExperimentShortEditForm, privacy_f
     odml_import_form = importOdML(auto_id='id_odml_form_%s', user=request.user)
 
     # get the id of the first available section to select it in the tree (onload)
-    first_section_id = 0
-    sections = experiment.section_set.filter(current_state=10).order_by("tree_position")
-    if sections:
-        first_section_id = sections[0].id
+    first_section_id = request.GET.get("section_id")
+    if not first_section_id:
+        sections = experiment.section_set.filter(current_state=10).order_by("tree_position")
+        if sections:
+            first_section_id = sections[0].id
 
     return render_to_response(template_name, {
-    "experiment": experiment,
-    "metadata_defaults": metadata_defaults,
-	"exp_form": exp_form,
-	"privacy_form": privacy_form,
-    "prop_add_form": prop_add_form,
-    "dataset_link_form": dataset_link_form,
-    "datafile_link_form": datafile_link_form,
-    "timeseries_link_form": timeseries_link_form,
-    "odml_import_form": odml_import_form,
-    "first_section_id": first_section_id,
+        "experiment": experiment,
+        "metadata_defaults": metadata_defaults,
+	    "exp_form": exp_form,
+	    "privacy_form": privacy_form,
+        "prop_add_form": prop_add_form,
+        "dataset_link_form": dataset_link_form,
+        "datafile_link_form": datafile_link_form,
+        "timeseries_link_form": timeseries_link_form,
+        "odml_import_form": odml_import_form,
+        "first_section_id": first_section_id,
     }, context_instance=RequestContext(request))
 
 

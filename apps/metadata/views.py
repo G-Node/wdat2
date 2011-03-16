@@ -18,7 +18,7 @@ from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm, Li
 from metadata.models import Section, Property
 
 
-@login_required
+@login_required # ajax-only
 def section_add(request, template_name="metadata/add.html"):
     parent_type = 0
     parent = None
@@ -67,7 +67,7 @@ def section_add(request, template_name="metadata/add.html"):
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def section_delete(request, template_name="metadata/dummy.html"):
     status = False
     if request.method == 'POST' and request.POST.get("action") == "section_delete":
@@ -81,7 +81,7 @@ def section_delete(request, template_name="metadata/dummy.html"):
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def section_edit(request, template_name="metadata/dummy.html"):
     status = False
     if request.method == 'POST' and request.POST.get("action") == "section_edit":
@@ -96,7 +96,7 @@ def section_edit(request, template_name="metadata/dummy.html"):
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def section_move(request, template_name="metadata/move_copy.html"):
     status = 0
     if request.method == 'POST' and request.POST.get("action") == "section_move":
@@ -177,7 +177,7 @@ def section_move(request, template_name="metadata/move_copy.html"):
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def section_copy(request, template_name="metadata/move_copy.html"):
     status = 0
     prnt = 1
@@ -249,7 +249,7 @@ def section_copy(request, template_name="metadata/move_copy.html"):
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def properties_list(request, id, template_name="metadata/properties_list.html"):
     section = get_object_or_404(Section, id=id)
     if not section.is_accessible(request.user):
@@ -260,7 +260,7 @@ def properties_list(request, id, template_name="metadata/properties_list.html"):
         
 
 
-@login_required
+@login_required # ajax-only
 def property_add(request, id, property_form_class=AddPropertyForm, template_name="metadata/property_add.html"):
     property_id = 0
     prop_form = property_form_class(request.POST, auto_id='id_add_form_%s')
@@ -278,7 +278,7 @@ def property_add(request, id, property_form_class=AddPropertyForm, template_name
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def property_delete(request, template_name="metadata/dummy.html"):
     status = False
     if request.method == 'POST' and request.POST.get("action") == "property_delete":
@@ -292,7 +292,7 @@ def property_delete(request, template_name="metadata/dummy.html"):
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def property_edit(request, id, form_class=EditPropertyForm, template_name="metadata/property_edit.html"):
     property_form = None
     property_id = id
@@ -318,7 +318,7 @@ def property_edit(request, id, form_class=EditPropertyForm, template_name="metad
     }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def object_link(request, id, template_name="metadata/object_link.html"):
     section_id = 0
     obj_type = None
@@ -369,7 +369,7 @@ def object_link(request, id, template_name="metadata/object_link.html"):
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def remove_object(request, template_name="metadata/dummy.html"):
     status = False
     if request.method == 'POST' and request.POST.get("action") == "remove_dataset":
@@ -398,8 +398,10 @@ def remove_object(request, template_name="metadata/dummy.html"):
         }, context_instance=RequestContext(request))
 
 
-@login_required
+@login_required # ajax-only
 def import_odml(request, id, template_name="metadata/import_odml.html"):
+    data = -1
+    section_id = 0
     file_id = request.POST.get("file_id")
     form = importOdML(QueryDict("files=" + str(file_id)), auto_id='id_odml_form_%s', user=request.user)
     section = get_object_or_404(Section, id=id)
@@ -408,10 +410,21 @@ def import_odml(request, id, template_name="metadata/import_odml.html"):
             f_id = form.cleaned_data['files']
             with open(get_object_or_404(Datafile, id=f_id.id).raw_file.path, "r") as f:
                 section._import_xml(f)
+                data = section.get_tree(id_only=True)
+                section_id = section.id
     return render_to_response(template_name, {
-        "section_id": section.id,
+        "section_id": section_id,
         "object_form": form,
+        "obj": "odml",
+        "data": data, # id values of newly created sections for tree update
         }, context_instance=RequestContext(request))
 
+
+@login_required
+def export_odml(request, id, template_name="metadata/export_odml.html"):
+    section = get_object_or_404(Section, id=id)
+    return render_to_response(template_name, {
+        "section": section,
+        }, context_instance=RequestContext(request))
 
 

@@ -155,9 +155,11 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
                     redirect_to = reverse("timeseries_main")
                     return HttpResponseRedirect(redirect_to)
         # get the id of the first available section to select it in the tree (onload)
-        s_c = t_serie.section_set.filter(current_state=10).order_by("tree_position")
-        if s_c:
-            first_section_id = s_c[0].id
+        first_section_id = request.GET.get("section_id")
+        if not first_section_id:
+            sections = t_serie.section_set.filter(current_state=10).order_by("tree_position")
+            if sections:
+                first_section_id = sections[0].id
     else:
         tserie_edit_form = None
         privacy_form = None
