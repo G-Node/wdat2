@@ -83,13 +83,14 @@ class Section(models.Model):
                 return False
         return True
 
-    def get_tree(self):
+    def get_tree(self, id_only=False):
         sec_tree = []
         sec_tree.append(self.id)
-        sec_tree.append(self.title)
+        if not id_only:
+            sec_tree.append(self.title)
         if self.section_set.filter(current_state=10):
             for section in self.section_set.filter(current_state=10).order_by("tree_position"):
-                sec_tree.append(section.get_tree())
+                sec_tree.append(section.get_tree(id_only))
         return sec_tree
 
     def get_tree_JSON(self):
