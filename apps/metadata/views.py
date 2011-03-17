@@ -40,8 +40,13 @@ def section_add(request, template_name="metadata/add.html"):
         if parent_type == "5":
             parent = get_object_or_404(Datafile, id=parent_id)
 
-        # identify the position in the tree
-        tree_pos = parent._get_next_tree_pos()
+        # identify the position in the tree. ahhh doesn't work here
+        #tree_pos = parent._get_next_tree_pos()
+        sec_childs = parent.section_set.all().order_by("-tree_position")
+        if sec_childs:
+            tree_pos = int(sec_childs.all()[0].tree_position) + 1
+        else:
+            tree_pos = 1
 
         if parent_type == "3":
             if parent.does_belong_to(request.user):
