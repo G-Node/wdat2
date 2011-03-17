@@ -14,7 +14,7 @@ from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
 from timeseries.models import TimeSeries
-from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm
+from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm, LinkDatasetForm, LinkDatafileForm, LinkTSForm, importOdML
 from metadata.models import Section, Property
 
 
@@ -41,11 +41,7 @@ def section_add(request, template_name="metadata/add.html"):
             parent = get_object_or_404(Datafile, id=parent_id)
 
         # identify the position in the tree
-        sec_childs = parent.section_set.all().order_by("-tree_position")
-        if sec_childs:
-            tree_pos = int(sec_childs.all()[0].tree_position) + 1
-        else:
-            tree_pos = 1
+        tree_pos = parent._get_next_tree_pos()
 
         if parent_type == "3":
             if parent.does_belong_to(request.user):
@@ -399,6 +395,22 @@ def remove_object(request, template_name="metadata/dummy.html"):
             status = True
     return render_to_response(template_name, {
         "status": status,
+        }, context_instance=RequestContext(request))
+
+
+@login_required
+def import_odml(request, id, template_name="metadata/import_odml.html"):
+    file_id = request.POST.get("file_id")
+    form = importOdML(QueryDict("files=" + str(file_id)), auto_id='id_odml_form_%s', user=request.user)
+    section = get_object_or_404(Section, id=id)
+    if request.method == 'POST' and form.is_valid():
+        if request.POST.get("action") == "import_odml" and section.does_belong_to(request.user):
+            f_id = form.cleaned_data['files']
+            with open(get_object_or_404(Datafile, id=f_id.id).raw_file.path, "r") as f:
+                section._import_xml(f)
+    return render_to_response(template_name, {
+        "section_id": section.id,
+        "object_form": form,
         }, context_instance=RequestContext(request))
 
 

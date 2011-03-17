@@ -5,6 +5,7 @@ from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
 from timeseries.models import TimeSeries
+from ext.odml.tools.xmlparser import XMLWriter, parseXML
 
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
@@ -259,6 +260,43 @@ class Section(models.Model):
             self.rel_datafiles.remove(obj)
         elif obj_type == "timeseries":
             self.rel_timeseries.remove(obj)
+
+    def _get_next_tree_pos(self):
+        """
+        Returns the next free index "inside" self.
+        """
+        sec_childs = self.section_set.all().order_by("-tree_position")
+        if sec_childs:
+            tree_pos = int(sec_childs.all()[0].tree_position) + 1
+        else:
+            tree_pos = 1
+        return tree_pos
+
+    def _import_section(self, section):
+        """
+        Imports one section from the odML section.
+        """
+        tree_pos = self._get_next_tree_pos()
+        s = Section(title=section.name, parent_section=self, tree_position=tree_pos)
+        s.save()
+        # saving properties
+        for p in section.properties:
+            new_p = Property(prop_title=p.name, prop_value=str(p.values), \
+                prop_parent_section=self)
+            new_p.save()
+        # recursively saving other sections
+        for i in section.sections:
+            s._import_section(i)
+
+    def _import_xml(self, xml_file):
+        """
+        Parses given XML file and imports sections/properties. Uses odML parser.
+        """
+        data = parseXML(xml_file)
+        #raise Exception("The file provided is not XML or is corrupted.")
+        for s in data.sections:
+            self._import_section(s)
+
 
 
 class Property(models.Model):

@@ -1,3 +1,4 @@
+import re
 from django import forms
 from django.forms import widgets
 from datetime import datetime
@@ -120,5 +121,14 @@ class LinkTSForm(forms.Form):
         else:
             choices = TimeSeries.objects.filter(owner=user, current_state=10)
         self.fields['timeseries'].queryset = choices
+
+class importOdML(forms.Form):
+    files = forms.ModelChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        super(importOdML, self).__init__(*args, **kwargs)
+        choices = Datafile.objects.filter(title__icontains=".xml", owner=user, current_state=10)
+        self.fields['files'].queryset = choices
 
 

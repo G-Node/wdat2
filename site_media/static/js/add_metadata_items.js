@@ -99,3 +99,36 @@
         }
         else alert('Please select a section first');
         };
+    function import_odML() {
+        var t = $.tree.focused(); 
+        if(t.selected) {
+            var prop_url = '../../../metadata/import_odml/' + t.selected[0].id + '/';
+            var post_str = '{';
+            $('#id_odml_form_files :selected').each(function(i, selected){
+                post_str += '"file_id":' + '"' + $(selected).val() + '", ';
+            });
+            post_str += '"action":"import_odml"}';
+            var post_data = jQuery.parseJSON(post_str);
+            $('#form-add-property').load(
+                prop_url, 
+                post_data   , 
+                function(response, status, xhr) {
+                    var t1 = $(document.getElementById("add-prop-success-identifier")).attr('value');
+                    if (t1 != "0") {
+                        var load_url = '../../../metadata/properties_list/' + t.selected[0].id + '/';
+                        $('#properties_area').load(load_url, function() {
+                            $('#add-odml').hide();
+                        })
+                    }
+                    else {
+                        $('#add-odml').show();
+                    }
+                }
+            ); 
+            var t1 = $(document.getElementById("add-odml-success-identifier")).attr('value');
+            if (t1 == "0") {
+                $('#add-odml').show();
+            };
+        }
+        else alert('Please select a section first');
+        };
