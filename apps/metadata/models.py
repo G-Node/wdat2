@@ -308,6 +308,7 @@ class Section(models.Model):
         Exports one section into odML section, including properties.
         """
         s = odml_section(name=self.title)
+        s.type = "undefined"
         for p in self.property_set.all():
             prop = odml_property(name=p.prop_title, value=p.prop_value)
             s.append(prop)
