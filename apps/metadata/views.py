@@ -413,10 +413,11 @@ def import_odml(request, id, template_name="metadata/import_odml.html"):
     if request.method == 'POST' and form.is_valid():
         if request.POST.get("action") == "import_odml" and section.does_belong_to(request.user):
             f_id = form.cleaned_data['files']
-            with open(get_object_or_404(Datafile, id=f_id.id).raw_file.path, "r") as f:
-                section._import_xml(f)
-                data = section.get_tree(id_only=True)
-                section_id = section.id
+            f = open(get_object_or_404(Datafile, id=f_id.id).raw_file.path, "r")
+            section._import_xml(f)
+            data = section.get_tree(id_only=True)
+            section_id = section.id
+            f.close()
     return render_to_response(template_name, {
         "section_id": section_id,
         "object_form": form,
