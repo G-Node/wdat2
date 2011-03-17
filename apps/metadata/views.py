@@ -1,5 +1,5 @@
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, get_host, QueryDict
+from django.http import HttpResponseRedirect, get_host, QueryDict, HttpResponse
 from django.template import RequestContext
 #from django.db.models import Q
 #from django.http import Http404
@@ -421,10 +421,14 @@ def import_odml(request, id, template_name="metadata/import_odml.html"):
 
 
 @login_required
-def export_odml(request, id, template_name="metadata/export_odml.html"):
+def export_odml(request, id, template_name="metadata/export_odml.xml"):
     section = get_object_or_404(Section, id=id)
-    return render_to_response(template_name, {
-        "section": section,
-        }, context_instance=RequestContext(request))
+    response = HttpResponse(section._export_xml(), mimetype="application/xml")
+    response['Content-Disposition'] = 'attachment; filename=odml.xml'
+    return response
+
+    #return render_to_response(template_name, {
+    #    "xml_data": section._export_xml(),
+    #    }, context_instance=RequestContext(request))
 
 
