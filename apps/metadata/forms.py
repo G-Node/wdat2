@@ -138,11 +138,12 @@ class importOdML(forms.Form):
         """ Page title must be a WikiWord.
         """
         f_id = self.cleaned_data['files']
-        with open(get_object_or_404(Datafile, id=f_id.id).raw_file.path, "r") as f:
-            try:
-                parseXML(f)
-            except Exception as e:
-                raise forms.ValidationError(_("The file can't be parsed. There is a problem with the file: " + str(e)))
+        f = open(get_object_or_404(Datafile, id=f_id.id).raw_file.path, "r")
+        try:
+            parseXML(f)
+        except Exception as e:
+            raise forms.ValidationError(_("The file can't be parsed. There is a problem with the file: " + str(e)))
+        f.close()
         return f_id
 
 
