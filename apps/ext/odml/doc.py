@@ -13,29 +13,29 @@ class Document(object):
         self._repository = repository
         self._sections = []
 
-    @property
-    def author(self):
-        return self._author
-        
-    @author.setter
-    def author(self, new_value):
-        self._author = new_value
+    @apply
+    def author():
+        def fget(self):
+            return self._author
+        def fset(self, new_value):
+            self._author = new_value
+        return property(**locals())
 
-    @property
-    def version(self):
-        return self._version
+    @apply
+    def version():
+        def fget(self):
+            return self._version
+        def fset(self, new_value):
+            self._version = new_value
+        return property(**locals())
         
-    @version.setter
-    def version(self, new_value):
-        self._version = new_value
-
-    @property
-    def date(self):
-        return types.set(self._date, "date")
-        
-    @date.setter
-    def date(self, new_value):
-        self._date = types.get(new_value, "date")
+    @apply
+    def date():
+        def fget(self):
+           return types.set(self._date, "date")
+        def fset(self, new_value):
+            self._date = types.get(new_value, "date")
+        return property(**locals())
 
     @property
     def sections(self):

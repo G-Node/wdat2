@@ -57,18 +57,16 @@ class Property(object):
         # be introduced later using python-properties
 
     #odML "native" properties
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, new_value):
-        self._name = new_value
+    @apply
+    def name():
+        def fget(self):
+            return self._name
+        def fset(self, new_value):
+            self._name = new_value
+        return property(**locals())
 
     def __repr__(self):
         return "<Property %s>" % self._name
-
-
 
     # API (public) 
     #

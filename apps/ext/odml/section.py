@@ -18,13 +18,13 @@ class Section(object):
     def __repr__(self):
         return "<Section %s (%d)>" % (self._name, len(self._sections))
 
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, new_value):
-        self._name = new_value
+    @apply
+    def name():
+        def fget(self):
+            return self._name
+        def fset(self, new_value):
+            self._name = new_value
+        return property(**locals())
         
     def get_name_definition(self, UseTerminology=True):
         if hasattr (self, "_name_definition"):
