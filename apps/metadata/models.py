@@ -5,10 +5,10 @@ from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
 from timeseries.models import TimeSeries
-from ext.odml.tools.xmlparser import XMLWriter, parseXML
-from ext.odml.doc import Document as odml_document
-from ext.odml.section import Section as odml_section
-from ext.odml.property import Property as odml_property
+from apps.ext.odml.tools.xmlparser import XMLWriter, parseXML
+from apps.ext.odml.doc import Document as odml_document
+from apps.ext.odml.section import Section as odml_section
+from apps.ext.odml.property import Property as odml_property
 
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
