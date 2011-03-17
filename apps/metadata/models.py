@@ -6,6 +6,9 @@ from datasets.models import RDataset
 from datafiles.models import Datafile
 from timeseries.models import TimeSeries
 from ext.odml.tools.xmlparser import XMLWriter, parseXML
+from ext.odml.doc import Document as odml_document
+from ext.odml.section import Section as odml_section
+from ext.odml.property import Property as odml_property
 
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
@@ -262,6 +265,8 @@ class Section(models.Model):
         elif obj_type == "timeseries":
             self.rel_timeseries.remove(obj)
 
+    # odML import/export
+
     def _get_next_tree_pos(self):
         """
         Returns the next free index "inside" self.
@@ -298,6 +303,27 @@ class Section(models.Model):
         for s in data.sections:
             self._import_section(s)
 
+    def _export_section(self):
+        """
+        Exports one section into odML section, including properties.
+        """
+        s = odml_section(name=self.title)
+        for p in self.property_set.all():
+            prop = odml_property(name=p.prop_title, value=p.prop_value)
+            s.append(prop)
+        for sec in self.section_set.all():
+            s.append(sec._export_section())
+        return s
+
+    def _export_xml(self):
+        """
+        Exports self with all children and properties. Uses odML parser.
+        """
+        doc = odml_document()
+        for s in self.section_set.all():
+            doc.append(s._export_section())
+        wrt = XMLWriter(doc)
+        return wrt.header + wrt.__unicode__()
 
 
 class Property(models.Model):
@@ -316,6 +342,10 @@ class Property(models.Model):
 
     def __unicode__(self):
         return self.title
+
+    @property
+    def title(self):
+        return self.prop_title
 
     def does_belong_to(self, user):
         """

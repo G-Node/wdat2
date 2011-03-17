@@ -142,7 +142,7 @@ function import_odML() {
 function export_odML() {
     var t = $.tree.focused(); 
     if(t.selected) {
-        window.open('../../../metadata/export_odml/' + '?section_id=' + t.selected[0].id);
+        window.open('../../../metadata/export_odml/' + t.selected[0].id);
         return false;
     }
     else alert('Please select a section first');
