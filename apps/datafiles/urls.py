@@ -20,7 +20,7 @@ urlpatterns = patterns('',
     url(r'^upload_progress/$', 'datafiles.views.upload_progress', name='upload_progress'),
 
     # datafile download link
-    url(r'^download/(?P<id>\d+)/$', 'datafiles.views.download', name="download"),
+    url(r'^download/(?P<id>\d+)/', 'datafiles.views.download', name="download"),
     
     # GWT multiple datafiles upload
     url(r'^create_multiple/$', 'datafiles.views.create_multiple', name="datafile_create_multiple"),

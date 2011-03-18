@@ -50,7 +50,7 @@
                             {% endfor %}
                         </td>
                         <td>{% if datafile.is_Public %}<b style="color: red">Public</b>{% endif %}{% if datafile.is_Friendly %}Friendly{% endif %}{% if datafile.is_Private %}Private{% endif %}</td>
-                        <td><nobr><a href="{% url datafile_delete datafile.id %}">{% trans "delete" %}</a> <a href="{% url download datafile.id %}">{% trans "download" %}</a></nobr></td>
+                        <td><nobr><a href="{% url datafile_delete datafile.id %}">{% trans "delete" %}</a> <a href="{% url download datafile.id %}{{ datafile.title|urlencode }}">{% trans "download" %}</a></nobr></td>
                         <td><input id="id_set_choices_{{ datafile.id }}" type="checkbox" value="{{ datafile.id }}" name="set_choices"/></td>
                     </tr>
                 {% endfor %}
