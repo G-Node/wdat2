@@ -283,3 +283,18 @@ def datafileDelete(request, id):
     return HttpResponseRedirect(redirect_to)
 
 
+@login_required
+def download(request, id):
+    datafile = get_object_or_404(Datafile.objects.all(), id=id)
+    if datafile.owner == request.user:
+        response = HttpResponse(mimetype='application/force-download')
+        response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.title)
+        response['X-Sendfile'] = str(datafile.raw_file._get_path())
+        # It's usually a good idea to set the 'Content-Length' header too.
+        # You can also set any other required headers: Cache-Control, etc.
+    else:
+        response = HttpResponseRedirect(reverse("your_datafiles"))
+    return response
+
+
+
