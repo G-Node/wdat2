@@ -1,5 +1,4 @@
-from django.conf.urls.defaults import *
-from django.views.generic.simple import direct_to_template
+from django.conf.urls.defaults import * from django.views.generic.simple import direct_to_template
 
 urlpatterns = patterns('',
     # your datafiles
@@ -15,8 +14,11 @@ urlpatterns = patterns('',
     url(r'^create/$', 'datafiles.views.create', name="datafile_create"),
     #delete datafile
     url(r'^delete/(?P<id>\d+)/$', 'datafiles.views.datafileDelete', name='datafile_delete'),
-    
-    # test upload
-    #url(r'^test_upload/$', 'datafiles.views.test_upload', name='test_upload'),
+    # create single datafile
+    url(r'^create/$', 'datafiles.views.create', name="datafile_create"),
+    # file upload status for progress bar 
     url(r'^upload_progress/$', 'datafiles.views.upload_progress', name='upload_progress'),
+
+    # datafile download link
+    url(r'^download/(?P<id>\d+)/$', 'datafiles.views.download', name="download"),
 )
