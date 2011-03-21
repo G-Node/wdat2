@@ -11,6 +11,8 @@ urlpatterns = patterns('',
 
     # a datafile details
     url(r'^details/(?P<id>\d+)/$', 'datafiles.views.datafiledetails', name="datafile_details"),
+    # create new datafile
+    url(r'^create/$', 'datafiles.views.create', name="datafile_create"),
     #delete datafile
     url(r'^delete/(?P<id>\d+)/$', 'datafiles.views.datafileDelete', name='datafile_delete'),
 

@@ -40,6 +40,7 @@ def upload_progress(request):
         #logging.error("Received progress report request without X-Progress-ID header. request.META: %s" % request.META)
         return HttpResponseBadRequest('Server Error: You must provide X-Progress-ID header or query param.')
 
+
 @login_required
 def create(request, form_class=NewDatafileForm, template_name="datafiles/new.html"):
     # create a new datafile
@@ -63,9 +64,6 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
         "datafile_form": datafile_form,
     }, context_instance=RequestContext(request))
 
-#===============================================================================
-# REGULAR VIEWS
-#===============================================================================
 
 @login_required
 def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):
