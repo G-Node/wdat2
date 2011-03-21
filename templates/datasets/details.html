@@ -212,6 +212,11 @@
                 $('#add-timeseries').toggle();
                 return false;
             });
+            $('#import-odml-toggle').click(function() {
+                hide_metadata_forms("import-odml");
+                $('#add-odml').toggle();
+                return false;
+            });
             //$("#sections").jstree("select_node", "#test2");
             $('#add-datafile').show();
             $.tree.focused().select_branch("#"+{{ first_section_id }});

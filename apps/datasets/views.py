@@ -14,7 +14,7 @@ from datasets.models import RDataset
 from datafiles.models import Datafile
 from metadata.models import Section
 from datasets.forms import NewRDatasetForm, RDatasetEditForm, DeleteDatasetsForm, DatasetShortEditForm, PrivacyEditForm
-from metadata.forms import AddPropertyForm, LinkDatafileForm, LinkTSForm
+from metadata.forms import AddPropertyForm, LinkDatafileForm, LinkTSForm, importOdML
 from metadata.models import Section
 
 @login_required
@@ -139,6 +139,7 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
     prop_add_form = property_form_class1(auto_id='id_add_form_%s')
     datafile_link_form = datafile_form_class(auto_id='id_datafile_form_%s', user=request.user)
     timeseries_link_form = timeseries_form_class(auto_id='id_timeseries_form_%s', user=request.user)
+    odml_import_form = importOdML(auto_id='id_odml_form_%s', user=request.user)
 
     # get the parent experiments to which dataset is linked to
     exprts = []
@@ -150,10 +151,11 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
             exprts.append(rt)
 
     # get the id of the first available section to select it in the tree (onload)
-    first_section_id = 0
-    sections = dataset.section_set.filter(current_state=10).order_by("tree_position")
-    if sections:
-        first_section_id = sections[0].id
+    first_section_id = request.GET.get("section_id")
+    if not first_section_id:
+        sections = dataset.section_set.filter(current_state=10).order_by("tree_position")
+        if sections:
+            first_section_id = sections[0].id
 
     return render_to_response(template_name, {
         "dataset": dataset,
@@ -163,6 +165,7 @@ def datasetdetails(request, id, form_class=DatasetShortEditForm, privacy_form_cl
         "prop_add_form": prop_add_form,
         "datafile_link_form": datafile_link_form,
         "timeseries_link_form": timeseries_link_form,
+        "odml_import_form": odml_import_form,
         "exprts": exprts,
         "first_section_id": first_section_id,
     }, context_instance=RequestContext(request))

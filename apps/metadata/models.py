@@ -5,6 +5,10 @@ from experiments.models import Experiment
 from datasets.models import RDataset
 from datafiles.models import Datafile
 from timeseries.models import TimeSeries
+from apps.ext.odml.tools.xmlparser import XMLWriter, parseXML
+from apps.ext.odml.doc import Document as odml_document
+from apps.ext.odml.section import Section as odml_section
+from apps.ext.odml.property import Property as odml_property
 
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
@@ -82,13 +86,14 @@ class Section(models.Model):
                 return False
         return True
 
-    def get_tree(self):
+    def get_tree(self, id_only=False):
         sec_tree = []
         sec_tree.append(self.id)
-        sec_tree.append(self.title)
+        if not id_only:
+            sec_tree.append(self.title)
         if self.section_set.filter(current_state=10):
             for section in self.section_set.filter(current_state=10).order_by("tree_position"):
-                sec_tree.append(section.get_tree())
+                sec_tree.append(section.get_tree(id_only))
         return sec_tree
 
     def get_tree_JSON(self):
@@ -260,6 +265,67 @@ class Section(models.Model):
         elif obj_type == "timeseries":
             self.rel_timeseries.remove(obj)
 
+    # odML import/export
+
+    def _get_next_tree_pos(self):
+        """
+        Returns the next free index "inside" self.
+        """
+        sec_childs = self.section_set.all().order_by("-tree_position")
+        if sec_childs:
+            tree_pos = int(sec_childs.all()[0].tree_position) + 1
+        else:
+            tree_pos = 1
+        return tree_pos
+
+    def _import_section(self, section):
+        """
+        Imports one section from the odML section.
+        """
+        tree_pos = self._get_next_tree_pos()
+        s = Section(title=section.name, parent_section=self, tree_position=tree_pos)
+        s.save()
+        # saving properties
+        for p in section.properties:
+            new_p = Property(prop_title=p.name, prop_value=str(p.values), \
+                prop_parent_section=self)
+            new_p.save()
+        # recursively saving other sections
+        for i in section.sections:
+            s._import_section(i)
+
+    def _import_xml(self, xml_file):
+        """
+        Parses given XML file and imports sections/properties. Uses odML parser.
+        """
+        data = parseXML(xml_file)
+        #raise Exception("The file provided is not XML or is corrupted.")
+        for s in data.sections:
+            self._import_section(s)
+
+    def _export_section(self):
+        """
+        Exports one section into odML section, including properties.
+        """
+        s = odml_section(name=self.title)
+        s.type = "undefined"
+        for p in self.property_set.all():
+            prop = odml_property(name=p.prop_title, value=p.prop_value)
+            s.append(prop)
+        for sec in self.section_set.all():
+            s.append(sec._export_section())
+        return s
+
+    def _export_xml(self):
+        """
+        Exports self with all children and properties. Uses odML parser.
+        """
+        doc = odml_document()
+        for s in self.section_set.all():
+            doc.append(s._export_section())
+        wrt = XMLWriter(doc)
+        return wrt.header + wrt.__unicode__()
+
 
 class Property(models.Model):
     """
@@ -277,6 +343,10 @@ class Property(models.Model):
 
     def __unicode__(self):
         return self.title
+
+    @property
+    def title(self):
+        return self.prop_title
 
     def does_belong_to(self, user):
         """

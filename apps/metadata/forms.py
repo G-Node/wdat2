@@ -1,3 +1,4 @@
+import re
 from django import forms
 from django.forms import widgets
 from datetime import datetime
@@ -5,6 +6,8 @@ from django.utils.translation import ugettext_lazy as _
 from pinax.apps.projects.models import Project
 from django.db.models import Q
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
+from ext.odml.tools.xmlparser import parseXML
 
 from experiments.models import Experiment
 from datasets.models import RDataset
@@ -120,5 +123,28 @@ class LinkTSForm(forms.Form):
         else:
             choices = TimeSeries.objects.filter(owner=user, current_state=10)
         self.fields['timeseries'].queryset = choices
+
+class importOdML(forms.Form):
+    files = forms.ModelChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        super(importOdML, self).__init__(*args, **kwargs)
+        choices = Datafile.objects.filter(title__icontains=".xml", owner=user, current_state=10)
+        self.fields['files'].queryset = choices
+        self.fields['files'].help_text = "Please select a odML file (XML format). The file will be parsed and imported to the selected section."
+
+    def clean_files(self):
+        """ Page title must be a WikiWord.
+        """
+        f_id = self.cleaned_data['files']
+        f = open(get_object_or_404(Datafile, id=f_id.id).raw_file.path, "r")
+        try:
+            parseXML(f)
+        except Exception, e:
+            raise forms.ValidationError(_("The file can't be parsed. There is a problem with the file: " + str(e)))
+        f.close()
+        return f_id
+
 
 

@@ -10,7 +10,7 @@ import datetime
 
 from timeseries.models import TimeSeries
 from timeseries.forms import AddTSfromFieldForm, AddTSfromFileForm, EditTSForm, DeleteTSForm, PrivacyEditForm
-from metadata.forms import AddPropertyForm
+from metadata.forms import AddPropertyForm, importOdML
 from metadata.models import Section
 from datafiles.models import Datafile
 from datasets.models import RDataset
@@ -155,9 +155,11 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
                     redirect_to = reverse("timeseries_main")
                     return HttpResponseRedirect(redirect_to)
         # get the id of the first available section to select it in the tree (onload)
-        s_c = t_serie.section_set.filter(current_state=10).order_by("tree_position")
-        if s_c:
-            first_section_id = s_c[0].id
+        first_section_id = request.GET.get("section_id")
+        if not first_section_id:
+            sections = t_serie.section_set.filter(current_state=10).order_by("tree_position")
+            if sections:
+                first_section_id = sections[0].id
     else:
         tserie_edit_form = None
         privacy_form = None
@@ -173,6 +175,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
             metadata_defaults.append(section.get_tree())
 
     prop_add_form = AddPropertyForm(auto_id='id_add_form_%s')
+    odml_import_form = importOdML(auto_id='id_odml_form_%s', user=request.user)
 
     return render_to_response(template_name, {
         "timeseries": time_series,
@@ -188,6 +191,7 @@ def timeseries_main(request, id=None, template_name="timeseries/timeseries_main.
         "privacy_form": privacy_form,
         "tserie_edit_form_status": tserie_edit_form_status,
         "prop_add_form": prop_add_form,
+        "odml_import_form": odml_import_form,
         "par_datasets": par_datasets,
         "par_exprts": par_exprts,
         "par_datafiles": par_datafiles,
