@@ -17,6 +17,9 @@ urlpatterns = patterns('',
     # create single datafile
     url(r'^create/$', 'datafiles.views.create', name="datafile_create"),
     # file upload status for progress bar 
+    
+    # test upload
+    #url(r'^test_upload/$', 'datafiles.views.test_upload', name='test_upload'),
     url(r'^upload_progress/$', 'datafiles.views.upload_progress', name='upload_progress'),
 
     # datafile download link
