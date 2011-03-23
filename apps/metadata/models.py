@@ -312,7 +312,7 @@ class Section(models.Model):
         for p in self.property_set.all():
             prop = odml_property(name=p.prop_title, value=p.prop_value)
             s.append(prop)
-        for sec in self.section_set.all():
+        for sec in self.section_set.filter(current_state=10).order_by("tree_position"):
             s.append(sec._export_section())
         return s
 
@@ -321,7 +321,7 @@ class Section(models.Model):
         Exports self with all children and properties. Uses odML parser.
         """
         doc = odml_document()
-        for s in self.section_set.all():
+        for s in self.section_set.filter(current_state=10).order_by("tree_position"):
             doc.append(s._export_section())
         wrt = XMLWriter(doc)
         return wrt.header + wrt.__unicode__()
