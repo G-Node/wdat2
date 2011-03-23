@@ -288,7 +288,7 @@ class Section(models.Model):
         # saving properties
         for p in section.properties:
             new_p = Property(prop_title=p.name, prop_value=str(p.values), \
-                prop_parent_section=self)
+                prop_parent_section=s)
             new_p.save()
         # recursively saving other sections
         for i in section.sections:
