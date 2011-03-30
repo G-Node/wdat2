@@ -121,34 +121,42 @@ class Section(models.Model):
                 return self.parent_timeseries
         return None
 
-    def get_active_properties(self):
+    def get_active_properties(self, user=None):
+        # no need to check the user for current version
         return self.property_set.filter(current_state=10)	    
 
-    def get_active_datasets(self):
-        return self.rel_datasets.filter(current_state=10)	    
+    def get_active_datasets(self, user):
+        datasets = self.rel_datasets.filter(current_state=10)
+        datasets = filter(lambda x: x.is_accessible(user), datasets)
+        return datasets
     def has_dataset(self, dataset_id):
         if self.rel_datasets.filter(current_state=10, id=dataset_id):
             return True
         return False
 
-    def get_active_datafiles(self):
-        return self.rel_datafiles.filter(current_state=10)	    
+    def get_active_datafiles(self, user):
+        datafiles = self.rel_datafiles.filter(current_state=10)
+        datafiles = filter(lambda x: x.is_accessible(user), datafiles)
+        return datafiles
     def has_datafile(self, datafile_id):
         if self.rel_datafiles.filter(current_state=10, id=datafile_id):
             return True
         return False
 
-    def get_active_timeseries(self):
-        return self.rel_timeseries.filter(current_state=10)	    
+    def get_active_timeseries(self, user):
+        timeseries = self.rel_timeseries.filter(current_state=10)
+        timeseries = filter(lambda x: x.is_accessible(user), timeseries)
+        return timeseries
     def has_timeserie(self, tserie_id):
         if self.rel_timeseries.filter(current_state=10, id=tserie_id):
             return True
         return False
 
     def has_child(self):
-        if self.get_active_properties() or self.get_active_datasets() or self.get_active_datafiles() or self.get_active_timeseries():
-            return True
-        return False
+        """
+        For the future.
+        """
+        pass
 
     def get_objects_count(self, r=True):
         """

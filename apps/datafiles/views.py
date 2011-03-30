@@ -1,5 +1,5 @@
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, get_host, HttpResponse
+from django.http import HttpResponseRedirect, get_host, HttpResponse, HttpResponseForbidden
 from django.template import RequestContext
 from django.db.models import Q
 from django.http import Http404
@@ -43,7 +43,9 @@ def upload_progress(request):
 
 @login_required
 def create(request, form_class=NewDatafileForm, template_name="datafiles/new.html"):
-    # create a new datafile
+    """
+    create a new datafile
+    """
     datafile_form = form_class(request.user)
     if request.method == 'POST':
         if request.POST.get("action_1") == "upload":
@@ -67,7 +69,9 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
 
 @login_required
 def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):
-    #datafiles for the currently authenticated user
+    """
+    datafiles owned by the currently authenticated user
+    """
     
     datafiles = Datafile.objects.filter(owner=request.user, current_state=10)
     datafiles = datafiles.order_by("-date_added")
@@ -78,8 +82,9 @@ def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):
         if set_objects_form.is_valid():
             ids = set_objects_form.cleaned_data['set_choices']
             for datafile in Datafile.objects.filter(id__in=ids):
-                datafile.deleteObject()
-                datafile.save()
+                if datafile.owner == request.user:
+                    datafile.deleteObject()
+                    datafile.save()
             request.user.message_set.create(message=_("Successfully deleted the requested datafiles."))
             redirect_to = reverse("your_datafiles")
             return HttpResponseRedirect(redirect_to)
@@ -91,7 +96,9 @@ def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):
 
 @login_required
 def alldatafiles(request, template_name="datafiles/all.html"):
-    # all datafiles available for you
+    """
+    all datafiles available for you
+    """
 
     datafiles = Datafile.objects.filter(Q(current_state=10))
     datafiles = datafiles.exclude(owner=request.user, safety_level=3).exclude(owner=request.user, safety_level=2)
@@ -112,7 +119,9 @@ def alldatafiles(request, template_name="datafiles/all.html"):
 @login_required
 def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_class=PrivacyEditForm, 
     timeseries_form_class=LinkTSForm, property_form_class1=AddPropertyForm, template_name="datafiles/details.html"):
-    # show the datafile details
+    """
+    show the datafile details
+    """
 
     datafiles = Datafile.objects.all()
     datafile = get_object_or_404(datafiles, id=id)
@@ -120,8 +129,7 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
     
     # security handler
     if not datafile.is_accessible(request.user):
-        datafile = None
-        raise Http404
+        return HttpResponseForbidden("This action is forbidden")
 
     action = request.POST.get("action")
 
@@ -190,45 +198,42 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
 
 @login_required
 def datafileDelete(request, id):
-    
+    """
+    Deletes a datafile by id provided.
+    """
     datafiles = Datafile.objects.all()
-    
     datafile = get_object_or_404(datafiles, id=id)
     title = datafile.title
-    
     redirect_to = reverse("your_datafiles")
-    
-    if datafile.owner != request.user:
-	datafile = None
-	raise Http404
-	# more user-friendly way to manage such cases..
-        #request.user.message_set.create(message="You can't delete datafiles that aren't yours")
-        #return HttpResponseRedirect(redirect_to)
-
-    #if request.method == "POST" and request.POST["action"] == "delete":
-    #datafile.deleteObject()
+    if not datafile.owner == request.user:
+        return HttpResponseForbidden("This action is forbidden")
     datafile.deleteObject()
     datafile.save()
     request.user.message_set.create(message=_("Successfully deleted datafile '%s'") % title)
-    
     return HttpResponseRedirect(redirect_to)
 
 
 @login_required
 def download(request, id):
-    datafile = get_object_or_404(Datafile.objects.all(), owner=request.user, id=id)
-    mimetype, encoding = mimetypes.guess_type(datafile.raw_file.path)
-    mimetype = mimetype or 'application/octet-stream' 
-    response = HttpResponse(datafile.raw_file.read(), mimetype=mimetype) 
+    """
+    Processes requests for file download.
+    An alternative way is to use xsendfile:
     #response = HttpResponse(mimetype='application/force-download')
     #response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.title)
+    """
+    datafile = get_object_or_404(Datafile.objects.all(), id=id)
+    # security handler
+    if not datafile.is_accessible(request.user):
+        datafile = None
+        raise Http404
+    mimetype, encoding = mimetypes.guess_type(datafile.raw_file.path)
+    mimetype = mimetype or 'application/octet-stream' 
+    response = HttpResponse(datafile.raw_file.read(), mimetype=mimetype)
     response['Content-Disposition'] = 'attachment'
     response['Content-Length'] = datafile.raw_file.size 
     if encoding: 
         response["Content-Encoding"] = encoding
     response['X-Sendfile'] = str(datafile.raw_file.path)
-    # It's usually a good idea to set the 'Content-Length' header too.
-    # You can also set any other required headers: Cache-Control, etc.
     return response
 
 
