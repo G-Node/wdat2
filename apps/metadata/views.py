@@ -263,7 +263,7 @@ def properties_list(request, id, template_name="metadata/properties_list.html"):
     datafiles = section.get_active_datafiles(request.user)
     datasets = section.get_active_datasets(request.user)
     timeseries = section.get_active_timeseries(request.user)
-    is_owner = (section.get_owner == request.user)
+    is_owner = (section.get_owner() == request.user)
     return render_to_response(template_name, {
         "is_owner": is_owner,
         "properties": properties,
