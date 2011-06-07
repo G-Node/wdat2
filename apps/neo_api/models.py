@@ -12,7 +12,7 @@ def get_neo_by_id(neo_id):
     """
     pass
 
-class BLock(models.Model):
+class Block(models.Model):
     """
     NEO Block @ G-Node.
     """
@@ -25,5 +25,19 @@ class BLock(models.Model):
     date_created = models.DateTimeField('date created', default=datetime.now,\
         editable=False)
 
+class Segment(models.Model):
+    """
+    NEO Segment @ G-Node.
+    """
+    # NEO attributes
+    name = models.CharField('name', max_length=name_max_length)
+    filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
+    index = models.IntegerField('index', null=True, blank=True)
+    # NEO relationships
+    block = models.ForeignKey(Block, blank=True, null=True)
+    # G-Node attributes
+    author = models.ForeignKey(User)
+    date_created = models.DateTimeField('date created', default=datetime.now,\
+        editable=False)
 
 
