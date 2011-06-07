@@ -68,6 +68,14 @@ class Event(BaseInfo):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     eventarray = models.ForeignKey(EventArray, blank=True, null=True)
 
+    @property
+    def is_alone(self):
+        """
+        Indicates whether to show an object alone, even if it is organized in
+        an EventArray.
+        """
+        return (len(self.eventarray) == 0)
+
 
 class EpochArray(BaseInfo):
     """
@@ -92,6 +100,13 @@ class Epoch(BaseInfo):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     epocharray = models.ForeignKey(EpochArray, blank=True, null=True)
 
+    @property
+    def is_alone(self):
+        """
+        Indicates whether to show an object alone, even if it is organized in
+        an EpochArray.
+        """
+        return (len(self.epocharray) == 0)
 
 
 
