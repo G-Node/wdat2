@@ -20,9 +20,8 @@ else:
 class ProjectForm(forms.ModelForm):
     name = forms.CharField(label="Title")
     slug = forms.SlugField(max_length=20,
-        help_text = _("a short name consisting only of letters, numbers, underscores and hyphens, which is used as an identifier to represent the project. The slug cannot be changed later."),
-        error_message = _("This value must contain only letters, numbers, underscores and hyphens."))
-            
+        help_text = _("a short name consisting only of letters, numbers, underscores and hyphens, which is used as an identifier to represent the project. The slug cannot be changed later."))
+
     def clean_slug(self):
         if Project.objects.filter(slug__iexact=self.cleaned_data["slug"]).count() > 0:
             raise forms.ValidationError(_("A project already exists with that slug."))
