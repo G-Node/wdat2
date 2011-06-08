@@ -1,0 +1,225 @@
+Here you may find a list of examples of HTTP request bodies for all supported NEO objects. All examples assume creating a new object. If some of the required parameters to create an object are missing, you will receive an error message. You may find a list of required parameters (attributes, arrays) here.
+
+To perform an update, you need to provide "neo_id" parameter (like "segment_12345") at the root level of the JSON document body. While requesting an update, only parameters that are required for an update should be provided.
+
+Example for Block:
+{{{
+[{
+    "obj_type": "block",
+    "name": "Block of recordings from May, 10",
+    "filedatetime": "10/05/2011",
+    "index": 1
+}]
+}}}
+
+
+Example for Segment:
+{{{
+[{
+    "obj_type": "segment",
+    "name": "Trial 1",
+    "filedatetime": "10/05/2011",
+    "index": 1
+    "block": "block_1234",
+}]
+}}}
+
+
+Example for EventArray:
+{{{
+[{
+    "obj_type": "eventarray",
+    "events": [{
+            "time": -4.88,
+            "time__unit": "ms", 
+            "label": "Applying TTX"
+        },
+        {
+            "time": 3.42,
+            "time__unit": "ms", 
+            "label": "Stimuli start"
+    }]
+    "segment": "segment_12345",
+}]
+}}}
+''Note. When providing Events data for an EventArray you may omit specifying "obj_type" inside the JSON's list.''
+
+
+Example for Event:
+{{{
+[{
+    "obj_type": "event",
+    "time": 7.22,
+    "time__unit": "ms", 
+    "label": "Stimuli end"
+    "segment": "segment_1234",
+}]
+}}}
+
+
+
+Example for EpochArray:
+{{{
+[{
+    "obj_type": "epocharray",
+    "epochs": [{
+            "time": -0.0,
+            "time__unit": "ms", 
+            "duration": 15.0,
+            "duration__unit": "ms", 
+            "label": "Off the lights"
+        },
+        {
+            "time": 12.5,
+            "time__unit": "ms", 
+            "duration": 0.3,
+            "duration__unit": "ms", 
+            "label": "Displaying object on the screen"
+    }]
+    "segment": "segment_1234",
+}]
+}}}
+''Note. When providing Epoch data for an EpochArray you may omit specifying "obj_type" inside the JSON's list.''
+
+
+Example for Epoch:
+{{{
+[{
+    "obj_type": "epoch",
+    "time": 17.5,
+    "time__unit": "ms", 
+    "duration": 0.3,
+    "duration__unit": "ms", 
+    "label": "Displaying blue screen"
+    "segment": "segment_1234",
+}]
+}}}
+
+
+Example for EpochArray:
+{{{
+[{
+    "obj_type": "epocharray",
+    "epochs": [{
+            "time": -0.0,
+            "time__unit": "ms", 
+            "duration": 15.0,
+            "duration__unit": "ms", 
+            "label": "Off the lights"
+        },
+        {
+            "time": 12.5,
+            "time__unit": "ms", 
+            "duration": 0.3,
+            "duration__unit": "ms", 
+            "label": "Displaying object on the screen"
+    }]
+    "segment": "segment_1234",
+}]
+}}}
+''Note. When providing Epoch data for an EpochArray you may omit specifying "obj_type" inside the JSON's list.''
+
+
+Example for Epoch:
+{{{
+[{
+    "obj_type": "epoch",
+    "time": 17.5,
+    "time__unit": "ms", 
+    "duration": 0.3,
+    "duration__unit": "ms", 
+    "label": "Displaying blue screen"
+    "segment": "segment_1234",
+}]
+}}}
+
+
+
+
+
+
+
+
+Example for SpikeTrain:
+{{{
+[{
+    "spike_times": {
+        "units": "ms", 
+        "data": [-4.88, 3.42, 2.44]
+    },
+    "waveforms": [{
+            "channel_index": 0,
+            "units": "ms", 
+            "data": [5.86, -1.46, -0.488, -7.32, -9.77, -12.7, -12.7]
+        },
+        {
+            "channel_index": 1,
+            "units": "ms", 
+            "data": [-63.0, -63.0, -65.9, -69.8, -72.8, -79.6, -65.3]
+        }
+    ]
+}]
+}}}
+
+
+Example for AnalogSignal:
+{{{
+[{
+    "signal": {
+        "units": "mV", 
+        "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
+    }
+}]
+}}}
+
+
+Example for IrSaAnalogSignal:
+{{{
+[{
+    "signal": {
+        "units": "mV", 
+        "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
+    },
+    "times": {
+        "units": "ms", 
+        "data": [-4.88, 3.42, 2.44]
+    }
+}]
+}}}
+
+
+Example for AnalogSignalArray:
+{{{
+[{
+    "signals": [{
+            "name": "AS1",
+            "sampling_rate": 500,
+            "t_start": 300.0,
+            "signal": {
+                "units": "mV", 
+                "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
+            },
+        },
+        {
+            "name": "AS2",
+            "sampling_rate": 500,
+            "t_start": 300.0,
+            "signal": {
+                "units": "mV", 
+                "data": [-63.0, -63.0, -65.9, -69.8, -72.8, -79.6, -65.3]
+            },
+        }]
+}]
+}}}
+
+
+Example for spike:
+{{{
+[{
+    "waveform": {
+        "units": "mV", 
+        "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
+    }
+}]
+}}}
+

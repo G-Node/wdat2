@@ -53,7 +53,6 @@ class BaseInfo(models.Model):
     author = models.ForeignKey(User)
     date_created = models.DateTimeField('date created', default=datetime.now,\
         editable=False)
-    # link to the datafile
     file_origin = models.ForeignKey(Datafile, blank=True, null=True)
 
     # this is temporary unless the integration with Datafiles is implemented
