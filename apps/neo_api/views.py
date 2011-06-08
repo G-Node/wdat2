@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 
 from neo_api.models import *
+import json
 
 meta_messages = {
     "wrong_neo_id": "The NEO_ID provided is wrong and can't be parsed. The NEO_ID should have a form <neo object type>_<object ID>, like 'segment_12345'. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the ID and send the request again.",
@@ -16,6 +17,7 @@ meta_messages = {
     "invalid_obj_type": "You provided an invalid NEO object type. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
+    "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
 }
 
 meta_objects = ["block", "segment", "event", "eventarray", "epoch", "epocharray", \
@@ -58,12 +60,9 @@ meta_attributes = {
 # array name, default value, neo attribute name (get), neo attribute name (set)
 meta_arrays = {
     "eventarray": [
-        ["times", np.zeros(1) * pq.millisecond, "times", "times"], \
-        ["labels", np.array("", dtype="a100"), "labels", "labels"]],
+        ["events", Event, "event"]],
     "epocharray": [
-        ["times", np.zeros(1) * pq.millisecond, "times", "times"], \
-        ["labels", np.array("", dtype="a100"), "labels", "labels"], \
-        ["durations", np.zeros(1) * pq.millisecond, "durations", "durations"]],
+        ["epochs", Epoch, "epoch"]], \
     "spiketrain": [
         ["spike_times", np.zeros(1) * pq.millisecond, "times", "times"], \
         ["waveforms", np.zeros([1, 1, 1]) * pq.millisecond, "waveforms", "waveforms"]],
@@ -73,7 +72,7 @@ meta_arrays = {
         ["signal", np.zeros(1) * pq.millisecond, "signal", "signal"],
         ["times", np.zeros(1) * pq.millisecond, "times", "times"]],
     "analogsignalarray": [
-        ["signals", np.zeros([1, 1]) * pq.millisecond, "signal", "signal"]],
+        ["signals", AnalogSignal, "analogsignal"]],
     "spike": [
         ["waveform", np.zeros([1, 1]) * pq.millisecond, "waveform", "waveform"]]}
 
@@ -112,6 +111,44 @@ def new(request):
         if datafile_id:
             obj.file_origin = Datafile.objects.get(id=datafile_id)
         # processing arrays
+        if request.raw_post_data:
+            try:
+                raw_post = json.loads(request.raw_post_data)
+            except ValueError:
+                return HttpResponseBadRequest(meta_messages["data_parsing_error"])
+        if obj_type in ["eventarray", "epocharray"]:
+            # process as list of objects
+            for item in raw_post[meta_arrays[obj_type][0]]:
+                classname = meta_arrays[obj_type][1]
+                i_obj = classname()
+                i_obj_type = meta_arrays[obj_type][2]
+                for _attr in meta_attributes[i_obj_type]:
+                    attr = clean_attr(_attr)
+                    try:
+                        obj_attr = item[attr]
+                    except KeyError:
+                        # attribute not provided
+                        obj_attr = None
+                    if _attr.startswith("_") and not obj_attr:
+                        return HttpResponseBadRequest(i_obj_type + ": " + attr + "\n" + meta_messages["missing_parameter"])
+                    if obj_attr:
+                        setattr(i_obj, attr, obj_attr)
+                        try:
+                            obj_attr_unit = item[attr + "__unit"]
+                            if obj_attr_unit:
+                                setattr(i_obj, attr + "__unit", obj_attr_unit)
+                i_obj.author = request.user
+                if datafile_id:
+                    obj.file_origin = Datafile.objects.get(id=datafile_id)
+                # set the relationship
+                setattr(i_obj, obj_type, obj)
+                i_obj.save()
+        elif obj_type in ["irsaanalogsignal", "analogsignal", "spike"]:
+            # process as data/unit
+        else obj_type in ["spiketrain", "analogsignalarray"]:
+
+
+
         for arr in meta_arrays[obj_type]:
             obj_array = request.get(arr)
             if obj_array:
@@ -168,25 +205,28 @@ def new(request):
 
 
 @login_required
-def operations(request, neo_id):
+def operations(request, neo_id=None):
     """
     Basic operations with NEO objects. Save, get and delete.
     """
-    obj = get_by_neo_id(neo_id)
-    if not obj == -1:
-        if request.method == 'POST':
-
-        elif request.method == 'GET':
-
-        elif request.method == 'DELETE':
+    if neo_id:
+        obj = get_by_neo_id(neo_id)
+        if obj == -1:
+            return HttpResponseBadRequest(meta_messages["wrond_neo_id"])
+    if request.method == 'POST':
+        if neo_id:
 
         else:
-            # such a method not supported
-            response = HttpResponse(meta_messages["invalid_method"])
-            response.status_code = 405
-            return response
+
+    elif request.method == 'GET':
+
+    elif request.method == 'DELETE':
+
     else:
-        return HttpResponseBadRequest(meta_messages["wrond_neo_id"])
+        # such a method not supported
+        response = HttpResponse(meta_messages["invalid_method"])
+        response.status_code = 405
+        return response
 
 
 
