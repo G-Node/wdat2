@@ -35,7 +35,7 @@ meta_classnames = {
     "spiketrain": SpikeTrain,
     "analogsignal": AnalogSignal,
     "analogsignalarray": AnalogSignalArray,
-    "irsaanalogsignal": IrregularySampledSignal,
+    "irsaanalogsignal": IrSaAnalogSignal,
     "spike": Spike,
     "recordingchannelgroup": RecordingChannelGroup,
     "recordingchannel": RecordingChannel}
@@ -64,17 +64,17 @@ meta_arrays = {
     "epocharray": [
         ["epochs", Epoch, "epoch"]], \
     "spiketrain": [
-        ["spike_times", np.zeros(1) * pq.millisecond, "times", "times"], \
-        ["waveforms", np.zeros([1, 1, 1]) * pq.millisecond, "waveforms", "waveforms"]],
+        ["spike_times"], \
+        ["waveforms"]],
     "analogsignal": [
-        ["signal", np.zeros(1) * pq.millivolt, "signal", "signal"]],
+        ["signal"]],
     "irsaanalogsignal": [
-        ["signal", np.zeros(1) * pq.millisecond, "signal", "signal"],
-        ["times", np.zeros(1) * pq.millisecond, "times", "times"]],
+        ["signal"],
+        ["times"]],
     "analogsignalarray": [
         ["signals", AnalogSignal, "analogsignal"]],
     "spike": [
-        ["waveform", np.zeros([1, 1]) * pq.millisecond, "waveform", "waveform"]]}
+        ["waveform"]]}
 
 def clean_attr(_attr):
     i = 0
@@ -82,12 +82,22 @@ def clean_attr(_attr):
     return _attr[i:]
 
 
+
 @login_required
-def new(request):
+def operations(request, neo_id=None):
     """
-    Creates new neo object.
-    """
+    Basic operations with NEO objects. Save, get and delete.
+
+    if neo_id:
+        obj = get_by_neo_id(neo_id)
+        if obj == -1:
+            return HttpResponseBadRequest(meta_messages["wrond_neo_id"])
     if request.method == 'POST':
+        if neo_id:
+
+        else:
+
+
         obj_type = request.get("obj_type")
         try:
             classname = meta_classnames[obj_type]
@@ -200,24 +210,6 @@ def new(request):
         # process data arrays
 
 
-
-
-
-
-@login_required
-def operations(request, neo_id=None):
-    """
-    Basic operations with NEO objects. Save, get and delete.
-    """
-    if neo_id:
-        obj = get_by_neo_id(neo_id)
-        if obj == -1:
-            return HttpResponseBadRequest(meta_messages["wrond_neo_id"])
-    if request.method == 'POST':
-        if neo_id:
-
-        else:
-
     elif request.method == 'GET':
 
     elif request.method == 'DELETE':
@@ -228,7 +220,8 @@ def operations(request, neo_id=None):
         response.status_code = 405
         return response
 
-
+    """
+    return HttpResponse(request.raw_post_data)
 
 
 

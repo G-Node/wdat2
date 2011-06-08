@@ -14,22 +14,6 @@ def_time_unit = "ms"
 def_data_unit = "mV"
 def_samp_unit = "Hz"
 
-meta_classnames = {
-    "block": Block,
-    "segment": Segment,
-    "event": Event,
-    "eventarray": EventArray,
-    "epoch": Epoch,
-    "epocharray": EpochArray,
-    "unit": Unit,
-    "spiketrain": SpikeTrain,
-    "analogsignal": AnalogSignal,
-    "analogsignalarray": AnalogSignalArray,
-    "irsaanalogsignal": IrSaAnalogSignal,
-    "spike": Spike,
-    "recordingchannelgroup": RecordingChannelGroup,
-    "recordingchannel": RecordingChannel}
-
 # supporting functions
 #===============================================================================
 
@@ -42,24 +26,7 @@ def data_as_list(data):
         l.append(float(s))
     return l
 
-def get_by_neo_id(neo_id):
-    """
-    Returns a NEO object by its NEO ID.
-    Example of neo_id: 'segment_1435'
-    """
-    mid = neo_id.find("_")
-    if mid > 0 and len(neo_id) > mid + 1: # exclude error in case of "segment_"
-        obj_type = neo_id[:neo_id.find("_")]
-        obj_id  = neo_id[neo_id.find("_")+1:]
-        try:
-            classname = meta_classnames[obj_type]
-            return classname.objects.get(id=obj_id)
-        except KeyError:
-            # invalid non-NEO prefix
-            return -1
-    else:
-        # totally wrong id
-        return -1
+
 
 def reg_csv():
     # old version - re.compile('^[\d+\.\d*,]+$')
@@ -347,3 +314,40 @@ class Spike(BaseInfo):
 
 
 
+# supporting functions
+#===============================================================================
+
+meta_classnames = {
+    "block": Block,
+    "segment": Segment,
+    "event": Event,
+    "eventarray": EventArray,
+    "epoch": Epoch,
+    "epocharray": EpochArray,
+    "unit": Unit,
+    "spiketrain": SpikeTrain,
+    "analogsignal": AnalogSignal,
+    "analogsignalarray": AnalogSignalArray,
+    "irsaanalogsignal": IrSaAnalogSignal,
+    "spike": Spike,
+    "recordingchannelgroup": RecordingChannelGroup,
+    "recordingchannel": RecordingChannel}
+
+def get_by_neo_id(neo_id):
+    """
+    Returns a NEO object by its NEO ID.
+    Example of neo_id: 'segment_1435'
+    """
+    mid = neo_id.find("_")
+    if mid > 0 and len(neo_id) > mid + 1: # exclude error in case of "segment_"
+        obj_type = neo_id[:neo_id.find("_")]
+        obj_id  = neo_id[neo_id.find("_")+1:]
+        try:
+            classname = meta_classnames[obj_type]
+            return classname.objects.get(id=obj_id)
+        except KeyError:
+            # invalid non-NEO prefix
+            return -1
+    else:
+        # totally wrong id
+        return -1
