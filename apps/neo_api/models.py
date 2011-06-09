@@ -186,18 +186,6 @@ class Unit(BaseInfo):
     recordingchannel = models.ManyToManyField(RecordingChannel, blank=True, null=True)
 
 # 10
-class WaveForm(BaseInfo):
-    """
-    Supporting class for Spikes and SpikeTrains.
-    """
-    channel_index = models.IntegerField('channel_index', null=True, blank=True)
-    waveform_data = models.TextField('waveform_data')
-    waveform__unit = models.CharField('waveform__unit', default=def_data_unit, max_length=unit_max_length)
-
-    @property
-    def waveform(self):
-        return data_as_list(self.waveform_data)
-
 class SpikeTrain(BaseInfo):
     """
     NEO SpikeTrain @ G-Node.
@@ -213,11 +201,11 @@ class SpikeTrain(BaseInfo):
     # NEO data arrays
     spike_data = models.TextField('spike_data', blank=True) # use 'spike_times' property to get data
     spike_times__unit = models.CharField('spike_data__unit', default=def_data_unit, max_length=unit_max_length)
-    waveforms = models.ForeignKey(WaveForm, blank=True)
 
     @property
     def spike_times(self):
         return data_as_list(self.spike_data)
+
 
 # 11
 class AnalogSignalArray(BaseInfo):
@@ -308,9 +296,21 @@ class Spike(BaseInfo):
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
-    # NEO data arrays
-    waveform = models.ForeignKey(WaveForm)
 
+
+class WaveForm(BaseInfo):
+    """
+    Supporting class for Spikes and SpikeTrains.
+    """
+    channel_index = models.IntegerField('channel_index', null=True, blank=True)
+    waveform_data = models.TextField('waveform_data')
+    waveform__unit = models.CharField('waveform__unit', default=def_data_unit, max_length=unit_max_length)
+    spiketrain = models.ForeignKey(SpikeTrain, blank=True)
+    spike = models.ForeignKey(Spike, blank=True)
+
+    @property
+    def waveform(self):
+        return data_as_list(self.waveform_data)
 
 
 # supporting functions
@@ -350,3 +350,4 @@ def get_by_neo_id(neo_id):
     else:
         # totally wrong id
         return -1
+

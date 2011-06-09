@@ -461,7 +461,7 @@ Data analysis and collaboration are possible within the (shared) datafiles, stor
 
 The following functions to operate with the objects, listed above, are supported:
 
-''Note. Besides other parameters, mentioned below, all requests also contain "authorization" parameter. You have to authenticate and supply authentication key as a value for this parameter to request data from the server.''
+''Note. Besides other parameters, mentioned below, all requests also contain "authorization" parameter, that you have to provide in the Header ot the request. You have to authenticate and supply authentication key as a value for this parameter to request data from the server.''
 
 '''6.1 Create or update data object'''
 
@@ -476,26 +476,42 @@ in order to create a new NEO object. You should specify required parameters in t
 For example, send an HTTP POST request to the "/neo/" with the following body
 
 {{{
+HTTP POST /neo/
 
+[{
+    "obj_type": "segment",
+    "filedatetime": "10/05/2011",
+    "index": 1
+}]
 }}}
 
-to create a new segment in the file with id = 193. If the response status is OK (200) a client receives a new ID of a segment from the response. As the name was not provided in the request, the default name will be assigned by the system, for instance, "segment1". A full set of examples for all supported NEO object can be found here. 
-
-''Note. To understand, which attributes, arrays and relationships, are supported for which NEO object please consider Tables X, X, X, as well as the NEO specification (http://packages.python.org/neo/classes.html).
-
-
-
-To update the segment, changing some ot its parameters, you need to send an HTTP POST to the same URL but mentioning the ID of the segment. Assuming the segment we've just created was assigned an ID = 213, send an HTTP POST to the "/neo/segment_213/" with the following body
+to create a new segment. If the response status is OK (200) a client receives a new ID of a segment from the response. 
 
 {{{
-
+[{
+    "id": "segment_213", 
+    "message": "Object created successfully."
+}]
 }}}
 
-to update the name of the segment from "segment1" to "segment555". When an update is required, you may specify only those parameters that you want to update. All other attributes, arrays and relationships will stay as they were.
+As the name was not provided in the request, the default name will be assigned by the system, for instance, "segment1". A full set of examples for all supported NEO object can be found here (LINK). 
 
+''Note. To understand, which attributes, arrays and relationships, are supported for which NEO object please consider Tables (LINK) as well as the NEO specification (http://packages.python.org/neo/classes.html).
+
+To update the segment, changing some ot its parameters, you need to send an HTTP POST to the same URL but providing the NEO_ID of the segment at the end of the URL. Assuming the segment we've just created was assigned an ID = 213, send an HTTP POST to the "/neo/segment_213/" with the following body
+
+{{{
+HTTP POST /neo/segment_213/
+
+[{
+    "name": "Trial 18",
+    "block": "block_1234",
+}]
+}}}
+
+to update the name of the segment from "segment1" to "Trial 18" and link it to the Block with ID 1234. When update is required, you may specify only those parameters that you want to update. All other attributes, arrays and relationships will stay as they were.
 
 A response should look similar to this:
-
 {{{
 [{
     "id": "segment_213", 
@@ -503,7 +519,25 @@ A response should look similar to this:
 }]
 }}}
 
-As mentioned earlier, some objects have data, associated with it (Analog Signals, Spike Trains, Spikes etc). To save or update the associated object data, provide object data in the request body, as shown in example above. You may find the whole list of data-related objects below:
+Here we saw, that some objects may be connected to others, like a segment may be connected to a block. Here is the full list of supported connections (child->parent):
+
+|| '''Object Type''' || '''Parents''' ||
+|| block || None ||
+|| segment || ['block',] ||
+|| event || ['segment',] ||
+|| eventarray || ['segment',] ||
+|| epoch || ['segment',] ||
+|| epocharray || ['segment',] ||
+|| unit || ['recordingchannel',] ||
+|| spiketrain || ['segment', 'unit'] ||
+|| analogsignal || ['segment', 'recordingchannel', 'analogsignalarray'] ||
+|| analogsignalarray || ['segment',] ||
+|| irsaanalogsignal || ['segment', 'recordingchannel'] ||
+|| spike || ['segment', 'unit'] ||
+|| recordingchannelgroup || ['block',] ||
+|| recordingchannel || ['recordingchannelgroup',]}
+
+As mentioned earlier, some objects have data, associated with it (Analog Signals, Spike Trains, Spikes etc). To save or update the associated object data, provide object data in the request body under a corresponding parameter, as shown in examples page (LINK). You may find the whole list of data-related objects with corresponding parameters in the table below:
 
 || '''Object Type''' || '''Data arrays''' ||
 || "spiketrain" || ["spike_times", "waveforms"] ||
@@ -511,88 +545,72 @@ As mentioned earlier, some objects have data, associated with it (Analog Signals
 || "irsaanalogsignal" || ["signal", "times"] ||
 || "spike" || ["waveform",] ||
 
-Some of NEO objects play a "container" role. It is useful when you want to create several objects at once, unifying them under one umbrella, like making a tethrode (RecordingChannelGroup) with electrodes (RecordingChannel), or having a group of events (Event), related to stimuli or some chemical application (EventArray). Here is the list of supported "containers":
-
-|| '''Object Type''' || '''Contents''' ||
-|| "eventarray" || ["events",] ||
-|| "epocharray" || ["epochs",] ||
-|| "recordingchannelgroup" || ["channels",] ||
-|| "analogsignalarray" || ["signals",] ||
-
-
-Provide related object ID's within the request body under the corresponding attribute to link an object with its possible parents. Here is the list of relationships supported:
-
-
-
-
-
+''Note. While working with values, please consider http://packages.python.org/quantities/user/tutorial.html for supported unit types.''
 
 '''6.2 Getting a single object'''
 
 To get a NEO object with its attributes send a following GET request 
 {{{
-Request: GET /neo/?params
+Request: GET /neo/<neo_id>/
 }}}
 
-parameters:
- * obj_id - object id (required)
-
-You'll get the following response:
+You'll get the response, similar to:
 
 {{{
 Response:
 [{
-    "id": <object_id>, 
-    "fields": {
-        "attribute1": <attribute1>
-        [, "attribute2": <attribute2>]
-    },
-    "message": <message>
+    "neo_id": "epoch_43", 
+    "time": 17.5,
+    "time__unit": "ms", 
+    "duration": 0.3,
+    "duration__unit": "ms", 
+    "label": "Displaying blue screen"
+    "message": "Object retrieved successfully.",
 }]
 }}}
 
-'''6.2.a Get object data'''
+'''6.3 Getting object data'''
 
-To request data, associated with an object (see list of objects and their data above), send the following GET request
+If an object contains data, you may want to request object data (see list of objects and their data in the Table (LINK)). To do this, send an HTTP GET request to 
 
 {{{
-Request: GET /neo/data/?params
+Request: GET /neo/data/<neo_id>/
 }}}
 
-parameters:
- * obj_id - object id (required)
- * [t_start] - when only a specific data range is needed, provide this value as a starting point (in ms?)
- * [t_stop] - when only a specific data range is needed, provide this value as an end point (in ms?)
- * downsample - false/number of datapoints (default = 5000) - this parameter is used to indicate whether downsampling is needed. If the whole data array need to be requested, provide downsample=false, otherwise only 5000 datapoints (or less, if no more data available in the t_start - t_stop range), downsampled, will be provided. If the range requested (t_start - t_stop) is greater than data in the existing array the whole array, downsampled if requested, will be returned.
+the following parameters can be used:
+ * [t_start] - when only a specific data range is needed, provide this value as a starting point
+ * [t_stop] - when only a specific data range is needed, provide this value as an end point
+ * [downsample] - false/number of datapoints (default = 5000) - this parameter is used to indicate whether downsampling is needed. If the whole data array need to be requested, provide downsample=false, otherwise only 5000 datapoints (or less, if no more data available in the t_start - t_stop range), downsampled, will be provided. If the range requested (t_start - t_stop) is greater than data in the existing array the whole array, downsampled if requested, will be returned.
 
-The response should look like this:
+For example, send the following GET request
+
+{{{
+Request: GET /neo/analogsignal_15/?t_start=200&t_stop=210
+}}}
+
+to get the Analog Signal with datapoints as of time t_start = 200ms to t_stop = 210ms:
 
 {{{
 [{
-    "id": <object_id>, 
-    "data": {
-        "signal": {
-            "units": <units>, 
-            "data": <array1>
-        }
-        [, "times": {
-            "units": <units>, 
-            "data": <array2>
-        }]
+    "neo_id": "analogsignal_15", 
+    "signal": {
+        "units": "mV", 
+        "data": [11.2, 12.3, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86, 12.2, 12.7, 19.5]
     },
-    "message": <message>
+    "message": "Data retrieved successfully.",
 }]
 }}}
 
-where "units" can be "ms" for millisecond etc. (please consider http://packages.python.org/quantities/user/tutorial.html for possible unit types) and "array1" is a list of data values, for example [1.567483, 1.789822, 1.998734, ...], depending on the data type. When downsample is provided, the only range requested will be returned.
+Basically, for Analog Signal the range, provided in the request parameters, is just two sequential numbers, between which the requested data array will be retrieved. However, for Irregularly Sampled Analog Signal, this will not work. The range requested will be calculated using "times" array, attached to the object.
+
+When a SpikeTrain is requested, a range of waveforms (if defined) will be retrieved, which fall into the requested range. The comparison is made matching each waveform to the time, provided in the time array.
 
 
-'''6.3 Getting contents of a container'''
+'''6.4 Getting object relationships'''
 
-According to the NEO data model, the following objects can be considered as containers:
+According to the NEO data model, all objects in the scheme are connected. You may get the "child-to-parent" relations :
 
 || '''Object Type''' || '''Children''' ||
-|| "datafile" || ['block',]
 || "block" || ['segment','recordingchannelgroup']
 || "segment" || ['analogsignal', 'irsaanalogsignal', 'analogsignalarray', 'spiketrain', 'spike', 'event', 'eventarray', 'epoch', 'epocharray'] 
 || "recordingchannelgroup" || ['recordingchannel',]
@@ -650,7 +668,7 @@ For example, if you want to receive a contents of the certain block (assuming wi
 }}}
 
 
-'''6.4 Tagging raw data objects with metadata'''
+'''6.5 Tagging raw data objects with metadata'''
 
 {{{
 Request: POST /neo/assign/<obj_id>/?params
@@ -669,7 +687,7 @@ TBD
 }}}
 
 
-'''6.5 Query raw data objects'''
+'''6.6 Query raw data objects'''
 
 {{{
 Request: GET /neo/select/?params
@@ -686,7 +704,7 @@ TBD
 }}}
 
 
-'''6.6 Computations with specified objects'''
+'''6.7 Computations with specified objects'''
 
 {{{
 Request: POST /neo/<operation>/?params
@@ -706,7 +724,7 @@ TBD
 }}}
 
 
-'''6.7 Delete an object'''
+'''6.8 Delete an object'''
 
 {{{
 Request: DELETE /neo/?params
