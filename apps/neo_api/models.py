@@ -332,3 +332,14 @@ def get_by_neo_id(neo_id):
         # totally wrong id
         return -1
 
+def get_neo_id_by_obj(obj):
+    """
+    Returns a NEO_ID for a given object.
+    Example of neo_id: 'segment_1435'
+    """
+    for obj_type in meta_objects:
+        if isinstance(obj, meta_classnames[obj_type]):
+            return str(obj_type + "_" + str(obj.id))
+    return -1
+
+

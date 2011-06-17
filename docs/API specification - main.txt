@@ -490,7 +490,7 @@ to create a new segment. If the response status is OK (200) a client receives a 
 
 {{{
 [{
-    "id": "segment_213", 
+    "neo_id": "segment_213", 
     "message": "Object created successfully."
 }]
 }}}
@@ -835,7 +835,7 @@ TBD
 
 FUTURE:
  * archiving mechanisms
- * version management
+ * version management!!!
  * import / conversion using Google Refine technologies
  * NEO: /neo/info/<neo_id>/ - short info
  * NEO: in /neo/list/<obj_type>/ - provide short info about every object + a summary about all (total volume, for example)

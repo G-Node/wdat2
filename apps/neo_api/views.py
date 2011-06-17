@@ -16,7 +16,9 @@ meta_messages = {
     "invalid_method": "This URL does not support the method specified.",
     "invalid_obj_type": "You provided an invalid NEO object type in 'obj_type' parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
+    "wrong_parent": "A parent object with this neo_id does not exist.",
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
+    "object_created": "Object created successfully.",
     "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
 }
 
@@ -69,6 +71,43 @@ meta_arrays = {
         ["times"]],
     "spike": [
         ["waveform"]]}
+
+# object type + array names
+meta_parents = {
+    "segment": [
+        ["block"]],
+    "eventarray": [
+        ["segment"]],
+    "event": [
+        ["segment"],
+        ["eventarray"]],
+    "epocharray": [
+        ["segment"]],
+    "epoch": [
+        ["segment"],
+        ["epocharray"]],
+    "recordingchannelgroup": [
+        ["block"]],
+    "recordingchannel": [
+        ["recordingchannelgroup"]],
+    "unit": [
+        ["recordingchannel"]],
+    "spiketrain": [
+        ["segment"],
+        ["unit"]],
+    "analogsignalarray": [
+        ["segment"]],
+    "analogsignal": [
+        ["segment"],
+        ["analogsignalarray"],
+        ["recordingchannel"]],
+    "irsaanalogsignal": [
+        ["segment"],
+        ["recordingchannel"]],
+    "spike": [
+        ["segment"],
+        ["unit"]]}
+
 
 def clean_attr(_attr):
     """
@@ -163,69 +202,35 @@ def create(request):
                 pass
 
         # processing relationships
-        # TODO
-"""
-that's probably for update
-
-            if hasattr(obj, arr[2]) and (getattr(obj, arr[2]) is not None):
-                obj_array = getattr(obj, arr[2], False)
-                # we trust this is array
-                if obj_array.size == 0:
-                    obj_array = arr[1]
-                if hasattr(obj, "hdf5_path"):
-                    arr_path = str(obj.hdf5_path)
-                else:
-                    arr_path = node._v_pathname
-                # we try to create new array first, so not to loose the 
-                # data in case of failure
-                new_arr = self._data.createArray(arr_path, arr[0] + "__temp", obj_array)
-                if hasattr(obj_array, "dimensionality"):
-                    for un in obj_array.dimensionality.items():
-                        new_arr._f_setAttr("unit__" + un[0].name, un[1])
-                try:
-                    self._data.removeNode(arr_path, arr[0])
-                except:
-                    # there is no array yet or object is new, so just proceed
-                    pass
-                # and here rename it back to the original
-                self._data.renameNode(arr_path, arr[0], name=arr[0] + "__temp")
-"""
-
+        if meta_parents.has_key(obj_type):
+            for r in meta_parents[obj_type]:
+                if rdata[0].has_key(r):
+                    # unit is a special case. there may be several parents in one parameter.
+                    if r == "unit":
+                        parent_ids = rdata[0][r]
+                        parents = []
+                        for p in parent_ids:
+                            parent = get_by_neo_id(p)
+                            if parent == -1:
+                                return HttpResponseBadRequest(meta_messages["wrong_parent"] + " :" + str(parent_id))
+                            parents.append(parent)
+                        setattr(obj, r, parents)
+                    else:
+                        parent = get_by_neo_id(rdata[0][r])
+                        if parent == -1:
+                            return HttpResponseBadRequest(meta_messages["wrong_parent"] + " :" + str(parent_id))
+                        setattr(obj, r, parent)
+        # processing done
+        obj.save()
+        obj.save_m2m()
+        # making response
+        resp_data = [{"neo_id": get_neo_id_by_obj(obj), "message": meta_messages["object_created"]}]
+        response = HttpResponse(json.dumps(resp_data))
     else:
         # such a method not supported
-        response = HttpResponse(meta_messages["invalid_method"])
+        response = HttpResponseBadRequest(meta_messages["invalid_method"])
         response.status_code = 405
-        return response
-    return HttpResponse(request.raw_post_data)
-
-
-
-"""
-    dataset_form = form_class(request.user)
-    if request.method == 'POST':
-        if request.POST.get("action") == "create":
-            dataset_form = form_class(request.user, request.POST)
-            if dataset_form.is_valid():
-                dataset = dataset_form.save(commit=False)
-                dataset.owner = request.user
-                dataset.save()
-                dataset_form.save_m2m()
-
-                # create default section to add files
-                section = Section(title="link files here", parent_dataset=dataset, tree_position=1)
-                section.save()
-                
-                request.user.message_set.create(message=_("Successfully created dataset '%s'") % dataset.title)
-                include_kwargs = {"id": dataset.id}
-                #redirect_to = reverse("dataset_details", kwargs=include_kwargs)
-                #return HttpResponseRedirect(redirect_to)
-                
-                return HttpResponseRedirect(dataset.get_absolute_url())
-
-    return render_to_response(template_name, {
-        "dataset_form": dataset_form,
-    }, context_instance=RequestContext(request))
-"""
+    return response
 
 
 @login_required
@@ -237,6 +242,7 @@ def update(request, neo_id):
         obj = get_by_neo_id(neo_id)
         if obj == -1:
             return HttpResponseBadRequest(meta_messages["wrond_neo_id"])
+
 
 @login_required
 def data(request, neo_id):
