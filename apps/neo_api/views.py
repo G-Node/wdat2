@@ -14,7 +14,7 @@ import json
 meta_messages = {
     "wrong_neo_id": "The NEO_ID provided is wrong and can't be parsed. The NEO_ID should have a form <neo object type>_<object ID>, like 'segment_12345'. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the ID and send the request again.",
     "invalid_method": "This URL does not support the method specified.",
-    "invalid_obj_type": "You provided an invalid NEO object type. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
+    "invalid_obj_type": "You provided an invalid NEO object type in 'obj_type' parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
     "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
@@ -57,12 +57,8 @@ meta_attributes = {
     "recordingchannelgroup": ['_name'],
     "recordingchannel": ['_name', 'index']}
 
-# array name, default value, neo attribute name (get), neo attribute name (set)
+# object type + array names
 meta_arrays = {
-    "eventarray": [
-        ["events", Event, "event"]],
-    "epocharray": [
-        ["epochs", Epoch, "epoch"]], \
     "spiketrain": [
         ["spike_times"], \
         ["waveforms"]],
@@ -71,99 +67,83 @@ meta_arrays = {
     "irsaanalogsignal": [
         ["signal"],
         ["times"]],
-    "analogsignalarray": [
-        ["signals", AnalogSignal, "analogsignal"]],
     "spike": [
         ["waveform"]]}
 
 def clean_attr(_attr):
+    """
+    By default attribute names contain prefix "_" to indicate whether an 
+    attribute is mandatory. This needs to be cleaned up before assigning to the
+    NEO object.
+    """
     i = 0
     if _attr.startswith("_"): i = 1
     return _attr[i:]
 
+def reg_csv():
+    # old version - re.compile('^[\d+\.\d*,]+$')
+    return re.compile(r'''
+        \s*                # Any whitespace.
+        (                  # Start capturing here.
+          [^,"']+?         # Either a series of non-comma non-quote characters.
+          |                # OR
+          "(?:             # A double-quote followed by a string of characters...
+              [^"\\]|\\.   # That are either non-quotes or escaped...
+           )*              # ...repeated any number of times.
+          "                # Followed by a closing double-quote.
+          |                # OR
+          '(?:[^'\\]|\\.)*'# Same as above, for single quotes.
+        )                  # Done capturing.
+        \s*                # Allow arbitrary space before the comma.
+        (?:,|$)            # Followed by a comma or the end of a string.
+        ''', re.VERBOSE)
 
 
 @login_required
-def operations(request, neo_id=None):
+def create(request):
     """
-    Basic operations with NEO objects. Save, get and delete.
-
-    if neo_id:
-        obj = get_by_neo_id(neo_id)
-        if obj == -1:
-            return HttpResponseBadRequest(meta_messages["wrond_neo_id"])
+    Creates new NEO object.
+    """
     if request.method == 'POST':
-        if neo_id:
-
-        else:
-
-
-        obj_type = request.get("obj_type")
         try:
+            rdata = json.loads(request.raw_post_data)
+        except ValueError:
+            return HttpResponseBadRequest(meta_messages["data_parsing_error"])
+        try:
+            obj_type = rdata[0]["obj_type"]
             classname = meta_classnames[obj_type]
         except KeyError:
-            # invalid NEO type
-            return HttpResponse(obj_type + ": " + meta_messages["invalid_obj_type"])
+            # invalid NEO type or type is missing
+            return HttpResponse(meta_messages["invalid_obj_type"])
         obj = classname()
-        # assign attributes
+
+        # processing attributes
         for _attr in meta_attributes[obj_type]:
             attr = clean_attr(_attr)
-            obj_attr = request.get(attr)
-            if _attr.startswith("_") and not obj_attr:
-                return HttpResponseBadRequest(obj_type + ": " + attr + "\n" + meta_messages["missing_parameter"])
-            if obj_attr:
+            obj_attr = None
+            if rdata[0].has_key(attr):
+                obj_attr = rdata[0][attr]
                 setattr(obj, attr, obj_attr)
-                obj_attr_unit = request.get(attr + "__unit")
-                if obj_attr_unit:
+                if rdata[0].has_key(attr + "__unit"):
+                    obj_attr_unit = rdata[0][attr + "__unit"]
                     setattr(obj, attr + "__unit", obj_attr_unit)
+            elif _attr.startswith("_"):
+                return HttpResponseBadRequest(obj_type + ": " + attr + "\n" + meta_messages["missing_parameter"])
         obj.author = request.user
-        datafile_id = request.get("datafile_id")
-        if datafile_id:
-            obj.file_origin = Datafile.objects.get(id=datafile_id)
+        if rdata[0].has_key("datafile_id"):
+            obj_attr = rdata[0]["datafile_id"]
+            # enable this when file integration is done TODO
+            #obj.file_origin = Datafile.objects.get(id=datafile_id)
+
         # processing arrays
-        if request.raw_post_data:
-            try:
-                raw_post = json.loads(request.raw_post_data)
-            except ValueError:
-                return HttpResponseBadRequest(meta_messages["data_parsing_error"])
-        if obj_type in ["eventarray", "epocharray"]:
-            # process as list of objects
-            for item in raw_post[meta_arrays[obj_type][0]]:
-                classname = meta_arrays[obj_type][1]
-                i_obj = classname()
-                i_obj_type = meta_arrays[obj_type][2]
-                for _attr in meta_attributes[i_obj_type]:
-                    attr = clean_attr(_attr)
-                    try:
-                        obj_attr = item[attr]
-                    except KeyError:
-                        # attribute not provided
-                        obj_attr = None
-                    if _attr.startswith("_") and not obj_attr:
-                        return HttpResponseBadRequest(i_obj_type + ": " + attr + "\n" + meta_messages["missing_parameter"])
-                    if obj_attr:
-                        setattr(i_obj, attr, obj_attr)
-                        try:
-                            obj_attr_unit = item[attr + "__unit"]
-                            if obj_attr_unit:
-                                setattr(i_obj, attr + "__unit", obj_attr_unit)
-                i_obj.author = request.user
-                if datafile_id:
-                    obj.file_origin = Datafile.objects.get(id=datafile_id)
-                # set the relationship
-                setattr(i_obj, obj_type, obj)
-                i_obj.save()
-        elif obj_type in ["irsaanalogsignal", "analogsignal", "spike"]:
-            # process as data/unit
-        else obj_type in ["spiketrain", "analogsignalarray"]:
-
-
-
         for arr in meta_arrays[obj_type]:
-            obj_array = request.get(arr)
-            if obj_array:
+            if rdata[0].has_key(arr):
+                obj_array = rdata[0][arr]
                 r = reg_csv()
-                values = r.findall(obj_array)
+                # converting to a string to parse with RE
+                str_arr = str(obj_array)
+                str_arr = str_arr[1:len(str_arr)-1]
+                values = r.findall(str_array)
                 cleaned_data = ''
                 for value in values:
                     try:
@@ -175,13 +155,17 @@ def operations(request, neo_id=None):
                     cleaned_data = cleaned_data[2:]
                 setattr(obj, arr, cleaned_data)
                 # don't forget an array may have units
-                obj_array_unit = request.get(arr + "__unit")
-                if obj_array_unit:
+                if rdata[0].has_key(arr + "__unit"):
+                    obj_array = rdata[0][arr + "__unit"]
                     setattr(obj, arr + "__unit", obj_array_unit)
-                
+            else:
+                # no array data provided.. does it make sense?
+                pass
 
-
-
+        # processing relationships
+        # TODO
+"""
+that's probably for update
 
             if hasattr(obj, arr[2]) and (getattr(obj, arr[2]) is not None):
                 obj_array = getattr(obj, arr[2], False)
@@ -205,22 +189,13 @@ def operations(request, neo_id=None):
                     pass
                 # and here rename it back to the original
                 self._data.renameNode(arr_path, arr[0], name=arr[0] + "__temp")
-
-
-        # process data arrays
-
-
-    elif request.method == 'GET':
-
-    elif request.method == 'DELETE':
+"""
 
     else:
         # such a method not supported
         response = HttpResponse(meta_messages["invalid_method"])
         response.status_code = 405
         return response
-
-    """
     return HttpResponse(request.raw_post_data)
 
 
@@ -252,31 +227,55 @@ def operations(request, neo_id=None):
     }, context_instance=RequestContext(request))
 """
 
+
 @login_required
-def data_only(request, obj_id):
+def update(request, neo_id):
+    """
+    Update NEO object.
+    """
+    if neo_id:
+        obj = get_by_neo_id(neo_id)
+        if obj == -1:
+            return HttpResponseBadRequest(meta_messages["wrond_neo_id"])
+
+@login_required
+def data(request, neo_id):
     """
     Basic operations with NEO objects. Save, get and delete.
     """
     pass
 
 @login_required
-def contents(request, obj_id):
+def parents(request, neo_id):
     """
     Basic operations with NEO objects. Save, get and delete.
     """
     pass
 
 @login_required
-def assign(request, obj_id):
+def children(request, neo_id):
     """
     Basic operations with NEO objects. Save, get and delete.
     """
     pass
 
 @login_required
-def select(request, obj_id):
+def select(request, neo_id):
     """
     Basic operations with NEO objects. Save, get and delete.
     """
     pass
 
+@login_required
+def assign(request, neo_id):
+    """
+    Basic operations with NEO objects. Save, get and delete.
+    """
+    pass
+
+@login_required
+def delete(request, neo_id):
+    """
+    Basic operations with NEO objects. Save, get and delete.
+    """
+    pass

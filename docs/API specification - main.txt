@@ -442,7 +442,7 @@ TBD
 
 Data analysis and collaboration are possible within the (shared) datafiles, stored in the native format. You may work with raw data objects, stored in the native datafile - Spike Trains, Analog Signals, combining them in Segments, performing computations with analog signals and spike trains (sum, mean, fft etc.), and store new results in the same (or another) native datafile. The following types of raw data objects are supported:
 
-
+''Table 6.1''
 || '''Object Type''' || '''Attributes''' ||
 || block || ['name', 'filedatetime', 'index'] ||
 || segment || ['name', 'filedatetime', 'index'] ||
@@ -459,13 +459,14 @@ Data analysis and collaboration are possible within the (shared) datafiles, stor
 || recordingchannelgroup || ['name',] ||
 || recordingchannel || ['name', 'index']}
 
-The following functions to operate with the objects, listed above, are supported:
+
+To manage objects, listed above, the functions described in sections 6.1 - 6.8 are supported within G-Node API.
 
 ''Note. Besides other parameters, mentioned below, all requests also contain "authorization" parameter, that you have to provide in the Header ot the request. You have to authenticate and supply authentication key as a value for this parameter to request data from the server.''
 
 '''6.1 Create or update data object'''
 
-Send an HTTP request with the body (in JSON format), providing object data (attributes, arrays and relationships), to
+Send an authorized HTTP request with the body (in JSON format), providing object data (attributes, arrays and relationships), to
 
 {{{
 Request: POST /neo/
@@ -473,7 +474,7 @@ Request: POST /neo/
 
 in order to create a new NEO object. You should specify required parameters in the request body, starting with an object type, followed by its attributes, data arrays (if exist), and relationships, if needed.
 
-For example, send an HTTP POST request to the "/neo/" with the following body
+For example, send an authorized HTTP POST request to the "/neo/" with the following body
 
 {{{
 HTTP POST /neo/
@@ -498,7 +499,7 @@ As the name was not provided in the request, the default name will be assigned b
 
 ''Note. To understand, which attributes, arrays and relationships, are supported for which NEO object please consider Tables (LINK) as well as the NEO specification (http://packages.python.org/neo/classes.html).
 
-To update the segment, changing some ot its parameters, you need to send an HTTP POST to the same URL but providing the NEO_ID of the segment at the end of the URL. Assuming the segment we've just created was assigned an ID = 213, send an HTTP POST to the "/neo/segment_213/" with the following body
+To update the segment, changing some ot its parameters, you need to send an authorized HTTP POST to the same URL but providing the NEO_ID of the segment at the end of the URL. Assuming the segment we've just created was assigned an ID = 213, send an HTTP POST to the "/neo/segment_213/" with the following body
 
 {{{
 HTTP POST /neo/segment_213/
@@ -519,33 +520,18 @@ A response should look similar to this:
 }]
 }}}
 
-Here we saw, that some objects may be connected to others, like a segment may be connected to a block. Here is the full list of supported connections (child->parent):
-
-|| '''Object Type''' || '''Parents''' ||
-|| block || None ||
-|| segment || ['block',] ||
-|| event || ['segment',] ||
-|| eventarray || ['segment',] ||
-|| epoch || ['segment',] ||
-|| epocharray || ['segment',] ||
-|| unit || ['recordingchannel',] ||
-|| spiketrain || ['segment', 'unit'] ||
-|| analogsignal || ['segment', 'recordingchannel', 'analogsignalarray'] ||
-|| analogsignalarray || ['segment',] ||
-|| irsaanalogsignal || ['segment', 'recordingchannel'] ||
-|| spike || ['segment', 'unit'] ||
-|| recordingchannelgroup || ['block',] ||
-|| recordingchannel || ['recordingchannelgroup',]}
+Here we saw, that some objects may be connected to others, like a segment may be connected to a block. The full list of supported connections can be found in Tables 6.3 - 6.4. Please provide the relationships inside the POST request to save appropriate data structure of your recordings. Consider the examples page (LINK).
 
 As mentioned earlier, some objects have data, associated with it (Analog Signals, Spike Trains, Spikes etc). To save or update the associated object data, provide object data in the request body under a corresponding parameter, as shown in examples page (LINK). You may find the whole list of data-related objects with corresponding parameters in the table below:
 
+''Table 6.2''
 || '''Object Type''' || '''Data arrays''' ||
 || "spiketrain" || ["spike_times", "waveforms"] ||
 || "analogsignal" || ["signal",] ||
 || "irsaanalogsignal" || ["signal", "times"] ||
 || "spike" || ["waveform",] ||
 
-Use the same type of POST request to create or update object arrays and relationships.  
+Use the same type of POST request to create or update object arrays and relationships. 
 
 ''Note. While working with values, please consider http://packages.python.org/quantities/user/tutorial.html for supported unit types.''
 
@@ -575,12 +561,12 @@ Response:
 }]
 }}}
 
-Response will contain all information about an object, including its attributes, data arrays, downstream and upstream relationships. When you need only partial information (say, data or relationships only) please use requests described in the following sections.
+Response will contain full information about an object, including its attributes, data arrays, downstream and upstream relationships. When you need only partial information (say, data or relationships only) please use requests described in the following sections.
 
 
 '''6.3 Getting object data'''
 
-If an object contains data, you may want to request object data only (see list of objects and their data in the Table (LINK)). To do this, send an HTTP GET request to 
+If an object contains data, you may want to request object data only (see list of objects and their data in the Table 6.2). To do this, send an HTTP GET request to 
 
 {{{
 Request: GET /neo/data/<neo_id>/
@@ -620,8 +606,9 @@ When a SpikeTrain is requested, that range of waveforms (if defined) will be ret
 
 '''6.4 Getting object relationships only'''
 
-According to the NEO data model, all objects in the scheme are connected. You may get the both "parent-to-child" (like which Segments are contained in a Block) and "child-to-parent" (like from which Recording Point an Analog Signal was recorded) relations by sending request to /neo/children/<neo_id>/ or /neo/parents/<neo_id>/. In the tables below you may find supported objects of either type:
+According to the NEO data model, all objects in the scheme are connected. You may get the both "parent-to-child" (like which Segments are contained in a Block) and "child-to-parent" (like from which Recording Point an Analog Signal was recorded) relations by sending request to /neo/children/<neo_id>/ or /neo/parents/<neo_id>/ accordingly. In the tables below you may find supported objects of either type:
 
+''Table 6.3''
 || '''Object Type''' || '''Children''' ||
 || "block" || ['segment','recordingchannelgroup']
 || "segment" || ['analogsignal', 'irsaanalogsignal', 'analogsignalarray', 'spiketrain', 'spike', 'event', 'eventarray', 'epoch', 'epocharray'] 
@@ -633,6 +620,7 @@ According to the NEO data model, all objects in the scheme are connected. You ma
 || "analogsignalarray" || ['analogsignal',]
 
 
+''Table 6.4''
 || '''Object Type''' || '''Parents''' ||
 || "segment" || ['block',] ||
 || "eventarray" || ['segment',] ||
@@ -666,7 +654,7 @@ A response should look similar to this:
 }]
 }}}
 
-Accordingly, if you want to receive a contents of the certain block, send an HTTP request to "/neo/list/?obj_id=block_87"  (assuming block has id=87). If the block contains both segments and recording channel groups, you'll get the following response:
+Accordingly, if you want to receive a contents of the certain block, send an HTTP request to "/neo/children/block_87" (assuming block has id=87). If the block contains both segments and recording channel groups, you'll get the following response:
 
 {{{
 [{
@@ -684,7 +672,8 @@ Accordingly, if you want to receive a contents of the certain block, send an HTT
 }]
 }}}
 
-''Note. When some of the parents / children are not set up, they will not appear in the response.''
+''Note. When some of the parents / children are not set up, they will NOT appear in the response.''
+''Note. While updating objects, please use only child-to-parent relationships (like specify to which segment (parent) particular event (child)  belongs). Parent-to-child relations will not be parsed and saved.''
 
 
 '''6.5 Query data objects - get an object list'''
@@ -701,11 +690,32 @@ to query NEO objects of a specific type. For example, if you want to get all Ana
 Request: GET /neo/select/analogsignal/
 }}}
 
-You receive a list of Analog Signals as a response:
+You receive a list of Analog Signals IDs as a response:
 
 {{{
-Response:
-TBD
+[{
+    "neo_id": "analogsignal_10",
+    "neo_id": "analogsignal_11", 
+    "neo_id": "analogsignal_12", 
+    "neo_id": "analogsignal_13", 
+    "neo_id": "analogsignal_14", 
+    "neo_id": "analogsignal_15", 
+    "neo_id": "analogsignal_16", 
+    "neo_id": "analogsignal_17", 
+    "neo_id": "analogsignal_18", 
+    "neo_id": "analogsignal_19", 
+    "neo_id": "analogsignal_20", 
+    "neo_id": "analogsignal_21",
+    "object_total": 21,
+    "range_start": 10,
+    "message": "Here is the list of requested objects."
+}]
+}}}
+
+By default the API will return the first 1000 data objects in the response. This saves bandwidth and improves performance. A response will contain "object_total" parameter, with the total number of available objects. Use the "range_start" parameter indicating the starting point of the range of the whole list of objects (for example, 0 or 1499) to retrieve the rest of the objects. Just send a "range_start" parameter in the GET request, like 
+
+{{{
+Request: GET /neo/select/analogsignals/?range_start=844
 }}}
 
 
@@ -827,6 +837,9 @@ FUTURE:
  * archiving mechanisms
  * version management
  * import / conversion using Google Refine technologies
+ * NEO: /neo/info/<neo_id>/ - short info
+ * NEO: in /neo/list/<obj_type>/ - provide short info about every object + a summary about all (total volume, for example)
+ * NEO: /neo/list/<obj_type>/ add query mechanism
 
 
 

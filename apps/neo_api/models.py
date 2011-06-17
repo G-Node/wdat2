@@ -27,25 +27,6 @@ def data_as_list(data):
     return l
 
 
-
-def reg_csv():
-    # old version - re.compile('^[\d+\.\d*,]+$')
-    return re.compile(r'''
-        \s*                # Any whitespace.
-        (                  # Start capturing here.
-          [^,"']+?         # Either a series of non-comma non-quote characters.
-          |                # OR
-          "(?:             # A double-quote followed by a string of characters...
-              [^"\\]|\\.   # That are either non-quotes or escaped...
-           )*              # ...repeated any number of times.
-          "                # Followed by a closing double-quote.
-          |                # OR
-          '(?:[^'\\]|\\.)*'# Same as above, for single quotes.
-        )                  # Done capturing.
-        \s*                # Allow arbitrary space before the comma.
-        (?:,|$)            # Followed by a comma or the end of a string.
-        ''', re.VERBOSE)
-
 class BaseInfo(models.Model):
     """
     Basic info about any NEO object created at G-Node.
