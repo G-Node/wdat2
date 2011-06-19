@@ -6,10 +6,10 @@ from django.http import Http404
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
 
 from neo_api.models import *
 import json
+import re
 
 meta_messages = {
     "wrong_neo_id": "The NEO_ID provided is wrong and can't be parsed. The NEO_ID should have a form <neo object type>_<object ID>, like 'segment_12345'. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the ID and send the request again.",
@@ -18,6 +18,8 @@ meta_messages = {
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
     "wrong_parent": "A parent object with this neo_id does not exist.",
     "debug": "Debugging message.",
+    "data_missing": "'data' parameter within an array is missing. Array data should be provided as dictionary, where data values are set as 'data' parameter inside.",
+    "not_iterable": "For this type of object a parent parameter must be of type 'list'.",
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
     "object_created": "Object created successfully.",
     "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
@@ -58,16 +60,10 @@ meta_attributes = {
 
 # object type + array names
 meta_arrays = {
-    "spiketrain": [
-        ["spike_times"], \
-        ["waveforms"]],
-    "analogsignal": [
-        ["signal"]],
-    "irsaanalogsignal": [
-        ["signal"],
-        ["times"]],
-    "spike": [
-        ["waveform"]]}
+    "spiketrain": ["spike_times","waveforms"],
+    "analogsignal": ["signal"],
+    "irsaanalogsignal": ["signal","times"],
+    "spike": ["waveform"]}
 
 # object type + array names
 meta_parents = {
@@ -78,7 +74,7 @@ meta_parents = {
     "epoch": ["segment","epocharray"],
     "recordingchannelgroup": ["block"],
     "recordingchannel": ["recordingchannelgroup"],
-    "unit": ["recordingchannel"],
+    "unit": ["recordingchannel"], # this object is special. do not add more parents
     "spiketrain": ["segment","unit"],
     "analogsignalarray": ["segment"],
     "analogsignal": ["segment","analogsignalarray","recordingchannel"],
@@ -113,6 +109,7 @@ def reg_csv():
         \s*                # Allow arbitrary space before the comma.
         (?:,|$)            # Followed by a comma or the end of a string.
         ''', re.VERBOSE)
+
 
 
 @login_required
@@ -157,10 +154,12 @@ def create(request):
                 if rdata[0].has_key(arr):
                     obj_array = rdata[0][arr]
                     r = reg_csv()
+                    if not obj_array.has_key("data"):
+                        return HttpResponseBadRequest(meta_messages["data_missing"])
                     # converting to a string to parse with RE
-                    str_arr = str(obj_array)
+                    str_arr = str(obj_array["data"])
                     str_arr = str_arr[1:len(str_arr)-1]
-                    values = r.findall(str_array)
+                    values = r.findall(str_arr)
                     cleaned_data = ''
                     for value in values:
                         try:
@@ -170,10 +169,10 @@ def create(request):
                             return HttpResponseBadRequest(meta_messages["bad_float_data"] + str(value))
                     if len(cleaned_data) > 0:
                         cleaned_data = cleaned_data[2:]
-                    setattr(obj, arr, cleaned_data)
+                    setattr(obj, arr + "_data", cleaned_data)
                     # don't forget an array may have units
-                    if rdata[0].has_key(arr + "__unit"):
-                        obj_array = rdata[0][arr + "__unit"]
+                    if obj_array.has_key("units"):
+                        obj_array_unit = obj_array["units"]
                         setattr(obj, arr + "__unit", obj_array_unit)
                 else:
                     # no array data provided.. does it make sense?
@@ -181,19 +180,25 @@ def create(request):
 
         # processing relationships
         if meta_parents.has_key(obj_type):
-            for r in meta_parents[obj_type]:
+            if obj_type == "unit":
+                # unit is a special case. there may be several parents in one parameter.
+                r = meta_parents[obj_type][0]
                 if rdata[0].has_key(r):
-                    # unit is a special case. there may be several parents in one parameter.
-                    if r == "unit":
-                        parent_ids = rdata[0][r]
-                        parents = []
-                        for p in parent_ids:
-                            parent = get_by_neo_id(p)
-                            if parent == -1:
-                                return HttpResponseBadRequest(meta_messages["wrong_parent"] + " :" + str(parent_id))
-                            parents.append(parent)
-                        setattr(obj, r, parents)
-                    else:
+                    # saving object to get a primary key for M2M relations
+                    obj.save()
+                    parent_ids = rdata[0][r]
+                    if not getattr(parent_ids, "__iter__", False):
+                        return HttpResponseBadRequest(meta_messages["not_iterable"])
+                    parents = []
+                    for p in parent_ids:
+                        parent = get_by_neo_id(p)
+                        if parent == -1:
+                            return HttpResponseBadRequest(meta_messages["wrong_parent"] + " :" + str(parent_id))
+                        parents.append(parent)
+                    setattr(obj, r, parents)
+            else:
+                for r in meta_parents[obj_type]:
+                    if rdata[0].has_key(r):
                         parent = get_by_neo_id(rdata[0][r])
                         if parent == -1:
                             return HttpResponseBadRequest(meta_messages["wrong_parent"] + " :" + str(parent_id))
@@ -201,8 +206,7 @@ def create(request):
 
         # processing done
         obj.save()
-        if obj_type == "unit":
-            obj.save_m2m()
+
         # making response
         resp_data = [{"neo_id": get_neo_id_by_obj(obj), "message": meta_messages["object_created"]}]
         response = HttpResponse(json.dumps(resp_data))

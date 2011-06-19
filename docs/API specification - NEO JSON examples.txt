@@ -138,7 +138,7 @@ HTTP POST /neo/
 
 [{
     "obj_type": "analogsignal",
-    "name": "AS-1"
+    "name": "AS-1",
     "sampling_rate": 20000,
     "sampling_rate__unit": "Hz", 
     "t_start": 300.0,
