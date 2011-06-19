@@ -17,14 +17,11 @@ meta_messages = {
     "invalid_obj_type": "You provided an invalid NEO object type in 'obj_type' parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
     "wrong_parent": "A parent object with this neo_id does not exist.",
+    "debug": "Debugging message.",
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
     "object_created": "Object created successfully.",
     "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
 }
-
-meta_objects = ["block", "segment", "event", "eventarray", "epoch", "epocharray", \
-    "unit", "spiketrain", "analogsignal", "analogsignalarray", \
-    "irsaanalogsignal", "spike", "recordingchannelgroup", "recordingchannel"]
 
 meta_classnames = {
     "block": Block,
@@ -74,39 +71,19 @@ meta_arrays = {
 
 # object type + array names
 meta_parents = {
-    "segment": [
-        ["block"]],
-    "eventarray": [
-        ["segment"]],
-    "event": [
-        ["segment"],
-        ["eventarray"]],
-    "epocharray": [
-        ["segment"]],
-    "epoch": [
-        ["segment"],
-        ["epocharray"]],
-    "recordingchannelgroup": [
-        ["block"]],
-    "recordingchannel": [
-        ["recordingchannelgroup"]],
-    "unit": [
-        ["recordingchannel"]],
-    "spiketrain": [
-        ["segment"],
-        ["unit"]],
-    "analogsignalarray": [
-        ["segment"]],
-    "analogsignal": [
-        ["segment"],
-        ["analogsignalarray"],
-        ["recordingchannel"]],
-    "irsaanalogsignal": [
-        ["segment"],
-        ["recordingchannel"]],
-    "spike": [
-        ["segment"],
-        ["unit"]]}
+    "segment": ["block"],
+    "eventarray": ["segment"],
+    "event": ["segment","eventarray"],
+    "epocharray": ["segment"],
+    "epoch": ["segment","epocharray"],
+    "recordingchannelgroup": ["block"],
+    "recordingchannel": ["recordingchannelgroup"],
+    "unit": ["recordingchannel"],
+    "spiketrain": ["segment","unit"],
+    "analogsignalarray": ["segment"],
+    "analogsignal": ["segment","analogsignalarray","recordingchannel"],
+    "irsaanalogsignal": ["segment","recordingchannel"],
+    "spike": ["segment","unit"]}
 
 
 def clean_attr(_attr):
@@ -145,7 +122,7 @@ def create(request):
     """
     if request.method == 'POST':
         try:
-            rdata = json.loads(request.raw_post_data)
+            rdata = json.loads(request._get_raw_post_data())
         except ValueError:
             return HttpResponseBadRequest(meta_messages["data_parsing_error"])
         try:
@@ -175,31 +152,32 @@ def create(request):
             #obj.file_origin = Datafile.objects.get(id=datafile_id)
 
         # processing arrays
-        for arr in meta_arrays[obj_type]:
-            if rdata[0].has_key(arr):
-                obj_array = rdata[0][arr]
-                r = reg_csv()
-                # converting to a string to parse with RE
-                str_arr = str(obj_array)
-                str_arr = str_arr[1:len(str_arr)-1]
-                values = r.findall(str_array)
-                cleaned_data = ''
-                for value in values:
-                    try:
-                        a = float(value)
-                        cleaned_data += ', ' + str(a)
-                    except:
-                        return HttpResponseBadRequest(meta_messages["bad_float_data"] + str(value))
-                if len(cleaned_data) > 0:
-                    cleaned_data = cleaned_data[2:]
-                setattr(obj, arr, cleaned_data)
-                # don't forget an array may have units
-                if rdata[0].has_key(arr + "__unit"):
-                    obj_array = rdata[0][arr + "__unit"]
-                    setattr(obj, arr + "__unit", obj_array_unit)
-            else:
-                # no array data provided.. does it make sense?
-                pass
+        if meta_arrays.has_key(obj_type):
+            for arr in meta_arrays[obj_type]:
+                if rdata[0].has_key(arr):
+                    obj_array = rdata[0][arr]
+                    r = reg_csv()
+                    # converting to a string to parse with RE
+                    str_arr = str(obj_array)
+                    str_arr = str_arr[1:len(str_arr)-1]
+                    values = r.findall(str_array)
+                    cleaned_data = ''
+                    for value in values:
+                        try:
+                            a = float(value)
+                            cleaned_data += ', ' + str(a)
+                        except:
+                            return HttpResponseBadRequest(meta_messages["bad_float_data"] + str(value))
+                    if len(cleaned_data) > 0:
+                        cleaned_data = cleaned_data[2:]
+                    setattr(obj, arr, cleaned_data)
+                    # don't forget an array may have units
+                    if rdata[0].has_key(arr + "__unit"):
+                        obj_array = rdata[0][arr + "__unit"]
+                        setattr(obj, arr + "__unit", obj_array_unit)
+                else:
+                    # no array data provided.. does it make sense?
+                    pass
 
         # processing relationships
         if meta_parents.has_key(obj_type):
@@ -220,9 +198,11 @@ def create(request):
                         if parent == -1:
                             return HttpResponseBadRequest(meta_messages["wrong_parent"] + " :" + str(parent_id))
                         setattr(obj, r, parent)
+
         # processing done
         obj.save()
-        obj.save_m2m()
+        if obj_type == "unit":
+            obj.save_m2m()
         # making response
         resp_data = [{"neo_id": get_neo_id_by_obj(obj), "message": meta_messages["object_created"]}]
         response = HttpResponse(json.dumps(resp_data))

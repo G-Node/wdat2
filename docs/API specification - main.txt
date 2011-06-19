@@ -835,6 +835,7 @@ TBD
 
 FUTURE:
  * archiving mechanisms
+ * caching!! see google
  * version management!!!
  * import / conversion using Google Refine technologies
  * NEO: /neo/info/<neo_id>/ - short info

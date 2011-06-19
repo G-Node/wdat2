@@ -297,6 +297,10 @@ class WaveForm(BaseInfo):
 # supporting functions
 #===============================================================================
 
+meta_objects = ["block", "segment", "event", "eventarray", "epoch", "epocharray", \
+    "unit", "spiketrain", "analogsignal", "analogsignalarray", \
+    "irsaanalogsignal", "spike", "recordingchannelgroup", "recordingchannel"]
+
 meta_classnames = {
     "block": Block,
     "segment": Segment,
