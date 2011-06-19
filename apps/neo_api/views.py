@@ -6,6 +6,7 @@ from django.http import Http404
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 
 from neo_api.models import *
 import json
@@ -16,7 +17,7 @@ meta_messages = {
     "invalid_method": "This URL does not support the method specified.",
     "invalid_obj_type": "You provided an invalid NEO object type in 'obj_type' parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
-    "wrong_parent": "A parent object with this neo_id does not exist.",
+    "wrong_parent": "A parent object with this neo_id does not exist: ",
     "debug": "Debugging message.",
     "data_missing": "'data' parameter within an array is missing. Array data should be provided as dictionary, where data values are set as 'data' parameter inside.",
     "not_iterable": "For this type of object a parent parameter must be of type 'list'.",
@@ -111,6 +112,13 @@ def reg_csv():
         ''', re.VERBOSE)
 
 
+def auth_required(function):
+    if not function.request.user:
+        return HttpResponseBadRequest(meta_messages["data_parsing_error"])
+    elif not function.request.user.is_authenticated():
+        return HttpResponseBadRequest(meta_messages["data_parsing_error"])
+    else:
+        return function
 
 @login_required
 def create(request):
@@ -193,7 +201,7 @@ def create(request):
                     for p in parent_ids:
                         parent = get_by_neo_id(p)
                         if parent == -1:
-                            return HttpResponseBadRequest(meta_messages["wrong_parent"] + " :" + str(parent_id))
+                            return HttpResponseBadRequest(meta_messages["wrong_parent"] + str(p))
                         parents.append(parent)
                     setattr(obj, r, parents)
             else:
@@ -201,7 +209,7 @@ def create(request):
                     if rdata[0].has_key(r):
                         parent = get_by_neo_id(rdata[0][r])
                         if parent == -1:
-                            return HttpResponseBadRequest(meta_messages["wrong_parent"] + " :" + str(parent_id))
+                            return HttpResponseBadRequest(meta_messages["wrong_parent"] + str(rdata[0][r]))
                         setattr(obj, r, parent)
 
         # processing done

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from datetime import datetime
+from django.core.exceptions import ObjectDoesNotExist
 
 from datafiles.models import Datafile
 
@@ -329,7 +330,7 @@ def get_by_neo_id(neo_id):
         try:
             classname = meta_classnames[obj_type]
             return classname.objects.get(id=obj_id)
-        except KeyError:
+        except ObjectDoesNotExist:
             # invalid non-NEO prefix
             return -1
     else:
