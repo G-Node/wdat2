@@ -1,0 +1,22 @@
+[
+    {
+        "pk": 1,
+        "model": "neo_api.Block",
+        "fields": {
+            "name": "Block of recordings from May, 10",
+            "filedatetime": "2011-10-05",
+            "index": 1,
+            "author": 1
+        }
+    },
+    {
+        "pk": 2,
+        "model": "neo_api.Block",
+        "fields": {
+            "name": "Attention, Trial #34 recordings, monkey V1 January.",
+            "filedatetime": "2011-15-01",
+            "index": 2,
+            "author": 2
+        }
+    }
+]
