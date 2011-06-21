@@ -25,6 +25,10 @@ def getLDAPGroup(ldapGroup):
 """ The backend """
 class LDAPBackend:
     """ Set Defaults and Connect - use the config file"""
+    supports_object_permissions = False
+    supports_anonymous_user = False
+    supports_inactive_user = False
+
     def __init__(self):
         """ Set blank username and password as we are not managing them yet """
         self.username = None

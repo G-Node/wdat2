@@ -19,6 +19,7 @@ meta_messages = {
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
     "wrong_parent": "A parent object with this neo_id does not exist: ",
     "debug": "Debugging message.",
+    "not_authorized": "Please authorize before sending the request.",
     "data_missing": "'data' parameter within an array is missing. Array data should be provided as dictionary, where data values are set as 'data' parameter inside.",
     "not_iterable": "For this type of object a parent parameter must be of type 'list'.",
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
@@ -112,15 +113,27 @@ def reg_csv():
         ''', re.VERBOSE)
 
 
-def auth_required(function):
-    if not function.request.user:
-        return HttpResponseBadRequest(meta_messages["data_parsing_error"])
-    elif not function.request.user.is_authenticated():
-        return HttpResponseBadRequest(meta_messages["data_parsing_error"])
-    else:
-        return function
+class HttpResponseUnauthorized(HttpResponse):
+    status_code = 401
 
-@login_required
+class HttpResponseNotSupported(HttpResponse):
+    status_code = 405
+
+
+def auth_required(func):
+    """
+    Decorator for views where authentication required.
+    """
+    argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
+    fname = func.func_name
+    def auth_func(*args, **kwargs):
+        if not args[0].user.is_authenticated():
+            return HttpResponseUnauthorized(meta_messages["not_authorized"])
+        return func(*args, **kwargs)
+    return auth_func
+
+
+@auth_required
 def create(request):
     """
     Creates new NEO object.
@@ -129,7 +142,7 @@ def create(request):
         try:
             rdata = json.loads(request._get_raw_post_data())
         except ValueError:
-            return HttpResponseBadRequest(meta_messages["data_parsing_error"])
+            return HttpResponseBadRequest(meta_messages["data_parsing_error"] + request._get_raw_post_data())
         try:
             obj_type = rdata[0]["obj_type"]
             classname = meta_classnames[obj_type]
@@ -220,8 +233,7 @@ def create(request):
         response = HttpResponse(json.dumps(resp_data))
     else:
         # such a method not supported
-        response = HttpResponseBadRequest(meta_messages["invalid_method"])
-        response.status_code = 405
+        response = HttpResponseNotSupported(meta_messages["invalid_method"])
     return response
 
 
