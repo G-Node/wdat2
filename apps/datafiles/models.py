@@ -15,6 +15,8 @@ def make_upload_path(self, filename):
     """
     return "data/%s/%s" % (self.owner.username, filename)
 
+fs = storage.FileSystemStorage(location='/data/media')
+
 class FileSystemStorage(storage.FileSystemStorage):
     """
     Subclass Django's standard FileSystemStorage to fix permissions
@@ -38,7 +40,7 @@ class Datafile(SafetyLevel, LinkedToProject, MetadataManager):
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
     owner = models.ForeignKey(User, related_name="related_file", blank=True, null=True)
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
-    raw_file = models.FileField(_('data file'), upload_to="data/") # or make_upload_path.. which doesn't work in PROD
+    raw_file = models.FileField(_('data file'), storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField(_('keywords'))
 
     def __unicode__(self):
