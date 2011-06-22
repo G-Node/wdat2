@@ -138,7 +138,7 @@
             {% endwith %}
             </div>
         {% endifequal %}
-        <p>You may <a href="{% url download datafile.id %}">Download</a> {% ifequal request.user datafile.owner %}your{% else %}this{% endifequal %} File.
+        <p>You may <a href="{% url download datafile.id %}{{ datafile.title|urlencode }}">Download</a> {% ifequal request.user datafile.owner %}your{% else %}this{% endifequal %} File.
         
 
         {% if datafile.has_metadata %}

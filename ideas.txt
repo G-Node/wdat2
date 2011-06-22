@@ -28,3 +28,45 @@ DONE - move "Trash" to "Trash" in Inbox. Make redirection to the page with activ
 3 - implement "Applications" - so people can share their home-made applications, promote them etc.
 3 - we need to extend the admin interface at some point.
 2 - SSH and / or FTP access to files. Need Feasibility Study.
+
+
+Metadata Sections changes
+-1. Move wikis and comments to the Section. Have an additional properties (according to a type below) indicating whether to include comments, or wikis, or smth else (in the future).
+
++2. Move security mechanisms to Section. Modify mechanisms, so they work with inheritance.
+
++3. Make Sections independent of "linked" objects:
+    - either introduce MtoM by having "type + ID" for every section
+    - either in the object itself (like property). Worse?
+JUST DO links belonging to the object itself!!!
+
++4. Add a "type" (project, terminology, common etc) to the section
+ 5. Introduce a "star" - a helper mechanism for data selection (not for sections?)
+
+ 6. Migration scripts
+
+
+
+Move TimeSeries into AnalogSignals
+
+Move and extend search
+
+Create a Message Queue Manager
+
+Implement multiple file upload
+
+Implement odML automatic search, processing helper, import and export engine 
+
+Implement a sections tree and overall file/analogsignal management in GWT (??)
+
+
+
+
+
+
+
+
+
+
+
+

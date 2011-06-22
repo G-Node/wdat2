@@ -258,9 +258,18 @@ def section_copy(request, template_name="metadata/move_copy.html"):
 def properties_list(request, id, template_name="metadata/properties_list.html"):
     section = get_object_or_404(Section, id=id)
     if not section.is_accessible(request.user):
-        section = None
+        raise Http404
+    properties = section.get_active_properties(request.user)
+    datafiles = section.get_active_datafiles(request.user)
+    datasets = section.get_active_datasets(request.user)
+    timeseries = section.get_active_timeseries(request.user)
+    is_owner = (section.get_owner() == request.user)
     return render_to_response(template_name, {
-        "section": section,
+        "is_owner": is_owner,
+        "properties": properties,
+        "datafiles": datafiles,
+        "datasets": datasets,
+        "timeseries": timeseries,
         }, context_instance=RequestContext(request))
         
 
