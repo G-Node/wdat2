@@ -20,13 +20,13 @@ NEO® objects are used to work with the raw recordings. NEO objects include Segm
 Any item maintained by the API, including sections, datafiles, and NEO objects.
 
 ''' Resource ID '''[[BR]]
-A unique identifier for each resource. This is usually of the format <type>:<id>, e.g. section:12345. Throughout this specification, if not specified, a typed resource ID should be assumed.
+A unique identifier for each resource. This is usually of the format <type>_<id>, e.g. section_12345. Throughout this specification, if not specified, a typed resource ID should be assumed.
 
 ''' Untyped resource ID '''[[BR]]
 A resource ID, without the type prefix. Given the previous example, an untyped resource ID would be 12345.
 
 ''Note. For all URLs, given later in this specification, you should add a G-Node prefix URL, which is:
-https://portal.g-node.org/data
+http://hal10.g-node.pri
 ''
 
 ----
@@ -35,17 +35,17 @@ To authentice at G-Node, please use the following methods:
 
 ''' 1.1 Authentication'''[[BR]]
 {{{
-Request: POST /account/login/?username=<username>&password=<password>
+Request: POST /account/login/
 }}}
 
 parameters:
  * username - user account name
  * password - user password
 
-{{{
-Response:
-TBD
-}}}
+A successful response will contain a cookie called "sessionid". Use this cookie within every request to work with G-Node API.
+
+''Note. If you want to try out the API from the normal web-browser (like Firefox, Chrome, Safari etc.), you may not bother with sessionid parameter, a browser should take about that itself. You may go to the login page (GET /account/login/), fill in the login form, submit and authenticate. After successful authentication sessionid will be stored in the browser, while you may use the address bar to query the API.''
+
 
 ----
 == 2. DATAFILE MANAGEMENT ==
@@ -495,9 +495,9 @@ to create a new segment. If the response status is OK (200) a client receives a 
 }]
 }}}
 
-As the name was not provided in the request, the default name will be assigned by the system, for instance, "segment1". A full set of examples for all supported NEO object can be found here (LINK). 
+As the name was not provided in the request, the default name will be assigned by the system, for instance, "segment1". A full set of examples for all supported NEO object can be found here ([wiki:APINEOExamples NEO API Examples]). 
 
-''Note. To understand, which attributes, arrays and relationships, are supported for which NEO object please consider Tables (LINK) as well as the NEO specification (http://packages.python.org/neo/classes.html).
+''Note. To understand, which attributes, arrays and relationships, are supported for which NEO object please consider Tables ([wiki:APINEOExamples NEO API Examples]) as well as the NEO specification (http://packages.python.org/neo/classes.html).
 
 To update the segment, changing some ot its parameters, you need to send an authorized HTTP POST to the same URL but providing the NEO_ID of the segment at the end of the URL. Assuming the segment we've just created was assigned an ID = 213, send an HTTP POST to the "/neo/segment_213/" with the following body
 
@@ -520,9 +520,9 @@ A response should look similar to this:
 }]
 }}}
 
-Here we saw, that some objects may be connected to others, like a segment may be connected to a block. The full list of supported connections can be found in Tables 6.3 - 6.4. Please provide the relationships inside the POST request to save appropriate data structure of your recordings. Consider the examples page (LINK).
+Here we saw, that some objects may be connected to others, like a segment may be connected to a block. The full list of supported connections can be found in Tables 6.3 - 6.4. Please provide the relationships inside the POST request to save appropriate data structure of your recordings. Consider the examples page ([wiki:APINEOExamples NEO API Examples]).
 
-As mentioned earlier, some objects have data, associated with it (Analog Signals, Spike Trains, Spikes etc). To save or update the associated object data, provide object data in the request body under a corresponding parameter, as shown in examples page (LINK). You may find the whole list of data-related objects with corresponding parameters in the table below:
+As mentioned earlier, some objects have data, associated with it (Analog Signals, Spike Trains, Spikes etc). To save or update the associated object data, provide object data in the request body under a corresponding parameter, as shown in examples page ([wiki:APINEOExamples NEO API Examples]). You may find the whole list of data-related objects with corresponding parameters in the table below:
 
 ''Table 6.2''
 || '''Object Type''' || '''Data arrays''' ||

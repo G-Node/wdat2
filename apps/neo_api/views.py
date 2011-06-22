@@ -76,7 +76,7 @@ meta_arrays = {
     "irsaanalogsignal": ["signal","times"],
     "spike": ["waveform"]}
 
-# object type + array names
+# object type + parent objects
 meta_parents = {
     "segment": ["block"],
     "eventarray": ["segment"],
@@ -91,6 +91,17 @@ meta_parents = {
     "analogsignal": ["segment","analogsignalarray","recordingchannel"],
     "irsaanalogsignal": ["segment","recordingchannel"],
     "spike": ["segment","unit"]}
+
+# object type + children
+meta_children = {
+    "block": ['segment','recordingchannelgroup'],
+    "segment": ['analogsignal', 'irsaanalogsignal', 'analogsignalarray', 'spiketrain', 'spike', 'event', 'eventarray', 'epoch', 'epocharray'],
+    "eventarray": ["event"],
+    "epocharray": ["epoch"],
+    "recordingchannelgroup": ['recordingchannel','analogsignalarray'],
+    "recordingchannel": ['unit','analogsignal', 'irsaanalogsignal'],
+    "unit": ['spiketrain','spike'], 
+    "analogsignalarray": ["analogsignal"]}
 
 
 def clean_attr(_attr):
@@ -324,7 +335,8 @@ def retrieve(request, neo_id):
         # processing arrays
         _assign_arrays(n, obj)
         # processing relationships
-        _assign_arrays(n, obj)
+        _assign_parents(n, obj)
+        _assign_children(n, obj)
         # making response
         resp_data = jsonpickle.encode(n, unpicklable=False)
         return HttpResponseAPI(resp_data)
@@ -480,3 +492,16 @@ def _assign_parents(fake, obj):
         assigned = True
     return assigned
 
+
+def _assign_children(fake, obj):
+    """
+    Assigns children from NEO to fake object for pickling to JSON.
+    """
+    assigned = False
+    obj_type = obj.obj_type
+    if meta_children.has_key(obj_type):
+        for r in meta_children[obj_type]:
+            ch = [o.neo_id for o in getattr(obj, r + "_set").all()]
+            setattr(fake, r, ch)
+        assigned = True
+    return assigned
