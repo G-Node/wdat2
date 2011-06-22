@@ -659,15 +659,15 @@ Accordingly, if you want to receive a contents of the certain block, send an HTT
 {{{
 [{
     "neo_id": "block_87", 
-    "segment": {
-        "neo_id": "segment_193",
-        "neo_id": "segment_194",
-        "neo_id": "segment_195"
-    },
-    "recordingchannelgroup": {
-        "neo_id": "recordingchannelgroup_1",
-        "neo_id": "recordingchannelgroup_2",
-    },
+    "segment": [
+        "segment_193",
+        "segment_194",
+        "segment_195"
+    ],
+    "recordingchannelgroup": [
+        "recordingchannelgroup_1",
+        "recordingchannelgroup_2",
+    ],
     "message": "Here are the contents of the requested object."
 }]
 }}}

@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from datetime import datetime
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import PermissionDenied
 
 from datafiles.models import Datafile
 
@@ -318,24 +318,24 @@ meta_classnames = {
     "recordingchannelgroup": RecordingChannelGroup,
     "recordingchannel": RecordingChannel}
 
-def get_by_neo_id(neo_id):
+def get_by_neo_id(neo_id, user):
     """
-    Returns a NEO object by its NEO ID.
+    Returns a NEO object by its NEO ID. Checks the user can access it.
     Example of neo_id: 'segment_1435'
     """
     mid = neo_id.find("_")
     if mid > 0 and len(neo_id) > mid + 1: # exclude error in case of "segment_"
         obj_type = neo_id[:neo_id.find("_")]
         obj_id  = neo_id[neo_id.find("_")+1:]
-        try:
-            classname = meta_classnames[obj_type]
-            return classname.objects.get(id=obj_id)
-        except ObjectDoesNotExist:
-            # invalid non-NEO prefix
-            return -1
+        classname = meta_classnames[obj_type]
+        obj = classname.objects.get(id=obj_id)
+        if obj.is_accessible(user):
+            return obj
+        else:
+            raise PermissionDenied("Sorry, you don't have access to this NEO object.")
     else:
         # totally wrong id
-        return -1
+        raise TypeError("totally wrong NEO ID provided.")
 
 def get_neo_id_by_obj(obj):
     """
@@ -345,6 +345,15 @@ def get_neo_id_by_obj(obj):
     for obj_type in meta_objects:
         if isinstance(obj, meta_classnames[obj_type]):
             return str(obj_type + "_" + str(obj.id))
-    return -1
+    raise TypeError("Invalid object given. An object is not an instance of any G-Node NEO objects.")
+
+def get_type_by_obj(obj):
+    """
+    Returns the type of the object (string) depending on the object given.
+    """
+    for obj_type in meta_objects:
+        if isinstance(obj, meta_classnames[obj_type]):
+            return obj_type
+    raise TypeError("Invalid object given. An object is not an instance of any G-Node NEO objects.")
 
 
