@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE web-app
+    PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+    "http://java.sun.com/dtd/web-app_2_3.dtd">
+
+<web-app>
+  <!-- Params -->
+  <context-param>
+    <!-- max size of the upload request -->
+    <param-name>maxSize</param-name>
+    <param-value>93145728</param-value>
+  </context-param>
+  <context-param>
+    <!-- Useful in development mode to slow down the uploads in fast networks.
+         Put the number of milliseconds to sleep in each block received in the server.
+         false or 0, means don't use slow uploads  -->
+    <param-name>slowUploads</param-name>
+    <param-value>200</param-value>
+  </context-param>
+  
+  <!-- Servlets -->
+  <servlet>
+    <servlet-name>uploadServlet</servlet-name>
+    <!-- This is the default servlet, it puts files in session -->
+    <servlet-class>com.gnode.uploadpage.server.SampleUploadServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>uploadServlet</servlet-name>
+    <url-pattern>*.gupld</url-pattern>
+  </servlet-mapping>
+  
+  <!-- Default page to serve -->
+  <welcome-file-list>
+    <welcome-file>UploadPage.html</welcome-file>
+  </welcome-file-list>
+
+</web-app>

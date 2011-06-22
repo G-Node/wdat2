@@ -8,6 +8,13 @@ from django.contrib.auth.models import User
 from datafiles.models import Datafile
 from fields.models import MMCFClearField
 
+class GWTDatafileForm(forms.ModelForm):
+    
+    class Meta:
+        model = Datafile
+        fields = ['raw_file']
+
+
 class NewDatafileForm(forms.ModelForm):
     
     class Meta:
