@@ -47,6 +47,22 @@ class BaseInfo(models.Model):
     class Meta:
         abstract = True
 
+    @property
+    def neo_id(self):
+        """
+        Returns NEO_ID. Example of neo_id: 'segment_1435'
+        """
+        return str(self.obj_type + "_" + str(self.id))
+
+    @property
+    def obj_type(self):
+        """
+        Returns the type of the object (string), like 'segment' or 'event'.
+        """
+        for obj_type in meta_objects:
+            if isinstance(self, meta_classnames[obj_type]):
+                return obj_type
+        raise TypeError("Critical error. Panic. NEO object can't define it's own type. Tell system developers.")
 
 # basic NEO classes
 #===============================================================================
@@ -337,23 +353,5 @@ def get_by_neo_id(neo_id, user):
         # totally wrong id
         raise TypeError("totally wrong NEO ID provided.")
 
-def get_neo_id_by_obj(obj):
-    """
-    Returns a NEO_ID for a given object.
-    Example of neo_id: 'segment_1435'
-    """
-    for obj_type in meta_objects:
-        if isinstance(obj, meta_classnames[obj_type]):
-            return str(obj_type + "_" + str(obj.id))
-    raise TypeError("Invalid object given. An object is not an instance of any G-Node NEO objects.")
-
-def get_type_by_obj(obj):
-    """
-    Returns the type of the object (string) depending on the object given.
-    """
-    for obj_type in meta_objects:
-        if isinstance(obj, meta_classnames[obj_type]):
-            return obj_type
-    raise TypeError("Invalid object given. An object is not an instance of any G-Node NEO objects.")
 
 

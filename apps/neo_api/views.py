@@ -4,7 +4,7 @@ from django.template import RequestContext
 from django.db.models import Q
 from django.http import Http404
 from django.core.urlresolvers import reverse
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 
@@ -18,10 +18,13 @@ meta_messages = {
     "wrong_neo_id": "The object with the NEO_ID provided does not exist.",
     "missing_neo_id": "For this type of request you should provide NEO_ID. The NEO_ID should have a form <neo object type>_<object ID>, like 'segment_12345'. Please include NEO_ID and send the request again.",
     "invalid_method": "This URL does not support the method specified.",
-    "invalid_obj_type": "You provided an invalid NEO object type in 'obj_type' parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
+    "invalid_obj_type": "You provided an invalid NEO object type parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
+    "bad_parameter": "Some of the parameters provided are incorrect. Please consider values below:",
     "wrong_parent": "A parent object with this neo_id does not exist: ",
     "debug": "Debugging message.",
+    "no_data_related": "There is no data, related to this object. Data arrays are supported only for 'analogsignal', 'spiketrain', 'irsaanalogsignal' and 'spike' object types.",
+    "no_parents_related": "There are no parents for a Block.",
     "not_authenticated": "Please authenticate before sending the request.",
     "not_authorized": "You don't have permissions to access the object.",
     "data_missing": "'data' parameter within an array is missing. Array data should be provided as dictionary, where data values are set as 'data' parameter inside.",
@@ -29,6 +32,7 @@ meta_messages = {
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
     "object_created": "Object created successfully.",
     "object_updated": "Object updated successfully. Data changes saved.",
+    "object_selected": "Here is the list of requested objects.",
     "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
 }
 
@@ -122,7 +126,7 @@ class HttpResponseAPI(HttpResponse):
     content_type="application/json"
 
 class HttpResponseBadRequestAPI(HttpResponseAPI):
-    status_code = 401
+    status_code = 400
 
 class HttpResponseUnauthorizedAPI(HttpResponseAPI):
     status_code = 401
@@ -196,7 +200,7 @@ def create_or_update(request, neo_id=None):
         obj = get_by_neo_id_http(neo_id, request.user)
         if isinstance(obj, HttpResponse):
             return obj
-        obj_type = get_type_by_obj(obj)
+        obj_type = obj.obj_type
         message = meta_messages["object_updated"]
     else:
         # this is create case
@@ -284,11 +288,22 @@ def create_or_update(request, neo_id=None):
                         return parent
                     setattr(obj, r, parent)
 
+    # catch exception if any of values provided do not match
+    try:
+        obj.full_clean()
+    except ValidationError, VE:
+        # making an output nicer
+        to_render = ""
+        errors = [(str(k) + ": " + str(v)) for k, v in VE.message_dict.items()]
+        for e in errors:
+            to_render += str(e) + "\n"
+        return HttpResponseBadRequestAPI(meta_messages["bad_parameter"] + "\n" + to_render)
+
     # processing done
     obj.save()
 
     # making response
-    resp_data = [{"neo_id": get_neo_id_by_obj(obj), "message": message}]
+    resp_data = [{"neo_id": obj.neo_id, "message": message}]
     return HttpResponseAPI(json.dumps(resp_data))
 
 
@@ -302,35 +317,14 @@ def retrieve(request, neo_id):
         obj = get_by_neo_id_http(neo_id, request.user)
         if isinstance(obj, HttpResponse):
             return obj
-        obj_type = get_type_by_obj(obj)
         n = FakeJSON()
+        setattr(n, "neo_id", obj.neo_id)
         # processing attributes
-        for _attr in meta_attributes[obj_type]:
-            attr = clean_attr(_attr)
-            setattr(n, attr, getattr(obj, attr))
-            if hasattr(obj, attr + "__unit"):
-                setattr(n, attr + "__unit", getattr(obj, attr + "__unit"))
+        _assign_attrs(n, obj)
         # processing arrays
-        if meta_arrays.has_key(obj_type):
-            for arr in meta_arrays[obj_type]:
-                array = {"data": getattr(obj, arr), "units": getattr(obj, arr + "__unit")}
-                setattr(n, arr, array)
+        _assign_arrays(n, obj)
         # processing relationships
-        if meta_parents.has_key(obj_type):
-            if obj_type == "unit":
-                ids = []
-                r = meta_parents[obj_type][0]
-                parents = getattr(obj, r).all()
-                for p in parents:
-                    ids.append(get_neo_id_by_obj(p))
-                setattr(n, r, ids)
-            else:
-                for r in meta_parents[obj_type]:
-                    parent = getattr(obj, r)
-                    if parent:
-                        setattr(n, r, get_neo_id_by_obj(parent))
-                    else:
-                        setattr(n, r, "")
+        _assign_arrays(n, obj)
         # making response
         resp_data = jsonpickle.encode(n, unpicklable=False)
         return HttpResponseAPI(resp_data)
@@ -345,41 +339,144 @@ def delete(request, neo_id):
     pass
 
 
-
-
-@login_required
+@auth_required
 def data(request, neo_id):
     """
-    Basic operations with NEO objects. Save, get and delete.
+    Returns object data arrays.
     """
-    pass
+    if request.method == "GET":
+        obj = get_by_neo_id_http(neo_id, request.user)
+        if isinstance(obj, HttpResponse):
+            return obj
+        n = FakeJSON()
+        setattr(n, "neo_id", obj.neo_id)
+        # processing arrays
+        assigned = _assign_arrays(n, obj)
+        if not assigned:
+            return HttpResponseBadRequestAPI(meta_messages["no_data_related"])
+        # making response
+        resp_data = jsonpickle.encode(n, unpicklable=False)
+        return HttpResponseAPI(resp_data)
+    else:
+        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
 
-@login_required
+@auth_required
 def parents(request, neo_id):
     """
-    Basic operations with NEO objects. Save, get and delete.
+    Returns the list of object parents.
     """
-    pass
+    if request.method == "GET":
+        obj = get_by_neo_id_http(neo_id, request.user)
+        if isinstance(obj, HttpResponse):
+            return obj
+        n = FakeJSON()
+        setattr(n, "neo_id", obj.neo_id)
+        # processing parents
+        assigned = _assign_parents(n, obj)
+        if not assigned:
+            return HttpResponseBadRequestAPI(meta_messages["no_parents_related"])
+        # making response
+        resp_data = jsonpickle.encode(n, unpicklable=False)
+        return HttpResponseAPI(resp_data)
+    else:
+        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
 
-@login_required
+
+@auth_required
 def children(request, neo_id):
     """
     Basic operations with NEO objects. Save, get and delete.
     """
     pass
 
-@login_required
-def select(request, neo_id):
+@auth_required
+def select(request, obj_type):
     """
     Basic operations with NEO objects. Save, get and delete.
     """
-    pass
+    if obj_type in meta_objects:
+        classname = meta_classnames[obj_type]
+        # TODO add some filtering, sorting etc. here
+        objects = classname.objects.filter(author=request.user)[:1000]
+        if objects:
+            selected = [o.neo_id for o in objects]
+            message = meta_messages["object_selected"]
+        else:
+            selected = ""
+            message = "No objects found."
+        # making response
+        resp_data = [{
+            "selected": selected,
+            "object_total": len(objects),
+            "object_selected": len(objects),
+            "selected_as_of": 0,
+            "message": message
+        }]
+        return HttpResponseAPI(resp_data)
+    else:
+        return HttpResponseBadRequestAPI(meta_messages["invalid_obj_type"])
 
-@login_required
+
+
+@auth_required
 def assign(request, neo_id):
     """
     Basic operations with NEO objects. Save, get and delete.
     """
     pass
 
+#===============================================================================
+
+def _assign_attrs(fake, obj):
+    """
+    Assigns attibutes from NEO to fake object for pickling to JSON.
+    """
+    for _attr in meta_attributes[obj.obj_type]:
+        attr = clean_attr(_attr)
+        setattr(fake, attr, getattr(obj, attr))
+        if hasattr(obj, attr + "__unit"):
+            setattr(fake, attr + "__unit", getattr(obj, attr + "__unit"))
+
+def _assign_arrays(fake, obj):
+    """
+    Assigns arrays from NEO to fake object for pickling to JSON.
+    """
+    assigned = False
+    if meta_arrays.has_key(obj.obj_type):
+
+        # TODO Slicing / downsampling
+        #t1 = request.GET.get("t_start")
+        #t2 = request.GET.get("t_stop")
+        #if hasattr(obj, "t_start") and (t1 or t2):
+
+        for arr in meta_arrays[obj.obj_type]:
+            array = {"data": getattr(obj, arr), "units": getattr(obj, arr + "__unit")}
+            setattr(fake, arr, array)
+        assigned = True
+    return assigned
+    
+
+def _assign_parents(fake, obj):
+    """
+    Assigns parents from NEO to fake object for pickling to JSON.
+    """
+    assigned = False
+    obj_type = obj.obj_type
+    if meta_parents.has_key(obj_type):
+        if obj_type == "unit":
+            ids = []
+            r = meta_parents[obj_type][0]
+            parents = getattr(obj, r).all()
+            for p in parents:
+                ids.append(p.neo_id)
+            setattr(fake, r, ids)
+        else:
+            for r in meta_parents[obj_type]:
+                parent = getattr(obj, r)
+                if parent:
+                    setattr(fake, r, parent.neo_id)
+                else:
+                    setattr(fake, r, "")
+        assigned = True
+    return assigned
 

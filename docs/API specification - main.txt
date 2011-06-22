@@ -506,7 +506,7 @@ HTTP POST /neo/segment_213/
 
 [{
     "name": "Trial 18",
-    "block": "block_1234",
+    "block": "block_1234"
 }]
 }}}
 
@@ -557,7 +557,7 @@ Response:
     "author": "andrey",
     "date_created": "01.05.2011",
     "file_origin": "monkey recordings 16-35.mcs",
-    "message": "Object retrieved successfully.",
+    "message": "Object retrieved successfully."
 }]
 }}}
 
@@ -595,7 +595,7 @@ to get the Analog Signal with datapoints as of time t_start = 200ms to t_stop = 
     "author": "andrey",
     "date_created": "01.05.2011",
     "file_origin": "monkey recordings 16-35.mcs",
-    "message": "Data retrieved successfully.",
+    "message": "Data retrieved successfully."
 }]
 }}}
 
@@ -650,7 +650,7 @@ A response should look similar to this:
     "neo_id": analogsignal_34, 
     "segment": "segment_1",
     "recordingchannel": "recordingchannel_12",
-    "message": "Here is the list of object parents.",
+    "message": "Here is the list of object parents."
 }]
 }}}
 
@@ -694,20 +694,23 @@ You receive a list of Analog Signals IDs as a response:
 
 {{{
 [{
-    "neo_id": "analogsignal_10",
-    "neo_id": "analogsignal_11", 
-    "neo_id": "analogsignal_12", 
-    "neo_id": "analogsignal_13", 
-    "neo_id": "analogsignal_14", 
-    "neo_id": "analogsignal_15", 
-    "neo_id": "analogsignal_16", 
-    "neo_id": "analogsignal_17", 
-    "neo_id": "analogsignal_18", 
-    "neo_id": "analogsignal_19", 
-    "neo_id": "analogsignal_20", 
-    "neo_id": "analogsignal_21",
+    "selected": [
+        "analogsignal_10",
+        "analogsignal_11", 
+        "analogsignal_12", 
+        "analogsignal_13", 
+        "analogsignal_14", 
+        "analogsignal_15", 
+        "analogsignal_16", 
+        "analogsignal_17", 
+        "analogsignal_18", 
+        "analogsignal_19", 
+        "analogsignal_20", 
+        "analogsignal_21"
+    ]
     "object_total": 21,
-    "range_start": 10,
+    "object_selected": 12,
+    "selected_as_of": 10,
     "message": "Here is the list of requested objects."
 }]
 }}}
