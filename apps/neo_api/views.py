@@ -30,8 +30,8 @@ meta_messages = {
     "no_parents_related": "There are no parents for a Block.",
     "not_authenticated": "Please authenticate before sending the request.",
     "not_authorized": "You don't have permissions to access the object.",
-    "data_missing": "'data' parameter within an array is missing. Array data should be provided as dictionary, where data values are set as 'data' parameter inside.",
-    "not_iterable": "For this type of object a parent parameter must be of type 'list'.",
+    "data_missing": "'data' and/or 'channel_index' parameter within an array is missing. Array data should be provided as dictionary, where data values are set as 'data' parameter inside. For the waveforms you have to additionally specify 'channel_index'.",
+    "not_iterable": "The following parameter must be of type 'list'",
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
     "object_created": "Object created successfully.",
     "object_updated": "Object updated successfully. Data changes saved.",
@@ -72,12 +72,12 @@ meta_attributes = {
     "recordingchannelgroup": ['_name'],
     "recordingchannel": ['_name', 'index']}
 
-# object type + array names
+# object type + array names. waveform is a special case (2D).
 meta_arrays = {
     "spiketrain": ["spike_times","waveforms"],
     "analogsignal": ["signal"],
     "irsaanalogsignal": ["signal","times"],
-    "spike": ["waveform"]}
+    "spike": ["waveforms"]}
 
 # object type + parent objects
 meta_parents = {
@@ -141,6 +141,9 @@ class HttpResponseAPI(HttpResponse):
         super(HttpResponseAPI, self).__init__(content)
         content_type = "application/json"
         self['Content-Type'] = content_type
+
+class HttpResponseCreatedAPI(HttpResponseAPI):
+    status_code = 201
 
 class HttpResponseBadRequestAPI(HttpResponseAPI):
     status_code = 400
@@ -219,6 +222,7 @@ def create_or_update(request, neo_id=None):
             return obj
         obj_type = obj.obj_type
         message = meta_messages["object_updated"]
+        resp_object = HttpResponseAPI
     else:
         # this is create case
         try:
@@ -226,6 +230,7 @@ def create_or_update(request, neo_id=None):
             classname = meta_classnames[obj_type]
             obj = classname()
             message = meta_messages["object_created"]
+            resp_object = HttpResponseCreatedAPI
         except KeyError:
             # invalid NEO type or type is missing
             return HttpResponseBadRequestAPI(meta_messages["invalid_obj_type"])
@@ -253,28 +258,46 @@ def create_or_update(request, neo_id=None):
     if meta_arrays.has_key(obj_type):
         for arr in meta_arrays[obj_type]:
             if rdata[0].has_key(arr):
-                obj_array = rdata[0][arr]
-                r = reg_csv()
-                if not obj_array.has_key("data"):
-                    return HttpResponseBadRequestAPI(meta_messages["data_missing"])
-                # converting to a string to parse with RE
-                str_arr = str(obj_array["data"])
-                str_arr = str_arr[1:len(str_arr)-1]
-                values = r.findall(str_arr)
-                cleaned_data = ''
-                for value in values:
-                    try:
-                        a = float(value)
-                        cleaned_data += ', ' + str(a)
-                    except:
-                        return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + str(value))
-                if len(cleaned_data) > 0:
-                    cleaned_data = cleaned_data[2:]
-                setattr(obj, arr + "_data", cleaned_data)
-                # don't forget an array may have units
-                if obj_array.has_key("units"):
-                    obj_array_unit = obj_array["units"]
-                    setattr(obj, arr + "__unit", obj_array_unit)
+                if arr == "waveforms":
+                    raise NotImplementedError
+                    # it's a special case, 2D array FIXME
+                    obj.save()
+                    waveforms = rdata[0][arr]
+                    if not getattr(waveforms, "__iter__", False):
+                        return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": " + arr)
+                    for wf in waveforms:
+                        if not wf.has_key("data") or not wf.has_key("channel_index"):
+                            return HttpResponseBadRequestAPI(meta_messages["data_missing"])
+                        w = WaveForm()
+                        setattr(w, "channel_index", wf["channel_index"])
+                        setattr(w, "waveform_data", wf["data"])
+                        if wf.has_key("units"):
+                            setattr(w, "waveform__unit", wf["units"])
+                        w.author = request.user
+                else:
+                    obj_array = rdata[0][arr]
+                    r = reg_csv()
+                    # here is a special case.
+                    if not obj_array.has_key("data"):
+                        return HttpResponseBadRequestAPI(meta_messages["data_missing"])
+                    # converting to a string to parse with RE
+                    str_arr = str(obj_array["data"])
+                    str_arr = str_arr[1:len(str_arr)-1]
+                    values = r.findall(str_arr)
+                    cleaned_data = ''
+                    for value in values:
+                        try:
+                            a = float(value)
+                            cleaned_data += ', ' + str(a)
+                        except:
+                            return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + str(value))
+                    if len(cleaned_data) > 0:
+                        cleaned_data = cleaned_data[2:]
+                    setattr(obj, arr + "_data", cleaned_data)
+                    # don't forget an array may have units
+                    if obj_array.has_key("units"):
+                        obj_array_unit = obj_array["units"]
+                        setattr(obj, arr + "__unit", obj_array_unit)
             else:
                 # no array data provided.. does it make sense?
                 pass
@@ -289,7 +312,7 @@ def create_or_update(request, neo_id=None):
                 obj.save()
                 parent_ids = rdata[0][r]
                 if not getattr(parent_ids, "__iter__", False):
-                    return HttpResponseBadRequestAPI(meta_messages["not_iterable"])
+                    return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": " + r)
                 parents = []
                 for p in parent_ids:
                     parent = get_by_neo_id_http(p, request.user)
@@ -321,7 +344,7 @@ def create_or_update(request, neo_id=None):
 
     # making response
     resp_data = [{"neo_id": obj.neo_id, "message": message}]
-    return HttpResponseAPI(json.dumps(resp_data))
+    return resp_object(json.dumps(resp_data))
 
 
 def retrieve(request, neo_id):

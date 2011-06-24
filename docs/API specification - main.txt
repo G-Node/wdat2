@@ -842,9 +842,9 @@ FUTURE:
  * version management!!!
  * import / conversion using Google Refine technologies
  * NEO: /neo/info/<neo_id>/ - short info
- * NEO: in /neo/list/<obj_type>/ - provide short info about every object + a summary about all (total volume, for example)
- * NEO: /neo/list/<obj_type>/ add query mechanism
+ * NEO: in /neo/select/<obj_type>/ - provide short info about every object + a summary about all (total volume, for example)
+ * NEO: /neo/select/<obj_type>/ add query mechanism
  * NEO: if an array data is missing for data-related objects, should we throw an error? or just allow a user to create it?
- * NEO: should we assing units by default, if not provided?
-
+ * NEO: should we assign units by default, if not provided?
+ * NEO security: based on files? or not?
 

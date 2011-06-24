@@ -158,8 +158,8 @@ If you have irregularly sampled signals, use the following request example to cr
 HTTP POST /neo/
 
 [{
-    "obj_type": "analogsignal",
-    "name": "ISAS-1"
+    "obj_type": "irsaanalogsignal",
+    "name": "ISAS-1",
     "t_start": -200.0,
     "t_start__unit": "ms", 
     "signal": {
@@ -169,7 +169,7 @@ HTTP POST /neo/
     "times": {
         "units": "ms", 
         "data": [155.0, 158.0, 160.0, 161.0, 162.0, 165.0, 168.0]
-    }
+    },
     "segment": "segment_1234",
     "recordingchannel": "recordingchannel_69"
 }]
@@ -199,10 +199,17 @@ HTTP POST /neo/
     "sampling_rate__unit": "kHz", 
     "left_sweep": 15.0,
     "left_sweep__unit": "ms", 
-    "waveform": {
-        "units": "mV", 
-        "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
-    },
+    "waveforms": [{
+            "channel_index": 3,
+            "units": "ms", 
+            "data": [5.86, -1.46, -0.488, -7.32, -9.77, -12.7, -12.7]
+        },
+        {
+            "channel_index": 4,
+            "units": "ms", 
+            "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
+        }
+    }],
     "segment": "segment_1234",
     "unit": "unit_22"
 }]
