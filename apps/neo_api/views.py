@@ -137,7 +137,10 @@ def reg_csv():
 
 
 class HttpResponseAPI(HttpResponse):
-    content_type="application/json"
+    def __init__(self, content=''):
+        super(HttpResponseAPI, self).__init__(content)
+        content_type = "application/json"
+        self['Content-Type'] = content_type
 
 class HttpResponseBadRequestAPI(HttpResponseAPI):
     status_code = 400
