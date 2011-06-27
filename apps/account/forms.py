@@ -407,7 +407,7 @@ class ResetPasswordKeyForm(forms.Form):
             ldap_user = l.getUser(username=user.username)
             if ldap_user:
                 change = l.resetPassword(user.username, self.cleaned_data['password1'])
-            if not (change == True): raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
+                if not (change == True): raise forms.ValidationError(_("LDAP Server is currently unavailable. Please try again later."))
         user.set_password(self.cleaned_data["password1"])
         user.save()
         user.message_set.create(message=ugettext(u"Password successfully changed."))
