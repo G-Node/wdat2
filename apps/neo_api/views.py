@@ -74,7 +74,7 @@ meta_attributes = {
 
 # object type + array names. waveform is a special case (2D).
 meta_arrays = {
-    "spiketrain": ["spike_times","waveforms"],
+    "spiketrain": ["times","waveforms"],
     "analogsignal": ["signal"],
     "irsaanalogsignal": ["signal","times"],
     "spike": ["waveforms"]}
@@ -209,6 +209,7 @@ def create_or_update(request, neo_id=None):
     This is a slave function to create or update a NEO object.
     """
     update = False
+    to_link, parents = None, None
     try:
         rdata = json.loads(request._get_raw_post_data())
     except ValueError:
@@ -259,12 +260,13 @@ def create_or_update(request, neo_id=None):
         for arr in meta_arrays[obj_type]:
             if rdata[0].has_key(arr):
                 if arr == "waveforms":
-                    raise NotImplementedError
-                    # it's a special case, 2D array FIXME
-                    obj.save()
-                    waveforms = rdata[0][arr]
+                    # Waveforms - it's a special case, 2D array. Parsing and update is made of 
+                    # three stages: we create new waveforms first (no save), then delete old
+                    # ones, then save and assign new waveforms to the host object.
+                    waveforms = rdata[0][arr] # some processing is done later in this view
                     if not getattr(waveforms, "__iter__", False):
-                        return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": " + arr)
+                        return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": waveforms")
+                    to_link = [] # later this list is used to link waveforms to the obj
                     for wf in waveforms:
                         if not wf.has_key("data") or not wf.has_key("channel_index"):
                             return HttpResponseBadRequestAPI(meta_messages["data_missing"])
@@ -273,7 +275,8 @@ def create_or_update(request, neo_id=None):
                         setattr(w, "waveform_data", wf["data"])
                         if wf.has_key("units"):
                             setattr(w, "waveform__unit", wf["units"])
-                        w.author = request.user
+                        setattr(w, "author", request.user)
+                        to_link.append(w)
                 else:
                     obj_array = rdata[0][arr]
                     r = reg_csv()
@@ -308,8 +311,6 @@ def create_or_update(request, neo_id=None):
             # unit is a special case. there may be several parents in one parameter.
             r = meta_parents[obj_type][0]
             if rdata[0].has_key(r):
-                # saving object to get a primary key for M2M relations
-                obj.save()
                 parent_ids = rdata[0][r]
                 if not getattr(parent_ids, "__iter__", False):
                     return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": " + r)
@@ -318,8 +319,7 @@ def create_or_update(request, neo_id=None):
                     parent = get_by_neo_id_http(p, request.user)
                     if isinstance(parent, HttpResponse):
                         return parent
-                    parents.append(parent)
-                setattr(obj, r, parents)
+                    parents.append(parent) # some processing done later in this view
         else:
             for r in meta_parents[obj_type]:
                 if rdata[0].has_key(r):
@@ -339,8 +339,23 @@ def create_or_update(request, neo_id=None):
             to_render += str(e) + "\n"
         return HttpResponseBadRequestAPI(meta_messages["bad_parameter"] + "\n" + to_render)
 
-    # processing done
+    # processing (almost) done
     obj.save()
+
+    # process complex cases: waveforms, unit
+    # this can be earliest done here, to exclude the case of creating and saving 
+    # an object before finding an error
+    if to_link:
+        # remove old waveforms, if exist
+        for wf in obj.waveform_set.all():
+            wf.delete()
+        # assign and save new waveforms
+        for wf in to_link:
+            setattr(wf, obj_type, obj)
+            wf.save()
+    if obj_type == "unit" and parents:
+        setattr(obj, r, parents)
+        obj.save()
 
     # making response
     resp_data = [{"neo_id": obj.neo_id, "message": message}]
@@ -491,7 +506,16 @@ def _assign_arrays(fake, obj):
         #if hasattr(obj, "t_start") and (t1 or t2):
 
         for arr in meta_arrays[obj.obj_type]:
-            array = {"data": getattr(obj, arr), "units": getattr(obj, arr + "__unit")}
+            if arr == "waveforms":
+                array = []
+                for wf in obj.waveform_set.all():
+                    w = {
+                        "channel_index": wf.channel_index,
+                        "waveform_data": wf.waveform_data,
+                        "waveform__unit": wf.waveform__unit}
+                    array.append(w)
+            else:
+                array = {"data": getattr(obj, arr), "units": getattr(obj, arr + "__unit")}
             setattr(fake, arr, array)
         assigned = True
     return assigned

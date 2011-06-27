@@ -224,7 +224,7 @@ And this is an example for a SpikeTrain:
     "t_start__unit": "ms", 
     "t_stop": 500.0,
     "t_stop__unit": "ms", 
-    "spike_times": {
+    "times": {
         "units": "ms", 
         "data": [-4.88, 3.42, 2.44]
     },

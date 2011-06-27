@@ -20,18 +20,29 @@ def_samp_unit = "Hz"
 
 def data_as_list(data):
     """
-    Returns a list of floats from comma-separated text.
+    Returns a list of floats from comma-separated text or empty list.
     """
     l = []
-    for s in data.split(', '):
-        l.append(float(s))
+    if len(data):
+        for s in str(data).split(', '):
+            l.append(float(s))
     return l
 
 
 class BaseInfo(models.Model):
     """
     Basic info about any NEO object created at G-Node.
+
+    State:
+    Active <--> Deleted -> Archived
+
     """
+    STATES = (
+        (10, 'Active'),
+        (20, 'Deleted'),
+        (30, 'Archived'),
+    )
+    _current_state = models.IntegerField('current state', choices=STATES, default=10)
     author = models.ForeignKey(User)
     date_created = models.DateTimeField('date created', default=datetime.now,\
         editable=False)
@@ -63,6 +74,22 @@ class BaseInfo(models.Model):
             if isinstance(self, meta_classnames[obj_type]):
                 return obj_type
         raise TypeError("Critical error. Panic. NEO object can't define it's own type. Tell system developers.")
+
+    @property
+    def current_state(self):
+        return self._current_state
+
+    def is_active(self):
+        return self.current_state == 10
+
+    def delete(self):
+        self._current_state = 20
+
+    def archive(self):
+        self._current_state = 30
+
+    def restore(self):
+        self._current_state = 10
 
 # basic NEO classes
 #===============================================================================
@@ -197,12 +224,12 @@ class SpikeTrain(BaseInfo):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
     # NEO data arrays
-    spike_data = models.TextField('spike_data', blank=True) # use 'spike_times' property to get data
-    spike_times__unit = models.CharField('spike_data__unit', default=def_data_unit, max_length=unit_max_length)
+    times_data = models.TextField('spike_data', blank=True) # use 'spike_times' property to get data
+    times__unit = models.CharField('spike_data__unit', default=def_data_unit, max_length=unit_max_length)
 
     @property
-    def spike_times(self):
-        return data_as_list(self.spike_data)
+    def times(self):
+        return data_as_list(self.times_data)
 
 
 # 11
@@ -303,8 +330,8 @@ class WaveForm(BaseInfo):
     channel_index = models.IntegerField('channel_index', null=True, blank=True)
     waveform_data = models.TextField('waveform_data')
     waveform__unit = models.CharField('waveform__unit', default=def_data_unit, max_length=unit_max_length)
-    spiketrain = models.ForeignKey(SpikeTrain, blank=True)
-    spike = models.ForeignKey(Spike, blank=True)
+    spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
+    spike = models.ForeignKey(Spike, blank=True, null=True)
 
     @property
     def waveform(self):
