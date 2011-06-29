@@ -26,11 +26,13 @@ meta_messages = {
     "bad_parameter": "Some of the parameters provided are incorrect. Please consider values below:",
     "wrong_parent": "A parent object with this neo_id does not exist: ",
     "debug": "Debugging message.",
+    "dict_required": "The following parameter must be of a type dict containing 'data' and 'units' keys: ",
     "no_data_related": "There is no data, related to this object. Data arrays are supported only for 'analogsignal', 'spiketrain', 'irsaanalogsignal' and 'spike' object types.",
     "no_parents_related": "There are no parents for a Block.",
     "not_authenticated": "Please authenticate before sending the request.",
     "not_authorized": "You don't have permissions to access the object.",
-    "data_missing": "'data' and/or 'channel_index' parameter within an array is missing. Array data should be provided as dictionary, where data values are set as 'data' parameter inside. For the waveforms you have to additionally specify 'channel_index'.",
+    "data_missing": "Some of the required parameters are missing: 'data', 'units' or 'channel_index'.",
+    "units_missing": "You need to specify units (for example, 'ms' or 'mV') for the following parameter:",
     "not_iterable": "The following parameter must be of type 'list'",
     "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
     "object_created": "Object created successfully.",
@@ -59,27 +61,29 @@ meta_classnames = {
 meta_attributes = {
     "block": ['_name', 'filedatetime', 'index'],
     "segment": ['_name', 'filedatetime', 'index'],
-    "event": ['_time', '_label'],
+    "event": ['_label'],
     "eventarray": [],
-    "epoch": ['_time', '_label', '_duration'],
+    "epoch": ['_label'],
     "epocharray": [],
     "unit": ['_name'],
-    "spiketrain": ['_t_start', 't_stop'],
-    "analogsignal": ['_name', '_sampling_rate', '_t_start'],
+    "spiketrain": [],
+    "analogsignal": ['_name'],
     "analogsignalarray": [],
-    "irsaanalogsignal": ['_name', '_t_start'],
-    "spike": ['_time', '_sampling_rate', 'left_sweep'],
+    "irsaanalogsignal": ['_name'],
+    "spike": [],
     "recordingchannelgroup": ['_name'],
     "recordingchannel": ['_name', 'index']}
 
-# object type + array names. waveform is a special case (2D).
-meta_arrays = {
-    "spiketrain": ["times","waveforms"],
-    "analogsignal": ["signal"],
-    "irsaanalogsignal": ["signal","times"],
-    "spike": ["waveforms"]}
+# object type: data-related attributes names. waveform is a special case (2-3D).
+meta_data_attrs = {
+    "event": ["time"],
+    "epoch": ["time", "duration"],
+    "spiketrain": ["t_start", "t_stop", "times", "waveforms"],
+    "analogsignal": ["sampling_rate", "t_start", "signal"],
+    "irsaanalogsignal": ["t_start", "signal", "times"],
+    "spike": ["left_sweep", "time", "sampling_rate", "waveforms"]}
 
-# object type + parent objects
+# object type: parent objects
 meta_parents = {
     "segment": ["block"],
     "eventarray": ["segment"],
@@ -255,55 +259,69 @@ def create_or_update(request, neo_id=None):
         # enable this when file integration is done TODO
         #obj.file_origin = Datafile.objects.get(id=datafile_id)
 
-    # processing arrays
-    if meta_arrays.has_key(obj_type):
-        for arr in meta_arrays[obj_type]:
-            if rdata[0].has_key(arr):
-                if arr == "waveforms":
-                    # Waveforms - it's a special case, 2D array. Parsing and update is made of 
+    # processing data-related attributes
+    if meta_data_attrs.has_key(obj_type):
+        for data_attr in meta_data_attrs[obj_type]:
+            if rdata[0].has_key(data_attr):
+                if data_attr == "waveforms":
+                    # Waveforms - it's a special case, 2-3D array. Parsing and update is made of 
                     # three stages: we create new waveforms first (no save), then delete old
                     # ones, then save and assign new waveforms to the host object.
-                    waveforms = rdata[0][arr] # some processing is done later in this view
+                    waveforms = rdata[0][data_attr] # some processing is done later in this view
                     if not getattr(waveforms, "__iter__", False):
                         return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": waveforms")
                     to_link = [] # later this list is used to link waveforms to the obj
                     for wf in waveforms:
-                        if not wf.has_key("data") or not wf.has_key("channel_index"):
-                            return HttpResponseBadRequestAPI(meta_messages["data_missing"])
-                        w = WaveForm()
-                        setattr(w, "channel_index", wf["channel_index"])
-                        setattr(w, "waveform_data", wf["data"])
-                        if wf.has_key("units"):
-                            setattr(w, "waveform__unit", wf["units"])
-                        setattr(w, "author", request.user)
-                        to_link.append(w)
-                else:
-                    obj_array = rdata[0][arr]
-                    r = reg_csv()
-                    # here is a special case.
-                    if not obj_array.has_key("data"):
-                        return HttpResponseBadRequestAPI(meta_messages["data_missing"])
-                    # converting to a string to parse with RE
-                    str_arr = str(obj_array["data"])
-                    str_arr = str_arr[1:len(str_arr)-1]
-                    values = r.findall(str_arr)
-                    cleaned_data = ''
-                    for value in values:
                         try:
-                            a = float(value)
-                            cleaned_data += ', ' + str(a)
-                        except:
-                            return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + str(value))
-                    if len(cleaned_data) > 0:
-                        cleaned_data = cleaned_data[2:]
-                    setattr(obj, arr + "_data", cleaned_data)
-                    # don't forget an array may have units
-                    if obj_array.has_key("units"):
-                        obj_array_unit = obj_array["units"]
-                        setattr(obj, arr + "__unit", obj_array_unit)
+                            w = WaveForm()
+                            try:
+                                setattr(w, "channel_index", wf["channel_index"])
+                                setattr(w, "waveform_data", wf["waveform"]["data"])
+                                setattr(w, "waveform__unit", wf["waveform"]["units"])
+                                setattr(w, "author", request.user)
+                                if obj_type == "spiketrain":
+                                    setattr(w, "time_of_spike_data", wf["time_of_spike"]["data"])
+                                    setattr(w, "time_of_spike__unit", wf["time_of_spike"]["units"])
+                                to_link.append(w)
+                            except KeyError:
+                                return HttpResponseBadRequestAPI(meta_messages["data_missing"])
+                        except AttributeError, TypeError:
+                            return HttpResponseBadRequestAPI(meta_messages["dict_required"] + data_attr)
+                else:
+                    attr = rdata[0][data_attr]
+                    if not type(attr) == type({}):
+                        return HttpResponseBadRequestAPI(meta_messages["dict_required"] + data_attr)
+                    r = reg_csv()
+                    if not attr.has_key("data"):
+                        return HttpResponseBadRequestAPI(meta_messages["data_missing"])
+                    # processing attribute data
+                    if type(attr["data"]) == type([]): # this is an array
+                        # converting to a string to parse with RE
+                        str_arr = str(attr["data"])
+                        str_arr = str_arr[1:len(str_arr)-1]
+                        values = r.findall(str_arr)
+                        cleaned_data = ''
+                        for value in values:
+                            try:
+                                a = float(value)
+                                cleaned_data += ', ' + str(a)
+                            except:
+                                return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + str(value))
+                        if len(cleaned_data) > 0:
+                            cleaned_data = cleaned_data[2:]
+                        setattr(obj, data_attr + "_data", cleaned_data)
+                    else: # this is a normal value
+                        setattr(obj, data_attr, attr["data"])
+                    # processing attribute data units
+                    if attr.has_key("units"):
+                        attr_unit = attr["units"]
+                        setattr(obj, data_attr + "__unit", attr_unit)
+                    else:
+                        # units are required
+                        return HttpResponseBadRequestAPI(meta_messages["units_missing"] + " " + data_attr)
             else:
-                # no array data provided.. does it make sense?
-                pass
+                # we require data-related parameters
+                return HttpResponseBadRequestAPI(obj_type + ": " + data_attr + "\n" + meta_messages["missing_parameter"])
 
     # processing relationships
     if meta_parents.has_key(obj_type):
@@ -358,7 +376,7 @@ def create_or_update(request, neo_id=None):
         obj.save()
 
     # making response
-    resp_data = [{"neo_id": obj.neo_id, "message": message}]
+    resp_data = [{"neo_id": obj.neo_id, "message": message, "logged_in_as": request.user.username}]
     return resp_object(json.dumps(resp_data))
 
 
@@ -498,14 +516,14 @@ def _assign_arrays(fake, obj):
     Assigns arrays from NEO to fake object for pickling to JSON.
     """
     assigned = False
-    if meta_arrays.has_key(obj.obj_type):
+    if meta_data_attrs.has_key(obj.obj_type):
 
         # TODO Slicing / downsampling
         #t1 = request.GET.get("t_start")
         #t2 = request.GET.get("t_stop")
         #if hasattr(obj, "t_start") and (t1 or t2):
 
-        for arr in meta_arrays[obj.obj_type]:
+        for arr in meta_data_attrs[obj.obj_type]:
             if arr == "waveforms":
                 array = []
                 for wf in obj.waveform_set.all():

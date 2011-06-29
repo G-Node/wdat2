@@ -1,4 +1,4 @@
-Here you may find a list of examples of HTTP request bodies for all supported NEO objects. All examples assume creating a new object. If some of the required parameters to create an object are missing, the system will respond with an error. You may find a list of required parameters (attributes, arrays) here in tables X, X and X.
+Here you may find a list of examples of HTTP request bodies for all supported NEO objects. All examples assume creating a new object. If some of the required parameters to create an object are missing, the system will respond with an error. You may find a list of required parameters (attributes, data parameters and relationships) in the section 6 of the [wiki:g_node_api_spec specification] in tables 6.1 - 6.4.
 
 To perform an update, you need to provide "neo_id" parameter (like "segment_12345") in the end of the URL, like "/neo/segment_12345/". While requesting an update, only parameters that are proposed for an update should be provided. You may omit providing "obj_type" parameter as well.
 
@@ -35,8 +35,10 @@ HTTP POST /neo/
 
 [{
     "obj_type": "event",
-    "time": 7.22,
-    "time__unit": "ms", 
+    "time": {
+        "data": 7.22,
+        "units": "ms"
+    },
     "label": "Stimuli end",
     "segment": "segment_2"
 }]
@@ -69,12 +71,16 @@ HTTP POST /neo/
 
 [{
     "obj_type": "epoch",
-    "time": 17.5,
-    "time__unit": "ms", 
-    "duration": 0.3,
-    "duration__unit": "ms", 
-    "label": "Displaying blue screen"
-    "segment": "segment_1234"
+    "time": {
+        "data": 78.22,
+        "units": "ms"
+    },
+    "duration": {
+        "data": 0.35,
+        "units": "ms"
+    },
+    "label": "Displaying blue screen",
+    "segment": "segment_5"
 }]
 }}}
 
@@ -139,10 +145,14 @@ HTTP POST /neo/
 [{
     "obj_type": "analogsignal",
     "name": "AS-1",
-    "sampling_rate": 20000,
-    "sampling_rate__unit": "Hz", 
-    "t_start": 300.0,
-    "t_start__unit": "ms", 
+    "sampling_rate": {
+        "data": 20000,
+        "units": "Hz"
+    },
+    "t_start": {
+        "data": 0.0,
+        "units": "ms"
+    },
     "signal": {
         "units": "mV", 
         "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
@@ -160,8 +170,10 @@ HTTP POST /neo/
 [{
     "obj_type": "irsaanalogsignal",
     "name": "ISAS-1",
-    "t_start": -200.0,
-    "t_start__unit": "ms", 
+    "t_start": {
+        "data": -200.0,
+        "units": "ms"
+    },
     "signal": {
         "units": "mV", 
         "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
@@ -193,22 +205,31 @@ HTTP POST /neo/
 
 [{
     "obj_type": "spike",
-    "time": 300.0,
-    "time__unit": "ms", 
-    "sampling_rate": 20,
-    "sampling_rate__unit": "kHz", 
-    "left_sweep": 15.0,
-    "left_sweep__unit": "ms", 
+    "time": {
+        "data": 300.0,
+        "units": "ms"
+    },
+    "sampling_rate": {
+        "data": 20.0,
+        "units": "kHz"
+    },
+    "left_sweep": {
+        "data": 15.0,
+        "units": "ms"
+    },
     "waveforms": [{
-            "channel_index": 3,
-            "units": "ms", 
-            "data": [5.86, -1.46, -0.488, -7.32, -9.77, -12.7, -12.7]
+            "channel_index": 0,
+            "waveform": {
+                "units": "mV", 
+                "data": [5.86, -1.46, -0.488, -7.32, -9.77, -12.7, -12.7]
+            }
         },
         {
-            "channel_index": 4,
-            "units": "ms", 
-            "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
-        }
+            "channel_index": 1,
+            "waveform": {
+                "units": "mV", 
+                "data": [45.86, -31.46, -0.338, 67.32, -19.77, -109.7, -39.7]
+            }
     }],
     "segment": "segment_1234",
     "unit": "unit_22"
@@ -220,25 +241,40 @@ And this is an example for a SpikeTrain:
 {{{
 [{
     "obj_type": "spiketrain",
-    "t_start": -200.0,
-    "t_start__unit": "ms", 
-    "t_stop": 500.0,
-    "t_stop__unit": "ms", 
+    "t_start": {
+        "data": -400.0,
+        "units": "ms"
+    },
+    "t_stop": {
+        "data": 800.0,
+        "units": "ms"
+    },
     "times": {
         "units": "ms", 
         "data": [-4.88, 3.42, 2.44]
     },
     "waveforms": [{
             "channel_index": 0,
-            "units": "ms", 
-            "data": [5.86, -1.46, -0.488, -7.32, -9.77, -12.7, -12.7]
+            "time_of_spike": {
+                "units": "ms",
+                "data": 469.1
+            },
+            "waveform": {
+                "units": "mV", 
+                "data": [5.86, -1.46, -0.488, -7.32, -9.77, -12.7, -12.7]
+            }
         },
         {
             "channel_index": 1,
-            "units": "ms", 
-            "data": [-63.0, -63.0, -65.9, -69.8, -72.8, -79.6, -65.3]
-        }
-    ],
+            "time_of_spike": {
+                "units": "ms",
+                "data": 789.4
+            },
+            "waveform": {
+                "units": "mV", 
+                "data": [45.86, -31.46, -0.338, 67.32, -19.77, -109.7, -39.7]
+            }
+    }],
     "segment": "segment_1234",
     "unit": "unit_22"
 }]

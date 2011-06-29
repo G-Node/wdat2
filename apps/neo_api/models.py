@@ -328,6 +328,8 @@ class WaveForm(BaseInfo):
     Supporting class for Spikes and SpikeTrains.
     """
     channel_index = models.IntegerField('channel_index', null=True, blank=True)
+    time_of_spike_data = models.FloatField('time_of_spike_data', default=0.0) # default used when WF is related to a Spike
+    time_of_spike__unit = models.CharField('time_of_spike__unit', default=def_data_unit, max_length=unit_max_length)
     waveform_data = models.TextField('waveform_data')
     waveform__unit = models.CharField('waveform__unit', default=def_data_unit, max_length=unit_max_length)
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
