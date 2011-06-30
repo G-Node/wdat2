@@ -1,8 +1,10 @@
+import datetime
 from django.conf import settings
 from django.shortcuts import render_to_response
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.db.models import Q
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login
 from django.template import RequestContext
 from django.utils.translation import ugettext, ugettext_lazy as _
