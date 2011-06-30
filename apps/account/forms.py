@@ -85,13 +85,22 @@ class SignupForm(forms.Form):
     confirmation_key = forms.CharField(max_length=40, required=False, widget=forms.HiddenInput())
     
     def clean_username(self):
+        err = "This username is already taken. Please choose another."
         if not alnum_re.search(self.cleaned_data["username"]):
             raise forms.ValidationError(_("Usernames can only contain letters, numbers and underscores."))
         try:
             user = User.objects.get(username__iexact=self.cleaned_data["username"])
         except User.DoesNotExist:
-            return self.cleaned_data["username"]
-        raise forms.ValidationError(_("This username is already taken. Please choose another."))
+            if settings.AUTH_LDAP_SWITCHED_ON:
+    	        # Checking also in LDAP
+                try:
+                    self.l.getUser(username=self.cleaned_data["username"]) == []:
+                        return self.cleaned_data["username"]
+                except BaseException:
+                    err = "Sorry, there is a temporary maintenance in Name server is going. Please try again in 15 mins."
+            else:
+                return self.cleaned_data["username"]
+        raise forms.ValidationError(_("%s" % err))
     
     def clean(self):
         if "password1" in self.cleaned_data and "password2" in self.cleaned_data:
@@ -161,23 +170,6 @@ class GNodeSignupForm(SignupForm):
             self.fields['ip_address'].initial = meta['REMOTE_ADDR']
         """
 
-    def clean_username(self):
-        err = "This username is already taken. Please choose another."
-        if not alnum_re.search(self.cleaned_data["username"]):
-            raise forms.ValidationError(_("Usernames can only contain letters, numbers and underscores."))
-        try:
-            user = User.objects.get(username__iexact=self.cleaned_data["username"])
-        except User.DoesNotExist:
-            if settings.AUTH_LDAP_SWITCHED_ON:
-	        # Checking also in LDAP
-                if self.l.getUser(username=self.cleaned_data["username"]) == []:
-                    return self.cleaned_data["username"]
-                else:
-                    err = "Sorry, there is a temporary maintenance in Name server is going. Please try again in 15 mins."
-            else:
-                return self.cleaned_data["username"]
-        raise forms.ValidationError(_("%s" % err))
-    
     def save(self):
         username, password = super(GNodeSignupForm, self).save()
         # updating Profile
