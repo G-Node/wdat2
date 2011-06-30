@@ -11,8 +11,8 @@ from django.contrib.auth.decorators import login_required
 from django.db import models
 
 from account.utils import get_default_redirect
-from account.models import OtherServiceInfo
-from account.forms import SignupForm, AddEmailForm, LoginForm, \
+from account.models import OtherServiceInfo, update_other_services
+from account.forms import GNodeSignupForm, AddEmailForm, LoginForm, \
     ChangePasswordForm, SetPasswordForm, ResetPasswordForm, \
     ChangeTimezoneForm, ChangeLanguageForm, TwitterForm, ResetPasswordKeyForm
 from emailconfirmation.models import EmailAddress, EmailConfirmation
@@ -51,26 +51,32 @@ def login(request, form_class=LoginForm, template_name="account/login.html",
         context_instance = RequestContext(request)
     )
 
-def signup(request, form_class=SignupForm,
+def signup(request, form_class=GNodeSignupForm,
         template_name="account/signup.html", success_url=None):
     if success_url is None:
         success_url = get_default_redirect(request)
     if request.method == "POST":
-        # assign an IP from request META instead of taking value from hidden field, may be hacked
-        real_post = request.POST.copy()
         if getattr(settings, 'BEHIND_PROXY', False):
-            real_post['ip_address'] = request.META['HTTP_X_FORWARDED_FOR']
+            ip_addr = request.META['HTTP_X_FORWARDED_FOR']
         else:
-            real_post['ip_address'] = request.META['REMOTE_ADDR']
-        form = form_class(real_post or None, meta=request.META)
+            ip_addr = request.META['REMOTE_ADDR']
+        form = form_class(request.POST or None)
         if form.is_valid():
-            username, password = form.save(meta=request.META)
+            # check that no more than MAX_REGISTR_FROM_IP_DAILY registrations can be performed per one day
+            check_day = datetime.date.today() - datetime.timedelta(1)
+            addresses = OtherServiceInfo.objects.filter(key='ip_address', value=ip_addr)
+            addresses = addresses.filter(user__in=User.objects.extra(where=['date_joined>%s'], params=[check_day]))
+            if addresses.count() > settings.MAX_REGISTR_FROM_IP_DAILY:
+                return HttpResponseForbidden("Too many registrations from your IP address. If you need more registrations per day please contact site administrator.")
+            # save new user
+            username, password = form.save()
             if settings.ACCOUNT_EMAIL_VERIFICATION:
                 return render_to_response("account/verification_sent.html", {
                     "email": form.cleaned_data["email"],
                 }, context_instance=RequestContext(request))
             else:
                 user = authenticate(username=username, password=password)
+                update_other_services(user, ip_address=ip_addr)
                 auth_login(request, user)
                 request.user.message_set.create(
                     message=_("Successfully logged in as %(username)s.") % {
@@ -78,7 +84,7 @@ def signup(request, form_class=SignupForm,
                 })
                 return HttpResponseRedirect(success_url)
     else:
-        form = form_class(meta=request.META)
+        form = form_class()
     return render_to_response(template_name, {
         "form": form,
     }, context_instance=RequestContext(request))

@@ -82,55 +82,25 @@ class SignupForm(forms.Form):
             required = False,
             widget = forms.TextInput()
         )
-    name = forms.CharField(label=_("Full Name"), max_length=30, widget=forms.TextInput())
-    location = forms.CharField(label=_("Affiliation"), max_length=30, widget=forms.TextInput())
-    captcha = CaptchaField(label=_("Please type in these letters"))
     
     confirmation_key = forms.CharField(max_length=40, required=False, widget=forms.HiddenInput())
-    ip_address = forms.CharField(label= _("IP"), max_length=15, required=False, widget=forms.HiddenInput())
-
-    def __init__(self, *args, **kwargs):
-        meta = kwargs.pop('meta')
-        super(SignupForm, self).__init__(*args, **kwargs)
-        if settings.AUTH_LDAP_SWITCHED_ON:
-            self.l = LDAPBackend()
-        if getattr(settings, 'BEHIND_PROXY', False):
-            self.fields['ip_address'].initial = meta['HTTP_X_FORWARDED_FOR']
-        else:
-            self.fields['ip_address'].initial = meta['REMOTE_ADDR']
-
+    
     def clean_username(self):
-        err = "This username is already taken. Please choose another."
         if not alnum_re.search(self.cleaned_data["username"]):
             raise forms.ValidationError(_("Usernames can only contain letters, numbers and underscores."))
         try:
             user = User.objects.get(username__iexact=self.cleaned_data["username"])
         except User.DoesNotExist:
-            if settings.AUTH_LDAP_SWITCHED_ON:
-	        # Checking also in LDAP
-                if self.l.getUser(username=self.cleaned_data["username"]) == []:
-                    return self.cleaned_data["username"]
-                else:
-                    err = "Sorry, there is a temporary maintenance in Name server is going. Please try again in 15 mins."
-            else:
-                return self.cleaned_data["username"]
-        raise forms.ValidationError(_("%s" % err))
+            return self.cleaned_data["username"]
+        raise forms.ValidationError(_("This username is already taken. Please choose another."))
     
     def clean(self):
         if "password1" in self.cleaned_data and "password2" in self.cleaned_data:
             if self.cleaned_data["password1"] != self.cleaned_data["password2"]:
                 raise forms.ValidationError(_("You must type the same password each time."))
-        # check that no more than MAX_REGISTR_FROM_IP_DAILY registrations can be performed per one day
-        ip_addr = self.cleaned_data['ip_address']
-        check_day = datetime.date.today() - datetime.timedelta(1)
-        addresses = OtherServiceInfo.objects.filter(key='ip_address', value=ip_addr)
-        addresses = addresses.filter(user__in=User.objects.extra(where=['date_joined>%s'], params=[check_day]))
-        if addresses.count() > settings.MAX_REGISTR_FROM_IP_DAILY:
-            raise forms.ValidationError(_("Too many registrations from your IP address. If that's a mistake please contact site administrator."))
-
         return self.cleaned_data
     
-    def save(self, meta=None):
+    def save(self):
         username = self.cleaned_data["username"]
         email = self.cleaned_data["email"]
         password = self.cleaned_data["password1"]
@@ -146,6 +116,7 @@ class SignupForm(forms.Form):
             confirmed = False
         
         # @@@ clean up some of the repetition below -- DRY!
+        
         if confirmed:
             if email == join_invitation.contact.email:
                 new_user = User.objects.create_user(username, email, password)
@@ -164,24 +135,58 @@ class SignupForm(forms.Form):
             if email:
                 new_user.message_set.create(message=ugettext(u"Confirmation email sent to %(email)s") % {'email': email})
                 EmailAddress.objects.add_email(new_user, email)
+        
+        if settings.ACCOUNT_EMAIL_VERIFICATION:
+            new_user.is_active = False
+            new_user.save()
+                
+        return username, password # required for authenticate()
 
-        # saving the IP address of the newbie        
-        #ip_addr = self.cleaned_data['ip_address']
+
+class GNodeSignupForm(SignupForm):
+    
+    name = forms.CharField(label=_("Full Name"), max_length=30, widget=forms.TextInput())
+    location = forms.CharField(label=_("Affiliation"), max_length=30, widget=forms.TextInput())
+    captcha = CaptchaField(label=_("Please type in these letters"))
+    #ip_address = forms.CharField(label= _("IP"), max_length=15, required=False, widget=forms.HiddenInput())
+
+    def __init__(self, *args, **kwargs):
+        super(SignupForm, self).__init__(*args, **kwargs)
+        if settings.AUTH_LDAP_SWITCHED_ON:
+            self.l = LDAPBackend()
+        """
+        meta = kwargs.pop('meta')
         if getattr(settings, 'BEHIND_PROXY', False):
-            ip_addr = meta['HTTP_X_FORWARDED_FOR']
+            self.fields['ip_address'].initial = meta['HTTP_X_FORWARDED_FOR']
         else:
-            ip_addr = meta['REMOTE_ADDR']
-        update_other_services(new_user, ip_address=ip_addr)
+            self.fields['ip_address'].initial = meta['REMOTE_ADDR']
+        """
 
+    def clean_username(self):
+        err = "This username is already taken. Please choose another."
+        if not alnum_re.search(self.cleaned_data["username"]):
+            raise forms.ValidationError(_("Usernames can only contain letters, numbers and underscores."))
+        try:
+            user = User.objects.get(username__iexact=self.cleaned_data["username"])
+        except User.DoesNotExist:
+            if settings.AUTH_LDAP_SWITCHED_ON:
+	        # Checking also in LDAP
+                if self.l.getUser(username=self.cleaned_data["username"]) == []:
+                    return self.cleaned_data["username"]
+                else:
+                    err = "Sorry, there is a temporary maintenance in Name server is going. Please try again in 15 mins."
+            else:
+                return self.cleaned_data["username"]
+        raise forms.ValidationError(_("%s" % err))
+    
+    def save(self):
+        username, password = super(GNodeSignupForm, self).save()
         # updating Profile
+        new_user = User.objects.get(username=username)
         prfl = Profile.objects.get(user=new_user)
         prfl.name = self.cleaned_data['name']
         prfl.location = self.cleaned_data['location']
         prfl.save()
-
-        if settings.ACCOUNT_EMAIL_VERIFICATION:
-            new_user.is_active = False
-            new_user.save()
 
         return username, password # required for authenticate()
 
