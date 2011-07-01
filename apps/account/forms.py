@@ -80,10 +80,18 @@ class SignupForm(forms.Form):
             label = _("Email (optional)"),
             required = False,
             widget = forms.TextInput()
-        )
-    
+        )   
     confirmation_key = forms.CharField(max_length=40, required=False, widget=forms.HiddenInput())
-    
+    name = forms.CharField(label=_("Full Name"), max_length=30, widget=forms.TextInput())
+    location = forms.CharField(label=_("Affiliation"), max_length=30, widget=forms.TextInput())
+    captcha = CaptchaField(label=_("Please type in these letters"))
+    #ip_address = forms.CharField(label= _("IP"), max_length=15, required=False, widget=forms.HiddenInput())
+
+    def __init__(self, *args, **kwargs):
+        super(SignupForm, self).__init__(*args, **kwargs)
+        if settings.AUTH_LDAP_SWITCHED_ON:
+            self.l = LDAPBackend()
+
     def clean_username(self):
         err = "This username is already taken. Please choose another."
         if not alnum_re.search(self.cleaned_data["username"]):
@@ -94,10 +102,10 @@ class SignupForm(forms.Form):
             if settings.AUTH_LDAP_SWITCHED_ON:
     	        # Checking also in LDAP
                 try:
-                    self.l.getUser(username=self.cleaned_data["username"]) == []:
+                    if self.l.getUser(username=self.cleaned_data["username"]) == []:
                         return self.cleaned_data["username"]
-                except BaseException:
-                    err = "Sorry, there is a temporary maintenance in Name server is going. Please try again in 15 mins."
+                except BaseException, e:
+                    err = "Sorry, there is a temporary maintenance in Name server is going. Please try again in 15 mins." + e.message
             else:
                 return self.cleaned_data["username"]
         raise forms.ValidationError(_("%s" % err))
@@ -143,7 +151,13 @@ class SignupForm(forms.Form):
             if email:
                 new_user.message_set.create(message=ugettext(u"Confirmation email sent to %(email)s") % {'email': email})
                 EmailAddress.objects.add_email(new_user, email)
-        
+
+	# profile update       
+        prfl = Profile.objects.get(user=new_user)
+        prfl.name = self.cleaned_data['name']
+        prfl.location = self.cleaned_data['location']
+        prfl.save()
+ 
         if settings.ACCOUNT_EMAIL_VERIFICATION:
             new_user.is_active = False
             new_user.save()
@@ -153,23 +167,6 @@ class SignupForm(forms.Form):
 
 class GNodeSignupForm(SignupForm):
     
-    name = forms.CharField(label=_("Full Name"), max_length=30, widget=forms.TextInput())
-    location = forms.CharField(label=_("Affiliation"), max_length=30, widget=forms.TextInput())
-    captcha = CaptchaField(label=_("Please type in these letters"))
-    #ip_address = forms.CharField(label= _("IP"), max_length=15, required=False, widget=forms.HiddenInput())
-
-    def __init__(self, *args, **kwargs):
-        super(SignupForm, self).__init__(*args, **kwargs)
-        if settings.AUTH_LDAP_SWITCHED_ON:
-            self.l = LDAPBackend()
-        """
-        meta = kwargs.pop('meta')
-        if getattr(settings, 'BEHIND_PROXY', False):
-            self.fields['ip_address'].initial = meta['HTTP_X_FORWARDED_FOR']
-        else:
-            self.fields['ip_address'].initial = meta['REMOTE_ADDR']
-        """
-
     def save(self):
         username, password = super(GNodeSignupForm, self).save()
         # updating Profile

@@ -14,7 +14,7 @@ from django.db import models
 
 from account.utils import get_default_redirect
 from account.models import OtherServiceInfo, update_other_services
-from account.forms import GNodeSignupForm, AddEmailForm, LoginForm, \
+from account.forms import SignupForm, AddEmailForm, LoginForm, \
     ChangePasswordForm, SetPasswordForm, ResetPasswordForm, \
     ChangeTimezoneForm, ChangeLanguageForm, TwitterForm, ResetPasswordKeyForm
 from emailconfirmation.models import EmailAddress, EmailConfirmation
@@ -53,7 +53,7 @@ def login(request, form_class=LoginForm, template_name="account/login.html",
         context_instance = RequestContext(request)
     )
 
-def signup(request, form_class=GNodeSignupForm,
+def signup(request, form_class=SignupForm,
         template_name="account/signup.html", success_url=None):
     if success_url is None:
         success_url = get_default_redirect(request)
