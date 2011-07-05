@@ -319,7 +319,7 @@ def create_or_update(request, neo_id=None):
                     else:
                         # units are required
                         return HttpResponseBadRequestAPI(meta_messages["units_missing"] + " " + data_attr)
-            else:
+            elif not update:
                 # we require data-related parameters
                 return HttpResponseBadRequestAPI(obj_type + ": " + data_attr + "\n" + meta_messages["missing_parameter"])
 

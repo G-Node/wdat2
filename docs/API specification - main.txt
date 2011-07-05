@@ -516,6 +516,7 @@ A response should look similar to this:
 {{{
 [{
     "id": "segment_213", 
+    "logged_in_as": "bob",
     "message": "Object updated successfully."
 }]
 }}}
@@ -548,15 +549,20 @@ You'll get the response, similar to:
 Response:
 [{
     "neo_id": "epoch_43", 
-    "time": 17.5,
-    "time__unit": "ms", 
-    "duration": 0.3,
-    "duration__unit": "ms", 
+    "time": {
+        "data": 17.5,
+        "units": "ms"
+    }, 
+    "duration": {
+        "data": 0.3,
+        "units": "s"
+    },
     "label": "Displaying blue screen"
     "segment": "segment_1234",
     "author": "andrey",
     "date_created": "01.05.2011",
     "file_origin": "monkey recordings 16-35.mcs",
+    "logged_in_as": "bob",
     "message": "Object retrieved successfully."
 }]
 }}}
