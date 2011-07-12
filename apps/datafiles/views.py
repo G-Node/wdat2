@@ -233,7 +233,6 @@ def download(request, id):
     response['Content-Length'] = datafile.raw_file.size 
     if encoding: 
         response["Content-Encoding"] = encoding
-    response['X-Sendfile'] = str(datafile.raw_file.path)
     return response
 
 
