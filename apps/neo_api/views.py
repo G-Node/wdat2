@@ -29,6 +29,7 @@ meta_messages = {
     "dict_required": "The following parameter must be of a type dict containing 'data' and 'units' keys: ",
     "no_data_related": "There is no data, related to this object. Data arrays are supported only for 'analogsignal', 'spiketrain', 'irsaanalogsignal' and 'spike' object types.",
     "no_parents_related": "There are no parents for a Block.",
+    "no_children_related": "The requested object may NOT have any children.",
     "not_authenticated": "Please authenticate before sending the request.",
     "not_authorized": "You don't have permissions to access the object.",
     "data_missing": "Some of the required parameters are missing: 'data', 'units' or 'channel_index'.",
@@ -143,8 +144,7 @@ def reg_csv():
 class HttpResponseAPI(HttpResponse):
     def __init__(self, content=''):
         super(HttpResponseAPI, self).__init__(content)
-        content_type = "application/json"
-        self['Content-Type'] = content_type
+        self['Content-Type'] = "application/json"
 
 class HttpResponseCreatedAPI(HttpResponseAPI):
     status_code = 201
@@ -459,9 +459,24 @@ def parents(request, neo_id):
 @auth_required
 def children(request, neo_id):
     """
-    Basic operations with NEO objects. Save, get and delete.
+    Returns the list of object children.
     """
-    pass
+    if request.method == "GET":
+        obj = get_by_neo_id_http(neo_id, request.user)
+        if isinstance(obj, HttpResponse):
+            return obj
+        n = FakeJSON()
+        setattr(n, "neo_id", obj.neo_id)
+        # processing children
+        assigned = _assign_children(n, obj)
+        if not assigned:
+            return HttpResponseBadRequestAPI(meta_messages["no_children_related"])
+        # making response
+        resp_data = jsonpickle.encode(n, unpicklable=False)
+        return HttpResponseAPI(resp_data)
+    else:
+        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
+
 
 @auth_required
 def select(request, obj_type):
