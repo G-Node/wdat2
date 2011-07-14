@@ -219,6 +219,10 @@ def create_or_update(request, neo_id=None):
     except ValueError:
         return HttpResponseBadRequestAPI(meta_messages["data_parsing_error"])
 
+    # all POST requests should be of type dict
+    if not type(rdata) == type({}):
+        return HttpResponseBadRequestAPI(meta_messages["data_parsing_error"])
+
     if neo_id:
         # this is update case
         update = True
@@ -231,7 +235,7 @@ def create_or_update(request, neo_id=None):
     else:
         # this is create case
         try:
-            obj_type = rdata[0]["obj_type"]
+            obj_type = rdata["obj_type"]
             classname = meta_classnames[obj_type]
             obj = classname()
             message = meta_messages["object_created"]
@@ -244,30 +248,30 @@ def create_or_update(request, neo_id=None):
     for _attr in meta_attributes[obj_type]:
         attr = clean_attr(_attr)
         obj_attr = None
-        if rdata[0].has_key(attr):
-            obj_attr = rdata[0][attr]
+        if rdata.has_key(attr):
+            obj_attr = rdata[attr]
             setattr(obj, attr, obj_attr)
-            if rdata[0].has_key(attr + "__unit"):
-                obj_attr_unit = rdata[0][attr + "__unit"]
+            if rdata.has_key(attr + "__unit"):
+                obj_attr_unit = rdata[attr + "__unit"]
                 setattr(obj, attr + "__unit", obj_attr_unit)
         elif _attr.startswith("_") and not update:
             return HttpResponseBadRequestAPI(obj_type + ": " + attr + "\n" + meta_messages["missing_parameter"])
     if not update:
         obj.author = request.user
-    if rdata[0].has_key("datafile_id"):
-        obj_attr = rdata[0]["datafile_id"]
+    if rdata.has_key("datafile_id"):
+        obj_attr = rdata["datafile_id"]
         # enable this when file integration is done TODO
         #obj.file_origin = Datafile.objects.get(id=datafile_id)
 
     # processing data-related attributes
     if meta_data_attrs.has_key(obj_type):
         for data_attr in meta_data_attrs[obj_type]:
-            if rdata[0].has_key(data_attr):
+            if rdata.has_key(data_attr):
                 if data_attr == "waveforms":
                     # Waveforms - it's a special case, 2-3D array. Parsing and update is made of 
                     # three stages: we create new waveforms first (no save), then delete old
                     # ones, then save and assign new waveforms to the host object.
-                    waveforms = rdata[0][data_attr] # some processing is done later in this view
+                    waveforms = rdata[data_attr] # some processing is done later in this view
                     if not getattr(waveforms, "__iter__", False):
                         return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": waveforms")
                     to_link = [] # later this list is used to link waveforms to the obj
@@ -288,7 +292,7 @@ def create_or_update(request, neo_id=None):
                         except AttributeError, TypeError:
                             return HttpResponseBadRequestAPI(meta_messages["dict_required"] + data_attr)
                 else:
-                    attr = rdata[0][data_attr]
+                    attr = rdata[data_attr]
                     if not type(attr) == type({}):
                         return HttpResponseBadRequestAPI(meta_messages["dict_required"] + data_attr)
                     r = reg_csv()
@@ -328,8 +332,8 @@ def create_or_update(request, neo_id=None):
         if obj_type == "unit":
             # unit is a special case. there may be several parents in one parameter.
             r = meta_parents[obj_type][0]
-            if rdata[0].has_key(r):
-                parent_ids = rdata[0][r]
+            if rdata.has_key(r):
+                parent_ids = rdata[r]
                 if not getattr(parent_ids, "__iter__", False):
                     return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": " + r)
                 parents = []
@@ -340,8 +344,8 @@ def create_or_update(request, neo_id=None):
                     parents.append(parent) # some processing done later in this view
         else:
             for r in meta_parents[obj_type]:
-                if rdata[0].has_key(r):
-                    parent = get_by_neo_id_http(rdata[0][r], request.user)
+                if rdata.has_key(r):
+                    parent = get_by_neo_id_http(rdata[r], request.user)
                     if isinstance(parent, HttpResponse):
                         return parent
                     setattr(obj, r, parent)
@@ -376,7 +380,7 @@ def create_or_update(request, neo_id=None):
         obj.save()
 
     # making response
-    resp_data = [{"neo_id": obj.neo_id, "message": message, "logged_in_as": request.user.username}]
+    resp_data = {"neo_id": obj.neo_id, "message": message, "logged_in_as": request.user.username}
     return resp_object(json.dumps(resp_data))
 
 
@@ -494,13 +498,13 @@ def select(request, obj_type):
             selected = ""
             message = "No objects found."
         # making response
-        resp_data = [{
+        resp_data = {
             "selected": selected,
             "object_total": len(objects),
             "object_selected": len(objects),
             "selected_as_of": 0,
             "message": message
-        }]
+        }
         return HttpResponseAPI(json.dumps(resp_data))
     else:
         return HttpResponseBadRequestAPI(meta_messages["invalid_obj_type"])
