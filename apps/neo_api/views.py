@@ -501,7 +501,7 @@ def select(request, obj_type):
             "selected_as_of": 0,
             "message": message
         }]
-        return HttpResponseAPI(resp_data)
+        return HttpResponseAPI(json.dumps(resp_data))
     else:
         return HttpResponseBadRequestAPI(meta_messages["invalid_obj_type"])
 
