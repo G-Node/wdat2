@@ -6,12 +6,12 @@ This is an example request to create a new Block:
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "block",
     "name": "Block of recordings from May, 10",
     "filedatetime": "2011-10-05",
     "index": 1
-}]
+}
 }}}
 
 
@@ -19,13 +19,13 @@ Send the following HTTP POST request to create a new Segment and connect it to t
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "segment",
     "name": "Trial 1",
     "filedatetime": "2011-10-07",
     "index": 1,
     "block": "block_4"
-}]
+}
 }}}
 
 
@@ -33,7 +33,7 @@ You may create a new Event by sending the following HTTP POST:
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "event",
     "time": {
         "data": 7.22,
@@ -41,7 +41,7 @@ HTTP POST /neo/
     },
     "label": "Stimuli end",
     "segment": "segment_2"
-}]
+}
 }}}
 
 
@@ -49,10 +49,10 @@ In case you want to organize some Events in EventArray, create this EventArray f
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "eventarray",
     "segment": "segment_12345"
-}]
+}
 }}}
 and then create these Events, indicating corresponding EventArray as a parent, similar to how it was shown in the previous example.
 
@@ -60,16 +60,16 @@ If some of your Events exist already, you may send an update request for these E
 {{{
 HTTP POST /neo/event_456/
 
-[{
+{
     "eventarray": "eventarray_897"
-}]
+}
 }}}
 
 In some cases, instead of creating Events, you may find useful Epoch objects. Use HTTP POST request, similar to the following, to create new Epoch:
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "epoch",
     "time": {
         "data": 78.22,
@@ -81,17 +81,17 @@ HTTP POST /neo/
     },
     "label": "Displaying blue screen",
     "segment": "segment_5"
-}]
+}
 }}}
 
 As with EventArray, you may want to organize your Epochs in an EpochArray. You may create one first with the request, similar to
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "epocharray",
     "segment": "segment_1234"
-}]
+}
 }}}
 and then create Epochs, indicating newly created EpochArray as a parent. If your Epochs exist already, update them, indicating EpochArray as a parent (see example with Events above).
 
@@ -100,11 +100,11 @@ If you use Tethrodes or any other type of "groups" of electrodes within your ele
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "recordingchannelgroup",
     "name": "Tethrode #5",
     "block": "block_12"
-}]
+}
 }}}
 And link several electrodes (Recording Channel) to it further, like shown below.
 
@@ -112,12 +112,12 @@ To create a Recording Channel, please send a request similar to (if you want to 
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "recordingchannel",
     "name": "Electrode #1",
     "index": 1,
     "recordingchannelgroup": "recordingchannelgroup_1569"
-}]
+}
 }}}
 
 
@@ -125,7 +125,7 @@ To create a Unit (usually representing a Neuron within the data model) please se
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "unit",
     "name": "Neuron 34.56 x 28.8 x 245.69",
     "recordingchannel": [
@@ -133,7 +133,7 @@ HTTP POST /neo/
         "recordingchannel_68",
         "recordingchannel_69"
     ]
-}]
+}
 }}}
 Please notice, that in the case with Unit, you may specify several Recording Channels. Even if you need to relate Unit to only one channel, please use a list "[ ... ]" with only one value inside.
 
@@ -142,7 +142,7 @@ Please use the following HTTP request example to create AnalogSignal:
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "analogsignal",
     "name": "AS-1",
     "sampling_rate": {
@@ -159,7 +159,7 @@ HTTP POST /neo/
     },
     "segment": "segment_1234",
     "recordingchannel": "recordingchannel_69"
-}]
+}
 }}}
 Please note, for any "array"-type parameter you need to provide a dictionnary of parameters - "units" and "data".
 
@@ -167,7 +167,7 @@ If you have irregularly sampled signals, use the following request example to cr
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "irsaanalogsignal",
     "name": "ISAS-1",
     "t_start": {
@@ -184,17 +184,17 @@ HTTP POST /neo/
     },
     "segment": "segment_1234",
     "recordingchannel": "recordingchannel_69"
-}]
+}
 }}}
 
 If you need to organize several Analog Signals in an array, create AnalogSignalArray:
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "analogsignalarray",
     "segment": "segment_1234"
-}]
+}
 }}}
 and futher link required Analog Signals to it (you have to update every Analog Signal to include it in the array, if they already exist). See an example with EventArray above.
 
@@ -203,7 +203,7 @@ This is an example request to create a single Spike:
 {{{
 HTTP POST /neo/
 
-[{
+{
     "obj_type": "spike",
     "time": {
         "data": 300.0,
@@ -233,13 +233,13 @@ HTTP POST /neo/
     }],
     "segment": "segment_1234",
     "unit": "unit_22"
-}]
+}
 }}}
 
 
 And this is an example for a SpikeTrain:
 {{{
-[{
+{
     "obj_type": "spiketrain",
     "t_start": {
         "data": -400.0,
@@ -277,10 +277,9 @@ And this is an example for a SpikeTrain:
     }],
     "segment": "segment_1234",
     "unit": "unit_22"
-}]
+}
 }}}
 Please note, that you may provide a set of waveforms inside a waveform parameter, as shown in this example. 
-
 
 
 

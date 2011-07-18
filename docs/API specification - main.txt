@@ -678,7 +678,7 @@ Accordingly, if you want to receive a contents of the certain block, send an HTT
 }]
 }}}
 
-''Note. When some of the parents / children are not set up, they will NOT appear in the response.''
+''Note. When some of the parents / children are not set up, an empty string / list will appear in the response.''
 ''Note. While updating objects, please use only child-to-parent relationships (like specify to which segment (parent) particular event (child)  belongs). Parent-to-child relations will not be parsed and saved.''
 
 

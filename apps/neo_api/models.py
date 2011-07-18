@@ -18,7 +18,7 @@ def_samp_unit = "Hz"
 # supporting functions
 #===============================================================================
 
-def data_as_list(data):
+def _data_as_list(data):
     """
     Returns a list of floats from comma-separated text or empty list.
     """
@@ -27,6 +27,23 @@ def data_as_list(data):
         for s in str(data).split(', '):
             l.append(float(s))
     return l
+
+def _clean_csv(arr):
+    """
+    Parses a given list and returns a string of comma-separated float values.
+    """
+    if not type(arr) == type([]):
+        raise ValueError("data provided is not a list.")
+    cleaned_data = ""
+    for value in arr:
+        try:
+            a = float(value)
+            cleaned_data += ', ' + str(a)
+        except:
+            raise ValueError(str(value))
+    if len(cleaned_data) > 0:
+        cleaned_data = cleaned_data[2:]
+    return cleaned_data
 
 
 class BaseInfo(models.Model):
@@ -227,9 +244,15 @@ class SpikeTrain(BaseInfo):
     times_data = models.TextField('spike_data', blank=True) # use 'spike_times' property to get data
     times__unit = models.CharField('spike_data__unit', default=def_data_unit, max_length=unit_max_length)
 
-    @property
-    def times(self):
-        return data_as_list(self.times_data)
+    @apply
+    def times():
+        def fget(self):
+            return _data_as_list(self.times_data)
+        def fset(self, arr):
+            self.times_data = _clean_csv(arr)
+        def fdel(self):
+            pass
+        return property(**locals())
 
 
 # 11
@@ -268,9 +291,19 @@ class AnalogSignal(BaseInfo):
     signal_data = models.TextField('signal_data') # use 'signal' property to get data
     signal__unit = models.CharField('signal__unit', default=def_data_unit, max_length=unit_max_length)
 
-    @property
-    def signal(self):
-        return data_as_list(self.signal_data)
+    #@property
+    #def signal(self):
+    #    return _data_as_list(self.signal_data)
+
+    @apply
+    def signal():
+        def fget(self):
+            return _data_as_list(self.signal_data)
+        def fset(self, arr):
+            self.signal_data = _clean_csv(arr)
+        def fdel(self):
+            pass
+        return property(**locals())
 
     @property
     def is_alone(self):
@@ -298,13 +331,25 @@ class IrSaAnalogSignal(BaseInfo):
     times_data = models.TextField('times_data', blank=True) # use 'times' property to get data
     times__unit = models.CharField('times__unit', default=def_time_unit, max_length=unit_max_length)
 
-    @property
-    def signal(self):
-        return data_as_list(self.signal_data)
+    @apply
+    def signal():
+        def fget(self):
+            return _data_as_list(self.signal_data)
+        def fset(self, arr):
+            self.signal_data = _clean_csv(arr)
+        def fdel(self):
+            pass
+        return property(**locals())
 
-    @property
-    def times(self):
-        return data_as_list(self.times_data)
+    @apply
+    def times():
+        def fget(self):
+            return _data_as_list(self.times_data)
+        def fset(self, arr):
+            self.times_data = _clean_csv(arr)
+        def fdel(self):
+            pass
+        return property(**locals())
 
 # 14
 class Spike(BaseInfo):
@@ -335,9 +380,15 @@ class WaveForm(BaseInfo):
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
     spike = models.ForeignKey(Spike, blank=True, null=True)
 
-    @property
-    def waveform(self):
-        return data_as_list(self.waveform_data)
+    @apply
+    def waveform():
+        def fget(self):
+            return _data_as_list(self.waveform_data)
+        def fset(self, arr):
+            self.waveform_data = _clean_csv(arr)
+        def fdel(self):
+            pass
+        return property(**locals())
 
 
 # supporting functions

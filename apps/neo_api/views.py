@@ -35,7 +35,7 @@ meta_messages = {
     "data_missing": "Some of the required parameters are missing: 'data', 'units' or 'channel_index'.",
     "units_missing": "You need to specify units (for example, 'ms' or 'mV') for the following parameter:",
     "not_iterable": "The following parameter must be of type 'list'",
-    "bad_float_data": "The data given is not a set of comma-separated float / integer values. Please check your input: ",
+    "bad_float_data": "The data given is not a list of comma-separated float / integer values. Please check your input: ",
     "object_created": "Object created successfully.",
     "object_updated": "Object updated successfully. Data changes saved.",
     "object_selected": "Here is the list of requested objects.",
@@ -112,7 +112,7 @@ meta_children = {
     "analogsignalarray": ["analogsignal"]}
 
 
-def clean_attr(_attr):
+def _clean_attr(_attr):
     """
     By default attribute names contain prefix "_" to indicate whether an 
     attribute is mandatory. This needs to be cleaned up before assigning to the
@@ -121,25 +121,6 @@ def clean_attr(_attr):
     i = 0
     if _attr.startswith("_"): i = 1
     return _attr[i:]
-
-def reg_csv():
-    # old version - re.compile('^[\d+\.\d*,]+$')
-    return re.compile(r'''
-        \s*                # Any whitespace.
-        (                  # Start capturing here.
-          [^,"']+?         # Either a series of non-comma non-quote characters.
-          |                # OR
-          "(?:             # A double-quote followed by a string of characters...
-              [^"\\]|\\.   # That are either non-quotes or escaped...
-           )*              # ...repeated any number of times.
-          "                # Followed by a closing double-quote.
-          |                # OR
-          '(?:[^'\\]|\\.)*'# Same as above, for single quotes.
-        )                  # Done capturing.
-        \s*                # Allow arbitrary space before the comma.
-        (?:,|$)            # Followed by a comma or the end of a string.
-        ''', re.VERBOSE)
-
 
 class HttpResponseAPI(HttpResponse):
     def __init__(self, content=''):
@@ -246,7 +227,7 @@ def create_or_update(request, neo_id=None):
 
     # processing attributes
     for _attr in meta_attributes[obj_type]:
-        attr = clean_attr(_attr)
+        attr = _clean_attr(_attr)
         obj_attr = None
         if rdata.has_key(attr):
             obj_attr = rdata[attr]
@@ -279,43 +260,32 @@ def create_or_update(request, neo_id=None):
                         try:
                             w = WaveForm()
                             try:
-                                setattr(w, "channel_index", wf["channel_index"])
-                                setattr(w, "waveform_data", wf["waveform"]["data"])
-                                setattr(w, "waveform__unit", wf["waveform"]["units"])
-                                setattr(w, "author", request.user)
+                                w.channel_index = wf["channel_index"]
+                                w.waveform = wf["waveform"]["data"]
+                                w.waveform__unit = wf["waveform"]["units"]
+                                w.author = request.user
                                 if obj_type == "spiketrain":
-                                    setattr(w, "time_of_spike_data", wf["time_of_spike"]["data"])
-                                    setattr(w, "time_of_spike__unit", wf["time_of_spike"]["units"])
+                                    w.time_of_spike_data = wf["time_of_spike"]["data"]
+                                    w.time_of_spike__unit = wf["time_of_spike"]["units"]
                                 to_link.append(w)
                             except KeyError:
                                 return HttpResponseBadRequestAPI(meta_messages["data_missing"])
+                            except ValueError, v:
+                                return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + v.message)
                         except AttributeError, TypeError:
                             return HttpResponseBadRequestAPI(meta_messages["dict_required"] + data_attr)
                 else:
                     attr = rdata[data_attr]
-                    if not type(attr) == type({}):
+                    # some checks
+                    if not (type(attr) == type({})):
                         return HttpResponseBadRequestAPI(meta_messages["dict_required"] + data_attr)
-                    r = reg_csv()
                     if not attr.has_key("data"):
                         return HttpResponseBadRequestAPI(meta_messages["data_missing"])
-                    # processing attribute data
-                    if type(attr["data"]) == type([]): # this is an array
-                        # converting to a string to parse with RE
-                        str_arr = str(attr["data"])
-                        str_arr = str_arr[1:len(str_arr)-1]
-                        values = r.findall(str_arr)
-                        cleaned_data = ''
-                        for value in values:
-                            try:
-                                a = float(value)
-                                cleaned_data += ', ' + str(a)
-                            except:
-                                return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + str(value))
-                        if len(cleaned_data) > 0:
-                            cleaned_data = cleaned_data[2:]
-                        setattr(obj, data_attr + "_data", cleaned_data)
-                    else: # this is a normal value
+                    # try to assign value/array. for data parsing see class decorators
+                    try:
                         setattr(obj, data_attr, attr["data"])
+                    except ValueError, v:
+                        return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + v.message)
                     # processing attribute data units
                     if attr.has_key("units"):
                         attr_unit = attr["units"]
@@ -525,7 +495,7 @@ def _assign_attrs(fake, obj):
     Assigns attibutes from NEO to fake object for pickling to JSON.
     """
     for _attr in meta_attributes[obj.obj_type]:
-        attr = clean_attr(_attr)
+        attr = _clean_attr(_attr)
         setattr(fake, attr, getattr(obj, attr))
         if hasattr(obj, attr + "__unit"):
             setattr(fake, attr + "__unit", getattr(obj, attr + "__unit"))
