@@ -518,8 +518,16 @@ def _assign_arrays(fake, obj):
                 for wf in obj.waveform_set.all():
                     w = {
                         "channel_index": wf.channel_index,
-                        "waveform_data": wf.waveform_data,
-                        "waveform__unit": wf.waveform__unit}
+                        "waveform": {
+                            "data": wf.waveform,
+                            "units": wf.waveform__unit
+                        }
+                    }
+                    if obj.obj_type == "spiketrain":
+                        w["time_of_spike"] = {
+                            "data": wf.time_of_spike_data,
+                            "units": wf.time_of_spike__unit
+                        }
                     array.append(w)
             else:
                 array = {"data": getattr(obj, arr), "units": getattr(obj, arr + "__unit")}
