@@ -3,6 +3,8 @@ from django.forms.util import ValidationError, ErrorList
 from django.utils.encoding import smart_unicode, force_unicode
 from django.utils.translation import ugettext_lazy as _
 from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHiddenInput
+from django.db import models
+import quantities as pq
 
 # A ModelMultipleChoiceField with "Clear" helptext.
 # Require a javascript code to be inserted to perform clear of selection.
@@ -45,4 +47,26 @@ class MMCFClearField(forms.ModelChoiceField):
             if force_unicode(val) not in pks:
                 raise ValidationError(self.error_messages['invalid_choice'] % val)
         return qs
+
+
+class UnitField(models.CharField):
+    """
+    This field can store a unit of any measure.
+    """
+    __metaclass__ = models.SubfieldBase
+
+    empty_strings_allowed = False
+
+    def __init__(self, *args, **kwargs):
+        kwargs['max_length'] = 10
+        super(UnitField, self).__init__(*args, **kwargs)
+
+    def validate(self, value, model_instance):
+        super(UnitField, self).validate(value, model_instance)
+        try:
+            pq.Quantity(1, value)
+        except LookupError, TypeError:
+            raise forms.ValidationError("Unit provided is not supported: " + str(value))
+
+
 

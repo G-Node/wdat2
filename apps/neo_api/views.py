@@ -369,7 +369,7 @@ def retrieve(request, neo_id):
         # processing attributes
         _assign_attrs(n, obj)
         # processing arrays
-        _assign_arrays(n, obj)
+        _assign_arrays(request, n, obj)
         # processing relationships
         _assign_parents(n, obj)
         _assign_children(n, obj)
@@ -399,7 +399,7 @@ def data(request, neo_id):
         n = FakeJSON()
         setattr(n, "neo_id", obj.neo_id)
         # processing arrays
-        assigned = _assign_arrays(n, obj)
+        assigned = _assign_arrays(request, n, obj)
         if not assigned:
             return HttpResponseBadRequestAPI(meta_messages["no_data_related"])
         # making response
@@ -506,12 +506,6 @@ def _assign_arrays(fake, obj):
     """
     assigned = False
     if meta_data_attrs.has_key(obj.obj_type):
-
-        # TODO Slicing / downsampling
-        #t1 = request.GET.get("t_start")
-        #t2 = request.GET.get("t_stop")
-        #if hasattr(obj, "t_start") and (t1 or t2):
-
         for arr in meta_data_attrs[obj.obj_type]:
             if arr == "waveforms":
                 array = []
@@ -529,6 +523,16 @@ def _assign_arrays(fake, obj):
                             "units": wf.time_of_spike__unit
                         }
                     array.append(w)
+            elif arr == "signal":
+                # TODO Slicing / downsampling
+                start_time = request.GET.get("start_time")
+                end_time = request.GET.get("end_time")
+                start_index = request.GET.get("start_index")
+                end_index = request.GET.get("end_index")
+                duration = request.GET.get("duration")
+                samples_count = request.GET.get("samples_count")
+                # Do the slicing
+                pass
             else:
                 array = {"data": getattr(obj, arr), "units": getattr(obj, arr + "__unit")}
             setattr(fake, arr, array)
