@@ -396,7 +396,10 @@ class Sliceable:
 
     def get_slice(self, start_time=None, end_time=None, start_index=None,\
             end_index=None, duration=None, samples_count=None):
-        # define a dataslice to cut. implemented for AnalogSignal / IRsAAs.
+        """
+        Defines a dataslice to cut. implemented for AnalogSignal / IRsAAs. 
+        Method expects float input values.
+        """
         data = getattr(obj, arr)
         if start_time:
             # clean start_time

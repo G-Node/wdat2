@@ -400,6 +400,16 @@ def data(request, neo_id):
         setattr(n, "neo_id", obj.neo_id)
         # processing arrays
         assigned = _assign_arrays(request, n, obj)
+
+        # TODO Slicing / downsampling
+        #start_time = request.GET.get("start_time")
+        #end_time = request.GET.get("end_time")
+        #start_index = request.GET.get("start_index")
+        #end_index = request.GET.get("end_index")
+        #duration = request.GET.get("duration")
+        #samples_count = request.GET.get("samples_count")
+        # make float validations
+
         if not assigned:
             return HttpResponseBadRequestAPI(meta_messages["no_data_related"])
         # making response
@@ -523,16 +533,6 @@ def _assign_arrays(fake, obj):
                             "units": wf.time_of_spike__unit
                         }
                     array.append(w)
-            elif arr == "signal":
-                # TODO Slicing / downsampling
-                start_time = request.GET.get("start_time")
-                end_time = request.GET.get("end_time")
-                start_index = request.GET.get("start_index")
-                end_index = request.GET.get("end_index")
-                duration = request.GET.get("duration")
-                samples_count = request.GET.get("samples_count")
-                # Do the slicing
-                pass
             else:
                 array = {"data": getattr(obj, arr), "units": getattr(obj, arr + "__unit")}
             setattr(fake, arr, array)
