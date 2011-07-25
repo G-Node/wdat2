@@ -4,7 +4,8 @@ from django.utils.encoding import smart_unicode, force_unicode
 from django.utils.translation import ugettext_lazy as _
 from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHiddenInput
 from django.db import models
-import quantities as pq
+# uncomment when move to python 2.6
+#import quantities as pq
 
 # A ModelMultipleChoiceField with "Clear" helptext.
 # Require a javascript code to be inserted to perform clear of selection.
@@ -63,10 +64,13 @@ class UnitField(models.CharField):
 
     def validate(self, value, model_instance):
         super(UnitField, self).validate(value, model_instance)
-        try:
-            pq.Quantity(1, value)
-        except LookupError, TypeError:
+        # replace this by the 'try' directive when moved to python 2.6
+        if not value in ('ms', 'mv', 'hz'):
             raise forms.ValidationError("Unit provided is not supported: " + str(value))
+        #try:
+        #    pq.Quantity(1, value)
+        #except LookupError, TypeError:
+        #    raise forms.ValidationError("Unit provided is not supported: " + str(value))
 
 
 
