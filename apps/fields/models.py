@@ -65,7 +65,7 @@ class UnitField(models.CharField):
     def validate(self, value, model_instance):
         super(UnitField, self).validate(value, model_instance)
         # replace this by the 'try' directive when moved to python 2.6
-        if not value in ('ms', 'mv', 'hz'):
+        if not value.lower() in ('ms', 'mv', 'hz'):
             raise forms.ValidationError("Unit provided is not supported: " + str(value))
         #try:
         #    pq.Quantity(1, value)
