@@ -369,7 +369,7 @@ def retrieve(request, neo_id):
         # processing attributes
         _assign_attrs(n, obj)
         # processing arrays
-        _assign_arrays(request, n, obj)
+        _assign_arrays(n, obj)
         # processing relationships
         _assign_parents(n, obj)
         _assign_children(n, obj)
@@ -399,7 +399,7 @@ def data(request, neo_id):
         n = FakeJSON()
         setattr(n, "neo_id", obj.neo_id)
         # processing arrays
-        assigned = _assign_arrays(request, n, obj)
+        assigned = _assign_arrays(n, obj)
 
         # TODO Slicing / downsampling
         #start_time = request.GET.get("start_time")
