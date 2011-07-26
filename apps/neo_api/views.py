@@ -122,21 +122,35 @@ def _clean_attr(_attr):
     if _attr.startswith("_"): i = 1
     return _attr[i:]
 
-class HttpResponseAPI(HttpResponse):
-    def __init__(self, content=''):
-        super(HttpResponseAPI, self).__init__(content)
+class HttpResponseBasicJSON(HttpResponse):
+    """
+    This is a standard JSON response class. Sets up an appropriate Cont-Type.
+    """
+    def __init__(self, json_content):
+        super(HttpResponseBasicJSON, self).__init__(json_content)
         self['Content-Type'] = "application/json"
 
-class HttpResponseCreatedAPI(HttpResponseAPI):
+class HttpResponseFromClassJSON(HttpResponseBasicJSON):
+    """
+    This is a JSON response class, which expects a python class from which it 
+    will pickle a response. User and Message appreciated.
+    """
+    def __init__(self, class_obj, user=None, message=None):
+        if message: class_obj.message = message
+        if user: class_obj.logged_in_as = user.username
+        json_content = jsonpickle.encode(class_obj, unpicklable=False)
+        super(HttpResponseFromClassJSON, self).__init__(json_content)
+
+class HttpResponseCreatedAPI(HttpResponseFromClassJSON):
     status_code = 201
 
-class HttpResponseBadRequestAPI(HttpResponseAPI):
+class HttpResponseBadRequestAPI(HttpResponseBasicJSON):
     status_code = 400
 
-class HttpResponseUnauthorizedAPI(HttpResponseAPI):
+class HttpResponseUnauthorizedAPI(HttpResponseBasicJSON):
     status_code = 401
 
-class HttpResponseNotSupportedAPI(HttpResponseAPI):
+class HttpResponseNotSupportedAPI(HttpResponseBasicJSON):
     status_code = 405
 
 class FakeJSON:
@@ -147,6 +161,10 @@ class FakeJSON:
 
 
 def get_by_neo_id_http(neo_id, user):
+    """
+    A function to get NEO object by its NEO_ID. 
+    Attention! This function returns HTTP response in case an exception occurs.
+    """
     try:
         return get_by_neo_id(neo_id, user)
     except TypeError:
@@ -158,7 +176,8 @@ def get_by_neo_id_http(neo_id, user):
 
 def auth_required(func):
     """
-    Decorator for views where authentication required.
+    Decorator for views where authentication required. 
+    Returns HTTP 403 Unauthorized if user is not authenticated.
     """
     argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
     fname = func.func_name
@@ -193,6 +212,7 @@ def create_or_update(request, neo_id=None):
     """
     This is a slave function to create or update a NEO object.
     """
+    # a flag to distinguish update/insert mode
     update = False
     to_link, parents = None, None
     try:
@@ -212,7 +232,6 @@ def create_or_update(request, neo_id=None):
             return obj
         obj_type = obj.obj_type
         message = meta_messages["object_updated"]
-        resp_object = HttpResponseAPI
     else:
         # this is create case
         try:
@@ -220,7 +239,6 @@ def create_or_update(request, neo_id=None):
             classname = meta_classnames[obj_type]
             obj = classname()
             message = meta_messages["object_created"]
-            resp_object = HttpResponseCreatedAPI
         except KeyError:
             # invalid NEO type or type is missing
             return HttpResponseBadRequestAPI(meta_messages["invalid_obj_type"])
@@ -350,8 +368,10 @@ def create_or_update(request, neo_id=None):
         obj.save()
 
     # making response
-    resp_data = {"neo_id": obj.neo_id, "message": message, "logged_in_as": request.user.username}
-    return resp_object(json.dumps(resp_data))
+    #resp_data = {"neo_id": obj.neo_id, "message": message, "logged_in_as": request.user.username}
+    #return resp_object(json.dumps(resp_data))
+    request.method = "GET"
+    return info(request, obj.neo_id, message, not update)
 
 
 def retrieve(request, neo_id):
@@ -366,31 +386,38 @@ def retrieve(request, neo_id):
             return obj
         n = FakeJSON()
         setattr(n, "neo_id", obj.neo_id)
-        # processing attributes
         _assign_attrs(n, obj)
-        # processing arrays
         _assign_arrays(n, obj)
-        # processing relationships
         _assign_parents(n, obj)
         _assign_children(n, obj)
-        # making response
-        resp_data = jsonpickle.encode(n, unpicklable=False)
-        return HttpResponseAPI(resp_data)
+        return HttpResponseFromClassJSON(n, request.user)
     else:
         return HttpResponseBadRequestAPI(meta_messages["missing_neo_id"])
 
 
-def delete(request, neo_id):
+@auth_required
+def info(request, neo_id, message=None, new=False):
     """
-    This is a slave function to delete a NEO object by given NEO_ID.
+    Returns general information about an object: attributes etc. Kinda fast.
     """
-    pass
+    if request.method == "GET":
+        obj = get_by_neo_id_http(neo_id, request.user)
+        if isinstance(obj, HttpResponse):
+            return obj
+        n = FakeJSON()
+        setattr(n, "neo_id", obj.neo_id)
+        _assign_attrs(n, obj)
+        # making response
+        if new: return HttpResponseCreatedAPI(n, request.user, message)
+        return HttpResponseFromClassJSON(n, request.user, message)
+    else:
+        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
 
 
 @auth_required
 def data(request, neo_id):
     """
-    Returns object data arrays.
+    Returns object data-related attributes.
     """
     if request.method == "GET":
         obj = get_by_neo_id_http(neo_id, request.user)
@@ -412,9 +439,7 @@ def data(request, neo_id):
 
         if not assigned:
             return HttpResponseBadRequestAPI(meta_messages["no_data_related"])
-        # making response
-        resp_data = jsonpickle.encode(n, unpicklable=False)
-        return HttpResponseAPI(resp_data)
+        return HttpResponseFromClassJSON(n, request.user)
     else:
         return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
 
@@ -433,9 +458,7 @@ def parents(request, neo_id):
         assigned = _assign_parents(n, obj)
         if not assigned:
             return HttpResponseBadRequestAPI(meta_messages["no_parents_related"])
-        # making response
-        resp_data = jsonpickle.encode(n, unpicklable=False)
-        return HttpResponseAPI(resp_data)
+        return HttpResponseFromClassJSON(n, request.user)
     else:
         return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
 
@@ -455,9 +478,7 @@ def children(request, neo_id):
         assigned = _assign_children(n, obj)
         if not assigned:
             return HttpResponseBadRequestAPI(meta_messages["no_children_related"])
-        # making response
-        resp_data = jsonpickle.encode(n, unpicklable=False)
-        return HttpResponseAPI(resp_data)
+        return HttpResponseFromClassJSON(n, request.user)
     else:
         return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
 
@@ -485,7 +506,7 @@ def select(request, obj_type):
             "selected_as_of": 0,
             "message": message
         }
-        return HttpResponseAPI(json.dumps(resp_data))
+        return HttpResponseBasicJSON(json.dumps(resp_data))
     else:
         return HttpResponseBadRequestAPI(meta_messages["invalid_obj_type"])
 
@@ -495,6 +516,13 @@ def select(request, obj_type):
 def assign(request, neo_id):
     """
     Basic operations with NEO objects. Save, get and delete.
+    """
+    pass
+
+
+def delete(request, neo_id):
+    """
+    This is a slave function to delete a NEO object by given NEO_ID.
     """
     pass
 
