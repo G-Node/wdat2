@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 
 from neo_api.models import *
+from meta import *
 try:
     import json
 except ImportError:
@@ -16,111 +17,14 @@ except ImportError:
 import jsonpickle
 import re
 
-meta_messages = {
-    "invalid_neo_id": "The NEO_ID provided is wrong and can't be parsed. The NEO_ID should have a form 'neo-object-type_object-ID', like 'segment_12345'. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct NEO_ID and send the request again.",
-    "wrong_neo_id": "The object with the NEO_ID provided does not exist.",
-    "missing_neo_id": "For this type of request you should provide NEO_ID. The NEO_ID should have a form 'neo-object-type_object-ID', like 'segment_12345'. Please include NEO_ID and send the request again.",
-    "invalid_method": "This URL does not support the method specified.",
-    "invalid_obj_type": "You provided an invalid NEO object type parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
-    "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
-    "bad_parameter": "Some of the parameters provided are incorrect. Please consider values below:",
-    "wrong_parent": "A parent object with this neo_id does not exist: ",
-    "debug": "Debugging message.",
-    "dict_required": "The following parameter must be of a type dict containing 'data' and 'units' keys: ",
-    "no_data_related": "There is no data, related to this object. Data arrays are supported only for 'analogsignal', 'spiketrain', 'irsaanalogsignal' and 'spike' object types.",
-    "no_parents_related": "There are no parents for a Block.",
-    "no_children_related": "The requested object may NOT have any children.",
-    "not_authenticated": "Please authenticate before sending the request.",
-    "not_authorized": "You don't have permissions to access the object.",
-    "data_missing": "Some of the required parameters are missing: 'data', 'units' or 'channel_index'.",
-    "units_missing": "You need to specify units (for example, 'ms' or 'mV') for the following parameter:",
-    "not_iterable": "The following parameter must be of type 'list'",
-    "bad_float_data": "The data given is not a list of comma-separated float / integer values. Please check your input: ",
-    "object_created": "Object created successfully.",
-    "object_updated": "Object updated successfully. Data changes saved.",
-    "object_selected": "Here is the list of requested objects.",
-    "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
-}
-
-meta_classnames = {
-    "block": Block,
-    "segment": Segment,
-    "event": Event,
-    "eventarray": EventArray,
-    "epoch": Epoch,
-    "epocharray": EpochArray,
-    "unit": Unit,
-    "spiketrain": SpikeTrain,
-    "analogsignal": AnalogSignal,
-    "analogsignalarray": AnalogSignalArray,
-    "irsaanalogsignal": IrSaAnalogSignal,
-    "spike": Spike,
-    "recordingchannelgroup": RecordingChannelGroup,
-    "recordingchannel": RecordingChannel}
-
-# attribute name. underscore indicates whether attribute is mandatory
-meta_attributes = {
-    "block": ['_name', 'filedatetime', 'index'],
-    "segment": ['_name', 'filedatetime', 'index'],
-    "event": ['_label'],
-    "eventarray": [],
-    "epoch": ['_label'],
-    "epocharray": [],
-    "unit": ['_name'],
-    "spiketrain": [],
-    "analogsignal": ['_name'],
-    "analogsignalarray": [],
-    "irsaanalogsignal": ['_name'],
-    "spike": [],
-    "recordingchannelgroup": ['_name'],
-    "recordingchannel": ['_name', 'index']}
-
-# object type: data-related attributes names. waveform is a special case (2-3D).
-meta_data_attrs = {
-    "event": ["time"],
-    "epoch": ["time", "duration"],
-    "spiketrain": ["t_start", "t_stop", "times", "waveforms"],
-    "analogsignal": ["sampling_rate", "t_start", "signal"],
-    "irsaanalogsignal": ["t_start", "signal", "times"],
-    "spike": ["left_sweep", "time", "sampling_rate", "waveforms"]}
-
-# object type: parent objects
-meta_parents = {
-    "segment": ["block"],
-    "eventarray": ["segment"],
-    "event": ["segment","eventarray"],
-    "epocharray": ["segment"],
-    "epoch": ["segment","epocharray"],
-    "recordingchannelgroup": ["block"],
-    "recordingchannel": ["recordingchannelgroup"],
-    "unit": ["recordingchannel"], # this object is special. do not add more parents
-    "spiketrain": ["segment","unit"],
-    "analogsignalarray": ["segment"],
-    "analogsignal": ["segment","analogsignalarray","recordingchannel"],
-    "irsaanalogsignal": ["segment","recordingchannel"],
-    "spike": ["segment","unit"]}
-
-# object type + children
-meta_children = {
-    "block": ['segment','recordingchannelgroup'],
-    "segment": ['analogsignal', 'irsaanalogsignal', 'analogsignalarray', 'spiketrain', 'spike', 'event', 'eventarray', 'epoch', 'epocharray'],
-    "eventarray": ["event"],
-    "epocharray": ["epoch"],
-    "recordingchannelgroup": ['recordingchannel','analogsignalarray'],
-    "recordingchannel": ['unit','analogsignal', 'irsaanalogsignal'],
-    "unit": ['spiketrain','spike'], 
-    "analogsignalarray": ["analogsignal"]}
-
-
 def _clean_attr(_attr):
     """
-    By default attribute names contain prefix "_" to indicate whether an 
+    By default attribute names in meta contain prefix "_" to indicate whether an 
     attribute is mandatory. This needs to be cleaned up before assigning to the
     NEO object.
     """
-    i = 0
-    if _attr.startswith("_"): i = 1
-    return _attr[i:]
+    if _attr.startswith("_"): return _attr[1:]
+    return _attr
 
 class HttpResponseBasicJSON(HttpResponse):
     """
@@ -387,7 +291,7 @@ def retrieve(request, neo_id):
         n = FakeJSON()
         setattr(n, "neo_id", obj.neo_id)
         _assign_attrs(n, obj)
-        _assign_arrays(n, obj)
+        _assign_data_arrays(n, obj)
         _assign_parents(n, obj)
         _assign_children(n, obj)
         return HttpResponseFromClassJSON(n, request.user)
@@ -425,23 +329,25 @@ def data(request, neo_id):
             return obj
         n = FakeJSON()
         setattr(n, "neo_id", obj.neo_id)
-        # processing arrays
-        assigned = _assign_arrays(n, obj)
-
-        # TODO Slicing / downsampling
-        #start_time = request.GET.get("start_time")
-        #end_time = request.GET.get("end_time")
-        #start_index = request.GET.get("start_index")
-        #end_index = request.GET.get("end_index")
-        #duration = request.GET.get("duration")
-        #samples_count = request.GET.get("samples_count")
-        # make float validations
-
+        params = {}
+        try:
+            for k, v in request.GET.items():
+                if k in allowed_range_params.keys() and allowed_range_params.get(k)(v):
+                    params[k] = allowed_range_params.get(k)(v)
+        except ValueError, e:
+            return HttpResponseBadRequestAPI(e.message)
+        try:
+            assigned = _assign_data_arrays(n, obj, **params)
+        except IndexError, e:
+            return HttpResponseBadRequestAPI(e.message)
+        except ValueError, e:
+            return HttpResponseBadRequestAPI(e.message)
         if not assigned:
             return HttpResponseBadRequestAPI(meta_messages["no_data_related"])
         return HttpResponseFromClassJSON(n, request.user)
     else:
         return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
+
 
 @auth_required
 def parents(request, neo_id):
@@ -538,9 +444,9 @@ def _assign_attrs(fake, obj):
         if hasattr(obj, attr + "__unit"):
             setattr(fake, attr + "__unit", getattr(obj, attr + "__unit"))
 
-def _assign_arrays(fake, obj):
+def _assign_data_arrays(fake, obj, **params):
     """
-    Assigns arrays from NEO to fake object for pickling to JSON.
+    Assigns data-related attrs from NEO to fake object for pickling to JSON.
     """
     assigned = False
     if meta_data_attrs.has_key(obj.obj_type):
@@ -562,7 +468,10 @@ def _assign_arrays(fake, obj):
                         }
                     array.append(w)
             else:
-                array = {"data": getattr(obj, arr), "units": getattr(obj, arr + "__unit")}
+                if arr == "signal" and params:
+                    data = obj.get_slice(**params)
+                else: data = getattr(obj, arr)
+                array = {"data": data, "units": getattr(obj, arr + "__unit")}
             setattr(fake, arr, array)
         assigned = True
     return assigned
@@ -605,3 +514,5 @@ def _assign_children(fake, obj):
             setattr(fake, r, ch)
         assigned = True
     return assigned
+
+

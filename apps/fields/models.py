@@ -4,8 +4,9 @@ from django.utils.encoding import smart_unicode, force_unicode
 from django.utils.translation import ugettext_lazy as _
 from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHiddenInput
 from django.db import models
-# uncomment when move to python 2.6
-#import quantities as pq
+
+from neo_api.meta import meta_unit_types
+
 
 # A ModelMultipleChoiceField with "Clear" helptext.
 # Require a javascript code to be inserted to perform clear of selection.
@@ -52,9 +53,10 @@ class MMCFClearField(forms.ModelChoiceField):
 
 class UnitField(models.CharField):
     """
-    This field can store a unit of any measure.
+    This field is going to store a unit of any measure.
     """
     __metaclass__ = models.SubfieldBase
+    _unit_type = None
 
     empty_strings_allowed = False
 
@@ -64,13 +66,31 @@ class UnitField(models.CharField):
 
     def validate(self, value, model_instance):
         super(UnitField, self).validate(value, model_instance)
-        # replace this by the 'try' directive when moved to python 2.6
-        if not value.lower() in ('ms', 'mv', 'hz'):
+        if self._unit_type and (not value.lower() in meta_unit_types[self._unit_type]):
             raise forms.ValidationError("Unit provided is not supported: " + str(value))
-        #try:
-        #    pq.Quantity(1, value)
-        #except LookupError, TypeError:
-        #    raise forms.ValidationError("Unit provided is not supported: " + str(value))
 
+class TimeUnitField(UnitField):
+    """
+    This field should store time units.
+    """
+    def __init__(self, *args, **kwargs):
+        super(TimeUnitField, self).__init__(*args, **kwargs)
+        self._unit_type = 'time'
+    
+class SignalUnitField(UnitField):
+    """
+    This field stores signal units.
+    """
+    def __init__(self, *args, **kwargs):
+        super(SignalUnitField, self).__init__(*args, **kwargs)
+        self._unit_type = 'signal'
+
+class SamplingUnitField(UnitField):
+    """
+    This field stores sampling rate units.
+    """
+    def __init__(self, *args, **kwargs):
+        super(SamplingUnitField, self).__init__(*args, **kwargs)
+        self._unit_type = 'sampling'
 
 

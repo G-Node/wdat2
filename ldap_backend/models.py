@@ -85,7 +85,7 @@ class LDAPBackend:
             su = self.sudo()
             auth_filter = "(%s=%s)" % (self.username_field,username)
             type, data = su.result(su.search(self.base_dn, ldap.SCOPE_SUBTREE, auth_filter, find), 0)
-	    su.unbind_s()
+            su.unbind_s()
             return data
         except:
             return None

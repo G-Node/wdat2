@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 
 from fields import models as fmodels
 from datafiles.models import Datafile
+from meta import meta_unit_types, meta_objects
 
 # default unit values and values limits
 name_max_length = 100
@@ -72,6 +73,8 @@ class BaseInfo(models.Model):
     def can_edit(self, user):
         return self.author == user
 
+    def is_sliceable(self): return False
+
     class Meta:
         abstract = True
 
@@ -107,6 +110,59 @@ class BaseInfo(models.Model):
 
     def restore(self):
         self._current_state = 10
+
+
+class Sliceable:
+    """
+    Interface to query data slice for objects having data arrays.
+    """
+    def is_sliceable(self): return True
+
+    def get_slice(self, start_time=None, end_time=None, start_index=None,\
+            end_index=None, duration=None, samples_count=None):
+        """
+        Defines a dataslice to cut. implemented for AnalogSignal / IRsAAs. 
+        Method expects float values for times and integer for indexes.
+        """
+        data = self.signal
+        if len(data) <= 3:
+            raise ValueError("The length of the signal is too small or the signal \
+does not exist.")
+        t_start = self.t_start
+        # calculate the factor to align time / sampling rate units
+        factor_options = {
+          "skhz": 1000.0,
+          "smhz": 1000000.0,
+          "mshz": 1.0/1000.0,
+          "msmhz": 1000.0,
+          "mcshz": 1.0/1000000.0,
+          "mcskhz": 1.0/1000.0,
+        }
+        factor = factor_options.get("%s%s" % (self.t_start__unit.lower(), self.sampling_rate__unit.lower()), 1.0)
+        s_index = start_index
+        if not s_index: s_index = 0
+        e_index = end_index or (len(data) - 1)
+        if start_time:
+            s_index = int(round(self.sampling_rate * (start_time - t_start) * factor))
+        if end_time:
+            e_index = int(round(self.sampling_rate * (end_time - t_start) * factor))
+        if duration:
+            if start_time or start_index:
+                e_index = s_index + int(round(self.sampling_rate * duration * factor))
+            else:
+                s_index = e_index - int(round(self.sampling_rate * duration * factor))
+        if samples_count:
+            if start_time or start_index:
+                e_index = s_index + samples_count
+            else:
+                s_index = e_index - samples_count
+        if s_index >= 0 and s_index < e_index and e_index < len(data):
+            dataslice = data[s_index:e_index+1]
+        else:
+            raise IndexError("From the values provided we can't get the slice \
+of the signal. We calculated the start index as %d and end index as %d. The \
+whole signal has %d datapoints." % (s_index, e_index, len(data)))
+        return dataslice
 
 # basic NEO classes
 #===============================================================================
@@ -151,7 +207,7 @@ class Event(BaseInfo):
     # NEO attributes
     label = models.CharField('label', max_length=label_max_length)
     time = models.FloatField('time')
-    time__unit = fmodels.UnitField('time__unit', default=def_time_unit)
+    time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     eventarray = models.ForeignKey(EventArray, blank=True, null=True)
@@ -181,9 +237,9 @@ class Epoch(BaseInfo):
     # NEO attributes
     label = models.CharField('label', max_length=label_max_length)
     time = models.FloatField('time')
-    time__unit = fmodels.UnitField('time__unit', default=def_time_unit)
+    time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
     duration = models.FloatField('duration')
-    duration__unit = fmodels.UnitField('duration__unit', default=def_time_unit)
+    duration__unit = fmodels.TimeUnitField('duration__unit', default=def_time_unit)
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     epocharray = models.ForeignKey(EpochArray, blank=True, null=True)
@@ -234,15 +290,15 @@ class SpikeTrain(BaseInfo):
     """
     # NEO attributes
     t_start = models.FloatField('t_start')
-    t_start__unit = fmodels.UnitField('t_start__unit', default=def_time_unit)
+    t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
     t_stop = models.FloatField('t_stop', blank=True, null=True)
-    t_stop__unit = fmodels.UnitField('t_stop__unit', default=def_time_unit)
+    t_stop__unit = fmodels.TimeUnitField('t_stop__unit', default=def_time_unit)
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
     # NEO data arrays
     times_data = models.TextField('spike_data', blank=True) # use 'spike_times' property to get data
-    times__unit = fmodels.UnitField('spike_data__unit', default=def_data_unit)
+    times__unit = fmodels.TimeUnitField('spike_data__unit', default=def_data_unit)
 
     @apply
     def times():
@@ -273,23 +329,23 @@ class AnalogSignalArray(BaseInfo):
         pass
 
 # 12
-class AnalogSignal(BaseInfo):
+class AnalogSignal(BaseInfo, Sliceable):
     """
     NEO AnalogSignal @ G-Node.
     """
     # NEO attributes
     name = models.CharField('name', max_length=name_max_length)
     sampling_rate = models.FloatField('sampling_rate')
-    sampling_rate__unit = fmodels.UnitField('sampling_rate__unit', default=def_samp_unit)
+    sampling_rate__unit = fmodels.SamplingUnitField('sampling_rate__unit', default=def_samp_unit)
     t_start = models.FloatField('t_start')
-    t_start__unit = fmodels.UnitField('t_start__unit', default=def_time_unit)
+    t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
     analogsignalarray = models.ForeignKey(AnalogSignalArray, blank=True, null=True)
     # NEO data arrays
     signal_data = models.TextField('signal_data') # use 'signal' property to get data
-    signal__unit = fmodels.UnitField('signal__unit', default=def_data_unit)
+    signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
 
     @apply
     def signal():
@@ -317,15 +373,15 @@ class IrSaAnalogSignal(BaseInfo):
     # NEO attributes
     name = models.CharField('name', max_length=name_max_length)
     t_start = models.FloatField('t_start')
-    t_start__unit = fmodels.UnitField('t_start__unit', default=def_time_unit)
+    t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
     # NEO data arrays
     signal_data = models.TextField('signal_data') # use 'signal' property to get data
-    signal__unit = fmodels.UnitField('signal__unit', default=def_data_unit)
+    signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     times_data = models.TextField('times_data', blank=True) # use 'times' property to get data
-    times__unit = fmodels.UnitField('times__unit', default=def_time_unit)
+    times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
 
     @apply
     def signal():
@@ -354,11 +410,11 @@ class Spike(BaseInfo):
     """
     # NEO attributes
     time = models.FloatField('t_start')
-    time__unit = fmodels.UnitField('time__unit', default=def_time_unit)
+    time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
     sampling_rate = models.FloatField('sampling_rate')
-    sampling_rate__unit = fmodels.UnitField('sampling_rate__unit', default=def_samp_unit)
+    sampling_rate__unit = fmodels.SamplingUnitField('sampling_rate__unit', default=def_samp_unit)
     left_sweep = models.FloatField('left_sweep', default=0.0)
-    left_sweep__unit = fmodels.UnitField('left_sweep__unit', default=def_time_unit)
+    left_sweep__unit = fmodels.TimeUnitField('left_sweep__unit', default=def_time_unit)
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
@@ -370,9 +426,9 @@ class WaveForm(BaseInfo):
     """
     channel_index = models.IntegerField('channel_index', null=True, blank=True)
     time_of_spike_data = models.FloatField('time_of_spike_data', default=0.0) # default used when WF is related to a Spike
-    time_of_spike__unit = fmodels.UnitField('time_of_spike__unit', default=def_data_unit)
+    time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
     waveform_data = models.TextField('waveform_data')
-    waveform__unit = fmodels.UnitField('waveform__unit', default=def_data_unit)
+    waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
     spike = models.ForeignKey(Spike, blank=True, null=True)
 
@@ -387,66 +443,8 @@ class WaveForm(BaseInfo):
         return property(**locals())
 
 
-class Sliceable:
-    """
-    Interface to query data slice for objects having data arrays.
-    """
-    def signal(self):
-        raise NotImplementedError("This is an abstract interface, method is not implemented.")
-
-    def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None):
-        """
-        Defines a dataslice to cut. implemented for AnalogSignal / IRsAAs. 
-        Method expects float input values.
-        """
-        data = getattr(obj, arr)
-        if start_time:
-            # clean start_time
-            if start_time > self.t_stop:
-                pass
-            if end_time:
-                pass
-            elif duration:
-                pass
-            elif samples_count:
-                pass
-            else:
-                pass
-        elif start_index:
-            if end_index:
-                pass
-            elif duration:
-                pass
-            elif samples_count:
-                pass
-            else:
-                pass
-        elif end_time:
-            if duration:
-                pass
-            elif samples_count:
-                pass
-            else:
-                pass
-        elif end_index:
-            if duration:
-                pass
-            elif samples_count:
-                pass
-            else:
-                pass
-        array = {"data": data, "units": getattr(obj, arr + "__unit")}
-        return data
-
-
-
 # supporting functions
 #===============================================================================
-
-meta_objects = ["block", "segment", "event", "eventarray", "epoch", "epocharray", \
-    "unit", "spiketrain", "analogsignal", "analogsignalarray", \
-    "irsaanalogsignal", "spike", "recordingchannelgroup", "recordingchannel"]
 
 meta_classnames = {
     "block": Block,
