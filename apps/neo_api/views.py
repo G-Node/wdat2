@@ -265,7 +265,7 @@ def create_or_update(request, neo_id=None):
         obj.save()
 
     request.method = "GET" # return the GET 'info' about the object
-    return info(request, obj.neo_id, message, not update)
+    return retrieve(request, "info", obj.neo_id, message, not update)
 
 
 def retrieve(request, enquery, neo_id, message=None, new=False):
@@ -281,11 +281,12 @@ def retrieve(request, enquery, neo_id, message=None, new=False):
         return obj
     n = FakeJSON()
     setattr(n, "neo_id", obj.neo_id)
-    if enquery is not in ("full", "info", "data", "parents", "children"):
+    if not enquery in ("full", "info", "data", "parents", "children"):
         return Http404
-    if enquery == "info" or "full":
-        _assign_attrs(n, obj)
-    if enquery == "data" or "full":
+    assigned = False # this will raise an error if requested data does not exist
+    if enquery == "info" or enquery == "full":
+        assigned = _assign_attrs(n, obj) or assigned
+    if enquery == "data" or enquery == "full":
         params = {}
         try:
             for k, v in request.GET.items():
@@ -294,105 +295,19 @@ def retrieve(request, enquery, neo_id, message=None, new=False):
         except ValueError, e:
             return HttpResponseBadRequestAPI(e.message)
         try:
-            assigned = _assign_data_arrays(n, obj, **params)
+            assigned = _assign_data_arrays(n, obj, **params) or assigned
         except IndexError, e:
             return HttpResponseBadRequestAPI(e.message)
         except ValueError, e:
             return HttpResponseBadRequestAPI(e.message)
-    if enquery == "parents" or "full":
-        _assign_parents(n, obj)
-    if enquery == "children" or "full":
-        _assign_children(n, obj)
+    if enquery == "parents" or enquery == "full":
+        assigned = _assign_parents(n, obj) or assigned
+    if enquery == "children" or enquery == "full":
+        assigned = _assign_children(n, obj) or assigned
+    if not assigned:
+        return HttpResponseBadRequestAPI(meta_messages["no_enquery_related"] % enquery)
     if new: return HttpResponseCreatedAPI(n, request.user, message)
     return HttpResponseFromClassJSON(n, request.user)
-
-
-@auth_required
-def info(request, neo_id, message=None, new=False):
-    """
-    Returns general information about an object: attributes etc. Kinda fast.
-    """
-    if request.method == "GET":
-        obj = get_by_neo_id_http(neo_id, request.user)
-        if isinstance(obj, HttpResponse):
-            return obj
-        n = FakeJSON()
-        setattr(n, "neo_id", obj.neo_id)
-        _assign_attrs(n, obj)
-        # making response
-        if new: return HttpResponseCreatedAPI(n, request.user, message)
-        return HttpResponseFromClassJSON(n, request.user, message)
-    else:
-        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
-
-
-@auth_required
-def data(request, neo_id):
-    """
-    Returns object data-related attributes.
-    """
-    if request.method == "GET":
-        obj = get_by_neo_id_http(neo_id, request.user)
-        if isinstance(obj, HttpResponse):
-            return obj
-        n = FakeJSON()
-        setattr(n, "neo_id", obj.neo_id)
-        params = {}
-        try:
-            for k, v in request.GET.items():
-                if k in allowed_range_params.keys() and allowed_range_params.get(k)(v):
-                    params[k] = allowed_range_params.get(k)(v)
-        except ValueError, e:
-            return HttpResponseBadRequestAPI(e.message)
-        try:
-            assigned = _assign_data_arrays(n, obj, **params)
-        except IndexError, e:
-            return HttpResponseBadRequestAPI(e.message)
-        except ValueError, e:
-            return HttpResponseBadRequestAPI(e.message)
-        if not assigned:
-            return HttpResponseBadRequestAPI(meta_messages["no_data_related"])
-        return HttpResponseFromClassJSON(n, request.user)
-    else:
-        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
-
-
-@auth_required
-def parents(request, neo_id):
-    """
-    Returns the list of object parents.
-    """
-    if request.method == "GET":
-        obj = get_by_neo_id_http(neo_id, request.user)
-        if isinstance(obj, HttpResponse):
-            return obj
-        n = FakeJSON()
-        setattr(n, "neo_id", obj.neo_id)
-        assigned = _assign_parents(n, obj) # processing parents
-        if not assigned:
-            return HttpResponseBadRequestAPI(meta_messages["no_parents_related"])
-        return HttpResponseFromClassJSON(n, request.user)
-    else:
-        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
-
-
-@auth_required
-def children(request, neo_id):
-    """
-    Returns the list of object children.
-    """
-    if request.method == "GET":
-        obj = get_by_neo_id_http(neo_id, request.user)
-        if isinstance(obj, HttpResponse):
-            return obj
-        n = FakeJSON()
-        setattr(n, "neo_id", obj.neo_id)
-        assigned = _assign_children(n, obj) # processing children
-        if not assigned:
-            return HttpResponseBadRequestAPI(meta_messages["no_children_related"])
-        return HttpResponseFromClassJSON(n, request.user)
-    else:
-        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
 
 
 @auth_required
@@ -444,11 +359,14 @@ def _assign_attrs(fake, obj):
     """
     Assigns attibutes from NEO to fake object for pickling to JSON.
     """
+    assigned = False
     for _attr in meta_attributes[obj.obj_type]:
         attr = _clean_attr(_attr)
         setattr(fake, attr, getattr(obj, attr))
         if hasattr(obj, attr + "__unit"):
             setattr(fake, attr + "__unit", getattr(obj, attr + "__unit"))
+        assigned = True
+    return assigned
 
 def _assign_data_arrays(fake, obj, **params):
     """
