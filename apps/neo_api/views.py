@@ -71,7 +71,7 @@ def get_by_neo_id_http(neo_id, user):
     """
     try:
         return get_by_neo_id(neo_id, user)
-    except TypeError:
+    except TypeError, t:
         return HttpResponseBadRequestAPI(meta_messages["invalid_neo_id"] + "\nNEO_ID: " + str(neo_id))
     except PermissionDenied:
         return HttpResponseUnauthorizedAPI(meta_messages["not_authorized"] + "\nNEO_ID: " + str(neo_id))
@@ -359,14 +359,14 @@ def _assign_attrs(fake, obj):
     """
     Assigns attibutes from NEO to fake object for pickling to JSON.
     """
-    assigned = False
+    setattr(fake, "size", getattr(obj, "size"))
     for _attr in meta_attributes[obj.obj_type]:
         attr = _clean_attr(_attr)
         setattr(fake, attr, getattr(obj, attr))
         if hasattr(obj, attr + "__unit"):
             setattr(fake, attr + "__unit", getattr(obj, attr + "__unit"))
-        assigned = True
-    return assigned
+    return True # there is always something to assign
+
 
 def _assign_data_arrays(fake, obj, **params):
     """

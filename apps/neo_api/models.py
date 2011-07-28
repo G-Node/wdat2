@@ -3,9 +3,10 @@ from django.contrib.auth.models import User
 from datetime import datetime
 from django.core.exceptions import PermissionDenied, ValidationError
 
+import numpy as np
 from fields import models as fmodels
 from datafiles.models import Datafile
-from meta import meta_unit_types, meta_objects, meta_messages
+from meta import meta_unit_types, meta_objects, meta_messages, meta_children
 
 # default unit values and values limits
 name_max_length = 100
@@ -96,7 +97,20 @@ class BaseInfo(models.Model):
         raise TypeError("Critical error. Panic. NEO object can't define it's own type. Tell system developers.")
 
     @property
+    def info(self):
+        raise NotImplementedError("This is an abstract class")
+
+    @property
+    def size(self):
+        """
+        used as default for Events, Epochs etc. which have a fixed small
+        non-significant size
+        """
+        return 0 
+
+    @property
     def current_state(self):
+        """ active <-> deleted -> archived """
         return self._current_state
 
     def is_active(self):
@@ -167,7 +181,7 @@ end index as %d. The whole signal has %d datapoints." % (s_index, e_index, len(d
 # basic NEO classes
 #===============================================================================
 
-# 1
+# 1 (of 15)
 class Block(BaseInfo):
     """
     NEO Block @ G-Node.
@@ -177,8 +191,16 @@ class Block(BaseInfo):
     filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
     index = models.IntegerField('index', null=True, blank=True)
 
+    @property
+    def info(self):
+        pass
 
-# 2
+    @property
+    def size(self):
+        return int(np.array([w.size for w in self.segment_set.all()]).sum())
+
+
+# 2 (of 15)
 class Segment(BaseInfo):
     """
     NEO Segment @ G-Node.
@@ -190,7 +212,13 @@ class Segment(BaseInfo):
     # NEO relationships
     block = models.ForeignKey(Block, blank=True, null=True)
 
-# 3
+    @property
+    def size(self):
+        return int(np.array([np.array([w.size for w in getattr(self, child + \
+            "_set").all()]).sum() for child in meta_children["segment"]]).sum())
+
+
+# 3 (of 15)
 class EventArray(BaseInfo):
     """
     NEO EventArray @ G-Node.
@@ -199,7 +227,7 @@ class EventArray(BaseInfo):
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
 
-# 4
+# 4 (of 15)
 class Event(BaseInfo):
     """
     NEO Event @ G-Node.
@@ -220,7 +248,7 @@ class Event(BaseInfo):
         """
         return (self.eventarray.count() == 0)
 
-# 5
+# 5 (of 15)
 class EpochArray(BaseInfo):
     """
     NEO EpochArray @ G-Node.
@@ -229,7 +257,7 @@ class EpochArray(BaseInfo):
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
 
-# 6
+# 6 (of 15)
 class Epoch(BaseInfo):
     """
     NEO Epoch @ G-Node.
@@ -252,7 +280,7 @@ class Epoch(BaseInfo):
         """
         return (self.epocharray.count() == 0)
 
-# 7
+# 7 (of 15)
 class RecordingChannelGroup(BaseInfo):
     """
     NEO RecordingChannelGroup @ G-Node.
@@ -262,7 +290,8 @@ class RecordingChannelGroup(BaseInfo):
     # NEO relationships
     block = models.ForeignKey(Block, blank=True, null=True)
 
-# 8
+
+# 8 (of 15)
 class RecordingChannel(BaseInfo):
     """
     NEO RecordingChannel @ G-Node.
@@ -273,7 +302,8 @@ class RecordingChannel(BaseInfo):
     # NEO relationships
     recordingchannelgroup = models.ForeignKey(RecordingChannelGroup, blank=True, null=True)
 
-# 9
+
+# 9 (of 15)
 class Unit(BaseInfo):
     """
     NEO Unit @ G-Node.
@@ -283,7 +313,8 @@ class Unit(BaseInfo):
     # NEO relationships
     recordingchannel = models.ManyToManyField(RecordingChannel, blank=True, null=True)
 
-# 10
+
+# 10 (of 15)
 class SpikeTrain(BaseInfo):
     """
     NEO SpikeTrain @ G-Node.
@@ -299,6 +330,7 @@ class SpikeTrain(BaseInfo):
     # NEO data arrays
     times_data = models.TextField('spike_data', blank=True) # use 'spike_times' property to get data
     times__unit = fmodels.TimeUnitField('spike_data__unit', default=def_data_unit)
+    times_size = models.IntegerField('times_size', blank=True) # in bytes, for better performance
 
     @apply
     def times():
@@ -310,8 +342,18 @@ class SpikeTrain(BaseInfo):
             pass
         return property(**locals())
 
+    @property
+    def size(self):
+        return int(np.array([w.size for w in self.waveform_set.all()]).sum()) +\
+            self.times_size
 
-# 11
+    def save(self, *args, **kwargs):
+        # override save to keep signal size up to date
+        self.times_size = len(self.times) * float(0).__sizeof__()
+        super(SpikeTrain, self).save(*args, **kwargs)
+
+
+# 11 (of 15)
 class AnalogSignalArray(BaseInfo):
     """
     NEO AnalogSignalArray @ G-Node.
@@ -328,7 +370,12 @@ class AnalogSignalArray(BaseInfo):
     def s_start(self):
         pass
 
-# 12
+    @property
+    def size(self):
+        return int(np.array([w.size for w in self.analogsignal_set.all()]).sum())
+
+
+# 12 (of 15)
 class AnalogSignal(BaseInfo, Sliceable):
     """
     NEO AnalogSignal @ G-Node.
@@ -346,6 +393,7 @@ class AnalogSignal(BaseInfo, Sliceable):
     # NEO data arrays
     signal_data = models.TextField('signal_data') # use 'signal' property to get data
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
+    signal_size = models.IntegerField('signal_size', blank=True) # in bytes, for better performance
 
     @apply
     def signal():
@@ -358,6 +406,10 @@ class AnalogSignal(BaseInfo, Sliceable):
         return property(**locals())
 
     @property
+    def size(self):
+        return self.signal_size
+
+    @property
     def is_alone(self):
         """
         Indicates whether to show an object alone, even if it is organized in
@@ -365,7 +417,13 @@ class AnalogSignal(BaseInfo, Sliceable):
         """
         return (self.analogsignalarray.count() == 0)
 
-# 13
+    def save(self, *args, **kwargs):
+        # override save to keep signal size up to date
+        self.signal_size = len(self.signal) * float(0).__sizeof__()            
+        super(AnalogSignal, self).save(*args, **kwargs)
+
+
+# 13 (of 15)
 class IrSaAnalogSignal(BaseInfo):
     """
     NEO IrSaAnalogSignal @ G-Node.
@@ -382,14 +440,7 @@ class IrSaAnalogSignal(BaseInfo):
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     times_data = models.TextField('times_data', blank=True) # use 'times' property to get data
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
-
-    def full_clean(self, *args, **kwargs):
-        """
-        Add som validation to keep 'signal' and 'times' dimensions consistent.
-        """
-        if not len(self.signal) == len(self.times):
-            raise ValidationError({"Data Inconsistent": meta_messages["data_inconsistency"]})
-        super(IrSaAnalogSignal, self).full_clean(*args, **kwargs)
+    object_size = models.IntegerField('object_size', blank=True) # in bytes, for better performance
 
     @apply
     def signal():
@@ -411,7 +462,25 @@ class IrSaAnalogSignal(BaseInfo):
             pass
         return property(**locals())
 
-# 14
+    @property
+    def size(self):
+        return self.object_size
+
+    def save(self, *args, **kwargs):
+        # override save to keep signal size up to date
+        self.object_size = (len(self.signal) * float(0).__sizeof__()) + \
+            (len(self.times) * float(0).__sizeof__())
+        super(IrSaAnalogSignal, self).save(*args, **kwargs)
+
+    def full_clean(self, *args, **kwargs):
+        """
+        Add som validation to keep 'signal' and 'times' dimensions consistent.
+        """
+        if not len(self.signal) == len(self.times):
+            raise ValidationError({"Data Inconsistent": meta_messages["data_inconsistency"]})
+        super(IrSaAnalogSignal, self).full_clean(*args, **kwargs)
+
+# 14 (of 15)
 class Spike(BaseInfo):
     """
     NEO Spike @ G-Node.
@@ -427,7 +496,11 @@ class Spike(BaseInfo):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
 
+    @property
+    def size(self):
+        return int(np.array([w.size for w in self.waveform_set.all()]).sum())
 
+# 15 (of 15)
 class WaveForm(BaseInfo):
     """
     Supporting class for Spikes and SpikeTrains.
@@ -437,8 +510,9 @@ class WaveForm(BaseInfo):
     time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
     waveform_data = models.TextField('waveform_data')
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
+    waveform_size = models.IntegerField('waveform_size', blank=True, null=True) # in bytes, for better performance
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
-    spike = models.ForeignKey(Spike, blank=True, null=True)
+    spike = models.ForeignKey(Spike, blank=True)
 
     @apply
     def waveform():
@@ -450,6 +524,14 @@ class WaveForm(BaseInfo):
             pass
         return property(**locals())
 
+    @property
+    def size(self):
+        return self.waveform_size
+
+    def save(self, *args, **kwargs):
+        # override save to keep signal size up to date
+        self.waveform_size = len(self.waveform) * float(0).__sizeof__()
+        super(WaveForm, self).save(*args, **kwargs)
 
 # supporting functions
 #===============================================================================
@@ -475,9 +557,7 @@ def get_by_neo_id(neo_id, user):
     Returns a NEO object by its NEO ID. Checks the user can access it.
     Example of neo_id: 'segment_1435'
     """
-    if not type(neo_id) == type(""):
-        raise TypeError("totally wrong NEO ID provided.")
-    mid = neo_id.find("_")
+    mid = str(neo_id).find("_")
     if mid > 0 and len(neo_id) > mid + 1: # exclude error in case of "segment_"
         obj_type = neo_id[:neo_id.find("_")]
         obj_id  = neo_id[neo_id.find("_")+1:]

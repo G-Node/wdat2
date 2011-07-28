@@ -67,7 +67,8 @@ class UnitField(models.CharField):
     def validate(self, value, model_instance):
         super(UnitField, self).validate(value, model_instance)
         if self._unit_type and (not value.lower() in meta_unit_types[self._unit_type]):
-            raise forms.ValidationError("Unit provided is not supported: " + str(value))
+            raise forms.ValidationError("Unit provided is not supported: %s. \
+The following units are supported: %s." % (value, meta_unit_types))
 
 class TimeUnitField(UnitField):
     """
