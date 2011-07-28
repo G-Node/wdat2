@@ -475,6 +475,8 @@ def get_by_neo_id(neo_id, user):
     Returns a NEO object by its NEO ID. Checks the user can access it.
     Example of neo_id: 'segment_1435'
     """
+    if not type(neo_id) == type(""):
+        raise TypeError("totally wrong NEO ID provided.")
     mid = neo_id.find("_")
     if mid > 0 and len(neo_id) > mid + 1: # exclude error in case of "segment_"
         obj_type = neo_id[:neo_id.find("_")]

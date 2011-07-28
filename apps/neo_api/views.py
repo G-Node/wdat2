@@ -421,7 +421,7 @@ def _assign_parents(fake, obj):
                 if parent:
                     setattr(fake, r, parent.neo_id)
                 else:
-                    setattr(fake, r, "")
+                    setattr(fake, r, None)
         assigned = True
     return assigned
 
