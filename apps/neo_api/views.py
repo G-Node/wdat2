@@ -95,19 +95,14 @@ def auth_required(func):
 @auth_required
 def process(request, neo_id=None):
     """
-    Creates, updates, retrieves or deletes a NEO object. This view has three
-    slaves: create_or_update, retrieve and delete.
+    Creates, updates, retrieves or deletes a NEO object.
     """
-    # default - such a method not supported
     response = HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
     if request.method == 'POST':
-        # this thread creates or updates an object
         response = create_or_update(request, neo_id)
     elif request.method == 'GET':
-        # this thread retrieves an object
-        response = retrieve(request, neo_id)
+        response = retrieve(request, "full", neo_id)
     elif request.method == 'DELETE':
-        # this thread retrieves an object
         response = delete(request, neo_id)
     return response
 
@@ -269,32 +264,47 @@ def create_or_update(request, neo_id=None):
         setattr(obj, r, parents)
         obj.save()
 
-    # making response
-    #resp_data = {"neo_id": obj.neo_id, "message": message, "logged_in_as": request.user.username}
-    #return resp_object(json.dumps(resp_data))
-    request.method = "GET"
+    request.method = "GET" # return the GET 'info' about the object
     return info(request, obj.neo_id, message, not update)
 
 
-def retrieve(request, neo_id):
+def retrieve(request, enquery, neo_id, message=None, new=False):
     """
     This is a slave function to retrieve a NEO object by given NEO_ID. Due to 
     security reasons we do full manual reconstruction of the JSON object from 
     its django brother.
     """
-    if neo_id:
-        obj = get_by_neo_id_http(neo_id, request.user)
-        if isinstance(obj, HttpResponse):
-            return obj
-        n = FakeJSON()
-        setattr(n, "neo_id", obj.neo_id)
+    if not request.method == "GET":
+        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
+    obj = get_by_neo_id_http(neo_id, request.user)
+    if isinstance(obj, HttpResponse):
+        return obj
+    n = FakeJSON()
+    setattr(n, "neo_id", obj.neo_id)
+    if enquery is not in ("full", "info", "data", "parents", "children"):
+        return Http404
+    if enquery == "info" or "full":
         _assign_attrs(n, obj)
-        _assign_data_arrays(n, obj)
+    if enquery == "data" or "full":
+        params = {}
+        try:
+            for k, v in request.GET.items():
+                if k in allowed_range_params.keys() and allowed_range_params.get(k)(v):
+                    params[k] = allowed_range_params.get(k)(v)
+        except ValueError, e:
+            return HttpResponseBadRequestAPI(e.message)
+        try:
+            assigned = _assign_data_arrays(n, obj, **params)
+        except IndexError, e:
+            return HttpResponseBadRequestAPI(e.message)
+        except ValueError, e:
+            return HttpResponseBadRequestAPI(e.message)
+    if enquery == "parents" or "full":
         _assign_parents(n, obj)
+    if enquery == "children" or "full":
         _assign_children(n, obj)
-        return HttpResponseFromClassJSON(n, request.user)
-    else:
-        return HttpResponseBadRequestAPI(meta_messages["missing_neo_id"])
+    if new: return HttpResponseCreatedAPI(n, request.user, message)
+    return HttpResponseFromClassJSON(n, request.user)
 
 
 @auth_required
@@ -358,8 +368,7 @@ def parents(request, neo_id):
             return obj
         n = FakeJSON()
         setattr(n, "neo_id", obj.neo_id)
-        # processing parents
-        assigned = _assign_parents(n, obj)
+        assigned = _assign_parents(n, obj) # processing parents
         if not assigned:
             return HttpResponseBadRequestAPI(meta_messages["no_parents_related"])
         return HttpResponseFromClassJSON(n, request.user)
@@ -378,8 +387,7 @@ def children(request, neo_id):
             return obj
         n = FakeJSON()
         setattr(n, "neo_id", obj.neo_id)
-        # processing children
-        assigned = _assign_children(n, obj)
+        assigned = _assign_children(n, obj) # processing children
         if not assigned:
             return HttpResponseBadRequestAPI(meta_messages["no_children_related"])
         return HttpResponseFromClassJSON(n, request.user)
