@@ -247,10 +247,8 @@ def create_or_update(request, neo_id=None):
         obj.full_clean()
     except ValidationError, VE:
         # making an output nicer
-        to_render = ""
         errors = [(str(k) + ": " + str(v)) for k, v in VE.message_dict.items()]
-        for e in errors:
-            to_render += str(e) + "\n"
+        to_render = "\n".join(errors)
         return HttpResponseBadRequestAPI(meta_messages["bad_parameter"] + "\n" + to_render)
 
     # processing (almost) done

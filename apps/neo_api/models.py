@@ -1,11 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import User
 from datetime import datetime
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 
 from fields import models as fmodels
 from datafiles.models import Datafile
-from meta import meta_unit_types, meta_objects
+from meta import meta_unit_types, meta_objects, meta_messages
 
 # default unit values and values limits
 name_max_length = 100
@@ -159,9 +159,9 @@ does not exist.")
         if s_index >= 0 and s_index < e_index and e_index < len(data):
             dataslice = data[s_index:e_index+1]
         else:
-            raise IndexError("From the values provided we can't get the slice \
-of the signal. We calculated the start index as %d and end index as %d. The \
-whole signal has %d datapoints." % (s_index, e_index, len(data)))
+            raise IndexError("Index is out of range. From the values provided \
+we can't get the slice of the signal. We calculated the start index as %d and \
+end index as %d. The whole signal has %d datapoints." % (s_index, e_index, len(data)))
         return dataslice
 
 # basic NEO classes
@@ -382,6 +382,14 @@ class IrSaAnalogSignal(BaseInfo):
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     times_data = models.TextField('times_data', blank=True) # use 'times' property to get data
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
+
+    def full_clean(self, *args, **kwargs):
+        """
+        Add som validation to keep 'signal' and 'times' dimensions consistent.
+        """
+        if not len(self.signal) == len(self.times):
+            raise ValidationError({"Data Inconsistent": meta_messages["data_inconsistency"]})
+        super(IrSaAnalogSignal, self).full_clean(*args, **kwargs)
 
     @apply
     def signal():

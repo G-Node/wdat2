@@ -22,6 +22,7 @@ meta_messages = {
     "object_updated": "Object updated successfully. Data changes saved.",
     "object_selected": "Here is the list of requested objects.",
     "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
+    "data_inconsistency": "The dimensions of the data provided do not match.",
 }
 
 meta_objects = ("block", "segment", "event", "eventarray", "epoch", "epocharray", \
