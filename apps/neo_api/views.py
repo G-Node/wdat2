@@ -136,7 +136,7 @@ def create_or_update(request, neo_id=None):
 
     # processing attributes
     for _attr in meta_attributes[obj_type]:
-        attr = _clean_attr(_attr)
+        attr = clean_attr(_attr)
         obj_attr = None
         if rdata.has_key(attr):
             obj_attr = rdata[attr]

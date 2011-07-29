@@ -1,6 +1,6 @@
 from meta import meta_attributes, meta_data_attrs, meta_children, meta_parents
 
-def _clean_attr(_attr):
+def clean_attr(_attr):
     """
     By default attribute names in meta contain prefix "_" to indicate whether an 
     attribute is mandatory. This needs to be cleaned up before assigning to the
@@ -15,7 +15,7 @@ def assign_attrs(fake, obj):
     """
     setattr(fake, "size", getattr(obj, "size"))
     for _attr in meta_attributes[obj.obj_type]:
-        attr = _clean_attr(_attr)
+        attr = clean_attr(_attr)
         setattr(fake, attr, getattr(obj, attr))
         if hasattr(obj, attr + "__unit"):
             setattr(fake, attr + "__unit", getattr(obj, attr + "__unit"))

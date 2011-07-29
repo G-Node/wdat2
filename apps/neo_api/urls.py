@@ -2,7 +2,7 @@ from django.conf.urls.defaults import *
 from django.views.generic.simple import direct_to_template
 
 urlpatterns = patterns('',
-    url(r'^$', 'neo_api.views.process', name="create"),
+    url(r'^$', 'neo_api.views.process', name="create"), # one more is in root urls!
     url(r'^(?P<neo_id>[\w]+_[\d]+)/$', 'neo_api.views.process', name="get_or_update"),
     url(r'^(?P<neo_id>[\w]+_[\d]+)$', 'neo_api.views.process', name="get_or_update"),
     # - that's a jerky workaround for POST without trailing slash. If there are
