@@ -284,7 +284,7 @@ def retrieve(request, enquery, neo_id, message=None, new=False):
         try:
             for k, v in request.GET.items():
                 if k in allowed_range_params.keys() and allowed_range_params.get(k)(v):
-                    params[k] = allowed_range_params.get(k)(v)
+                    params[str(k)] = allowed_range_params.get(k)(v)
         except ValueError, e:
             return HttpResponseBadRequestAPI(e.message)
         try:
