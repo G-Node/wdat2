@@ -93,4 +93,10 @@ def assign_children(fake, obj):
         assigned = True
     return assigned
 
+def assign_common(fake, obj):
+    """
+    Assigns common information from NEO to fake object for pickling to JSON.
+    """
+    fake.author = obj.author.username
+    fake.date_created = obj.date_created
 

@@ -297,6 +297,7 @@ def retrieve(request, enquery, neo_id, message=None, new=False):
         assigned = assign_parents(n, obj) or assigned
     if enquery == "children" or enquery == "full":
         assigned = assign_children(n, obj) or assigned
+    assign_common(n, obj)
     if not assigned:
         return HttpResponseBadRequestAPI(meta_messages["no_enquery_related"] % enquery)
     if new: return HttpResponseCreatedAPI(n, request.user, message)
