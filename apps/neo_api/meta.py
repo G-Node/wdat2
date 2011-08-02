@@ -94,7 +94,17 @@ allowed_range_params = {
     'end_index': lambda x: int(x),
     'duration': lambda x: float(x),
     'samples_count': lambda x: int(x),
+    'downsample': lambda x: int(x),
 }
 
+# factors to align time / sampling rate units for Analog Signals
+factor_options = {
+  "skhz": 1000.0,
+  "smhz": 1000000.0,
+  "mshz": 1.0/1000.0,
+  "msmhz": 1000.0,
+  "mcshz": 1.0/1000000.0,
+  "mcskhz": 1.0/1000.0,
+}
 
 

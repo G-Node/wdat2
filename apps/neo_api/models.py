@@ -4,9 +4,10 @@ from datetime import datetime
 from django.core.exceptions import PermissionDenied, ValidationError
 
 import numpy as np
+from scipy import signal
 from fields import models as fmodels
 from datafiles.models import Datafile
-from meta import meta_unit_types, meta_objects, meta_messages, meta_children
+from meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
 
 # default unit values and values limits
 name_max_length = 100
@@ -125,58 +126,6 @@ class BaseInfo(models.Model):
     def restore(self):
         self._current_state = 10
 
-
-class Sliceable:
-    """
-    Interface to query data slice for objects having data arrays.
-    """
-    def is_sliceable(self): return True
-
-    def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None):
-        """
-        Defines a dataslice to cut. implemented for AnalogSignal / IRsAAs. 
-        Method expects float values for times and integer for indexes.
-        """
-        data = self.signal
-        if len(data) <= 3:
-            raise ValueError("The length of the signal is too small or the signal \
-does not exist.")
-        t_start = self.t_start
-        # calculate the factor to align time / sampling rate units
-        factor_options = {
-          "skhz": 1000.0,
-          "smhz": 1000000.0,
-          "mshz": 1.0/1000.0,
-          "msmhz": 1000.0,
-          "mcshz": 1.0/1000000.0,
-          "mcskhz": 1.0/1000.0,
-        }
-        factor = factor_options.get("%s%s" % (self.t_start__unit.lower(), self.sampling_rate__unit.lower()), 1.0)
-        s_index = start_index
-        if not s_index: s_index = 0
-        e_index = end_index or (len(data) - 1)
-        if start_time:
-            s_index = int(round(self.sampling_rate * (start_time - t_start) * factor))
-        if end_time:
-            e_index = int(round(self.sampling_rate * (end_time - t_start) * factor))
-        if duration:
-            if start_time or start_index:
-                e_index = s_index + int(round(self.sampling_rate * duration * factor))
-            else:
-                s_index = e_index - int(round(self.sampling_rate * duration * factor))
-        if samples_count:
-            if start_time or start_index:
-                e_index = s_index + samples_count
-            else:
-                s_index = e_index - samples_count
-        if s_index >= 0 and s_index < e_index and e_index < len(data):
-            dataslice = data[s_index:e_index+1]
-        else:
-            raise IndexError("Index is out of range. From the values provided \
-we can't get the slice of the signal. We calculated the start index as %d and \
-end index as %d. The whole signal has %d datapoints." % (s_index, e_index, len(data)))
-        return dataslice
 
 # basic NEO classes
 #===============================================================================
@@ -376,7 +325,7 @@ class AnalogSignalArray(BaseInfo):
 
 
 # 12 (of 15)
-class AnalogSignal(BaseInfo, Sliceable):
+class AnalogSignal(BaseInfo):
     """
     NEO AnalogSignal @ G-Node.
     """
@@ -394,6 +343,44 @@ class AnalogSignal(BaseInfo, Sliceable):
     signal_data = models.TextField('signal_data') # use 'signal' property to get data
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     signal_size = models.IntegerField('signal_size', blank=True) # in bytes, for better performance
+
+    def get_slice(self, start_time=None, end_time=None, start_index=None,\
+            end_index=None, duration=None, samples_count=None, downsample=None):
+        """
+        Implements dataslicing/downsampling. Floats/integers are expected.
+        'downsample' parameter defines the new resampled resolution.
+        """
+        dataslice = self.signal
+        t_start = self.t_start
+        # calculate the factor to align time / sampling rate units
+        factor = factor_options.get("%s%s" % (self.t_start__unit.lower(), \
+            self.sampling_rate__unit.lower()), 1.0)
+        s_index = start_index
+        if not s_index: s_index = 0
+        e_index = end_index or (len(dataslice) - 1)
+        if start_time:
+            s_index = int(round(self.sampling_rate * (start_time - t_start) * factor))
+        if end_time:
+            e_index = int(round(self.sampling_rate * (end_time - t_start) * factor))
+        if duration:
+            if start_time or start_index:
+                e_index = s_index + int(round(self.sampling_rate * duration * factor))
+            else:
+                s_index = e_index - int(round(self.sampling_rate * duration * factor))
+        if samples_count:
+            if start_time or start_index:
+                e_index = s_index + samples_count
+            else:
+                s_index = e_index - samples_count
+        if s_index >= 0 and s_index < e_index and e_index < len(dataslice):
+            dataslice = dataslice[s_index:e_index+1]
+        else:
+            raise IndexError("Index is out of range. From the values provided \
+we can't get the slice of the signal. We calculated the start index as %d and \
+end index as %d. The whole signal has %d datapoints." % (s_index, e_index, len(data)))
+        if downsample:
+            dataslice = signal.resample(np.array(dataslice), downsample).tolist()
+        return dataslice
 
     @apply
     def signal():
