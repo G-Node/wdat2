@@ -109,7 +109,7 @@ def create_or_update(request, neo_id=None):
     try:
         rdata = json.loads(request._get_raw_post_data())
     except ValueError:
-        return HttpResponseBadRequestAPI(meta_messages["data_parsing_error"])
+        return HttpResponseBadRequestAPI(meta_messages["data_parsing_error"] + str(request._get_raw_post_data()))
 
     # all POST requests should be of type dict
     if not type(rdata) == type({}):

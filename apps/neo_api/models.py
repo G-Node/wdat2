@@ -499,7 +499,7 @@ class WaveForm(BaseInfo):
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
     waveform_size = models.IntegerField('waveform_size', blank=True, null=True) # in bytes, for better performance
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
-    spike = models.ForeignKey(Spike, blank=True)
+    spike = models.ForeignKey(Spike, blank=True, null=True)
 
     @apply
     def waveform():

@@ -1,0 +1,83 @@
+[
+    {
+        "pk": 1,
+        "model": "neo_api.Block",
+        "fields": {
+            "name": "Block of recordings from May, 10",
+            "filedatetime": "2011-10-05 19:11:56",
+            "index": 1,
+            "author": 1,
+            "date_created": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "neo_api.Segment",
+        "fields": {
+            "name": "Attention effects, Trial 34 recordings, monkey V1 January.",
+            "filedatetime": "2011-11-01 19:11:56",
+            "index": 1,
+            "block": 1,
+            "author": 1,
+            "date_created": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "neo_api.EventArray",
+        "fields": {
+            "segment": 1,
+            "author": 1,
+            "date_created": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "neo_api.EpochArray",
+        "fields": {
+            "segment": 1,
+            "author": 1,
+            "date_created": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "neo_api.RecordingChannelGroup",
+        "fields": {
+            "block": 1,
+            "author": 1,
+            "date_created": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "neo_api.RecordingChannel",
+        "fields": {
+            "name": "Channel 1",
+            "index": 1,
+            "recordingchannelgroup": 1,
+            "author": 1,
+            "date_created": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "neo_api.Unit",
+        "fields": {
+            "name": "V1 Left Simple Neuron, +/-2",
+            "recordingchannel": [1],
+            "author": 1,
+            "date_created": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "neo_api.AnalogSignalArray",
+        "fields": {
+            "segment": 1,
+            "author": 1,
+            "date_created": "2011-10-05 19:11:56"
+        }
+    }
+]
+
