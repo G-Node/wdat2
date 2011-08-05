@@ -27,7 +27,7 @@ def _data_as_list(data):
     """
     l = []
     if len(data):
-        for s in str(data).split(', '):
+        for s in str(data).split(','):
             l.append(float(s))
     return l
 
@@ -298,7 +298,7 @@ class SpikeTrain(BaseInfo):
 
     def save(self, *args, **kwargs):
         # override save to keep signal size up to date
-        self.times_size = len(self.times) * float(0).__sizeof__()
+        self.times_size = len(self.times) * 24
         super(SpikeTrain, self).save(*args, **kwargs)
 
 
@@ -309,6 +309,7 @@ class AnalogSignalArray(BaseInfo):
     """
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
+    recordingchannelgroup = models.ForeignKey(RecordingChannelGroup, blank=True, null=True)
 
     # NEO attributes
     @property
@@ -406,7 +407,7 @@ end index as %d. The whole signal has %d datapoints." % (s_index, e_index, len(d
 
     def save(self, *args, **kwargs):
         # override save to keep signal size up to date
-        self.signal_size = len(self.signal) * float(0).__sizeof__()            
+        self.signal_size = len(self.signal) * 24            
         super(AnalogSignal, self).save(*args, **kwargs)
 
 
@@ -455,8 +456,8 @@ class IrSaAnalogSignal(BaseInfo):
 
     def save(self, *args, **kwargs):
         # override save to keep signal size up to date
-        self.object_size = (len(self.signal) * float(0).__sizeof__()) + \
-            (len(self.times) * float(0).__sizeof__())
+        self.object_size = (len(self.signal) * 24) + \
+            (len(self.times) * 24)
         super(IrSaAnalogSignal, self).save(*args, **kwargs)
 
     def full_clean(self, *args, **kwargs):
@@ -517,7 +518,7 @@ class WaveForm(BaseInfo):
 
     def save(self, *args, **kwargs):
         # override save to keep signal size up to date
-        self.waveform_size = len(self.waveform) * float(0).__sizeof__()
+        self.waveform_size = len(self.waveform) * 24
         super(WaveForm, self).save(*args, **kwargs)
 
 # supporting functions

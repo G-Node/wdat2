@@ -1,19 +1,25 @@
 """
 Tests Roadmap
 ================================================================================
-- Unauthorized tests
-- Generic tests: 
+- unauthorized tests
+- generic tests: 
     - create
+    - get full, info, data, parents, children
     - update + get
     - select
-    - size, slicing, downsampling
-- Bad requests tests: assert correct bad data handling for all types of requests
-- Security tests: try to access objects created by another person
+- bad requests tests: assert correct bad data handling for all types of requests
+- security tests: try to access objects created by another person
+
+Still remaining:
+- size, slicing, downsampling, unicode etc.
+- data consistency tests: post/get data values do not differ significantly
 """
 
 from django.test import TestCase
 from neo_api.models import *
 from neo_api.tests.samples import sample_objects
+from neo_api.json_builder import clean_attr
+from neo_api.meta import meta_attributes
 import json
 
 SERVER_NAME = "testserver"
@@ -48,7 +54,7 @@ class TestUnauthorized(TestCase):
 
 
 class TestGeneric(TestCase):
-    fixtures = ["users.json", "parents.json"]
+    fixtures = ["users.json", "samples.json"]
 
     def setUp(self):
         logged_in = self.client.login(username="bob", password="pass")
@@ -59,16 +65,80 @@ class TestGeneric(TestCase):
         Test of successful creation of all types of NEO objects.
         expected: 201 created
         """
-        for obj in sample_objects:
+        for obj in sample_objects.values():
             for i in range(5): # create a few objects
                 response = self.client.post("/neo/", json.dumps(obj), \
                     content_type="application/json")
                 self.assertEqual(response.status_code, 201)
 
+    def test_get_object(self):
+        """
+        Test the GET single object URLs.
+        expected: 200 successful
+        """
+        for key in sample_objects.keys():
+            response = self.client.get("/neo/%s_1/" % key)
+            self.assertEqual(response.status_code, 200, \
+                "Obj type %s; response: %s" % (key, str(response)))
+            self.assertContains(response, key)
 
+    def test_update_objects(self):
+        """
+        Test of successful update of all attributes.
+        expected: 200 successful
+        """
+        """
+        for key, obj in sample_objects.items():
+            # some of these are already created from fixtures
+            response = self.client.post("/neo/", json.dumps(obj), \
+                content_type="application/json")
+            self.assertEqual(response.status_code, 201)
+            for _attr in meta_attributes[key]:
+                attr = clean_attr(_attr)
+                post = {}
+                post["neo_id"] = obj[key + "_1"] # should be created with 1 or 2
+                post[attr] = obj[attr] # assign new attr
+        """
+        pass # TODO
 
+    def test_select_objects(self):
+        """
+        Test to retreive list of objects.
+        expected: 200 successful, number of objects is correct
+        """
+        for key in sample_objects.keys():
+            response = self.client.get("/neo/select/%s/" % key)
+            self.assertEqual(response.status_code, 200, \
+                "Obj type %s; response: %s" % (key, str(response)))
+            r = json.loads(response.content)
+            self.assertEqual(len(r["selected"]), 1) # from fixtures
+            
 
+class TestSecurity(TestCase):
+    """
+    Here we test that a fake user 'joe' can't access objects, created (with
+    fixtures) by another fake user 'bob'. More tests here, when object sharing 
+    is implemented.
+    """
 
+    fixtures = ["users.json", "samples.json"]
+
+    def setUp(self):
+        logged_in = self.client.login(username="joe", password="pass")
+        self.assertTrue(logged_in)
+
+    def test_access_alien(self):
+        for key in sample_objects.keys():
+            # all IDs from fixtures are just <object_type>_1
+            response = self.client.get("/neo/%s_1/" % key)
+            self.assertEqual(response.status_code, 401)
+
+    def test_update_alien(self):
+        for key, obj in sample_objects.items():
+            # all alien object IDs are just <object_type>_1
+            response = self.client.post("/neo/%s_1/" % key, json.dumps(obj), \
+                content_type="application/json")
+            self.assertEqual(response.status_code, 401)
 
 
 

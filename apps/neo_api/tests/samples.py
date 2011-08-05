@@ -186,6 +186,19 @@ spiketrain = {
     "unit": "unit_1"
 }
 
-sample_objects = (block, segment, event, eventarray, epoch, epocharray, \
-    unit, spiketrain, analogsignal, analogsignalarray, \
-    irsaanalogsignal, spike, recordingchannelgroup, recordingchannel)
+sample_objects = {
+    "block": block,
+    "segment": segment,
+    "event": event,
+    "eventarray": eventarray,
+    "epoch": epoch,
+    "epocharray": epocharray,
+    "unit": unit,
+    "spiketrain": spiketrain,
+    "analogsignal": analogsignal,
+    "analogsignalarray": analogsignalarray,
+    "irsaanalogsignal": irsaanalogsignal,
+    "spike": spike,
+    "recordingchannelgroup": recordingchannelgroup,
+    "recordingchannel": recordingchannel
+}
