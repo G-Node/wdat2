@@ -20,7 +20,10 @@ from neo_api.models import *
 from neo_api.tests.samples import sample_objects
 from neo_api.json_builder import clean_attr
 from neo_api.meta import meta_attributes
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 SERVER_NAME = "testserver"
 
