@@ -7,6 +7,7 @@ urlpatterns = patterns('',
     url(r'^login/$', 'account.views.login', name="acct_login"),
     url(r'^login/openid/$', 'account.views.login', {'associate_openid': True},
         name="acct_login_openid"),
+    url(r'^authenticate/$', 'account.views.api_authenticate', name="api_authenticate"), # DATA API
     url(r'^password_change/$', 'account.views.password_change', name="acct_passwd"),
     url(r'^password_set/$', 'account.views.password_set', name="acct_passwd_set"),
     url(r'^password_delete/$', 'account.views.password_delete', name="acct_passwd_delete"),

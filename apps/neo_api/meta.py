@@ -12,6 +12,8 @@ meta_messages = {
     "no_enquery_related": "There are no %s-related attributes for this object.",
     "not_authenticated": "Please authenticate before sending the request.",
     "not_authorized": "You don't have permissions to access the object.",
+    "authenticated": "Successfully authenticated.",
+    "invalid_credentials": "The credentials provided not valid.",
     "data_missing": "Some of the required parameters are missing: 'data', 'units' or 'channel_index'.",
     "units_missing": "You need to specify units (for example, 'ms' or 'mV') for the following parameter:",
     "not_iterable": "The following parameter must be of type 'list'",

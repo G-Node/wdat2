@@ -101,7 +101,9 @@ def process(request, neo_id=None):
 
 def create_or_update(request, neo_id=None):
     """
-    This is a slave function to create or update a NEO object.
+    This is a slave function to create or update a NEO object. We "boycott" 
+    everything "that's not made by my hands" for security reasons (no automatic
+    JSON parsing into NEO object).
     """
     # a flag to distinguish update/insert mode
     update = False
@@ -312,13 +314,13 @@ def select(request, obj_type):
     if obj_type in meta_objects:
         classname = meta_classnames[obj_type]
         # TODO add some filtering, sorting etc. here
-        objects = classname.objects.filter(author=request.user)[:1000]
+        objects = classname.objects.filter(author=request.user)[:1000] #FIXME
         if objects:
             selected = [o.neo_id for o in objects]
             message = meta_messages["object_selected"]
         else:
             selected = ""
-            message = "No objects found."
+            message = "No objects found." #FIXME
         # making response
         resp_data = {
             "selected": selected,
