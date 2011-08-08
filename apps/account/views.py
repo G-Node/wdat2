@@ -19,7 +19,10 @@ from emailconfirmation.models import EmailAddress, EmailConfirmation
 
 from neo_api.views import BadRequest, BasicJSONResponse, Unauthorized
 from neo_api.meta import meta_messages
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 association_model = models.get_model('django_openid', 'Association')
 if association_model is not None:
