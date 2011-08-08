@@ -73,7 +73,8 @@ class TestGeneric(TestCase):
                 response = self.client.post("/neo/", json.dumps(obj), \
                     content_type="application/json")
                 self.assertEqual(response.status_code, 201, \
-                    "{0}, {1}".format(response.content, obj["obj_type"]))
+                    "Obj type %s; response: %s" % (obj["obj_type"], response.content))
+                    # "{0}, {1}".format(response.content, obj["obj_type"])) no python 2.6 (((
 
     def test_get_object(self):
         """
