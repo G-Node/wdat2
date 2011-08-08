@@ -17,7 +17,7 @@ from account.forms import SignupForm, AddEmailForm, LoginForm, \
     ChangeTimezoneForm, ChangeLanguageForm, TwitterForm, ResetPasswordKeyForm
 from emailconfirmation.models import EmailAddress, EmailConfirmation
 
-from neo_api.views import HttpResponseBadRequestAPI, HttpResponseBasicJSON, HttpResponseUnauthorizedAPI
+from neo_api.views import BadRequest, BasicJSONResponse, Unauthorized
 from neo_api.meta import meta_messages
 import json
 
@@ -66,11 +66,11 @@ def api_authenticate(request):
     if request.method == "POST":
         response = login(request)
         if isinstance(response, HttpResponseRedirect): # successful authentication
-            return HttpResponseBasicJSON(json.dumps(meta_messages["authenticated"]))
+            return BasicJSONResponse(message_type="authenticated", request=request)
         else: # not authenticated, many possible reasons
-            return HttpResponseUnauthorizedAPI(meta_messages["invalid_credentials"])
+            return Unauthorized(message_type="invalid_credentials", request=request)
     else:
-        return HttpResponseBadRequestAPI(meta_messages["invalid_method"])
+        return BadRequest(message_type="invalid_method", request=request)
 
 
 def signup(request, form_class=SignupForm,

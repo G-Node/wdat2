@@ -1,4 +1,6 @@
 from meta import meta_attributes, meta_data_attrs, meta_children, meta_parents
+from datetime import datetime
+
 
 def clean_attr(_attr):
     """
@@ -9,22 +11,26 @@ def clean_attr(_attr):
     if _attr.startswith("_"): return _attr[1:]
     return _attr
 
-def assign_attrs(fake, obj):
+
+def assign_attrs(json, obj):
     """
-    Assigns attibutes from NEO to fake object for pickling to JSON.
+    Assigns attibutes from NEO to json object for later HTTP response.
     """
-    setattr(fake, "size", getattr(obj, "size"))
+    json["size"] = getattr(obj, "size")
     for _attr in meta_attributes[obj.obj_type]:
         attr = clean_attr(_attr)
-        setattr(fake, attr, getattr(obj, attr))
+        value = getattr(obj, attr)
+        if type(value) == type(datetime.now()):
+            value = str(value) # datetime is not JSON serializable
+        json[attr] = value
         if hasattr(obj, attr + "__unit"):
-            setattr(fake, attr + "__unit", getattr(obj, attr + "__unit"))
-    return True # there is always something to assign
+            json[attr + "__unit"] = getattr(obj, attr + "__unit")
+    return True # we assume object always has a "size" attribute
 
 
-def assign_data_arrays(fake, obj, **params):
+def assign_data_arrays(json, obj, **params):
     """
-    Assigns data-related attrs from NEO to fake object for pickling to JSON.
+    Assigns data-related attrs from NEO to json object for later HTTP response.
     """
     assigned = False
     if meta_data_attrs.has_key(obj.obj_type):
@@ -50,14 +56,14 @@ def assign_data_arrays(fake, obj, **params):
                     data = obj.get_slice(**params)
                 else: data = getattr(obj, arr)
                 array = {"data": data, "units": getattr(obj, arr + "__unit")}
-            setattr(fake, arr, array)
+            json[arr] = array
         assigned = True
     return assigned
     
 
-def assign_parents(fake, obj):
+def assign_parents(json, obj):
     """
-    Assigns parents from NEO to fake object for pickling to JSON.
+    Assigns parents from NEO to json object for later HTTP response.
     """
     assigned = False
     obj_type = obj.obj_type
@@ -68,35 +74,36 @@ def assign_parents(fake, obj):
             parents = getattr(obj, r).all()
             for p in parents:
                 ids.append(p.neo_id)
-            setattr(fake, r, ids)
+            json[r] = ids
         else:
             for r in meta_parents[obj_type]:
                 parent = getattr(obj, r)
                 if parent:
-                    setattr(fake, r, parent.neo_id)
+                    json[r] = parent.neo_id
                 else:
-                    setattr(fake, r, None)
+                    json[r] = None
         assigned = True
     return assigned
 
 
-def assign_children(fake, obj):
+def assign_children(json, obj):
     """
-    Assigns children from NEO to fake object for pickling to JSON.
+    Assigns children from NEO to json object for later HTTP response.
     """
     assigned = False
     obj_type = obj.obj_type
     if meta_children.has_key(obj_type):
         for r in meta_children[obj_type]:
             ch = [o.neo_id for o in getattr(obj, r + "_set").all()]
-            setattr(fake, r, ch)
+            json[r] = ch
         assigned = True
     return assigned
 
-def assign_common(fake, obj):
+def assign_common(json, obj):
     """
-    Assigns common information from NEO to fake object for pickling to JSON.
+    Assigns common information from NEO to json object for later HTTP response.
     """
-    fake.author = obj.author.username
-    fake.date_created = obj.date_created
+    json["author"] = obj.author.username
+    json["date_created"] = str(obj.date_created)
+
 

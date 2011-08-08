@@ -18,42 +18,33 @@ except ImportError:
 import jsonpickle
 import re
 
-class HttpResponseBasicJSON(HttpResponse):
+
+class BasicJSONResponse(HttpResponse):
     """
-    This is a standard JSON response class. Sets up an appropriate Cont-Type.
+    This is a JSON response class, which expects a python dict from which it 
+    will pickle a response. Sets up an appropriate Cont-Type. User and Message 
+    always appreciated.
     """
-    def __init__(self, json_content):
-        super(HttpResponseBasicJSON, self).__init__(json_content)
+    def __init__(self, json_obj={}, message_type=None, request=None):
+        if request: 
+            if request.user: json_obj["logged_in_as"] = request.user.username
+        if message_type:
+            json_obj["message_type"] = message_type
+            json_obj["message"] = meta_messages[message_type]
+        super(BasicJSONResponse, self).__init__(json.dumps(json_obj))
         self['Content-Type'] = "application/json"
 
-class HttpResponseFromClassJSON(HttpResponseBasicJSON):
-    """
-    This is a JSON response class, which expects a python class from which it 
-    will pickle a response. User and Message appreciated.
-    """
-    def __init__(self, class_obj, user=None, message=None):
-        if message: class_obj.message = message
-        if user: class_obj.logged_in_as = user.username
-        json_content = jsonpickle.encode(class_obj, unpicklable=False)
-        super(HttpResponseFromClassJSON, self).__init__(json_content)
-
-class HttpResponseCreatedAPI(HttpResponseFromClassJSON):
+class Created(BasicJSONResponse):
     status_code = 201
 
-class HttpResponseBadRequestAPI(HttpResponseBasicJSON):
+class BadRequest(BasicJSONResponse):
     status_code = 400
 
-class HttpResponseUnauthorizedAPI(HttpResponseBasicJSON):
+class Unauthorized(BasicJSONResponse):
     status_code = 401
 
-class HttpResponseNotSupportedAPI(HttpResponseBasicJSON):
+class NotSupported(BasicJSONResponse):
     status_code = 405
-
-class FakeJSON:
-    """
-    This is a fake class to construct NEO JSON objects.
-    """
-    pass
 
 
 def get_by_neo_id_http(neo_id, user):
@@ -64,11 +55,11 @@ def get_by_neo_id_http(neo_id, user):
     try:
         return get_by_neo_id(neo_id, user)
     except TypeError, t:
-        return HttpResponseBadRequestAPI(meta_messages["invalid_neo_id"] + "\nNEO_ID: " + str(neo_id))
+        return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="invalid_neo_id")
     except PermissionDenied:
-        return HttpResponseUnauthorizedAPI(meta_messages["not_authorized"] + "\nNEO_ID: " + str(neo_id))
+        return Unauthorized(json_obj={"neo_id": str(neo_id)}, message_type="not_authorized")
     except ObjectDoesNotExist:
-        return HttpResponseBadRequestAPI(meta_messages["wrong_neo_id"] + "\nNEO_ID: " + str(neo_id))
+        return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="wrong_neo_id")
 
 def auth_required(func):
     """
@@ -79,7 +70,7 @@ def auth_required(func):
     fname = func.func_name
     def auth_func(*args, **kwargs):
         if not args[0].user.is_authenticated():
-            return HttpResponseUnauthorizedAPI(meta_messages["not_authenticated"])
+            return Unauthorized(message_type="not_authenticated")
         return func(*args, **kwargs)
     return auth_func
 
@@ -89,7 +80,7 @@ def process(request, neo_id=None):
     """
     Creates, updates, retrieves or deletes a NEO object.
     """
-    response = HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
+    response = NotSupported(message_type="invalid_method", request=request)
     if request.method == 'POST':
         response = create_or_update(request, neo_id)
     elif request.method == 'GET':
@@ -102,39 +93,36 @@ def process(request, neo_id=None):
 def create_or_update(request, neo_id=None):
     """
     This is a slave function to create or update a NEO object. We "boycott" 
-    everything "that's not made by my hands" for security reasons (no automatic
+    everything "that's not made by our hands" for security reasons (no automatic
     JSON parsing into NEO object).
     """
-    # a flag to distinguish update/insert mode
-    update = False
-    to_link, parents = None, None
+    update = False # a flag to distinguish update/insert mode
+    to_link, parents = None, None # handlers for special cases (waveforms, units)
     try:
         rdata = json.loads(request._get_raw_post_data())
     except ValueError:
-        return HttpResponseBadRequestAPI(meta_messages["data_parsing_error"] + str(request._get_raw_post_data()))
+        return BadRequest(message_type="data_parsing_error", request=request)
 
     # all POST requests should be of type dict
     if not type(rdata) == type({}):
-        return HttpResponseBadRequestAPI(meta_messages["data_parsing_error"])
+        return BadRequest(message_type="data_parsing_error", request=request)
 
-    if neo_id:
-        # this is update case
+    if neo_id: # this is update case
         update = True
         obj = get_by_neo_id_http(neo_id, request.user)
         if isinstance(obj, HttpResponse):
             return obj
         obj_type = obj.obj_type
-        message = meta_messages["object_updated"]
-    else:
-        # this is create case
+        message_type = "object_updated"
+    else: # this is create case
         try:
             obj_type = rdata["obj_type"]
             classname = meta_classnames[obj_type]
             obj = classname()
-            message = meta_messages["object_created"]
+            message_type = "object_created"
         except KeyError:
             # invalid NEO type or type is missing
-            return HttpResponseBadRequestAPI(meta_messages["invalid_obj_type"])
+            return BadRequest(message_type="invalid_obj_type", request=request)
 
     # processing attributes
     for _attr in meta_attributes[obj_type]:
@@ -147,7 +135,8 @@ def create_or_update(request, neo_id=None):
                 obj_attr_unit = rdata[attr + "__unit"]
                 setattr(obj, attr + "__unit", obj_attr_unit)
         elif _attr.startswith("_") and not update:
-            return HttpResponseBadRequestAPI(obj_type + ": " + attr + "\n" + meta_messages["missing_parameter"])
+            return BadRequest(json_obj={"obj_type": attr}, \
+                message_type="missing_parameter", request=request)
     if not update:
         obj.author = request.user
     if rdata.has_key("datafile_id"):
@@ -165,7 +154,7 @@ def create_or_update(request, neo_id=None):
                     # ones, then save and assign new waveforms to the host object.
                     waveforms = rdata[data_attr] # some processing is done later in this view
                     if not getattr(waveforms, "__iter__", False):
-                        return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": waveforms")
+                        return BadRequest(message_type = "not_iterable", request=request)
                     to_link = [] # later this list is used to link waveforms to the obj
                     for wf in waveforms:
                         try:
@@ -180,33 +169,39 @@ def create_or_update(request, neo_id=None):
                                     w.time_of_spike__unit = wf["time_of_spike"]["units"]
                                 to_link.append(w)
                             except KeyError:
-                                return HttpResponseBadRequestAPI(meta_messages["data_missing"])
+                                return BadRequest(message_type="data_missing", request=request)
                             except ValueError, v:
-                                return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + v.message)
+                                return BadRequest(json_obj={"details": v.message}, \
+                                    message_type = "bad_float_data", request=request)
                         except AttributeError, TypeError:
-                            return HttpResponseBadRequestAPI(meta_messages["dict_required"] + data_attr)
+                            return BadRequest(json_obj={"element": data_attr}, \
+                                message_type="dict_required", request=request)
                 else:
                     attr = rdata[data_attr]
                     # some checks
                     if not (type(attr) == type({})):
-                        return HttpResponseBadRequestAPI(meta_messages["dict_required"] + data_attr)
+                        return BadRequest(json_obj={"element": data_attr}, \
+                            message_type="dict_required", request=request)
                     if not attr.has_key("data"):
-                        return HttpResponseBadRequestAPI(meta_messages["data_missing"])
-                    # try to assign value/array. for data parsing see class decorators
-                    try:
+                        return BadRequest(message_type="data_missing", \
+                            request=request)
+                    try: # for data parsing see class methods / decorators
                         setattr(obj, data_attr, attr["data"])
                     except ValueError, v:
-                        return HttpResponseBadRequestAPI(meta_messages["bad_float_data"] + v.message)
+                        return BadRequest(json_obj={"details": v.message}, \
+                            message_type="bad_float_data", request=request)
                     # processing attribute data units
                     if attr.has_key("units"):
                         attr_unit = attr["units"]
                         setattr(obj, data_attr + "__unit", attr_unit)
                     else:
                         # units are required
-                        return HttpResponseBadRequestAPI(meta_messages["units_missing"] + " " + data_attr)
+                        return BadRequest(json_obj={"element": data_attr}, \
+                            message_type="units_missing", request=request)
             elif not update:
                 # we require data-related parameters
-                return HttpResponseBadRequestAPI(obj_type + ": " + data_attr + "\n" + meta_messages["missing_parameter"])
+                return BadRequest(json_obj={"obj_type": data_attr}, \
+                    message_type="missing_parameter", request=request)
 
     # processing relationships
     if meta_parents.has_key(obj_type):
@@ -216,7 +211,8 @@ def create_or_update(request, neo_id=None):
             if rdata.has_key(r):
                 parent_ids = rdata[r]
                 if not getattr(parent_ids, "__iter__", False):
-                    return HttpResponseBadRequestAPI(meta_messages["not_iterable"] + ": " + r)
+                    return BadRequest(json_obj={"element": r}, \
+                        message_type="not_iterable", request=request)
                 parents = []
                 for p in parent_ids:
                     parent = get_by_neo_id_http(p, request.user)
@@ -235,23 +231,19 @@ def create_or_update(request, neo_id=None):
     try:
         obj.full_clean()
     except ValidationError, VE:
-        # making an output nicer
-        errors = [(str(k) + ": " + str(v)) for k, v in VE.message_dict.items()]
-        to_render = "\n".join(errors)
-        return HttpResponseBadRequestAPI(meta_messages["bad_parameter"] + "\n" + to_render)
+        return BadRequest(json_obj=VE.message_dict, \
+            message_type="bad_parameter", request=request)
 
     # processing (almost) done
     obj.save()
 
     # process complex cases: waveforms, unit
-    # this can be earliest done here, to exclude the case of creating and saving 
-    # an object before finding an error
+    # this save() and delete() operations can be earliest done here, to exclude 
+    # the case of creating and saving the whole object before facing an error
     if to_link:
-        # remove old waveforms, if exist
-        for wf in obj.waveform_set.all():
+        for wf in obj.waveform_set.all(): # remove old waveforms, if exist
             wf.delete()
-        # assign and save new waveforms
-        for wf in to_link:
+        for wf in to_link: # assign and save new waveforms
             setattr(wf, obj_type, obj)
             wf.save()
     if obj_type == "unit" and parents:
@@ -259,51 +251,54 @@ def create_or_update(request, neo_id=None):
         obj.save()
 
     request.method = "GET" # return the GET 'info' about the object
-    return retrieve(request, "info", obj.neo_id, message, not update)
+    return retrieve(request, "info", obj.neo_id, message_type, not update)
 
 
 @auth_required
-def retrieve(request, enquery, neo_id, message=None, new=False):
+def retrieve(request, enquery, neo_id, message_type=None, new=False):
     """
     This is a slave function to retrieve a NEO object by given NEO_ID. Due to 
     security reasons we do full manual reconstruction of the JSON object from 
     its django brother.
     """
     if not request.method == "GET":
-        return HttpResponseNotSupportedAPI(meta_messages["invalid_method"])
+        return NotSupported(message_type="invalid_method", request=request)
     obj = get_by_neo_id_http(neo_id, request.user)
     if isinstance(obj, HttpResponse):
         return obj
-    n = FakeJSON()
-    setattr(n, "neo_id", obj.neo_id)
+    n = {} # future JSON response
+    n["neo_id"] = obj.neo_id
     if not enquery in ("full", "info", "data", "parents", "children"):
         return Http404
     assigned = False # this will raise an error if requested data does not exist
     if enquery == "info" or enquery == "full":
         assigned = assign_attrs(n, obj) or assigned
     if enquery == "data" or enquery == "full":
-        params = {}
+        params = {} # these are params used to filter requested data
         try:
             for k, v in request.GET.items():
                 if k in allowed_range_params.keys() and allowed_range_params.get(k)(v):
                     params[str(k)] = allowed_range_params.get(k)(v)
         except ValueError, e:
-            return HttpResponseBadRequestAPI(e.message)
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="wrong_params", request=request)
         try:
             assigned = assign_data_arrays(n, obj, **params) or assigned
         except IndexError, e:
-            return HttpResponseBadRequestAPI(e.message)
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="wrong_params", request=request)
         except ValueError, e:
-            return HttpResponseBadRequestAPI(e.message)
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="wrong_params", request=request)
     if enquery == "parents" or enquery == "full":
         assigned = assign_parents(n, obj) or assigned
     if enquery == "children" or enquery == "full":
         assigned = assign_children(n, obj) or assigned
     assign_common(n, obj)
     if not assigned:
-        return HttpResponseBadRequestAPI(meta_messages["no_enquery_related"] % enquery)
-    if new: return HttpResponseCreatedAPI(n, request.user, message)
-    return HttpResponseFromClassJSON(n, request.user)
+        return BadRequest(message_type="no_enquery_related", request=request)
+    if new: return Created(json_obj=n, message_type=message_type, request=request)
+    return BasicJSONResponse(json_obj=n, message_type="retrieved", request=request)
 
 
 @auth_required
@@ -317,22 +312,19 @@ def select(request, obj_type):
         objects = classname.objects.filter(author=request.user)[:1000] #FIXME
         if objects:
             selected = [o.neo_id for o in objects]
-            message = meta_messages["object_selected"]
+            message_type = "object_selected"
         else:
-            selected = ""
-            message = "No objects found." #FIXME
-        # making response
+            selected = None
+            message_type = "no_objects"
         resp_data = {
             "selected": selected,
             "object_total": len(objects),
             "object_selected": len(objects),
-            "selected_as_of": 0,
-            "message": message
+            "selected_as_of": 0
         }
-        return HttpResponseBasicJSON(json.dumps(resp_data))
+        return BasicJSONResponse(resp_data, message_type, request)
     else:
-        return HttpResponseBadRequestAPI(meta_messages["invalid_obj_type"])
-
+        return BadRequest(message_type="invalid_obj_type", request=request)
 
 
 @auth_required
@@ -349,4 +341,5 @@ def delete(request, neo_id):
     This is a slave function to delete a NEO object by given NEO_ID.
     """
     pass
+
 
