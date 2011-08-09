@@ -1,4 +1,4 @@
-from meta import meta_attributes, meta_data_attrs, meta_children, meta_parents
+from meta import meta_attributes, meta_data_attrs, meta_children, meta_parents, allowed_range_params
 from datetime import datetime
 
 
@@ -10,6 +10,45 @@ def clean_attr(_attr):
     """
     if _attr.startswith("_"): return _attr[1:]
     return _attr
+
+
+def json_builder(obj, enquery="full", GET={}):
+    """
+    Builds a JSON response for a given object. Again, we "boycott" everything 
+    which is "not done by our hands" by not using any json picklers for safety
+    reasons. Method recursively iterates over the children when 'cascade' 
+    parameter is provided in the request. Expects NEO-type object.
+    """
+    n = {} # future JSON response
+    n["neo_id"] = obj.neo_id
+    """ this variable is used to track whether at least some information exists 
+    for the requested object. This is needed to raise an error when knowingly a
+    non-existing information was requested, such as a parent of a block. 
+    However, as this behaves unfriendly with cascade requests, this feature is
+    switched off for the moment."""
+    assigned = False
+    if enquery == "info" or enquery == "full":
+        assigned = assign_attrs(n, obj) or assigned
+    if enquery == "data" or enquery == "full":
+        params = {} # these are params used to filter requested data
+        for k, v in GET.items():
+            if k in allowed_range_params.keys() and allowed_range_params.get(k)(v):
+                params[str(k)] = allowed_range_params.get(k)(v)
+        assigned = assign_data_arrays(n, obj, **params) or assigned
+    if enquery == "parents" or enquery == "full":
+        assigned = assign_parents(n, obj) or assigned
+    if GET.get("cascade") or enquery == "children" or enquery == "full":
+        """ here 
+        - if cascade is provided, then we need to assign children and the 
+        children container will contain json objects, not just ids;
+        - if children is requested we obviously go here, and cascade also make
+        sense
+        - if there is a full enquery everything will be provided anyway
+        """
+        assigned = assign_children(n, obj, enquery, GET) or assigned
+    assign_common(n, obj)
+    return n
+    #if assigned: return n # switched OFF, see comments above
 
 
 def assign_attrs(json, obj):
@@ -86,18 +125,24 @@ def assign_parents(json, obj):
     return assigned
 
 
-def assign_children(json, obj):
+def assign_children(json, obj, enquery, GET):
     """
-    Assigns children from NEO to json object for later HTTP response.
+    Assigns children from NEO to json object for later HTTP response. Able to
+    make recursive retrieval when 'cascade' is provided.
     """
     assigned = False
     obj_type = obj.obj_type
     if meta_children.has_key(obj_type):
         for r in meta_children[obj_type]:
-            ch = [o.neo_id for o in getattr(obj, r + "_set").all()]
+            if GET.get("cascade"): # retrieve objects recursively if cascade
+                ch = [json_builder(o, enquery, GET) for o in \
+                    getattr(obj, r + "_set").all()]
+            else:
+                ch = [o.neo_id for o in getattr(obj, r + "_set").all()]
             json[r] = ch
         assigned = True
     return assigned
+
 
 def assign_common(json, obj):
     """

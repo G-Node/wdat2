@@ -266,36 +266,17 @@ def retrieve(request, enquery, neo_id, message_type=None, new=False):
     obj = get_by_neo_id_http(neo_id, request.user)
     if isinstance(obj, HttpResponse):
         return obj
-    n = {} # future JSON response
-    n["neo_id"] = obj.neo_id
     if not enquery in ("full", "info", "data", "parents", "children"):
-        return Http404
-    assigned = False # this will raise an error if requested data does not exist
-    if enquery == "info" or enquery == "full":
-        assigned = assign_attrs(n, obj) or assigned
-    if enquery == "data" or enquery == "full":
-        params = {} # these are params used to filter requested data
-        try:
-            for k, v in request.GET.items():
-                if k in allowed_range_params.keys() and allowed_range_params.get(k)(v):
-                    params[str(k)] = allowed_range_params.get(k)(v)
-        except ValueError, e:
-            return BadRequest(json_obj={"details": e.message}, \
-                message_type="wrong_params", request=request)
-        try:
-            assigned = assign_data_arrays(n, obj, **params) or assigned
-        except IndexError, e:
-            return BadRequest(json_obj={"details": e.message}, \
-                message_type="wrong_params", request=request)
-        except ValueError, e:
-            return BadRequest(json_obj={"details": e.message}, \
-                message_type="wrong_params", request=request)
-    if enquery == "parents" or enquery == "full":
-        assigned = assign_parents(n, obj) or assigned
-    if enquery == "children" or enquery == "full":
-        assigned = assign_children(n, obj) or assigned
-    assign_common(n, obj)
-    if not assigned:
+        raise Http404
+    try:
+        n = json_builder(obj, enquery, request.GET)
+    except ValueError, e:
+        return BadRequest(json_obj={"details": e.message}, \
+            message_type="wrong_params", request=request)
+    except IndexError, e:
+        return BadRequest(json_obj={"details": e.message}, \
+            message_type="wrong_params", request=request)
+    if not n:
         return BadRequest(message_type="no_enquery_related", request=request)
     if new: return Created(json_obj=n, message_type=message_type, request=request)
     return BasicJSONResponse(json_obj=n, message_type="retrieved", request=request)

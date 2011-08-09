@@ -13,6 +13,9 @@ Tests Roadmap
 Still remaining:
 - size, slicing, downsampling, unicode etc.
 - data consistency tests: post/get data values do not differ significantly
+- wrong URLs
+- performance tests!!
+- cascade
 """
 
 from django.test import TestCase
