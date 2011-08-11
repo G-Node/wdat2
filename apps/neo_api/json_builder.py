@@ -92,7 +92,8 @@ def assign_data_arrays(json, obj, **params):
                     array.append(w)
             else:
                 if arr == "signal" and params:
-                    data = obj.get_slice(**params)
+                    data, t_start = obj.get_slice(**params)
+                    json["t_start"]["data"] = t_start
                 else: data = getattr(obj, arr)
                 array = {"data": data, "units": getattr(obj, arr + "__unit")}
             json[arr] = array

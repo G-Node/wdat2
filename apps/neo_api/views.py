@@ -54,7 +54,11 @@ def get_by_neo_id_http(neo_id, user):
     """
     try:
         return get_by_neo_id(neo_id, user)
-    except TypeError, t:
+    except KeyError: # TODO include message in the response + combine errors
+        return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="invalid_neo_id")
+    except TypeError:
+        return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="invalid_neo_id")
+    except ValueError:
         return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="invalid_neo_id")
     except PermissionDenied:
         return Unauthorized(json_obj={"neo_id": str(neo_id)}, message_type="not_authorized")
@@ -261,6 +265,8 @@ def retrieve(request, enquery, neo_id, message_type=None, new=False):
     security reasons we do full manual reconstruction of the JSON object from 
     its django brother.
     """
+    if not message_type:
+        message_type = "retrieved"
     if not request.method == "GET":
         return NotSupported(message_type="invalid_method", request=request)
     obj = get_by_neo_id_http(neo_id, request.user)
@@ -279,7 +285,7 @@ def retrieve(request, enquery, neo_id, message_type=None, new=False):
     if not n:
         return BadRequest(message_type="no_enquery_related", request=request)
     if new: return Created(json_obj=n, message_type=message_type, request=request)
-    return BasicJSONResponse(json_obj=n, message_type="retrieved", request=request)
+    return BasicJSONResponse(json_obj=n, message_type=message_type, request=request)
 
 
 @auth_required
