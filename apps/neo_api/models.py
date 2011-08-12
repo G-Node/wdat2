@@ -25,7 +25,7 @@ def _find_nearest(array, value):
     """
     Finds index of the nearest value to the given value in the given array.
     """
-    idx = (np.abs(array-value)).argmin()
+    idx = (np.abs(array - float(value))).argmin()
     return idx
 
 def _data_as_list(data):
@@ -455,18 +455,18 @@ class IrSaAnalogSignal(BaseInfo):
         if not s_index: s_index = 0
         e_index = end_index or (len(dataslice) - 1)
         if start_time: # TODO
-            s_index = _find_nearest(np.array(times, start_time))
+            s_index = _find_nearest(np.array(times), start_time)
         if end_time: # TODO
-            e_index = _find_nearest(np.array(times, end_time))
+            e_index = _find_nearest(np.array(times), end_time)
         if duration:
             if start_time:
-                e_index = _find_nearest(np.array(times, start_time + duration))
+                e_index = _find_nearest(np.array(times), start_time + duration)
             if start_index:
-                e_index = _find_nearest(np.array(times, times[start_index] + duration))
+                e_index = _find_nearest(np.array(times), times[start_index] + duration)
             if end_time:
-                e_index = _find_nearest(np.array(times, start_time - duration))
+                e_index = _find_nearest(np.array(times), start_time - duration)
             if end_index:
-                e_index = _find_nearest(np.array(times, times[end_index] - duration))
+                e_index = _find_nearest(np.array(times), times[end_index] - duration)
         if samples_count:
             if start_time or start_index:
                 e_index = s_index + samples_count
