@@ -302,7 +302,7 @@ def select(request, obj_type):
             message_type = "object_selected"
         else:
             selected = None
-            message_type = "no_objects"
+            message_type = "no_objects_found"
         resp_data = {
             "selected": selected,
             "object_total": len(objects),

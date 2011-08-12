@@ -90,13 +90,16 @@ def assign_data_arrays(json, obj, **params):
                             "units": wf.time_of_spike__unit
                         }
                     array.append(w)
-            else:
-                if arr == "signal" and params:
-                    data, t_start = obj.get_slice(**params)
-                    json["t_start"]["data"] = t_start
-                else: data = getattr(obj, arr)
+            else: 
+                data = getattr(obj, arr)
                 array = {"data": data, "units": getattr(obj, arr + "__unit")}
             json[arr] = array
+        if params: # need some slicing
+            if obj.obj_type == "irsaanalogsignal":
+                json["signal"]["data"], json["times"]["data"], \
+                    json["t_start"]["data"] = obj.get_slice(**params)
+            elif obj.obj_type == "analogsignal":
+                json["signal"]["data"], json["t_start"]["data"] = obj.get_slice(**params)
         assigned = True
     return assigned
     

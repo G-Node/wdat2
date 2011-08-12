@@ -25,6 +25,7 @@ meta_messages = {
     "data_inconsistency": "The dimensions of the data provided do not match.",
     "wrong_params": "Parameters provided are incorrect. Please consider details in the 'details' element.",
     "retrieved": "Object retrieved successfully.",
+    "no_objects_found": "No objects found.",
 }
 
 meta_objects = ("block", "segment", "event", "eventarray", "epoch", "epocharray", \

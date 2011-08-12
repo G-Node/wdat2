@@ -21,6 +21,13 @@ def_samp_unit = "Hz"
 # supporting functions
 #===============================================================================
 
+def _find_nearest(array, value):
+    """
+    Finds index of the nearest value to the given value in the given array.
+    """
+    idx = (np.abs(array-value)).argmin()
+    return idx
+
 def _data_as_list(data):
     """
     Returns a list of floats from comma-separated text or empty list.
@@ -432,6 +439,54 @@ class IrSaAnalogSignal(BaseInfo):
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
     object_size = models.IntegerField('object_size', blank=True) # in bytes, for better performance
 
+    def get_slice(self, start_time=None, end_time=None, start_index=None,\
+            end_index=None, duration=None, samples_count=None, downsample=None):
+        """
+        Implements dataslicing/downsampling. Floats/integers are expected.
+        'downsample' parameter defines the new resampled resolution.
+        """
+        dataslice = self.signal
+        t_start = self.t_start
+        times = self.times
+        # calculate the factor to align time / sampling rate units
+        #factor = factor_options.get("%s%s" % (self.t_start__unit.lower(), \
+        #    self.sampling_rate__unit.lower()), 1.0)
+        s_index = start_index
+        if not s_index: s_index = 0
+        e_index = end_index or (len(dataslice) - 1)
+        if start_time: # TODO
+            s_index = _find_nearest(np.array(times, start_time))
+        if end_time: # TODO
+            e_index = _find_nearest(np.array(times, end_time))
+        if duration:
+            if start_time:
+                e_index = _find_nearest(np.array(times, start_time + duration))
+            if start_index:
+                e_index = _find_nearest(np.array(times, times[start_index] + duration))
+            if end_time:
+                e_index = _find_nearest(np.array(times, start_time - duration))
+            if end_index:
+                e_index = _find_nearest(np.array(times, times[end_index] - duration))
+        if samples_count:
+            if start_time or start_index:
+                e_index = s_index + samples_count
+            else:
+                s_index = e_index - samples_count
+        if s_index >= 0 and s_index < e_index and e_index < len(dataslice):
+            dataslice = dataslice[s_index:e_index+1]
+            times = times[s_index:e_index+1]
+            t_start = times[0] # compute new t_start
+        else:
+            raise IndexError("Index is out of range. From the values provided \
+we can't get the slice of the signal. We calculated the start index as %d and \
+end index as %d. The whole signal has %d datapoints." % (s_index, e_index, \
+len(dataslice)))
+        if downsample and downsample < len(dataslice):
+            dataslice = signal.resample(np.array(dataslice), downsample).tolist()
+            times = signal.resample(np.array(times), downsample).tolist()
+        return dataslice, times, t_start
+
+
     @apply
     def signal():
         def fget(self):
@@ -464,7 +519,7 @@ class IrSaAnalogSignal(BaseInfo):
 
     def full_clean(self, *args, **kwargs):
         """
-        Add som validation to keep 'signal' and 'times' dimensions consistent.
+        Add some validation to keep 'signal' and 'times' dimensions consistent.
         """
         if not len(self.signal) == len(self.times):
             raise ValidationError({"Data Inconsistent": meta_messages["data_inconsistency"]})
