@@ -1,7 +1,8 @@
 # add performance testing!!
 
+import django_access
 import unittest
-import datetime
+import datetime as dte
 import math
 import numpy as np
 from neo_api.models import *
@@ -20,16 +21,16 @@ def convert_to_timeseries(line):
     return s
 
 
-def test_thomas():
-    u = User.objects.get(pk=1) # Change user!
-    s_offset = len(Segment.objects.all()) - 1 # set the correct segment ID offset up!
-    r_offset = len(RecordingChannel.objects.all()) - 1 # set the correct recording channel ID offset up!
+def create_thomas():
+    u = User.objects.get(pk=2) # Change user!
+    s_offset = len(Segment.objects.all()) # set the correct segment ID offset up!
+    r_offset = len(RecordingChannel.objects.all()) # set the correct recording channel ID offset up!
     b = Block()
     b.name = "Macaque Monkey Recordings, LFPs, V1"
-    b.filedatetime = datetime.datetime.now()
+    b.filedatetime = dte.datetime.now()
     b.index = 1
     b.author = u
-    b.date_created = datetime.datetime.now()
+    b.date_created = dte.datetime.now()
     b.save()
     # processing LFP FIX
     flag = math.floor(176*12/10)
@@ -42,12 +43,12 @@ def test_thomas():
             else:
                 s = Segment.objects.get(id=int(math.fmod(i, 176)) + s_offset)
             if float(i)/176 == math.floor(float(i)/176):
-                # create new recording point
-                r = RecordingPoint()
+                # create new recording channel
+                r = RecordingChannel()
                 r.name = "Channel {0}".format(meta_channels[int(math.floor(float(i)/176))])
                 r.index = meta_channels[int(math.floor(float(i)/176))]
                 r.author = u
-                r.date_created = datetime.datetime.now()
+                r.date_created = dte.datetime.now()
                 r.save()
             # creating analogsignal
             ts = convert_to_timeseries(l)
@@ -67,8 +68,8 @@ def test_thomas():
             else:
                 s = Segment.objects.get(id=int(math.fmod(i, 176)) + 175 + s_offset)
             if float(i)/368 == math.floor(float(i)/368):
-                # get the recording point
-                r = RecordingPoint.objects.get(id=math.floor(float(i)/368) + r_offset)
+                # get the recording channel
+                r = RecordingChannel.objects.get(id=math.floor(float(i)/368) + r_offset)
             ts = convert_to_timeseries(l)
             a = new_signal(i, "SAC", s, r, ts, u)
             # every 10% of file processed
@@ -79,22 +80,22 @@ def test_thomas():
 def new_segment(i, b, u):
     s = Segment()
     s.name = "Trial {0}".format(i)
-    s.filedatetime = datetime.datetime.now()
+    s.filedatetime = dte.datetime.now()
     s.index = i
     s.block = b
     s.author = u
-    s.date_created = datetime.datetime.now()
+    s.date_created = dte.datetime.now()
     s.save()
     return s
 
-def new_event(e, s, u):
+def new_event(i, s, u):
     e = Event()
-    e.label = "This is a random label #{0}".format(e)
+    e.label = "This is a random label #{0}".format(i)
     e.time = np.random.random()
     e.time__unit = "ms"
     e.segment = s
     e.author = u
-    e.date_created = datetime.datetime.now()
+    e.date_created = dte.datetime.now()
     e.save()
     return e
 
@@ -111,12 +112,12 @@ def new_signal(i, typ, s, r, ts, u):
     a.signal__unit = "mv"
     a.signal_size = len(ts) * 4
     a.author = u
-    a.date_created = datetime.datetime.now()
+    a.date_created = dte.datetime.now()
     a.save()
     return a
 
 if __name__ == '__main__':
-    test_thomas()
+    create_thomas()
 
 
 
