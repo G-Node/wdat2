@@ -329,4 +329,3 @@ def delete(request, neo_id):
     """
     pass
 
-
