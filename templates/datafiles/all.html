@@ -41,7 +41,7 @@
                         <td><a href="{{ datafile.get_absolute_url }}">{{ datafile.title }}</a></td>
                         <td>{{ datafile.caption|truncatewords:20 }}</td>
                         <td>{{ datafile.size }}</td>
-                        <td><a href="{{ datafile.raw_file.url }}">{% trans "download" %}</a></td>
+                        <td><a href="{% url download datafile.id %}{{ datafile.title|urlencode }}">{% trans "download" %}</a></td>
                     </tr>
                 {% endfor %}
             </tbody>

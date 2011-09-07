@@ -1,5 +1,5 @@
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, get_host, HttpResponse
+from django.http import HttpResponseRedirect, get_host, HttpResponse, HttpResponseForbidden
 from django.template import RequestContext
 from django.db.models import Q
 from django.http import Http404
@@ -9,7 +9,6 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.utils import simplejson
 
 import logging
 import mimetypes
@@ -21,82 +20,11 @@ from experiments.models import Experiment
 from metadata.models import Section
 from datafiles.tasks import extract_file_info # broker task
 
-from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm, GWTDatafileForm
+from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
 from metadata.forms import AddPropertyForm, LinkTSForm, importOdML
 
-#LOG_FILENAME = '/home/sobolev/apps/pinax-source/g-node-portal/logs/test_update.txt'
+#LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
 #logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
-
-#===============================================================================
-# MULTIPLE FILE UPLOAD VIEWS
-# Multiple file upload handling using XHR/Google Web Toolkit as a Client:
-# - upload_page
-# - upload_file
-#===============================================================================
-
-def upload_page(request):
-    """
-    Return XML object with information about the progress of an upload.
-    """
-    # This is a default XML response. Used by gwtupload to initiate the upload.
-    response = '<?xml version="1.0" encoding="UTF-8"?>\n<response><blobstore>false</blobstore></response>'
-    if request.GET.get("X-Progress-ID"):
-        progress_id = request.GET.get("X-Progress-ID")
-        cache_key = "%s_%s" % (request.META['REMOTE_ADDR'], progress_id)
-        if cache.get("cancel_" + cache_key):
-            # send a "cancelled" response if a request to cancel was received previously
-            response = '<?xml version="1.0" encoding="UTF-8"?>\n<response><canceled>true</canceled>\n<finished>canceled</finished></response>'
-            cache.delete("cancel_" + cache_key)
-        else:
-            data = cache.get(cache_key)
-            if data:
-                # file is being uploaded. send an upload progress update
-                rec = str(data['received'])
-                tot = str(data['size'])
-                percent = str(int(round((float(data['received'])/float(data['size']))*100)))
-                response = '<?xml version="1.0" encoding="UTF-8"?>\n<response><percent>'
-                response += percent + '</percent>\n<currentBytes>'
-                response += rec + '</currentBytes>\n<totalBytes>'
-                response += tot + '</totalBytes></response>'
-                # check whether user wants to cancel upload
-                if request.GET.get("cancel") == "true":
-                    # cancel the upload
-                    data['cancelled'] = 1
-                    cache.set(cache_key, data)
-                    # indicate for the next time to send a "cancelled" response
-                    cache.set("cancel_" + cache_key, {'cancel': 'true'})
-            else:
-                # file has been uploaded successfully
-                response = "<response><wait>listener is null</wait></response>"
-    return HttpResponse(response, mimetype="application/xml")
-
-def upload_file(request, form_class=GWTDatafileForm):
-    """
-    Accepts file upload.
-    """
-    #logging.debug('%s - file request received.', request)
-    response = "Save crashed."
-    if request.method == 'POST':
-        datafile_form = form_class(request.POST, request.FILES)
-        if datafile_form.is_valid():
-            datafile = datafile_form.save(commit=False)
-            datafile.owner = request.user
-            datafile.title = request.FILES['raw_file'].name
-            datafile.save()
-            datafile_form.save_m2m()
-            #request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)
-            response = datafile.title + " - file saved successfully."
-            #logging.debug('%s - file saved successfully.', datafile.title)
-    return HttpResponse(response)
-
-
-@login_required
-def create_multiple(request, template_name="gwt/UploadPage/war/UploadPageProd.html"):
-    return render_to_response(template_name, {}, context_instance=RequestContext(request))
-
-#===============================================================================
-# SINGLE FILE UPLOAD VIEWS
-#===============================================================================
 
 def upload_progress(request):
     """
@@ -104,19 +32,26 @@ def upload_progress(request):
     """
     if 'HTTP_X_PROGRESS_ID' in request.META:
         progress_id = request.META['HTTP_X_PROGRESS_ID']
+        from django.utils import simplejson
         cache_key = "%s_%s" % (request.META['REMOTE_ADDR'], progress_id)
         data = cache.get(cache_key)
+        #logging.debug('%s - cache key', cache_key)
         json = simplejson.dumps(data)
         return HttpResponse(json)
     else:
+        #logging.error("Received progress report request without X-Progress-ID header. request.META: %s" % request.META)
         return HttpResponseBadRequest('Server Error: You must provide X-Progress-ID header or query param.')
+
 
 @login_required
 def create(request, form_class=NewDatafileForm, template_name="datafiles/new.html"):
-    # create a new datafile
+    """
+    create a new datafile
+    """
     datafile_form = form_class(request.user)
     if request.method == 'POST':
         if request.POST.get("action_1") == "upload":
+            #logging.debug('start uploading the file')
             datafile_form = form_class(request.user, request.POST, request.FILES)
             if datafile_form.is_valid():
                 datafile = datafile_form.save(commit=False)
@@ -128,19 +63,19 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
                 extracted = extract_file_info.delay(datafile.id)
                 request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)
                 include_kwargs = {"id": datafile.id}
-                redirect_to = reverse("your_datafiles")
-                return HttpResponseRedirect(redirect_to)
+		redirect_to = reverse("your_datafiles")
+		return HttpResponseRedirect(redirect_to)
+                
     return render_to_response(template_name, {
         "datafile_form": datafile_form,
     }, context_instance=RequestContext(request))
 
-#===============================================================================
-# REGULAR VIEWS
-#===============================================================================
 
 @login_required
 def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):
-    #datafiles for the currently authenticated user
+    """
+    datafiles owned by the currently authenticated user
+    """
     
     datafiles = Datafile.objects.filter(owner=request.user, current_state=10)
     datafiles = datafiles.order_by("-date_added")
@@ -151,8 +86,9 @@ def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):
         if set_objects_form.is_valid():
             ids = set_objects_form.cleaned_data['set_choices']
             for datafile in Datafile.objects.filter(id__in=ids):
-                datafile.deleteObject()
-                datafile.save()
+                if datafile.owner == request.user:
+                    datafile.deleteObject()
+                    datafile.save()
             request.user.message_set.create(message=_("Successfully deleted the requested datafiles."))
             redirect_to = reverse("your_datafiles")
             return HttpResponseRedirect(redirect_to)
@@ -164,7 +100,9 @@ def yourdatafiles(request, template_name="datafiles/your_datafiles.html"):
 
 @login_required
 def alldatafiles(request, template_name="datafiles/all.html"):
-    # all datafiles available for you
+    """
+    all datafiles available for you
+    """
 
     datafiles = Datafile.objects.filter(Q(current_state=10))
     datafiles = datafiles.exclude(owner=request.user, safety_level=3).exclude(owner=request.user, safety_level=2)
@@ -185,7 +123,9 @@ def alldatafiles(request, template_name="datafiles/all.html"):
 @login_required
 def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_class=PrivacyEditForm, 
     timeseries_form_class=LinkTSForm, property_form_class1=AddPropertyForm, template_name="datafiles/details.html"):
-    # show the datafile details
+    """
+    show the datafile details
+    """
 
     datafiles = Datafile.objects.all()
     datafile = get_object_or_404(datafiles, id=id)
@@ -193,8 +133,7 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
     
     # security handler
     if not datafile.is_accessible(request.user):
-        datafile = None
-        raise Http404
+        return HttpResponseForbidden("This action is forbidden")
 
     action = request.POST.get("action")
 
@@ -263,45 +202,41 @@ def datafiledetails(request, id, form_class=DatafileShortEditForm, privacy_form_
 
 @login_required
 def datafileDelete(request, id):
-    
+    """
+    Deletes a datafile by id provided.
+    """
     datafiles = Datafile.objects.all()
-    
     datafile = get_object_or_404(datafiles, id=id)
     title = datafile.title
-    
     redirect_to = reverse("your_datafiles")
-    
-    if datafile.owner != request.user:
-	datafile = None
-	raise Http404
-	# more user-friendly way to manage such cases..
-        #request.user.message_set.create(message="You can't delete datafiles that aren't yours")
-        #return HttpResponseRedirect(redirect_to)
-
-    #if request.method == "POST" and request.POST["action"] == "delete":
-    #datafile.deleteObject()
+    if not datafile.owner == request.user:
+        return HttpResponseForbidden("This action is forbidden")
     datafile.deleteObject()
     datafile.save()
     request.user.message_set.create(message=_("Successfully deleted datafile '%s'") % title)
-    
     return HttpResponseRedirect(redirect_to)
 
 
 @login_required
 def download(request, id):
-    datafile = get_object_or_404(Datafile.objects.all(), owner=request.user, id=id)
-    mimetype, encoding = mimetypes.guess_type(datafile.raw_file.path)
-    mimetype = mimetype or 'application/octet-stream' 
-    response = HttpResponse(datafile.raw_file.read(), mimetype=mimetype) 
+    """
+    Processes requests for file download.
+    An alternative way is to use xsendfile:
     #response = HttpResponse(mimetype='application/force-download')
     #response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.title)
+    """
+    datafile = get_object_or_404(Datafile.objects.all(), id=id)
+    # security handler
+    if not datafile.is_accessible(request.user):
+        datafile = None
+        raise Http404
+    mimetype, encoding = mimetypes.guess_type(datafile.raw_file.path)
+    mimetype = mimetype or 'application/octet-stream' 
+    response = HttpResponse(datafile.raw_file.read(), mimetype=mimetype)
     response['Content-Disposition'] = 'attachment'
     response['Content-Length'] = datafile.raw_file.size 
     if encoding: 
         response["Content-Encoding"] = encoding
-    response['X-Sendfile'] = str(datafile.raw_file.path)
-    # It's usually a good idea to set the 'Content-Length' header too.
-    # You can also set any other required headers: Cache-Control, etc.
     return response
 
 
