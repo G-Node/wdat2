@@ -19,6 +19,7 @@ from datafiles.models import Datafile
 from datasets.models import RDataset
 from experiments.models import Experiment
 from metadata.models import Section
+from datafiles.tasks import extract_file_info # broker task
 
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm, GWTDatafileForm
 from metadata.forms import AddPropertyForm, LinkTSForm, importOdML
@@ -123,6 +124,8 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
                 datafile.title = request.FILES['raw_file'].name
                 datafile.save()
                 datafile_form.save_m2m()
+                # start a task to extract neuroshare info TODO return extracted
+                extracted = extract_file_info.delay(datafile.id)
                 request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)
                 include_kwargs = {"id": datafile.id}
                 redirect_to = reverse("your_datafiles")

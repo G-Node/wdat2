@@ -8,6 +8,10 @@ from friends.models import Friendship
 from pinax.apps.projects.models import Project
 from tagging.fields import TagField
 from django.utils.translation import ugettext_lazy as _
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 def make_upload_path(self, filename):
     """
@@ -42,6 +46,8 @@ class Datafile(SafetyLevel, LinkedToProject, MetadataManager):
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     raw_file = models.FileField(_('data file'), storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField(_('keywords'))
+    extracted_info = models.TextField('extracted_info', blank=True, null=True)
+    convertible = models.NullBooleanField('convertible', blank=True, null=True)
 
     def __unicode__(self):
         return self.title
@@ -54,4 +60,8 @@ class Datafile(SafetyLevel, LinkedToProject, MetadataManager):
     def size(self):
         return filesizeformat(self.raw_file.size)
 
-
+    def info(self):
+        if self.extracted_info:
+            return json.loads(self.extracted_info)
+        else:
+            return None

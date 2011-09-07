@@ -87,7 +87,20 @@
                     {% endif%}
                     <p>You may link objects using the metadata "sections" from the object's details page.</p>
                 </div>
-                
+
+                {% if datafile.info %}
+                <div class="friends">
+                    <h2>{% trans "File Info:" %}</h2>
+                    <table width="100%" style="margin-bottom: 10px;">
+                        {% for p in datafile.info.items %}
+                            <tr><td>{{ p|truncate_dot:26|escape }}</td></tr>
+                        {% endfor %}
+                    </table>
+                    {% if datafile.convertible %}
+                        <p>This file is convertible. You may convert it to native G-Node NEO format to see it's contents, as well as export it to HDF5 file format and download. This feature is coming later.</p>
+                    {% endif%}
+                </div>
+                {% endif%}
             </div>
         {% endifequal %}
     
