@@ -24,6 +24,14 @@ def convert_to_timeseries(line):
 
 
 def create_thomas():
+    """
+    This function creates NEO objects using Django ORM. It requires initial data
+    in files, located 
+    ./080707/lfp_fix080707.dat
+    ./080707/lfp_sac080707.dat
+    Normally, one can find these files at 
+    gate.g-node.org:/groups/g-node-core/data/spike_lfp/
+    """
     u = User.objects.get(pk=12) # Change user!
     s_offset = len(Segment.objects.all()) # set the correct segment ID offset up!
     r_offset = len(RecordingChannel.objects.all()) # set the correct recording channel ID offset up!

@@ -74,6 +74,7 @@ class BaseInfo(models.Model):
     date_created = models.DateTimeField('date created', default=datetime.now,\
         editable=False)
     file_origin = models.ForeignKey(Datafile, blank=True, null=True)
+    last_modified = models.DateTimeField(auto_now=True) # Resp. H: Last-modified
 
     # this is temporary unless the integration with Datafiles is implemented
     def is_accessible(self, user):
