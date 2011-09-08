@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import condition
 
 from neo_api.json_builder import *
 from neo_api.models import *
@@ -17,7 +18,10 @@ except ImportError:
     import simplejson as json
 import jsonpickle
 import re
+import hashlib
 
+#===============================================================================
+# supporting functions
 
 class BasicJSONResponse(HttpResponse):
     """
@@ -33,6 +37,7 @@ class BasicJSONResponse(HttpResponse):
             json_obj["message"] = meta_messages[message_type]
         super(BasicJSONResponse, self).__init__(json.dumps(json_obj))
         self['Content-Type'] = "application/json"
+        self['G-Node-Version'] = "1.0"
 
 class Created(BasicJSONResponse):
     status_code = 201
@@ -78,14 +83,31 @@ def auth_required(func):
         return func(*args, **kwargs)
     return auth_func
 
+def get_etag(request, neo_id=None):
+    """ A decorator to compute the ETags """
+    obj = get_by_neo_id_http(neo_id, request.user)
+    if isinstance(obj, HttpResponse):
+        return None # some error while getting an object
+    return hashlib.md5(str(obj.last_modified)).hexdigest()
 
+def get_last_modified(request, neo_id=None):
+    """ A decorator to get the last modified datetime """
+    obj = get_by_neo_id_http(neo_id, request.user)
+    if isinstance(obj, HttpResponse):
+        return None # some error while getting an object
+    return obj.last_modified
+
+#===============================================================================
+# main views
+
+@condition(etag_func=get_etag, last_modified_func=get_last_modified)
 @auth_required
 def process(request, neo_id=None):
     """
     Creates, updates, retrieves or deletes a NEO object.
     """
     response = NotSupported(message_type="invalid_method", request=request)
-    if request.method == 'POST':
+    if request.method == 'POST' or request.method == 'PUT':
         response = create_or_update(request, neo_id)
     elif request.method == 'GET':
         response = retrieve(request, "full", neo_id)
@@ -271,7 +293,7 @@ def retrieve(request, enquery, neo_id, message_type=None, new=False):
         return NotSupported(message_type="invalid_method", request=request)
     obj = get_by_neo_id_http(neo_id, request.user)
     if isinstance(obj, HttpResponse):
-        return obj
+        return obj # returns an error here
     if not enquery in ("full", "info", "data", "parents", "children"):
         raise Http404
     try:
@@ -317,7 +339,7 @@ def select(request, obj_type):
 @auth_required
 def assign(request, neo_id):
     """
-    Basic operations with NEO objects. Save, get and delete.
+    Basic operations with NEO objects.
     """
     pass
 
