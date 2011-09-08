@@ -46,8 +46,11 @@ class Datafile(SafetyLevel, LinkedToProject, MetadataManager):
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     raw_file = models.FileField(_('data file'), storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField(_('keywords'))
+    # here we put file info extracted using neuroshare
     extracted_info = models.TextField('extracted_info', blank=True, null=True)
     convertible = models.NullBooleanField('convertible', blank=True, null=True)
+    # store ID of the last Task Broker task
+    last_task_id = models.CharField('last_task_id', blank=True, max_length=255)
 
     def __unicode__(self):
         return self.title

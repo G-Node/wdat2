@@ -92,8 +92,8 @@
                 <div class="friends">
                     <h2>{% trans "File Info:" %}</h2>
                     <table width="100%" style="margin-bottom: 10px;">
-                        {% for p in datafile.info.items %}
-                            <tr><td>{{ p|truncate_dot:26|escape }}</td></tr>
+                        {% for key, value in datafile.info.items %}
+                            <tr><td>{{ key }}: <b>{{ value }}</b></td></tr>
                         {% endfor %}
                     </table>
                     {% if datafile.convertible %}
