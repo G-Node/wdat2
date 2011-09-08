@@ -26,6 +26,7 @@ meta_messages = {
     "wrong_params": "Parameters provided are incorrect. Please consider details in the 'details' element.",
     "retrieved": "Object retrieved successfully.",
     "no_objects_found": "No objects found.",
+    "not_found": "The page you requested was not found.",
 }
 
 meta_objects = ("block", "segment", "event", "eventarray", "epoch", "epocharray", \

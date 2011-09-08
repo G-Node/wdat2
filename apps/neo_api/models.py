@@ -89,13 +89,6 @@ class BaseInfo(models.Model):
         abstract = True
 
     @property
-    def neo_id(self):
-        """
-        Returns NEO_ID. Example of neo_id: 'segment_1435'
-        """
-        return str(self.obj_type + "_" + str(self.id))
-
-    @property
     def obj_type(self):
         """
         Returns the type of the object (string), like 'segment' or 'event'.
@@ -104,6 +97,11 @@ class BaseInfo(models.Model):
             if isinstance(self, meta_classnames[obj_type]):
                 return obj_type
         raise TypeError("Critical error. Panic. NEO object can't define it's own type. Tell system developers.")
+
+    @property
+    def neo_id(self):
+        """ Returns NEO_ID. Example of neo_id: 'segment_1435' """
+        return "%s_%d" % (self.obj_type, self.id)
 
     @property
     def info(self):
@@ -598,11 +596,8 @@ meta_classnames = {
     "recordingchannelgroup": RecordingChannelGroup,
     "recordingchannel": RecordingChannel}
 
+"""
 def get_by_neo_id(neo_id, user):
-    """
-    Returns a NEO object by its NEO ID. Checks the user can access it.
-    Example of neo_id: 'segment_1435'
-    """
     mid = str(neo_id).find("_")
     if mid > 0 and len(neo_id) > mid + 1: # exclude error in case of "segment_"
         obj_type = neo_id[:neo_id.find("_")]
@@ -616,6 +611,6 @@ def get_by_neo_id(neo_id, user):
     else:
         # totally wrong id
         raise TypeError("totally wrong NEO ID provided.")
-
+"""
 
 

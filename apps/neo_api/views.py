@@ -2,7 +2,6 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, get_host, HttpResponse, HttpResponseBadRequest
 from django.template import RequestContext
 from django.db.models import Q
-from django.http import Http404
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.contrib.auth.models import User
@@ -48,27 +47,38 @@ class BadRequest(BasicJSONResponse):
 class Unauthorized(BasicJSONResponse):
     status_code = 401
 
+class NotFound(BasicJSONResponse):
+    status_code = 404
+
 class NotSupported(BasicJSONResponse):
     status_code = 405
 
 
-def get_by_neo_id_http(neo_id, user):
-    """
-    A function to get NEO object by its NEO_ID. 
+def parse_neo_id(neo_id):
+    """ Returns obj_type and obj_id or throws an error """
+    mid = str(neo_id).find("_")
+    if mid > 0 and len(neo_id) > mid + 1: # exclude error in case of "segment_"
+        obj_type = neo_id[:neo_id.find("_")]
+        obj_id  = neo_id[neo_id.find("_")+1:]
+        return obj_type, obj_id
+    raise TypeError("totally wrong NEO ID provided.")
+
+
+def get_object(obj_type, obj_id, user):
+    """ Returns requested object.
     Attention! This function returns HTTP response in case an exception occurs.
     """
+    classname = meta_classnames[obj_type]
     try:
-        return get_by_neo_id(neo_id, user)
-    except KeyError: # TODO include message in the response + combine errors
-        return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="invalid_neo_id")
-    except TypeError:
-        return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="invalid_neo_id")
-    except ValueError:
-        return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="invalid_neo_id")
-    except PermissionDenied:
-        return Unauthorized(json_obj={"neo_id": str(neo_id)}, message_type="not_authorized")
+        obj = classname.objects.get(id=obj_id)
     except ObjectDoesNotExist:
-        return BadRequest(json_obj={"neo_id": str(neo_id)}, message_type="wrong_neo_id")
+        return BadRequest(json_obj={"neo_id": "%s_%d" % \
+            (obj_type, obj_id)}, message_type="wrong_neo_id")
+    if not obj.is_accessible(user):
+        return Unauthorized(json_obj={"neo_id": "%s_%d" % \
+            (obj_type, obj_id)}, message_type="not_authorized")
+    return obj
+    
 
 def auth_required(func):
     """
@@ -83,46 +93,87 @@ def auth_required(func):
         return func(*args, **kwargs)
     return auth_func
 
-def get_etag(request, neo_id=None):
+
+def check_obj_type(func):
+    """ Decorator that checks the correct object type. """
+    argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
+    fname = func.func_name
+    def auth_func(*args, **kwargs):
+        if not kwargs["obj_type"] in meta_objects:
+            return NotFound(message_type="not_found")
+        return func(*args, **kwargs)
+    return auth_func
+
+
+def get_etag(request, obj_type, obj_id):
     """ A decorator to compute the ETags """
-    obj = get_by_neo_id_http(neo_id, request.user)
+    obj = get_object(obj_type, obj_id, request.user)
     if isinstance(obj, HttpResponse):
         return None # some error while getting an object
     return hashlib.md5(str(obj.last_modified)).hexdigest()
 
-def get_last_modified(request, neo_id=None):
+
+def get_last_modified(request, obj_type, obj_id):
     """ A decorator to get the last modified datetime """
-    obj = get_by_neo_id_http(neo_id, request.user)
+    obj = get_object(obj_type, obj_id, request.user)
     if isinstance(obj, HttpResponse):
         return None # some error while getting an object
     return obj.last_modified
 
+
 #===============================================================================
 # main views
 
+@check_obj_type
 @condition(etag_func=get_etag, last_modified_func=get_last_modified)
 @auth_required
-def process(request, neo_id=None):
+def handle_object(request, obj_type, obj_id):
     """
-    Creates, updates, retrieves or deletes a NEO object.
+    GET: get, PUT/POST: update, DELETE: delete single NEO object. Serves partial
+    data requests (info, data etc.) using GET params.
     """
-    response = NotSupported(message_type="invalid_method", request=request)
-    if request.method == 'POST' or request.method == 'PUT':
-        response = create_or_update(request, neo_id)
-    elif request.method == 'GET':
-        response = retrieve(request, "full", neo_id)
-    elif request.method == 'DELETE':
-        response = delete(request, neo_id)
+    actions = {
+        'GET': get_single,
+        'PUT': create_or_update,
+        'POST': create_or_update,
+        'DELETE': delete}
+    if request.method in actions.keys():
+        obj = get_object(obj_type, obj_id, request.user)
+        if isinstance(obj, HttpResponse):
+            return obj # returns an error here
+        response = actions[request.method](request, obj_type, obj)
+    else:
+        response = NotSupported(message_type="invalid_method", request=request)
     return response
 
 
-def create_or_update(request, neo_id=None):
+@auth_required
+@check_obj_type
+def handle_category(request, obj_type):
+    """
+    GET: query all category, PUT/POST: create new
+    Query params transmitted using GET params.
+    """
+    actions = {
+        'GET': select,
+        'PUT': create_or_update,
+        'POST': create_or_update}
+    if request.method in actions.keys():
+        response = actions[request.method](request, obj_type)
+    else:
+        response = NotSupported(message_type="invalid_method", request=request)
+    return response
+
+
+def create_or_update(request, obj_type, obj=None):
     """
     This is a slave function to create or update a NEO object. We "boycott" 
     everything "that's not made by our hands" for security reasons (no automatic
-    JSON parsing into NEO object).
+    JSON parsing into NEO object). Create and update have very similar 
+    functionality thus implemented as one huge function.
     """
-    update = False # a flag to distinguish update/insert mode
+    if obj: update = True
+    else: update = False
     to_link, parents = None, None # handlers for special cases (waveforms, units)
     try:
         rdata = json.loads(request._get_raw_post_data())
@@ -133,22 +184,12 @@ def create_or_update(request, neo_id=None):
     if not type(rdata) == type({}):
         return BadRequest(message_type="data_parsing_error", request=request)
 
-    if neo_id: # this is update case
-        update = True
-        obj = get_by_neo_id_http(neo_id, request.user)
-        if isinstance(obj, HttpResponse):
-            return obj
-        obj_type = obj.obj_type
+    if update: # this is update case
         message_type = "object_updated"
     else: # this is create case
-        try:
-            obj_type = rdata["obj_type"]
-            classname = meta_classnames[obj_type]
-            obj = classname()
-            message_type = "object_created"
-        except KeyError:
-            # invalid NEO type or type is missing
-            return BadRequest(message_type="invalid_obj_type", request=request)
+        classname = meta_classnames[obj_type]
+        obj = classname()
+        message_type = "object_created"
 
     # processing attributes
     for _attr in meta_attributes[obj_type]:
@@ -240,15 +281,25 @@ def create_or_update(request, neo_id=None):
                     return BadRequest(json_obj={"element": r}, \
                         message_type="not_iterable", request=request)
                 parents = []
-                for p in parent_ids:
-                    parent = get_by_neo_id_http(p, request.user)
+                for p in parent_ids: # this looks ugly.
+                    try:
+                        o_t, o_i = parse_neo_id(p)
+                    except Exception, e:
+                        return BadRequest(json_obj={"neo_id": str(p)}, 
+                            message_type="invalid_neo_id")
+                    parent = get_object(o_t, o_i, request.user)
                     if isinstance(parent, HttpResponse):
                         return parent
                     parents.append(parent) # some processing done later in this view
         else:
             for r in meta_parents[obj_type]:
                 if rdata.has_key(r):
-                    parent = get_by_neo_id_http(rdata[r], request.user)
+                    try:
+                        o_t, o_i = parse_neo_id(rdata[r])
+                    except Exception, e:
+                        return BadRequest(json_obj={"neo_id": str(rdata[r])}, 
+                            message_type="invalid_neo_id")
+                    parent = get_object(o_t, o_i, request.user)
                     if isinstance(parent, HttpResponse):
                         return parent
                     setattr(obj, r, parent)
@@ -276,28 +327,19 @@ def create_or_update(request, neo_id=None):
         setattr(obj, r, parents)
         obj.save()
 
-    request.method = "GET" # return the GET 'info' about the object
-    return retrieve(request, "info", obj.neo_id, message_type, not update)
+    request.method = "GET"
+    #request.GET["q"] = "info"
+    return get_single(request, obj.obj_type, obj, message_type, not update)
 
 
-@auth_required
-def retrieve(request, enquery, neo_id, message_type=None, new=False):
+def get_single(request, obj_type, obj, message_type="retrieved", new=False):
     """
-    This is a slave function to retrieve a NEO object by given NEO_ID. Due to 
+    This is a slave function to get a single NEO object by given NEO_ID. Due to 
     security reasons we do full manual reconstruction of the JSON object from 
     its django brother.
     """
-    if not message_type:
-        message_type = "retrieved"
-    if not request.method == "GET":
-        return NotSupported(message_type="invalid_method", request=request)
-    obj = get_by_neo_id_http(neo_id, request.user)
-    if isinstance(obj, HttpResponse):
-        return obj # returns an error here
-    if not enquery in ("full", "info", "data", "parents", "children"):
-        raise Http404
     try:
-        n = json_builder(obj, enquery, request.GET)
+        n = json_builder(obj, request.GET)
     except ValueError, e:
         return BadRequest(json_obj={"details": e.message}, \
             message_type="wrong_params", request=request)
@@ -310,11 +352,8 @@ def retrieve(request, enquery, neo_id, message_type=None, new=False):
     return BasicJSONResponse(json_obj=n, message_type=message_type, request=request)
 
 
-@auth_required
 def select(request, obj_type):
-    """
-    Basic operations with NEO objects. Save, get and delete.
-    """
+    """ Returns a list of object of the same NEO type. """
     if obj_type in meta_objects:
         classname = meta_classnames[obj_type]
         # TODO add some filtering, sorting etc. here
@@ -336,15 +375,6 @@ def select(request, obj_type):
         return BadRequest(message_type="invalid_obj_type", request=request)
 
 
-@auth_required
-def assign(request, neo_id):
-    """
-    Basic operations with NEO objects.
-    """
-    pass
-
-
-@auth_required
 def delete(request, neo_id):
     """
     This is a slave function to delete a NEO object by given NEO_ID.

@@ -12,7 +12,7 @@ def clean_attr(_attr):
     return _attr
 
 
-def json_builder(obj, enquery="full", GET={}):
+def json_builder(obj, GET={}, enquery="full"):
     """
     Builds a JSON response for a given object. Again, we "boycott" everything 
     which is "not done by our hands" by not using any json picklers for safety
@@ -27,6 +27,9 @@ def json_builder(obj, enquery="full", GET={}):
     However, as this behaves unfriendly with cascade requests, this feature is
     switched off for the moment."""
     assigned = False
+    if GET.has_key("q"):
+        if GET["q"] in ("full", "info", "data", "parents", "children"):
+            enquery = GET["q"]
     if enquery == "info" or enquery == "full":
         assigned = assign_attrs(n, obj) or assigned
     if enquery == "data" or enquery == "full":
