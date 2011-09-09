@@ -142,7 +142,7 @@ def assign_children(json, obj, enquery, GET):
     if meta_children.has_key(obj_type):
         for r in meta_children[obj_type]:
             if GET.get("cascade"): # retrieve objects recursively if cascade
-                ch = [json_builder(o, enquery, GET) for o in \
+                ch = [json_builder(o, GET, enquery) for o in \
                     getattr(obj, r + "_set").all()]
             else:
                 ch = [o.neo_id for o in getattr(obj, r + "_set").all()]

@@ -596,21 +596,3 @@ meta_classnames = {
     "recordingchannelgroup": RecordingChannelGroup,
     "recordingchannel": RecordingChannel}
 
-"""
-def get_by_neo_id(neo_id, user):
-    mid = str(neo_id).find("_")
-    if mid > 0 and len(neo_id) > mid + 1: # exclude error in case of "segment_"
-        obj_type = neo_id[:neo_id.find("_")]
-        obj_id  = neo_id[neo_id.find("_")+1:]
-        classname = meta_classnames[obj_type]
-        obj = classname.objects.get(id=obj_id)
-        if obj.is_accessible(user):
-            return obj
-        else:
-            raise PermissionDenied("Sorry, you don't have access to this NEO object.")
-    else:
-        # totally wrong id
-        raise TypeError("totally wrong NEO ID provided.")
-"""
-
-

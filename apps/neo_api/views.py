@@ -72,10 +72,10 @@ def get_object(obj_type, obj_id, user):
     try:
         obj = classname.objects.get(id=obj_id)
     except ObjectDoesNotExist:
-        return BadRequest(json_obj={"neo_id": "%s_%d" % \
+        return BadRequest(json_obj={"neo_id": "%s_%s" % \
             (obj_type, obj_id)}, message_type="wrong_neo_id")
     if not obj.is_accessible(user):
-        return Unauthorized(json_obj={"neo_id": "%s_%d" % \
+        return Unauthorized(json_obj={"neo_id": "%s_%s" % \
             (obj_type, obj_id)}, message_type="not_authorized")
     return obj
     
@@ -379,5 +379,10 @@ def delete(request, neo_id):
     """
     This is a slave function to delete a NEO object by given NEO_ID.
     """
+    pass
+
+
+def process(request):
+    """ DEPRECATED """
     pass
 
