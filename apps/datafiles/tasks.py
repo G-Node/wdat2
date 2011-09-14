@@ -1,6 +1,8 @@
-import neuroshare as ns
+# common imports
 from datafiles.models import Datafile
 from celery.decorators import task
+
+import neuroshare as ns
 try:
     import json
 except ImportError:
@@ -18,3 +20,106 @@ def extract_file_info(file_id):
     d.convertible = True # should check other f options?
     d.save()
     return file_id
+
+
+import tarfile
+import zipfile
+import os
+import shutil
+from django.core.files import File
+from metadata.models import Section
+from metadata.views import section_add
+from settings import TMP_FILES_PATH
+
+@task
+def extract_from_archive(file_id):
+    """ This task extracts files from the compressed file and creates 
+    appropriate g-node datafile objects. For every extracted folder a g-node 
+    section is created; all the files in the folder are linked to the related 
+    section. The following file types are supported: zip, tar, gzip, bz2."""
+
+    def create_section(name, where, parent_type="section"):
+        tree_pos = 1
+        sec_childs = where.section_set.all().order_by("-tree_position")
+        if sec_childs:
+            tree_pos = int(sec_childs.all()[0].tree_position) + 1
+        if parent_type == "datafile": # link root section to original file
+            parent_section = Section(title=sec_name, parent_datafile=where,\
+               tree_position=tree_pos)
+        else: # create new section inside the parent section
+            parent_section = Section(title=sec_name, \
+                parent_section=where, tree_position=tree_pos)
+        parent_section.save()
+        return parent_section
+
+    def create_file(file_name, raw_file, parent_section):
+        df = Datafile(title=file_name, owner=d.owner, raw_file=raw_file)
+        df.save()
+        if not parent_section:
+            parent_section = create_section("root section", d, \
+                "datafile")
+        parent_section.addLinkedObject(df, "datafile")
+        parent_section.save() # relate file to the section
+
+    """ Algorithms for tar/zip look similar, but have major differences."""
+    #if not TMP_FILES_PATH.endswith("/"): TMP_FILES_PATH += "/"
+    d = Datafile.objects.get(id=file_id) # may raise DoesNotExist
+    processed = False
+    parent_section = None
+    locations = {}
+    if tarfile.is_tarfile(d.raw_file.path): # first read with tar
+        cf = tarfile.open(d.raw_file.path) # compressed file
+        for member in cf.getmembers():
+            if member.isdir(): # create a section
+                try:
+                    sec_name = member.name[member.name.rindex("/") + 1:]
+                    parent_section = create_section(sec_name, \
+                        locations[member.name[:member.name.rindex("/")]])
+                except ValueError: # this is a 'root' folder
+                    sec_name = member.name
+                    parent_section = create_section(sec_name, d, "datafile")
+                locations[member.name] = parent_section
+            elif member.isfile(): # extract a file and to the section
+                ef = cf.extractfile(member) # extracted file
+                try:
+                    file_name = member.name[member.name.rindex("/") + 1:]
+                    parent_section = locations[member.name[:member.name.rindex("/")]]
+                except ValueError: # this file is in the 'root' of archive
+                    if not locations.has_key("/"):
+                        locations["/"] = create_section("root section", d, "datafile")
+                    parent_section = locations["/"]
+                    file_name = member.name
+                create_file(file_name, File(ef), parent_section)
+        processed = True
+    elif zipfile.is_zipfile(d.raw_file.path): # or read with zip
+        cf = zipfile.ZipFile(d.raw_file.path) # compressed file
+        for member in cf.infolist():
+            if member.file_size == 0: # is there a better way to detect folder?
+                try:
+                    sec_name = member.filename[member.filename[:-1].rindex("/") + 1:-1]
+                    parent_section = create_section(sec_name, \
+                        locations[member.filename[:member.filename[:-1].rindex("/")]])
+                except ValueError: # this is a 'root' folder
+                    sec_name = member.filename[:-1]
+                    parent_section = create_section(sec_name, d, "datafile")
+                locations[member.filename[:-1]] = parent_section
+            elif member.file_size > 0: # this should be a file
+                tmpdirname = "%sportal_tmp_extraction_files_%s" % (TMP_FILES_PATH, d.id)
+                os.makedirs(tmpdirname)
+                ef_path = cf.extract(member, tmpdirname) # extracted file
+                try:
+                    file_name = member.filename[member.filename.rindex("/") + 1:]
+                    parent_section = locations[member.filename[:member.filename.rindex("/")]]
+                except ValueError: # this file is in the 'root' of archive
+                    if not locations.has_key("/"):
+                        locations["/"] = create_section("root section", d, "datafile")
+                    parent_section = locations["/"]
+                    file_name = member.filename
+                create_file(file_name, File(open(ef_path, "r")), parent_section)
+                shutil.rmtree(tmpdirname) # clean temporary extracted file
+        processed = True
+    if processed: # indicate the file was processed
+        d.extracted = "succeded"
+        d.save()
+    return file_id
+

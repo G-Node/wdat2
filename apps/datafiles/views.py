@@ -2,7 +2,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, get_host, HttpResponse, HttpResponseForbidden
 from django.template import RequestContext
 from django.db.models import Q
-from django.http import Http404
+from django.http import Http404, HttpResponseForbidden
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
@@ -18,7 +18,7 @@ from datafiles.models import Datafile
 from datasets.models import RDataset
 from experiments.models import Experiment
 from metadata.models import Section
-from datafiles.tasks import extract_file_info # broker task
+from datafiles.tasks import extract_file_info, extract_from_archive # broker tasks
 
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
 from metadata.forms import AddPropertyForm, LinkTSForm, importOdML
@@ -242,4 +242,19 @@ def download(request, id):
     return response
 
 
+@login_required
+def extract(request, id):
+    """ Extract files/folders from the file if archive."""
+    datafile = get_object_or_404(Datafile.objects.all(), id=id)
+    # security handler
+    if not datafile.owner == request.user:
+        datafile = None
+        return HttpResponseForbidden()
+    if datafile.is_archive: # start a task to extract from archive
+        extracted = extract_from_archive.delay(datafile.id)
+        datafile.last_task_id = extracted.task_id
+        datafile.extracted = "processing"
+        datafile.save()
+    return HttpResponse("The extraction task has been started.")
+    
 
