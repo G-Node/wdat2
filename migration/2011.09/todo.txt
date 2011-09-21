@@ -3,6 +3,7 @@ http://trac.g-node.pri/g-node-portal/wiki/installationGuide
 
 2. install python-neuroshare: see installation guide
 http://trac.g-node.pri/g-node-portal/wiki/installationGuide
+COPY the libraries!!!
 
 3. update settings.py, add:
 TMP_FILES_PATH = '/tmp/'

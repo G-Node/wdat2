@@ -108,7 +108,7 @@
                         {% if datafile.extracted == "failed" %}
                             <p>We failed to extract the files from this archive. Please check the file, it may be broken. To get files extracted, please upload a new archive.</p>
                         {% else %}
-                            <p>You may extract files from this archive. Press <a href="#" onclick="extract({{ datafile.id }})">extract</a> to start decompressing process. G-Node makes an appropriate metadata Section for every folder extracted. New files are linked to the related Section, just as they are in the original archive. After the archive is processed, you may find newly created files at the root of your data.</p>
+                            <p>You may extract files from this archive. Press <a href="#" onclick="extract({{ datafile.id }})">extract</a> to start decompressing process. G-Node makes an appropriate metadata Section for every folder extracted. New files are linked to the related Section, just as they are in the original archive. After the archive is processed, you may find newly created files inside this datafile.</p>
                         {% endif %}{% endif %}{% endif %}
                     {% else %}
                         <p>The file is not of any supported compressed file types.</p>

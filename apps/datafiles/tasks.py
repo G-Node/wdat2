@@ -97,6 +97,11 @@ def extract_from_archive(file_id):
         processed = True
     elif zipfile.is_zipfile(d.raw_file.path): # or read with zip
         cf = zipfile.ZipFile(d.raw_file.path) # compressed file
+        test = cf.infolist()[0].filename.split("/") # windows-made zips do not show the root folder
+        if len(test) > 1:
+            if len(test[1]) > 0:
+                parent_section = create_section(test[0], d, "datafile")
+                locations[test[0]] = parent_section
         for member in cf.infolist():
             if member.file_size == 0 and member.filename.endswith("/"): # is there a better way to detect folder?
                 try:
