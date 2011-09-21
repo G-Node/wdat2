@@ -38,16 +38,16 @@ def extract_from_archive(file_id):
     section is created; all the files in the folder are linked to the related 
     section. The following file types are supported: zip, tar, gzip, bz2."""
 
-    def create_section(name, where, parent_type="section"):
+    def create_section(new_name, where, parent_type="section"):
         tree_pos = 1
         sec_childs = where.section_set.all().order_by("-tree_position")
         if sec_childs:
             tree_pos = int(sec_childs.all()[0].tree_position) + 1
         if parent_type == "datafile": # link root section to original file
-            parent_section = Section(title=sec_name, parent_datafile=where,\
+            parent_section = Section(title=new_name, parent_datafile=where,\
                tree_position=tree_pos)
         else: # create new section inside the parent section
-            parent_section = Section(title=sec_name, \
+            parent_section = Section(title=new_name, \
                 parent_section=where, tree_position=tree_pos)
         parent_section.save()
         return parent_section
@@ -71,20 +71,18 @@ def extract_from_archive(file_id):
         cf = tarfile.open(d.raw_file.path) # compressed file
         for member in cf.getmembers():
             if member.isdir(): # create a section
+                if member.name.endswith("/"): # because of python 2.5
+                    name = member.name[:-1]
+                else:
+                    name = member.name
                 try:
-                    if member.name.ensdwith("/"): # because of python 2.5
-                        sec_name = member.name[member.name[:-1].rindex("/") + 1:-1]
-                    else:
-                        sec_name = member.name[member.name.rindex("/") + 1:]
+                    sec_name = name[name.rindex("/") + 1:]
                     parent_section = create_section(sec_name, \
-                        locations[member.name[:member.name.rindex("/")]])
+                        locations[name[:name.rindex("/")]])
                 except ValueError: # this is a 'root' folder
-                    if member.name.ensdwith("/"): # because of python 2.5
-                        sec_name = member.name[:-1]
-                    else:
-                        sec_name = member.name
+                    sec_name = name
                     parent_section = create_section(sec_name, d, "datafile")
-                locations[member.name] = parent_section
+                locations[name] = parent_section
             elif member.isfile(): # extract a file and to the section
                 ef = cf.extractfile(member) # extracted file
                 try:
@@ -92,7 +90,7 @@ def extract_from_archive(file_id):
                     parent_section = locations[member.name[:member.name.rindex("/")]]
                 except ValueError: # this file is in the 'root' of archive
                     if not locations.has_key("/"):
-                        locations["/"] = create_section("root section", d, "datafile")
+                        locations["/"] = create_section("extracted", d, "datafile")
                     parent_section = locations["/"]
                     file_name = member.name
                 create_file(file_name, File(ef), parent_section)
@@ -100,7 +98,7 @@ def extract_from_archive(file_id):
     elif zipfile.is_zipfile(d.raw_file.path): # or read with zip
         cf = zipfile.ZipFile(d.raw_file.path) # compressed file
         for member in cf.infolist():
-            if member.file_size == 0: # is there a better way to detect folder?
+            if member.file_size == 0 and member.filename.endswith("/"): # is there a better way to detect folder?
                 try:
                     sec_name = member.filename[member.filename[:-1].rindex("/") + 1:-1]
                     parent_section = create_section(sec_name, \
@@ -109,10 +107,16 @@ def extract_from_archive(file_id):
                     sec_name = member.filename[:-1]
                     parent_section = create_section(sec_name, d, "datafile")
                 locations[member.filename[:-1]] = parent_section
-            elif member.file_size > 0: # this should be a file
+            else: # this should be a file
                 tmpdirname = "%sportal_tmp_extraction_files_%s" % (TMP_FILES_PATH, d.id)
                 os.makedirs(tmpdirname)
-                ef_path = cf.extract(member, tmpdirname) # extracted file
+                try:
+                    ef_path = cf.extract(member, tmpdirname) # extracted file
+                except AttributeError: # stupid python 2.5 again
+                    ef_path = tmpdirname + member.filename[member.filename.rindex("/") + 1:]
+                    ef = open(ef_path, "w")
+                    ef.write(cf.read(member.filename))
+                    ef.close()
                 try:
                     file_name = member.filename[member.filename.rindex("/") + 1:]
                     parent_section = locations[member.filename[:member.filename.rindex("/")]]

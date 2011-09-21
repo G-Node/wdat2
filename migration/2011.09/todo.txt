@@ -1,0 +1,14 @@
+1. install task broker: see installation guide
+http://trac.g-node.pri/g-node-portal/wiki/installationGuide
+
+2. install python-neuroshare: see installation guide
+http://trac.g-node.pri/g-node-portal/wiki/installationGuide
+
+3. update settings.py, add:
+TMP_FILES_PATH = '/tmp/'
+
+4. run 'python manage.py syncdb' to create neo_api tables
+
+5. run scripts to change datafile model tables
+
+6. give access to the /tmp/ and /media_root/ folders to the user under which the task broker will operate
