@@ -71,20 +71,18 @@ def extract_from_archive(file_id):
         cf = tarfile.open(d.raw_file.path) # compressed file
         for member in cf.getmembers():
             if member.isdir(): # create a section
+                if member.name.endswith("/"): # because of python 2.5
+                    name = member.name[:-1]
+                else:
+                    name = member.name
                 try:
-                    if member.name.ensdwith("/"): # because of python 2.5
-                        sec_name = member.name[member.name[:-1].rindex("/") + 1:-1]
-                    else:
-                        sec_name = member.name[member.name.rindex("/") + 1:]
+                    sec_name = name[name.rindex("/") + 1:]
                     parent_section = create_section(sec_name, \
-                        locations[member.name[:member.name.rindex("/")]])
+                        locations[name[:name.rindex("/")]])
                 except ValueError: # this is a 'root' folder
-                    if member.name.ensdwith("/"): # because of python 2.5
-                        sec_name = member.name[:-1]
-                    else:
-                        sec_name = member.name
+                    sec_name = name
                     parent_section = create_section(sec_name, d, "datafile")
-                locations[member.name] = parent_section
+                locations[name] = parent_section
             elif member.isfile(): # extract a file and to the section
                 ef = cf.extractfile(member) # extracted file
                 try:
