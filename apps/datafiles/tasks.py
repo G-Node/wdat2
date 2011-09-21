@@ -72,11 +72,17 @@ def extract_from_archive(file_id):
         for member in cf.getmembers():
             if member.isdir(): # create a section
                 try:
-                    sec_name = member.name[member.name.rindex("/") + 1:]
+                    if member.name.ensdwith("/"): # because of python 2.5
+                        sec_name = member.name[member.name[:-1].rindex("/") + 1:-1]
+                    else:
+                        sec_name = member.name[member.name.rindex("/") + 1:]
                     parent_section = create_section(sec_name, \
                         locations[member.name[:member.name.rindex("/")]])
                 except ValueError: # this is a 'root' folder
-                    sec_name = member.name
+                    if member.name.ensdwith("/"): # because of python 2.5
+                        sec_name = member.name[:-1]
+                    else:
+                        sec_name = member.name
                     parent_section = create_section(sec_name, d, "datafile")
                 locations[member.name] = parent_section
             elif member.isfile(): # extract a file and to the section
@@ -122,4 +128,29 @@ def extract_from_archive(file_id):
         d.extracted = "succeded"
         d.save()
     return file_id
+
+
+"""
+# UNDER DEVELOPMENT
+import neuroshare as ns
+from neo.core import * # import all NEO base classes
+
+def convert_from_neuroshare(file_id, conv_seg=True):
+    Converts data from the Neuroshare-compliant file to the native G-Node
+    (NEO-like) format. The conversion is made in two steps:
+    - first data is converted to pure NEO (https://neuralensemble.org/svn/neo/)
+    - NEO objects are stored at G-Node. 
+    d = Datafile.objects.get(id=file_id) # may raise DoesNotExist
+    fd = ns.File(d.raw_file.path)
+    segment = Segment() # we put all file contents in one segment
+    for entity in fd.entities:
+        if entity.entity_type == 1: # this is an EVENT ENTITY
+            ea = EventArray(name=e.label)
+            for e_id in range(entity.item_count):
+                timestamp, data = entity.get_data(e_id)
+                event = Event(time=timestamp, label=str(data))
+
+            segment.eventarrays.append(ea)
+
+"""
 
