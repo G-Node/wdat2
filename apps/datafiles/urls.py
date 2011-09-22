@@ -26,7 +26,9 @@ urlpatterns = patterns('',
 
     # datafile download link
     url(r'^download/(?P<id>\d+)/', 'datafiles.views.download', name="download"),
-    
+
+    url(r'^extract/(?P<id>\d+)/', 'datafiles.views.extract', name="extract"),
+
     # GWT multiple datafiles upload
     #url(r'^create_multiple/$', 'datafiles.views.create_multiple', name="datafile_create_multiple"),
     #url(r'^upload_page/$', 'datafiles.views.upload_page', name='upload_page'),

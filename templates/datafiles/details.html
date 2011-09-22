@@ -87,7 +87,36 @@
                     {% endif%}
                     <p>You may link objects using the metadata "sections" from the object's details page.</p>
                 </div>
-                
+
+
+                <div id="fileinfo" class="friends">
+                    <h2>{% trans "File Info:" %}</h2>
+                    {% if datafile.info %}
+                    <table width="100%" style="margin-bottom: 10px;">
+                        {% for key, value in datafile.info.items %}
+                            <tr><td>{{ key }}: <b>{{ value }}</b></td></tr>
+                        {% endfor %}
+                    </table>
+                    {% endif%}
+                    {% if datafile.is_archive %}
+                        {% if datafile.extracted == "succeded" %}
+                            <p>Files from this archive were successfully extracted.</p>
+                        {% else %}
+                        {% if datafile.extracted == "processing" %}
+                            <p>Files from this archive are being extracted. Please be patient.</p>
+                        {% else %}
+                        {% if datafile.extracted == "failed" %}
+                            <p>We failed to extract the files from this archive. Please check the file, it may be broken. To get files extracted, please upload a new archive.</p>
+                        {% else %}
+                            <p>You may extract files from this archive. Press <a href="#" onclick="extract({{ datafile.id }})">extract</a> to start decompressing process. G-Node makes an appropriate metadata Section for every folder extracted. New files are linked to the related Section, just as they are in the original archive. After the archive is processed, you may find newly created files inside this datafile.</p>
+                        {% endif %}{% endif %}{% endif %}
+                    {% else %}
+                        <p>The file is not of any supported compressed file types.</p>
+                    {% endif %}
+                    {% if datafile.convertible %}
+                        <p>This file is convertible. You may convert it to native G-Node NEO format to see it's contents, as well as export it to HDF5 file format and download. This feature is coming later.</p>
+                    {% endif%}
+                </div>
             </div>
         {% endifequal %}
     

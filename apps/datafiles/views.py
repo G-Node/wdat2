@@ -2,7 +2,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, get_host, HttpResponse, HttpResponseForbidden
 from django.template import RequestContext
 from django.db.models import Q
-from django.http import Http404
+from django.http import Http404, HttpResponseForbidden
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
@@ -18,6 +18,7 @@ from datafiles.models import Datafile
 from datasets.models import RDataset
 from experiments.models import Experiment
 from metadata.models import Section
+from datafiles.tasks import extract_file_info, extract_from_archive # broker tasks
 
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
 from metadata.forms import AddPropertyForm, LinkTSForm, importOdML
@@ -57,7 +58,12 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
                 datafile.owner = request.user
                 datafile.title = request.FILES['raw_file'].name
                 datafile.save()
-		datafile_form.save_m2m()
+                datafile_form.save_m2m()
+                # start a task to extract neuroshare info TODO return extracted
+                extracted = extract_file_info.delay(datafile.id)
+                task_id = str(extracted.task_id) # this line is required, due to short tasks
+                datafile.last_task_id = task_id
+                datafile.save()
                 request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)
                 include_kwargs = {"id": datafile.id}
 		redirect_to = reverse("your_datafiles")
@@ -234,7 +240,22 @@ def download(request, id):
     response['Content-Length'] = datafile.raw_file.size 
     if encoding: 
         response["Content-Encoding"] = encoding
-    response['X-Sendfile'] = str(datafile.raw_file.path)
     return response
 
 
+@login_required
+def extract(request, id):
+    """ Extract files/folders from the file if archive."""
+    datafile = get_object_or_404(Datafile.objects.all(), id=id)
+    # security handler
+    if not datafile.owner == request.user:
+        datafile = None
+        return HttpResponseForbidden()
+    if datafile.is_archive: # start a task to extract from archive
+        extracted = extract_from_archive.delay(datafile.id)
+        task_id = str(extracted.task_id) # this line is required, due to short tasks
+        datafile.last_task_id = task_id
+        datafile.extracted = "processing"
+        datafile.save()
+    return HttpResponse("The extraction task has been started.")
+    

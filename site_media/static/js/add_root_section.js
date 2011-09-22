@@ -8,4 +8,14 @@ function add_root_section(par_id, par_type) {
             },
 		}); 
 };
+function extract(par_id) {
+    var resp = $.ajax( { 
+	    type: "POST", 
+	    url: "../../../datafiles/extract/" + par_id + "/", 
+	    data: ({ action:'extract' }), 
+        success: function() { 
+            location.reload();
+        },
+    }); 
+};
 
