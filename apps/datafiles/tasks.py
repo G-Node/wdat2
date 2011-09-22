@@ -15,9 +15,12 @@ def extract_file_info(file_id):
     extracted information to the Datafile object and an 'convertible' semaphor
     if the file is readable."""
     d = Datafile.objects.get(id=file_id) # may raise DoesNotExist
-    f = ns.File(d.raw_file.path) # may raise IOerror / not able to read
-    d.extracted_info = json.dumps(f._info)
-    d.convertible = True # should check other f options?
+    try:
+        f = ns.File(d.raw_file.path) # may raise IOerror / not able to read
+        d.extracted_info = json.dumps(f._info)
+        d.convertible = True # should check other f options?
+    except NotImplementedError:
+        d.convertible = False
     d.save()
     return file_id
 

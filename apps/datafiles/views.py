@@ -61,7 +61,8 @@ def create(request, form_class=NewDatafileForm, template_name="datafiles/new.htm
                 datafile_form.save_m2m()
                 # start a task to extract neuroshare info TODO return extracted
                 extracted = extract_file_info.delay(datafile.id)
-                datafile.last_task_id = extracted.task_id
+                task_id = str(extracted.task_id) # this line is required, due to short tasks
+                datafile.last_task_id = task_id
                 datafile.save()
                 request.user.message_set.create(message=_("Successfully created datafile '%s'") % datafile.title)
                 include_kwargs = {"id": datafile.id}
@@ -252,7 +253,8 @@ def extract(request, id):
         return HttpResponseForbidden()
     if datafile.is_archive: # start a task to extract from archive
         extracted = extract_from_archive.delay(datafile.id)
-        datafile.last_task_id = extracted.task_id
+        task_id = str(extracted.task_id) # this line is required, due to short tasks
+        datafile.last_task_id = task_id
         datafile.extracted = "processing"
         datafile.save()
     return HttpResponse("The extraction task has been started.")
