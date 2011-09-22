@@ -3,6 +3,7 @@ from datafiles.models import Datafile
 from celery.decorators import task
 
 import neuroshare as ns
+from neuroshare.Library import ArgumentError, DLLTypeUnknown, DLLNotFound
 try:
     import json
 except ImportError:
@@ -19,7 +20,7 @@ def extract_file_info(file_id):
         f = ns.File(d.raw_file.path) # may raise IOerror / not able to read
         d.extracted_info = json.dumps(f._info)
         d.convertible = True # should check other f options?
-    except NotImplementedError:
+    except (ArgumentError, DLLTypeUnknown, DLLNotFound):
         d.convertible = False
     d.save()
     return file_id
