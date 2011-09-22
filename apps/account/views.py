@@ -17,6 +17,13 @@ from account.forms import SignupForm, AddEmailForm, LoginForm, \
     ChangeTimezoneForm, ChangeLanguageForm, TwitterForm, ResetPasswordKeyForm
 from emailconfirmation.models import EmailAddress, EmailConfirmation
 
+from neo_api.views import BadRequest, BasicJSONResponse, Unauthorized
+from neo_api.meta import meta_messages
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
 association_model = models.get_model('django_openid', 'Association')
 if association_model is not None:
     from django_openid.models import UserOpenidAssociation
@@ -50,6 +57,24 @@ def login(request, form_class=LoginForm, template_name="account/login.html",
     return render_to_response(template_name, ctx,
         context_instance = RequestContext(request)
     )
+
+
+def api_authenticate(request):
+    """
+    Authentication gateway for th Data API. Wraps the normal login method 
+    bypassing the request through and identifying the successful authentication
+    by the response type. The responses are implemented in line with the Data
+    API (JSON, REST-ful).
+    """
+    if request.method == "POST":
+        response = login(request)
+        if isinstance(response, HttpResponseRedirect): # successful authentication
+            return BasicJSONResponse(message_type="authenticated", request=request)
+        else: # not authenticated, many possible reasons
+            return Unauthorized(message_type="invalid_credentials", request=request)
+    else:
+        return BadRequest(message_type="invalid_method", request=request)
+
 
 def signup(request, form_class=SignupForm,
         template_name="account/signup.html", success_url=None):

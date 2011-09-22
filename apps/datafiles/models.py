@@ -8,6 +8,7 @@ from friends.models import Friendship
 from pinax.apps.projects.models import Project
 from tagging.fields import TagField
 from django.utils.translation import ugettext_lazy as _
+import settings
 
 def make_upload_path(self, filename):
     """
@@ -15,7 +16,12 @@ def make_upload_path(self, filename):
     """
     return "data/%s/%s" % (self.owner.username, filename)
 
-fs = storage.FileSystemStorage(location='/data/media')
+# set up the location to store USER FILES
+try:
+    location = settings.FILE_MEDIA_ROOT
+except:
+    location = "/data/media/"
+fs = storage.FileSystemStorage(location=location)
 
 class FileSystemStorage(storage.FileSystemStorage):
     """
