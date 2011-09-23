@@ -42,7 +42,8 @@ class AddSectionForm(forms.ModelForm):
 
 
 class AddPropertyForm(forms.ModelForm):
-    prop_value = forms.CharField()
+    prop_title = forms.CharField(label="Name")
+    prop_value = forms.CharField(label="Value")
     
     class Meta:
         model = Property
@@ -50,10 +51,11 @@ class AddPropertyForm(forms.ModelForm):
 
 
 class EditPropertyForm(forms.ModelForm):
-    prop_value = forms.CharField(required=False, widget=widgets.TextInput())
-    prop_description = forms.CharField(required=False, widget=widgets.TextInput())
-    prop_comment = forms.CharField(required=False, widget=forms.TextInput())
-    prop_name_definition = forms.CharField(required=False, widget=forms.TextInput())
+    prop_title = forms.CharField(label="Name")
+    prop_value = forms.CharField(label="Value", required=False, widget=widgets.TextInput())
+    prop_description = forms.CharField(label="Description", required=False, widget=widgets.TextInput())
+    prop_comment = forms.CharField(label="Comment", required=False, widget=forms.TextInput())
+    prop_name_definition = forms.CharField(label="Definition", required=False, widget=forms.TextInput())
     
     class Meta:
         model = Property

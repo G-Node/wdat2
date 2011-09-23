@@ -1,9 +1,16 @@
 1. install task broker: see installation guide
 http://trac.g-node.pri/g-node-portal/wiki/installationGuide
 
-2. install python-neuroshare: see installation guide
+2.1 install python-neuroshare: see installation guide
 http://trac.g-node.pri/g-node-portal/wiki/installationGuide
 COPY the libraries!!!
+
+2.2 Install nsWineProxy
+https://github.com/G-Node/nswineproxy
+see the dependencies!
+sudo apt-get install automake
+sudo apt-get install mingw32
+
 
 3. update settings.py, add:
 TMP_FILES_PATH = '/tmp/'
