@@ -13,3 +13,26 @@ TMP_FILES_PATH = '/tmp/'
 5. run scripts to change datafile model tables
 
 6. give access to the /tmp/ and /media_root/ folders to the user under which the task broker will operate
+
+7. Configure Task broker as a daemon
+http://docs.celeryq.org/en/latest/cookbook/daemonizing.html
+
+a. create a configuration file
+/etc/default/celeryd
+b. copy the init script 
+sudo cp /<source-files>/celery-2.3.3/contrib/generic-init.d/celeryd /etc/init.d/
+c. update the django_access.py file
+d. create folders for logs/pid, update permissions
+sudo mkdir /var/log/celery
+sudo chmod 774 /var/log/celery
+sudo chgrp <daemon_group> /var/log/celery
+
+sudo mkdir /var/run/celery
+sudo chmod 774 /var/run/celery
+sudo chgrp <daemon_group> /var/run/celery
+
+e. start it as /etc/init.d/celeryd start, should result in
+celeryd-multi v2.3.3
+> Starting nodes...
+	> w1.hal10: OK
+

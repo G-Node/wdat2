@@ -2,6 +2,7 @@
 import sys
 
 from os.path import abspath, dirname, join
+import django_access
 
 try:
     import pinax
