@@ -115,6 +115,7 @@ urlpatterns += patterns('',
     url(r'^metadata/', include('metadata.urls')),
     url(r'^timeseries/', include('timeseries.urls')),
     url(r'^neo/', include('neo_api.urls')),
+    url(r'^electrophysiology/', include('neo_api.urls')),
     # - that's a jerky workaround for POST without trailing slash. If there are
     # more POST-type URL, better change to middleware:
     # http://djangosnippets.org/snippets/601/
