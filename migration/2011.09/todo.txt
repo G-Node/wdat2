@@ -1,35 +1,32 @@
-1. install task broker: see installation guide
-http://trac.g-node.pri/g-node-portal/wiki/installationGuide
+1. Install and configure neuroshare
 
-2.1 install python-neuroshare: see installation guide
-http://trac.g-node.pri/g-node-portal/wiki/installationGuide
-COPY the libraries!!!
-
-2.2 Install nsWineProxy
+1.1 Install nsWineProxy
 https://github.com/G-Node/nswineproxy
 see the dependencies!
 sudo apt-get install automake
 sudo apt-get install mingw32
 
+1.2 install python-neuroshare: see installation guide
+https://github.com/G-Node/python-neuroshare
 
-3. update settings.py, add:
-TMP_FILES_PATH = '/tmp/'
+1.3 copy the neuroshare libraries 
+source hal10:/usr/lib/neuroshare/
+destination srv2:/usr/lib/neuroshare/
 
-4. run 'python manage.py syncdb' to create neo_api tables
+2. install and configure Celery task broker
 
-5. run scripts to change datafile model tables
+2.1 install and configure: see installation guide here (bottom of the page)
+http://trac.g-node.pri/g-node-portal/wiki/installationGuide
 
-6. give access to the /tmp/ and /media_root/ folders to the user under which the task broker will operate
-
-7. Configure Task broker as a daemon
+2.2 Configure Task broker as a daemon
 http://docs.celeryq.org/en/latest/cookbook/daemonizing.html
 
-a. create a configuration file
-/etc/default/celeryd
+a. create a configuration file (attached) as /etc/default/celeryd
+
 b. copy the init script 
 sudo cp /<source-files>/celery-2.3.3/contrib/generic-init.d/celeryd /etc/init.d/
-c. update the django_access.py file
-d. create folders for logs/pid, update permissions
+
+c. create folders for logs/pid, update permissions
 sudo mkdir /var/log/celery
 sudo chmod 774 /var/log/celery
 sudo chgrp <daemon_group> /var/log/celery
@@ -38,8 +35,25 @@ sudo mkdir /var/run/celery
 sudo chmod 774 /var/run/celery
 sudo chgrp <daemon_group> /var/run/celery
 
-e. start it as /etc/init.d/celeryd start, should result in
+d. start daemon as /etc/init.d/celeryd start, should result in
 celeryd-multi v2.3.3
 > Starting nodes...
 	> w1.hal10: OK
+
+e. give access to the /tmp/ and /media_root/ folders to the user under which the task broker will operate
+
+3. Project updates
+
+3.1 update settings.py in the project root, add:
+ - TMP_FILES_PATH = '/tmp/'
+ - 'neo_api' in INSTALLED_APPS
+ - 'djcelery' in INSTALLED_APPS
+
+3.2 run 'python manage.py syncdb' from the project folder to create neo_api tables
+
+3.3 run scripts to change datafile model tables (attached)
+
+3.4 restart apache, restart celeryd
+
+
 
