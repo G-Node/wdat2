@@ -192,6 +192,7 @@ def create_or_update(request, obj_type, obj=None):
         message_type = "object_created"
 
     # processing attributes
+    missing = [] # collector of missing attributes / data fields
     for _attr in meta_attributes[obj_type]:
         attr = clean_attr(_attr)
         obj_attr = None
@@ -202,8 +203,8 @@ def create_or_update(request, obj_type, obj=None):
                 obj_attr_unit = rdata[attr + "__unit"]
                 setattr(obj, attr + "__unit", obj_attr_unit)
         elif _attr.startswith("_") and not update:
-            return BadRequest(json_obj={"obj_type": attr}, \
-                message_type="missing_parameter", request=request)
+            missing.append(attr) # collect all missing attrs, raise 400 later 
+
     if not update:
         obj.author = request.user
     if rdata.has_key("datafile_id"):
@@ -211,7 +212,7 @@ def create_or_update(request, obj_type, obj=None):
         # enable this when file integration is done TODO
         #obj.file_origin = Datafile.objects.get(id=datafile_id)
 
-    # processing data-related attributes
+    # processing data-related attributes (data fields)
     if meta_data_attrs.has_key(obj_type):
         for data_attr in meta_data_attrs[obj_type]:
             if rdata.has_key(data_attr):
@@ -266,9 +267,11 @@ def create_or_update(request, obj_type, obj=None):
                         return BadRequest(json_obj={"element": data_attr}, \
                             message_type="units_missing", request=request)
             elif not update:
-                # we require data-related parameters
-                return BadRequest(json_obj={"obj_type": data_attr}, \
-                    message_type="missing_parameter", request=request)
+                missing.append(data_attr) # collect all missing attrs, raise 400 later 
+
+    if missing: # return bad request if required attrs / fields are missing
+        return BadRequest(json_obj={"missing": missing}, \
+            message_type="missing_parameter", request=request)
 
     # processing relationships
     if meta_parents.has_key(obj_type):
