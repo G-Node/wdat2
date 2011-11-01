@@ -4,9 +4,11 @@ from django.utils.encoding import smart_unicode, force_unicode
 from django.utils.translation import ugettext_lazy as _
 from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHiddenInput
 from django.db import models
+from django.utils.safestring import mark_safe
+from django.utils.text import truncate_words
 
+import settings
 from neo_api.meta import meta_unit_types
-
 
 # A ModelMultipleChoiceField with "Clear" helptext.
 # Require a javascript code to be inserted to perform clear of selection.
@@ -95,3 +97,150 @@ class SamplingUnitField(UnitField):
         self._unit_type = 'sampling'
 
 
+class ManyToManySearchInput(SelectMultiple):
+    class Media:
+		css = {
+			'all': ('%s/css/jquery.autocomplete.css' % settings.STATIC_URL,)
+		}
+		js = (
+			'%s/js/jquery.js' % settings.STATIC_URL,
+			'%s/js/jquery.autocomplete.js' % settings.STATIC_URL,
+			'%s/js/autocomplete/AutocompleteObjectLookups.js' % settings.STATIC_URL,
+            '%s/js/jquery.bgiframe.min.js' % settings.STATIC_URL,
+            '%s/js/jquery.ajaxQueue.js' % settings.STATIC_URL,
+		)
+
+    def label_for_value(self, value=None):
+        return ''
+
+    def __init__(self, rel, search_fields, attrs=None):
+        self.rel = rel
+        self.search_fields = search_fields
+        super(ManyToManySearchInput, self).__init__(attrs)
+
+    def render(self, name, value, attrs=None):
+        #print name, value[0], self.rel
+        #rendered = super(ManyToManySearchInput, self).render(name,value,  attrs)
+        if value:
+            label = self.label_for_value(value)
+        else:
+            label = u''
+        ul=""
+        select=''
+        ToModel=self.rel.to
+        if not value:value=[]
+        for val in value:
+            obj=ToModel.objects.get(pk=val)
+            ul+="<li id='%(pk)s'><div class='object_repr'>%(repr)s</div><div class='delete_from_m2m'><a style='cursor:pointer'><img src='%(static_url)spinax/images/img/icon_deletelink.gif' /></a></div></li>"%{'static_url': settings.STATIC_URL,
+                        'repr':obj.__unicode__(), 
+                        'pk':str(obj.pk)}
+            select+='<option id="%(pk)s" value="%(pk)s" selected="selected">%(repr)s</option>'%{'static_url': settings.STATIC_URL,
+                        'repr':obj.__unicode__(), 
+                        'pk':str(obj.pk)}
+        return mark_safe(u'''
+            <style type="text/css" media="screen">
+                #lookup_%(name)s {
+                    padding-right:16px;
+                    width:150px;
+                    background: url(
+                        %(static_url)spinax/images/img/selector-search.gif
+                    ) no-repeat right;
+                }
+                #del_%(name)s {
+                    display: none;
+                }
+                #list_%(name)s{
+                margin-left:5px;
+                list-style-type:none
+                padding:0;
+                margin:0;
+                margin-left:75px;
+                
+                }
+                #list_%(name)s li{
+                list-style-type:none;
+                
+                margin:0px;
+                padding:0px;
+                margin-top:5px;
+                }
+                .object_repr{
+                                float:left;
+                                padding-left:2px;
+                                border:1px solid #CCCCCC;
+                                width:200px;
+                                color:#333333;
+                                background-color:#EFEFEF;
+                                }
+                .delete_from_m2m{float:left}
+            </style>
+
+            <select multiple="multiple" name="%(name)s" id="id_%(name)s" style="display:none;">
+                %(select)s
+            </select>
+
+            <input type="text" id="lookup_%(name)s" value="%(label)s" />
+            <a href="../../../%(app_label)s/%(model_name)s/add/" class="add-another" id="add_id_%(name)s" onclick="return showAddAnotherPopup(this);"> 
+                <img src="%(static_url)spinax/images/img/icon_addlink.gif" width="10" height="10" alt="Add user"/>
+            </a>
+            <br/>
+            <br/>
+
+            <ul id="list_%(name)s"><b>added objects:</b>
+                %(ul)s
+            </ul>
+            <br/>
+            <br/>
+
+<script type="text/javascript">
+            $(document).ready(function() {
+            $('#id_%(name)s').parent().children().filter('.add-another:last').hide();
+
+            //$('#add_id_%(name)s').hide();
+            $('.delete_from_m2m').click(function(){
+            var rm_li=$(this).parent();
+            var rm_pk=$(rm_li).attr("id");
+            $('ul#list_%(name)s li#'+rm_pk+':first').remove()
+            $('#id_%(name)s #'+rm_pk+':first').remove()
+            });
+        });
+            $('#lookup_%(name)s').keydown( function(){$('#busy_%(name)s').show();});
+            
+            $('#lookup_%(name)s')
+            var event=$('#lookup_%(name)s').autocomplete('../search/', {
+                extraParams: {
+                    search_fields: '%(search_fields)s',
+                    app_label: '%(app_label)s',
+                    model_name: '%(model_name)s',
+                }
+            });
+            event.result(function(event, data, formatted) {
+                $('#busy_%(name)s').hide();
+                if (data) {
+                    var elem=$('#list_%(name)s li#'+data[1])
+                    
+                    if (!elem.attr("id")){
+                    $('#list_%(name)s').html($('#list_%(name)s').html()+'<li id="'+data[1]+'"><div class="object_repr">'+data[0]+'</div><div class="delete_from_m2m"><a style="cursor:pointer"><img src="%(static_url)simg/admin/icon_deletelink.gif" /></a></div></li>');
+                    $('#lookup_%(name)s').val('');
+                    $('#id_%(name)s').html($('#id_%(name)s').html()+'<option id="'+data[1]+'" value="' +data[1] + '" selected="selected">' +data[0] +'</option>');
+            $('.delete_from_m2m').click(function(){
+            var rm_li=$(this).parent();
+            var rm_pk=$(rm_li).attr("id");
+            $('ul#list_%(name)s li#'+rm_pk+':first').remove()
+            $('#id_%(name)s #'+rm_pk+':first').remove()
+            });
+                    }
+                }
+            });
+            
+</script>
+        ''') % {
+            'search_fields': ','.join(self.search_fields),
+            'static_url': settings.STATIC_URL,
+            'model_name': self.rel.to._meta.module_name,
+            'app_label': self.rel.to._meta.app_label,
+            'label': label,
+            'name': name,
+            'ul':ul, 
+            'select':select, 
+        }
