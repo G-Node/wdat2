@@ -1,11 +1,10 @@
 apache/
 cron/
 deploy/
-django_access.py
 logs/
 media/
 media
 patches/
-settings.py
+local_settings.py
 *~
 *.pyc
