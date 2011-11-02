@@ -66,12 +66,23 @@ class AutoSelectMultiple(SelectMultiple):
         output = [(u'<input type="text" id="lookup_%s" />' % name)]
         output.append(u'''<script type="text/javascript">
 	        $(function() {
-                var availableTags = %s;
-		        $( "#lookup_%s" ).autocomplete({
+                var availableTags = %(tags)s;
+                function update ( value, name ) {
+                    $("#list_%(name)s ul").append('<li id="' + value + '">' + name + '<a href="#"></a></li>');
+                };
+		        $( "#lookup_%(name)s" ).autocomplete({
 			        source: availableTags,
+                    select: function( event, ui ) {
+                        update( ui.item ?
+					        "Selected: " + ui.item.value + " aka " + ui.item.id :
+					        "Nothing selected, input was " + this.value );
+                    };
 		        });
 	        });
-	        </script>''' % ([str(option[1]) for option in chain(self.choices)], name))
+	        </script>''' % {
+                'tags': [str(option[1]) for option in chain(self.choices)],
+                'name': name
+            }
         """ this appends a hidden <select> element which is used in the form 
         and is being submitted to the server to update the object with new 
         selection """
