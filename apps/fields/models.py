@@ -6,52 +6,12 @@ from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHi
 from django.db import models
 from django.utils.safestring import mark_safe
 from django.utils.text import truncate_words
+from django.contrib.auth.models import User
 
+from itertools import chain
+from django.forms.util import flatatt
 import settings
 from neo_api.meta import meta_unit_types
-
-# A ModelMultipleChoiceField with "Clear" helptext.
-# Require a javascript code to be inserted to perform clear of selection.
-
-class MMCFClearField(forms.ModelChoiceField):
-    """A MultipleChoiceField whose choices are a model QuerySet."""
-    widget = SelectMultiple
-    hidden_widget = MultipleHiddenInput
-    default_error_messages = {
-        'list': _(u'Enter a list of values.'),
-        'invalid_choice': _(u'Select a valid choice. %s is not one of the'
-                            u' available choices.'),
-        'invalid_pk_value': _(u'"%s" is not a valid value for a primary key.')
-    }
-
-    def __init__(self, queryset, cache_choices=False, required=False,
-                 widget=None, label=None, initial=None,
-                 help_text=None, *args, **kwargs):
-        super(MMCFClearField, self).__init__(queryset, None,
-            cache_choices, required, widget, label, initial, help_text,
-            *args, **kwargs)
-	# this string makes the only difference from 'ModelMultipleChoiceField'
-	self.help_text = self.help_text + 'Hold down "Control", or "Command" on a Mac, to select more than one. To clear selection push <span id="clear_selection"><b onClick="unselectAll()">clear</b></span>.'
-
-    def clean(self, value):
-        if self.required and not value:
-            raise ValidationError(self.error_messages['required'])
-        elif not self.required and not value:
-            return []
-        if not isinstance(value, (list, tuple)):
-            raise ValidationError(self.error_messages['list'])
-        for pk in value:
-            try:
-                self.queryset.filter(pk=pk)
-            except ValueError:
-                raise ValidationError(self.error_messages['invalid_pk_value'] % pk)
-        qs = self.queryset.filter(pk__in=value)
-        pks = set([force_unicode(o.pk) for o in qs])
-        for val in value:
-            if force_unicode(val) not in pks:
-                raise ValidationError(self.error_messages['invalid_choice'] % val)
-        return qs
-
 
 class UnitField(models.CharField):
     """
@@ -97,6 +57,114 @@ class SamplingUnitField(UnitField):
         self._unit_type = 'sampling'
 
 
+class AutoSelectMultiple(SelectMultiple):
+    """ A widget which uses jQuery autocomplete to search across multiple
+    values. """
+    def render(self, name, value, attrs=None, choices=()):
+        if value is None: value = []
+        final_attrs = self.build_attrs(attrs, name=name)
+        output = [(u'<input type="text" id="lookup_%s" />' % name)]
+        output.append(u'''<script type="text/javascript">
+	        $(function() {
+                var availableTags = %s;
+		        $( "#lookup_%s" ).autocomplete({
+			        source: availableTags,
+		        });
+	        });
+	        </script>''' % ([str(option[1]) for option in chain(self.choices)], name))
+        """ this appends a hidden <select> element which is used in the form 
+        and is being submitted to the server to update the object with new 
+        selection """
+        output.append(u'<select multiple="multiple" style="display:none;"%s>' % flatatt(final_attrs))
+        options = self.render_options(choices, value)
+        if options: 
+            output.append(options)
+        output.append('</select>')
+        """ This renders a list of selected options as a <ul><li></li></ul> """
+        output.append(u'<ul id="list_%s">Selected:' % name)
+        selected = self.render_selected(choices, value)
+        if selected:
+            output.append(selected)
+        output.append('</ul>')
+        return mark_safe(u'\n'.join(output))
+
+    def render_selected(self, choices, selected_choices):
+        selected_choices = set([force_unicode(v) for v in selected_choices])
+        output = []
+        for option_value, option_label in chain(self.choices, choices):
+            if option_value in selected_choices:
+                if isinstance(option_label, (list, tuple)):
+                    output.append(u'<optgroup label="%s">' % escape(force_unicode(option_value)))
+                    for option in option_label:
+                        output.append(self.render_item(selected_choices, *option))
+                    output.append(u'</optgroup>')
+                else:
+                    output.append(self.render_item(selected_choices, option_value, option_label))
+        return u'\n'.join(output)
+
+    def render_item(self, selected_choices, option_value, option_label):
+        output = []
+        option_value = force_unicode(option_value)
+        selected_html = (option_value in selected_choices) and u' selected="selected"' or ''
+        output.append(u'<li id="%s">%s' % escape(option_value),
+            conditional_escape(force_unicode(option_label)))
+        output.append(u'''<div class='delete_from_m2m'>
+            <a style='cursor:pointer'>
+                <img src='%spinax/images/img/icon_deletelink.gif' />
+            </a>
+            </div>''' % settings.STATIC_URL)
+        return u'\n'.join(output)
+
+
+# A ModelMultipleChoiceField with "Clear" helptext.
+# Require a javascript code to be inserted to perform clear of selection.
+	
+class MMCFClearField(forms.ModelChoiceField):
+    """A MultipleChoiceField whose choices are a model QuerySet."""
+    widget = AutoSelectMultiple #SelectMultiple
+    hidden_widget = MultipleHiddenInput
+    default_error_messages = {
+        'list': _(u'Enter a list of values.'),
+        'invalid_choice': _(u'Select a valid choice. %s is not one of the'
+                            u' available choices.'),
+        'invalid_pk_value': _(u'"%s" is not a valid value for a primary key.')
+    }
+
+    def __init__(self, queryset, cache_choices=False, required=False,
+                 widget=None, label=None, initial=None,
+                 help_text=None, *args, **kwargs):
+        super(MMCFClearField, self).__init__(queryset, None,
+            cache_choices, required, widget, label, initial, help_text,
+            *args, **kwargs)
+        # this string makes the only difference from 'ModelMultipleChoiceField'
+        self.help_text = self.help_text + 'Hold down "Control", or "Command" on a Mac, to select more than one. To clear selection push <span id="clear_selection"><b onClick="unselectAll()">clear</b></span>.'
+
+    def clean(self, value):
+        if self.required and not value:
+            raise ValidationError(self.error_messages['required'])
+        elif not self.required and not value:
+            return []
+        if not isinstance(value, (list, tuple)):
+            raise ValidationError(self.error_messages['list'])
+        for pk in value:
+            try:
+                self.queryset.filter(pk=pk)
+            except ValueError:
+                raise ValidationError(self.error_messages['invalid_pk_value'] % pk)
+        qs = self.queryset.filter(pk__in=value)
+        pks = set([force_unicode(o.pk) for o in qs])
+        for val in value:
+            if force_unicode(val) not in pks:
+                raise ValidationError(self.error_messages['invalid_choice'] % val)
+        return qs
+
+
+
+
+
+# THE FOLLOWING IS LEGACY PLEASE DELETE
+"""
+
 class ManyToManySearchInput(SelectMultiple):
     class Media:
 		css = {
@@ -119,15 +187,13 @@ class ManyToManySearchInput(SelectMultiple):
         super(ManyToManySearchInput, self).__init__(attrs)
 
     def render(self, name, value, attrs=None):
-        #print name, value[0], self.rel
-        #rendered = super(ManyToManySearchInput, self).render(name,value,  attrs)
         if value:
             label = self.label_for_value(value)
         else:
             label = u''
         ul=""
         select=''
-        ToModel=self.rel.to
+        ToModel=self.rel
         if not value:value=[]
         for val in value:
             obj=ToModel.objects.get(pk=val)
@@ -137,8 +203,7 @@ class ManyToManySearchInput(SelectMultiple):
             select+='<option id="%(pk)s" value="%(pk)s" selected="selected">%(repr)s</option>'%{'static_url': settings.STATIC_URL,
                         'repr':obj.__unicode__(), 
                         'pk':str(obj.pk)}
-        return mark_safe(u'''
-            <style type="text/css" media="screen">
+        return mark_safe(u'''<style type="text/css" media="screen">
                 #lookup_%(name)s {
                     padding-right:16px;
                     width:150px;
@@ -234,13 +299,16 @@ class ManyToManySearchInput(SelectMultiple):
             });
             
 </script>
-        ''') % {
+        ''' % {
             'search_fields': ','.join(self.search_fields),
             'static_url': settings.STATIC_URL,
-            'model_name': self.rel.to._meta.module_name,
-            'app_label': self.rel.to._meta.app_label,
+            'model_name': self.rel._meta.module_name,
+            'app_label': self.rel._meta.app_label,
             'label': label,
             'name': name,
             'ul':ul, 
             'select':select, 
-        }
+        })
+"""
+
+
