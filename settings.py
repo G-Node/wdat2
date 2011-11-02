@@ -15,7 +15,13 @@ try:
 except ImportError:
     pass
 
-CACHE_BACKEND = 'memcached://127.0.0.1:11211'
+#CACHE_BACKEND = 'memcached://127.0.0.1:11211' # deprecated
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
 FILE_UPLOAD_HANDLERS = ('datafiles.upload_handlers.UploadProgressCachedHandler', ) + global_settings.FILE_UPLOAD_HANDLERS
 
 MANAGERS = ADMINS
@@ -31,6 +37,13 @@ TIME_ZONE = 'US/Eastern'
 # http://www.w3.org/TR/REC-html40/struct/dirlang.html#langcodes
 # http://blogs.law.harvard.edu/tech/stories/storyReader$15
 LANGUAGE_CODE = 'en'
+
+TEMPLATE_DIRS = (
+    os.path.join(PROJECT_ROOT, "templates"),
+    os.path.join(PROJECT_ROOT, "templates", "default"),
+    os.path.join(PROJECT_ROOT, "site_media", "static"),
+    os.path.join(PINAX_ROOT, "templates", PINAX_THEME),
+)
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -227,4 +240,8 @@ SUPPORTED_SERVICES = (
     ('spike_evaluation', 'Spike')
 )
 DEFAULT_SERVICE = SUPPORTED_SERVICES[0][0]
+
+# Maximum size, in bytes, of a request before it will be streamed to the
+# file system instead of into memory.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 # i.e. 1 KB
 
