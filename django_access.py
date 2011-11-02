@@ -11,9 +11,9 @@ to_pythonpath = (
     PROJECT_NAME,
     os.path.join(PROJECT_NAME, 'apps/'),
     os.path.join(PROJECT_NAME, 'apps/spike_evaluation/'),
-    'lib/python2.6/site-packages/',
-    'lib/python2.6/site-packages/pinax/apps/',
-    'lib/python2.6/site-packages/pinax/',
+    'lib/python2.%s/site-packages/' % sys.version_info[1],
+    'lib/python2.%s/site-packages/pinax/apps/' % sys.version_info[1],
+    'lib/python2.%s/site-packages/pinax/' % sys.version_info[1],
 )
 
 for p in to_pythonpath:

@@ -15,10 +15,6 @@ try:
 except ImportError:
     pass
 
-# task broker
-#import djcelery
-#djcelery.setup_loader()
-
 CACHE_BACKEND = 'memcached://127.0.0.1:11211'
 FILE_UPLOAD_HANDLERS = ('datafiles.upload_handlers.UploadProgressCachedHandler', ) + global_settings.FILE_UPLOAD_HANDLERS
 
