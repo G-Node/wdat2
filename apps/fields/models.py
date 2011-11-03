@@ -1,15 +1,15 @@
 from django import forms
-from django.forms.util import ValidationError, ErrorList
-from django.utils.encoding import smart_unicode, force_unicode
-from django.utils.translation import ugettext_lazy as _
+from django.forms.util import ValidationError, ErrorList, flatatt
 from django.forms.widgets import Select, SelectMultiple, HiddenInput, MultipleHiddenInput
 from django.db import models
+from django.utils.encoding import smart_unicode, force_unicode
+from django.utils.translation import ugettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.utils.text import truncate_words
+from django.utils.html import escape, conditional_escape
 from django.contrib.auth.models import User
 
 from itertools import chain
-from django.forms.util import flatatt
 import settings
 from neo_api.meta import meta_unit_types
 
@@ -58,52 +58,73 @@ class SamplingUnitField(UnitField):
 
 
 class AutoSelectMultiple(SelectMultiple):
-    """ A widget which uses jQuery autocomplete to search across multiple
-    values. """
+    """ A widget which uses jQuery autocomplete to search and select across 
+    multiple values. """
     def render(self, name, value, attrs=None, choices=()):
         if value is None: value = []
         final_attrs = self.build_attrs(attrs, name=name)
         output = [(u'<input type="text" id="lookup_%s" />' % name)]
         output.append(u'''<script type="text/javascript">
-	        $(function() {
+            $(function() {
                 var availableTags = %(tags)s;
-                function update ( value, name ) {
-                    $("#list_%(name)s ul").append('<li id="' + value + '">' + name + '<a href="#"></a></li>');
+                var tag_list = [];
+                for (i=0; i<availableTags.length; i++) {
+                    var option = new Object();
+                    option.value = availableTags[i][0];
+                    option.label = availableTags[i][1];
+                    tag_list[i] = option;
                 };
-		        $( "#lookup_%(name)s" ).autocomplete({
-			        source: availableTags,
+    	        $("#lookup_%(name)s").autocomplete({
+                    source: tag_list,
                     select: function( event, ui ) {
-                        update( ui.item ?
-					        "Selected: " + ui.item.value + " aka " + ui.item.id :
-					        "Nothing selected, input was " + this.value );
-                    };
-		        });
-	        });
-	        </script>''' % {
-                'tags': [str(option[1]) for option in chain(self.choices)],
-                'name': name
+                        $('#select_%(name)s option[value=' + ui.item.value + ']').attr('selected','selected');
+                        var b1 = !($('#list_%(name)s li[id=' + ui.item.value + ']').length > 0)
+                        if (!($('#list_%(name)s li[id=' + ui.item.value + ']').length > 0)) {
+                            $('#list_%(name)s').append('<li id="' + ui.item.value + '"><div class="object_repr">' + ui.item.label + '</div><div class="delete_from_m2m"><a style="cursor:pointer" onClick="autocompleteRemoveItem(' + ui.item.value + ')"><img src="%(static_url)spinax/images/img/icon_deletelink.gif" /></a></div></li>');
+                        };
+                        $('#lookup_%(name)s').val('');
+                        $('#lookup_%(name)s').focus();
+                        return false;
+                    }
+    	        });
+            });
+            </script>''' % {
+                'tags': [[int(option[0]), str(option[1])] for option in chain(self.choices)],
+                'name': name,
+                'static_url': settings.STATIC_URL})
+        output.append(u'''<script type="text/javascript">
+            //$('.delete_from_m2m').click(function() {
+            function autocompleteRemoveItem (rm_pk) {
+                //var rm_pk = $(this).parent().attr("id")
+                $('#list_%(name)s li[id=' + rm_pk + ']').remove();
+                $('#select_%(name)s option[value=' + rm_pk + ']').removeAttr('selected');
+            };
+            function autocompleteRemoveAll() {
+                $('#select_%(name)s :selected').removeAttr('selected');
+                $('#list_%(name)s li').remove();
             }
-        """ this appends a hidden <select> element which is used in the form 
-        and is being submitted to the server to update the object with new 
-        selection """
-        output.append(u'<select multiple="multiple" style="display:none;"%s>' % flatatt(final_attrs))
+            </script>''' % {'name': name})
+        output.append(u'<select id="select_%s" multiple="multiple" style="display:none;"%s>' % (name, flatatt(final_attrs)))
         options = self.render_options(choices, value)
         if options: 
             output.append(options)
         output.append('</select>')
+        output.append('<div class="autocomplete_label">Selected:</div>')
         """ This renders a list of selected options as a <ul><li></li></ul> """
-        output.append(u'<ul id="list_%s">Selected:' % name)
+        output.append(u'<div class="autocomplete"><ul id="list_%s">' % name)
         selected = self.render_selected(choices, value)
         if selected:
             output.append(selected)
-        output.append('</ul>')
+        output.append('</ul></div>')
         return mark_safe(u'\n'.join(output))
 
     def render_selected(self, choices, selected_choices):
+        choice_ids = [str(c) for c in selected_choices]
         selected_choices = set([force_unicode(v) for v in selected_choices])
         output = []
+        ch = [c for c in self.choices]
         for option_value, option_label in chain(self.choices, choices):
-            if option_value in selected_choices:
+            if str(option_value) in choice_ids:
                 if isinstance(option_label, (list, tuple)):
                     output.append(u'<optgroup label="%s">' % escape(force_unicode(option_value)))
                     for option in option_label:
@@ -116,14 +137,13 @@ class AutoSelectMultiple(SelectMultiple):
     def render_item(self, selected_choices, option_value, option_label):
         output = []
         option_value = force_unicode(option_value)
-        selected_html = (option_value in selected_choices) and u' selected="selected"' or ''
-        output.append(u'<li id="%s">%s' % escape(option_value),
-            conditional_escape(force_unicode(option_label)))
+        output.append(u'<li id="%s"><div class="object_repr">%s</div>' % (escape(option_value),
+            conditional_escape(force_unicode(option_label))))
         output.append(u'''<div class='delete_from_m2m'>
-            <a style='cursor:pointer'>
+            <a style='cursor:pointer' onClick='autocompleteRemoveItem(%s)'>
                 <img src='%spinax/images/img/icon_deletelink.gif' />
             </a>
-            </div>''' % settings.STATIC_URL)
+            </div></li>''' % (escape(option_value), settings.STATIC_URL))
         return u'\n'.join(output)
 
 
@@ -148,7 +168,7 @@ class MMCFClearField(forms.ModelChoiceField):
             cache_choices, required, widget, label, initial, help_text,
             *args, **kwargs)
         # this string makes the only difference from 'ModelMultipleChoiceField'
-        self.help_text = self.help_text + 'Hold down "Control", or "Command" on a Mac, to select more than one. To clear selection push <span id="clear_selection"><b onClick="unselectAll()">clear</b></span>.'
+        self.help_text = self.help_text + 'Select people by typing a few letters in the box above. To remove all people from sharing push <span id="clear_selection"><b onClick="autocompleteRemoveAll()">remove all</b></span>.'
 
     def clean(self, value):
         if self.required and not value:
