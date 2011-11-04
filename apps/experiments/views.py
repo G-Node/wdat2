@@ -35,9 +35,8 @@ def create(request, form_class=CreateExperimentForm,
                 experiment.owner = request.user
                 experiment.save()
                 exp_form.save_m2m()
-                
                 request.user.message_set.create(message=_("Successfully created experiment '%s'") % experiment.title)
-		include_kwargs = {"id": experiment.id}
+                include_kwargs = {"id": experiment.id}
                 redirect_to = reverse("experiment_details", kwargs=include_kwargs)
                 
                 return HttpResponseRedirect(redirect_to)

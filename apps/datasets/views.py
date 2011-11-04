@@ -36,7 +36,6 @@ def create(request, form_class=NewRDatasetForm, template_name="datasets/new.html
                 # create default section to add files
                 section = Section(title="link files here", parent_dataset=dataset, tree_position=1)
                 section.save()
-                
                 request.user.message_set.create(message=_("Successfully created dataset '%s'") % dataset.title)
                 include_kwargs = {"id": dataset.id}
                 #redirect_to = reverse("dataset_details", kwargs=include_kwargs)

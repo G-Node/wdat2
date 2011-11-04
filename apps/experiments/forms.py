@@ -25,7 +25,7 @@ class CreateExperimentForm(forms.ModelForm):
         choices = Project.objects.all().filter(Q(creator=user))
         self.fields['in_projects'] = MMCFClearField(queryset=choices)
         self.fields['in_projects'].label = "Related to projects"
-        self.fields['in_projects'].help_text = 'List the project or projects in the context of which the experiment was performed. <br>Hold down "Control", or "Command" on a Mac, to select more than one. To clear selection push <span id="clear_selection"><a href="#" onClick="unselectAll()">clear</a></span>.'
+        self.fields['in_projects'].help_text = 'Select related projects by typing a few letters in the box above. To remove all selected projects push <span id="clear_selection"><b style="cursor:pointer" onClick="autocompleteRemoveAll()">remove all</b></span>.'
         self.fields['safety_level'].help_text = "Nobody can see your PRIVATE experiments. FRIENDLY experiments can be viewed only by people you know. PUBLIC experiments available for everybody."
 
 
