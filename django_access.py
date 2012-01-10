@@ -1,23 +1,23 @@
 import os
 import sys
 
-# just import this module and you may play with Django classes
-SYSTEM_ROOT = os.path.normpath(os.path.join(os.getcwd(), ".."))
-PROJECT_NAME = os.getcwd()[os.getcwd().rfind("/")+1:]
+# just import this module and you may play with G-Node Django classes
+PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
+#SYSTEM_ROOT = os.path.normpath(os.path.join(os.getcwd(), ".."))
+PROJECT_NAME = PROJECT_PATH[PROJECT_PATH.rfind("/")+1:] # just in case
 
 # some path settings - order matters
 to_pythonpath = ( 
     './',
-    PROJECT_NAME,
-    os.path.join(PROJECT_NAME, 'apps/'),
-    os.path.join(PROJECT_NAME, 'apps/spike_evaluation/'),
-    'lib/python2.%s/site-packages/' % sys.version_info[1],
-    'lib/python2.%s/site-packages/pinax/apps/' % sys.version_info[1],
-    'lib/python2.%s/site-packages/pinax/' % sys.version_info[1],
+    PROJECT_PATH,
+    os.path.join(PROJECT_PATH, 'apps/'),
+    os.path.join(PROJECT_PATH, 'apps/ext/'),
+    os.path.join(PROJECT_PATH, 'apps/ext/pinax/'),
+    os.path.join(PROJECT_PATH, 'apps/ext/pinax/apps/'),
 )
 
-for p in to_pythonpath:
-    path = os.path.abspath(os.path.join(SYSTEM_ROOT, p))
+for path in to_pythonpath:
+    #path = os.path.abspath(os.path.join(SYSTEM_ROOT, p))
     if path not in sys.path:
         sys.path.append(path)
 

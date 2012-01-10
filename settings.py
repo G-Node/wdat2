@@ -12,8 +12,8 @@ from logging.handlers import SysLogHandler
 # like database and email that differ between development and production.
 try:
     from local_settings import *
-except ImportError:
-    pass
+except ImportError, e:
+    print e
 
 #CACHE_BACKEND = 'memcached://127.0.0.1:11211' # deprecated
 CACHES = {
@@ -161,7 +161,7 @@ INSTALLED_APPS = (
     #'benchmarks',
     #'dfiles',
     #'evaluations',
-    #'djcelery',
+    'djcelery',
 )
 
 ABSOLUTE_URL_OVERRIDES = {
