@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import condition
 
+from state_machine.views import *
 from neo_api.json_builder import *
 from neo_api.models import *
 from meta import *
@@ -18,40 +19,6 @@ except ImportError:
 import jsonpickle
 import re
 import hashlib
-
-#===============================================================================
-# supporting functions
-
-class BasicJSONResponse(HttpResponse):
-    """
-    This is a JSON response class, which expects a python dict from which it 
-    will pickle a response. Sets up an appropriate Cont-Type. User and Message 
-    always appreciated.
-    """
-    def __init__(self, json_obj={}, message_type=None, request=None):
-        if request: 
-            if request.user: json_obj["logged_in_as"] = request.user.username
-        if message_type:
-            json_obj["message_type"] = message_type
-            json_obj["message"] = meta_messages[message_type]
-        super(BasicJSONResponse, self).__init__(json.dumps(json_obj))
-        self['Content-Type'] = "application/json"
-        self['G-Node-Version'] = "1.0"
-
-class Created(BasicJSONResponse):
-    status_code = 201
-
-class BadRequest(BasicJSONResponse):
-    status_code = 400
-
-class Unauthorized(BasicJSONResponse):
-    status_code = 401
-
-class NotFound(BasicJSONResponse):
-    status_code = 404
-
-class NotSupported(BasicJSONResponse):
-    status_code = 405
 
 
 def parse_neo_id(neo_id):
@@ -65,7 +32,7 @@ def parse_neo_id(neo_id):
 
 
 def get_object(obj_type, obj_id, user):
-    """ Returns requested object.
+    """ Returns requested NEO object.
     Attention! This function returns HTTP response in case an exception occurs.
     """
     classname = meta_classnames[obj_type]
@@ -80,20 +47,6 @@ def get_object(obj_type, obj_id, user):
     return obj
     
 
-def auth_required(func):
-    """
-    Decorator for views where authentication required. 
-    Returns HTTP 403 Unauthorized if user is not authenticated.
-    """
-    argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
-    fname = func.func_name
-    def auth_func(*args, **kwargs):
-        if not args[0].user.is_authenticated():
-            return Unauthorized(message_type="not_authenticated")
-        return func(*args, **kwargs)
-    return auth_func
-
-
 def check_obj_type(func):
     """ Decorator that checks the correct object type. """
     argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
@@ -106,7 +59,7 @@ def check_obj_type(func):
 
 
 def get_etag(request, obj_type, obj_id):
-    """ A decorator to compute the ETags """
+    """ A decorator to compute ETags """
     obj = get_object(obj_type, obj_id, request.user)
     if isinstance(obj, HttpResponse):
         return None # some error while getting an object

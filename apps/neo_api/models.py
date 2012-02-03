@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 import numpy as np
 from scipy import signal
 from fields import models as fmodels
+from state_machine.models import ObjectState
 from datafiles.models import Datafile
 from meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
 
@@ -56,7 +57,7 @@ def _clean_csv(arr):
     return cleaned_data
 
 
-class BaseInfo(models.Model):
+class BaseInfo(ObjectState):
     """
     Basic info about any NEO object created at G-Node.
 
@@ -69,12 +70,10 @@ class BaseInfo(models.Model):
         (20, 'Deleted'),
         (30, 'Archived'),
     )
-    _current_state = models.IntegerField('current state', choices=STATES, default=10)
     author = models.ForeignKey(User)
     date_created = models.DateTimeField('date created', default=datetime.now,\
         editable=False)
     file_origin = models.ForeignKey(Datafile, blank=True, null=True)
-    last_modified = models.DateTimeField(auto_now=True) # Resp. H: Last-modified
 
     # this is temporary unless the integration with Datafiles is implemented
     def is_accessible(self, user):
@@ -114,23 +113,6 @@ class BaseInfo(models.Model):
         non-significant size
         """
         return 0 
-
-    @property
-    def current_state(self):
-        """ active <-> deleted -> archived """
-        return self._current_state
-
-    def is_active(self):
-        return self.current_state == 10
-
-    def delete(self):
-        self._current_state = 20
-
-    def archive(self):
-        self._current_state = 30
-
-    def restore(self):
-        self._current_state = 10
 
 
 # basic NEO classes

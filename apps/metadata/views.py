@@ -18,6 +18,11 @@ from metadata.forms import AddSectionForm, AddPropertyForm, EditPropertyForm, Li
 from metadata.models import Section, Property
 
 
+
+
+
+
+
 @login_required # ajax-only
 def section_add(request, template_name="metadata/add.html"):
     parent_type = 0

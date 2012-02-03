@@ -28,7 +28,7 @@ def import_xml(xml_file, where=None):
     for s in data.sections:
         import_section(s, where)
 
-
+@task
 def export_xml(sections, recursive=True):
     """ Exports given sections with all children and properties with odML parser. """
     def export_section(section, recursive=True):
