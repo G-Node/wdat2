@@ -51,7 +51,7 @@ class Datafile(SafetyLevel, LinkedToProject, MetadataManager):
     title = models.CharField(_('name'), blank=True, max_length=200)
     caption = models.TextField(_('description'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
-    owner = models.ForeignKey(User, related_name="related_file", blank=True, null=True)
+    #owner = models.ForeignKey(User, related_name="related_file", blank=True, null=True)
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     raw_file = models.FileField(_('data file'), storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField(_('keywords'))
@@ -88,4 +88,9 @@ class Datafile(SafetyLevel, LinkedToProject, MetadataManager):
             zipfile.is_zipfile(self.raw_file.path):
             return True
         return False
+
+    @property
+    def acl_type(self):
+        return 1 # Datafile has an acl type #1 (required for permissions)
+
 

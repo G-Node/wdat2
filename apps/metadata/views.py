@@ -144,7 +144,7 @@ def section_move(request, template_name="metadata/move_copy.html"):
                         secs = []
                     # moving positions
                     for sec in secs:
-                        sec.increaseTreePos()
+                        sec.increase_tree_pos()
                     section.save()
                     status = 1
             elif pos_type == "before":
@@ -174,7 +174,7 @@ def section_move(request, template_name="metadata/move_copy.html"):
                         secs = []
                     # moving positions
                     for sec in secs:
-                        sec.increaseTreePos()
+                        sec.increase_tree_pos()
                     section.save()
                     status = 1
     return render_to_response(template_name, {
@@ -213,7 +213,7 @@ def section_copy(request, template_name="metadata/move_copy.html"):
                         secs = []
                     # moving positions
                     for sec in secs:
-                        sec.increaseTreePos()
+                        sec.increase_tree_pos()
                     if prnt:
                         # parent is "complex" oblect - Experiment, Dataset etc.
                         status = ref_section.copy_section(section, ref_section.tree_position + 1, True)
@@ -240,7 +240,7 @@ def section_copy(request, template_name="metadata/move_copy.html"):
                         secs = []
                     # moving positions
                     for sec in secs:
-                        sec.increaseTreePos()
+                        sec.increase_tree_pos()
                     if prnt:
                         # parent is "complex" oblect - Experiment, Dataset etc.
                         status = ref_section.copy_section(section, ref_section.tree_position, True)
