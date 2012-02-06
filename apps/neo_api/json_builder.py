@@ -1,4 +1,4 @@
-from meta import meta_attributes, meta_data_attrs, meta_children, meta_parents, allowed_range_params
+from state_machine.meta import meta_attributes, meta_data_attrs, meta_children, meta_parents, request_params_cleaner
 from datetime import datetime
 
 
@@ -35,8 +35,8 @@ def json_builder(obj, GET={}, enquery="full"):
     if enquery == "data" or enquery == "full":
         params = {} # these are params used to filter requested data
         for k, v in GET.items():
-            if k in allowed_range_params.keys() and allowed_range_params.get(k)(v):
-                params[str(k)] = allowed_range_params.get(k)(v)
+            if k in request_params_cleaner.keys() and request_params_cleaner.get(k)(v):
+                params[str(k)] = request_params_cleaner.get(k)(v)
         assigned = assign_data_arrays(n, obj, **params) or assigned
     if enquery == "parents" or enquery == "full":
         assigned = assign_parents(n, obj) or assigned

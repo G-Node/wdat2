@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from state_machine.meta import meta_messages
 try:
     import json
 except ImportError:

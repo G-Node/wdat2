@@ -8,16 +8,6 @@ from state_machine.models import SafetyLevel, ObjectState
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
 
-def top_owned_sections(user):
-    """ top sections of the metadata tree for a given user """
-    return Section.objects.filter(owner=user, parent_section=None)
-
-def top_shared_sections(user): #TODO may require optimization (performance)
-    """ top shared sections for a given user. if a section's direct parent is
-    not shared, a section displays on top of the tree. """
-    shared_sections = filter(lambda s: s.is_accessible(user), Section.objects.exclude(owner=user))
-    return filter(lambda s: s.parent_section not in sections, sections) 
-
 
 class Section(SafetyLevel, ObjectState):
     """
@@ -32,10 +22,9 @@ class Section(SafetyLevel, ObjectState):
         (20, _('Experiment')),
         (30, _('Dataset')),
     )
-    title = models.CharField(_('title'), max_length=100)
+    name = models.CharField(_('name'), max_length=100)
     description = models.TextField(_('description'), blank=True)
     odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
-    date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     parent_section = models.ForeignKey('self', null=True) # link to itself to create a tree.
     tree_position = models.IntegerField(_('tree position')) # position in the list
     # field indicates whether it is a "template" section
@@ -47,7 +36,7 @@ class Section(SafetyLevel, ObjectState):
     user_custom = models.ForeignKey(User, blank=True, null=True, related_name='custom_section')
 
     def __unicode__(self):
-        return self.title
+        return self.name
 
     def does_belong_to(self, user):
         if self.owner == user:
@@ -67,7 +56,7 @@ class Section(SafetyLevel, ObjectState):
         sec_tree = []
         sec_tree.append(self.id)
         if not id_only:
-            sec_tree.append(self.title)
+            sec_tree.append(self.name)
         for section in self.sections:
             sec_tree.append(section.get_tree(id_only))
         return sec_tree
@@ -129,7 +118,7 @@ class Section(SafetyLevel, ObjectState):
             parent_section = None
         else:
             parent_section = self
-        new_section = Section(title=section.title, description=section.description,\
+        new_section = Section(name=section.name, description=section.description,\
             tree_position=pos)
         new_section.save() # new_section was copied from the given section
         res_tree.append(int(new_section.id))
@@ -162,7 +151,7 @@ class Property(ObjectState):
     Class represents a metadata "Property". Defines any kind of metadata 
     property and may be linked to the Section. 
     """
-    name = models.CharField(_('title'), max_length=100)
+    name = models.CharField(_('name'), max_length=100)
     definition = models.TextField(_('definition'), blank=True)
     dependency = models.CharField(_('dependency'), blank=True, max_length=1000)
     dependency_value = models.CharField(_('dependency_value'), blank=True, max_length=1000)

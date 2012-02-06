@@ -18,6 +18,7 @@ class ObjectState(models.Model):
         (30, _('Archived')),
     )
     current_state = models.IntegerField(_('state'), choices=STATES, default=10)
+    date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     last_modified = models.DateTimeField(auto_now=True) # Resp. H: Last-modified
 
     class Meta:

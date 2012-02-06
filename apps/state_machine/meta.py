@@ -1,3 +1,7 @@
+from django.contrib.auth.models import User
+from metadata.models import Section, Property
+import datetime
+
 meta_messages = {
     "invalid_neo_id": "The NEO_ID provided is wrong and can't be parsed. The NEO_ID should have a form 'neo-object-type_object-ID', like 'segment_12345'. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct NEO_ID and send the request again.",
     "wrong_neo_id": "The object with the NEO_ID provided does not exist.",
@@ -5,8 +9,8 @@ meta_messages = {
     "invalid_method": "This URL does not support the method specified.",
     "invalid_obj_type": "You provided an invalid NEO object type parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
-    "bad_parameter": "Some of the parameters provided are incorrect. Please consider values below:",
-    "wrong_parent": "A parent object with this neo_id does not exist: ",
+    "bad_parameter": "Some of the parameters provided are incorrect or object with a given ID does not exist. Please consider values below:",
+    "wrong_parent": "A parent object with this ID does not exist: ",
     "debug": "Debugging message.",
     "dict_required": "The following parameter must be of a type dict containing 'data' and 'units' keys: ",
     "no_enquery_related": "There are no related attributes for this object.",
@@ -92,15 +96,22 @@ meta_children = {
     "unit": ('spiketrain','spike'), 
     "analogsignalarray": ('analogsignal',)}
 
-# allowed parameters for GET for data slicing
-allowed_range_params = {
-    'start_time': lambda x: float(x),
-    'end_time': lambda x: float(x),
-    'start_index': lambda x: int(x),
-    'end_index': lambda x: int(x),
-    'duration': lambda x: float(x),
-    'samples_count': lambda x: int(x),
-    'downsample': lambda x: int(x),
+# allowed parameters for GET requests
+request_params_cleaner = {
+    'start_time': lambda x: float(x), # may raise ValueError
+    'end_time': lambda x: float(x), # may raise ValueError
+    'start_index': lambda x: int(x), # may raise ValueError
+    'end_index': lambda x: int(x), # may raise ValueError
+    'duration': lambda x: float(x), # may raise ValueError
+    'samples_count': lambda x: int(x), # may raise ValueError
+    'downsample': lambda x: int(x), # may raise ValueError
+    'section_id': lambda x: Section.objects.get(id=x), # may raise ObjectDoesNotExist
+    'visibility':  lambda x: visibility_options[x], # may raise IndexError
+    'top':  lambda x: top_options[x], # may raise IndexError
+    'owner':  lambda x: User.objects.get(username=x), # may raise ObjectDoesNotExist
+    'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+    'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+    'max_results':  lambda x: abs(int(x)), # may raise ValueError
 }
 
 # factors to align time / sampling rate units for Analog Signals
@@ -113,4 +124,15 @@ factor_options = {
   "mcskhz": 1.0/1000.0,
 }
 
+# visibility options in GET request 
+visibility_options = {
+    "private": "private",
+    "public": "public",
+    "shared": "shared",
+    "all": "all"}
+
+# select only top sections, owned by the user or shared with the user (GET request)
+top_options = {
+    "shared": "shared",
+    "owned": "owned"}
 

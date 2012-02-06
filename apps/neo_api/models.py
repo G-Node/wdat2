@@ -8,7 +8,7 @@ from scipy import signal
 from fields import models as fmodels
 from state_machine.models import ObjectState
 from datafiles.models import Datafile
-from meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
+from state_machine.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
 
 # default unit values and values limits
 name_max_length = 100
