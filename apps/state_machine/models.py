@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from friends.models import Friendship
+from datetime import datetime
 
 
 class ObjectState(models.Model):
@@ -26,13 +27,16 @@ class ObjectState(models.Model):
 
     def restore_object(self):
         self.current_state = 10
+        self.save()
 
     def delete_object(self):
         self.current_state = 20
+        self.save()
 
     def move_to_archive(self):
         try:
             self.current_state = 30
+            self.save()
         except BaseException:
             raise KeyError("Object can't be moved to archive. Check \
                 dependencies or it's a developer issue.")

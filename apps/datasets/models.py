@@ -15,7 +15,7 @@ class RDataset(SafetyLevel, LinkedToProject, MetadataManager):
     title = models.CharField(_('title'), max_length=200)
     caption = models.TextField(_('description'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
-    owner = models.ForeignKey(User, related_name="added_datasets", blank=True, null=False)
+    #owner = models.ForeignKey(User, related_name="added_datasets", blank=True, null=False)
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     tags = TagField(_('keywords'))
 

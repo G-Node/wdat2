@@ -8,8 +8,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import condition
 
-from state_machine.rest_common import *
-from state_machine.meta import *
+from rest.common import *
+from rest.meta import *
 from neo_api.json_builder import *
 from neo_api.models import *
 try:

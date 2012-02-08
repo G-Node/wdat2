@@ -8,7 +8,7 @@ from scipy import signal
 from fields import models as fmodels
 from state_machine.models import ObjectState
 from datafiles.models import Datafile
-from state_machine.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
+from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
 
 # default unit values and values limits
 name_max_length = 100
@@ -71,8 +71,6 @@ class BaseInfo(ObjectState):
         (30, 'Archived'),
     )
     author = models.ForeignKey(User)
-    date_created = models.DateTimeField('date created', default=datetime.now,\
-        editable=False)
     file_origin = models.ForeignKey(Datafile, blank=True, null=True)
 
     # this is temporary unless the integration with Datafiles is implemented

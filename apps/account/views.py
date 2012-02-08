@@ -19,8 +19,7 @@ from account.forms import SignupForm, AddEmailForm, LoginForm, \
     ChangeTimezoneForm, ChangeLanguageForm, TwitterForm, ResetPasswordKeyForm
 from emailconfirmation.models import EmailAddress, EmailConfirmation
 
-from neo_api.views import BadRequest, BasicJSONResponse, Unauthorized
-from neo_api.meta import meta_messages
+from rest.common import BadRequest, BasicJSONResponse, Unauthorized
 try:
     import json
 except ImportError:

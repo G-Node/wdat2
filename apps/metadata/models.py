@@ -2,11 +2,11 @@ from datetime import datetime
 
 from django.db import models
 from django.contrib.auth.models import User
-
-from state_machine.models import SafetyLevel, ObjectState
-
+from django.db.models import Max
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
+
+from state_machine.models import SafetyLevel, ObjectState
 
 
 class Section(SafetyLevel, ObjectState):
@@ -26,7 +26,7 @@ class Section(SafetyLevel, ObjectState):
     description = models.TextField(_('description'), blank=True)
     odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
     parent_section = models.ForeignKey('self', null=True) # link to itself to create a tree.
-    tree_position = models.IntegerField(_('tree position')) # position in the list
+    tree_position = models.IntegerField(_('tree position'), blank=True) # position in the list
     # field indicates whether it is a "template" section
     is_template = models.BooleanField(_('is template'), default=False)
     # the following implements "odML vocabulary". If the section is a "template"
@@ -42,6 +42,18 @@ class Section(SafetyLevel, ObjectState):
         if self.owner == user:
             return True
         return False
+
+    def save(self, *args, **kwargs):
+        """ override save to set up default tree position. Default position for
+        a section - the last in the list (on top or inside parent section) """
+        if not self.tree_position:
+            if not self.parent_section: # section on top of the hierarchy
+                sections = Section.objects.filter(owner=self.owner, parent_section=None)
+            else:
+                sections = self.parent_section.section_set.all()
+            last_pos = (sections.aggregate(Max('tree_position'))['tree_position__max'] or 0)
+            self.tree_position = last_pos + 1
+        super(Section, self).save(*args, **kwargs)
 
     @property
     def sections(self):
@@ -160,7 +172,6 @@ class Property(ObjectState):
     dtype = models.CharField(_('dtype'), blank=True, max_length=10)
     uncertainty = models.CharField(_('uncertainty'), blank=True, max_length=10)
     comment = models.TextField(_('comment'), blank=True)
-    date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     section = models.ForeignKey(Section)
 
     def __unicode__(self):

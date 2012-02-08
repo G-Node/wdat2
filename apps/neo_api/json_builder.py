@@ -1,4 +1,4 @@
-from state_machine.meta import meta_attributes, meta_data_attrs, meta_children, meta_parents, request_params_cleaner
+from rest.meta import meta_attributes, meta_data_attrs, meta_children, meta_parents, request_params_cleaner
 from datetime import datetime
 
 

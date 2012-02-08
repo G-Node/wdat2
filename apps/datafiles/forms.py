@@ -49,7 +49,8 @@ class PrivacyEditForm(forms.ModelForm):
     
     class Meta:
         model = Datafile
-        fields = ('safety_level', 'shared_with')
+        #fields = ('safety_level', 'shared_with')
+        fields = ('safety_level', 'title')
     
     def __init__(self, user=None, *args, **kwargs):
         self.user = user

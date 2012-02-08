@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 
 from itertools import chain
 import settings
-from state_machine.meta import meta_unit_types
+from rest.meta import meta_unit_types
 
 class UnitField(models.CharField):
     """

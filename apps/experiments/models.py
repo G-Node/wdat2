@@ -14,7 +14,7 @@ class Experiment(SafetyLevel, LinkedToProject, MetadataManager):
     title = models.CharField(_('title'), max_length=100)
     caption = models.TextField(_('description'), blank=True)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
-    owner = models.ForeignKey(User, blank=True, null=True)
+    #owner = models.ForeignKey(User, blank=True, null=True)
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     tags = TagField(_('keywords'))
 

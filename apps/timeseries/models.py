@@ -28,7 +28,7 @@ class TimeSeries(SafetyLevel, MetadataManager):
     title = models.CharField(_('title'), max_length=100)
     caption = models.TextField(_('description'), blank=True)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
-    owner = models.ForeignKey(User, editable=False)
+    #owner = models.ForeignKey(User, editable=False)
     data = models.TextField(_('data'), blank=True)
     data_type = models.IntegerField(_('data type'), choices=TYPES, default=10)
     start_time = models.DateTimeField(_('start time'), default=datetime.now, blank=True)

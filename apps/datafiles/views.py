@@ -21,7 +21,7 @@ from metadata.models import Section
 from datafiles.tasks import extract_file_info, extract_from_archive # broker tasks
 
 from datafiles.forms import NewDatafileForm, DatafileEditForm, DeleteDatafileForm, DatafileShortEditForm, PrivacyEditForm
-from metadata.forms import AddPropertyForm, LinkTSForm, importOdML
+#from metadata.forms import AddPropertyForm, LinkTSForm, importOdML
 
 #LOG_FILENAME = '/data/apps/g-node-portal/g-node-portal/logs/test_upload.txt'
 #logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)

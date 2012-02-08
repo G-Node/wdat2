@@ -32,7 +32,6 @@ import os
 import shutil
 from django.core.files import File
 from metadata.models import Section
-from metadata.views import section_add
 from settings import TMP_FILES_PATH
 
 @task

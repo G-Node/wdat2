@@ -106,14 +106,14 @@ friends_bookmarks_kwargs = {
 
 urlpatterns += patterns('',
     #url(r'^grappelli/', include('grappelli.urls')),
-    url(r'^experiments/', include('experiments.urls')),
-    url(r'^datasets/', include('datasets.urls')),
-    url(r'^datafiles/', include('datafiles.urls')),
+    #url(r'^experiments/', include('experiments.urls')),
+    #url(r'^datasets/', include('datasets.urls')),
+    #url(r'^datafiles/', include('datafiles.urls')),
     url(r'^trash_folder/', include('trash_folder.urls')),
     url(r'^captcha/', include('captcha.urls')),
     url(r'^system_dashboard/', include('system_dashboard.urls')),
     url(r'^metadata/', include('metadata.urls')),
-    url(r'^timeseries/', include('timeseries.urls')),
+    #url(r'^timeseries/', include('timeseries.urls')),
     url(r'^neo/', include('neo_api.urls')),
     url(r'^electrophysiology/', include('neo_api.urls')),
     # - that's a jerky workaround for POST without trailing slash. If there are

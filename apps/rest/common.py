@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from state_machine.meta import meta_messages
+from meta import meta_messages
 try:
     import json
 except ImportError:
@@ -51,4 +51,14 @@ def auth_required(func):
             return Unauthorized(message_type="not_authenticated")
         return func(*args, **kwargs)
     return auth_func
+
+def get_serial_type(request):
+    """ computes whether it's xml, json or other (not supported by API) """
+    if "text/xml" in request.META["CONTENT_TYPE"]:
+        return "xml"
+    if "application/json" in request.META["CONTENT_TYPE"]:
+        return "json"
+    return "json" #FIXME should be None? fail requests with other types?
+
+
 
