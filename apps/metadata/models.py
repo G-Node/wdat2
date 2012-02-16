@@ -56,6 +56,12 @@ class Section(SafetyLevel, ObjectState):
         super(Section, self).save(*args, **kwargs)
 
     @property
+    def rest_filters(self):
+        """ supported filters for REST API """
+        return ['top', 'section_id', 'visibility', 'owner', 'created_min', \
+            'created_max']
+
+    @property
     def sections(self):
         return self.section_set.filter(current_state=10).order_by("tree_position")
 

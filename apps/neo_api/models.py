@@ -73,11 +73,11 @@ class BaseInfo(ObjectState):
     author = models.ForeignKey(User)
     file_origin = models.ForeignKey(Datafile, blank=True, null=True)
 
-    # this is temporary unless the integration with Datafiles is implemented
     def is_accessible(self, user):
+        # FIXME should depend on the parent section!
         return self.author == user
 
-    def can_edit(self, user):
+    def is_editable(self, user):
         return self.author == user
 
     def is_sliceable(self): return False

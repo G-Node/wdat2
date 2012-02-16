@@ -95,11 +95,13 @@ def sections(request):
         except:
             return BadRequest(message_type="data_parsing_error", request=request)
         try: # TODO maybe do some params cleaning here
-            for s in deserialized:
-                s.save()
+            for sec in deserialized:
+                sec.save()
         except Exception, e: # no errors are accepted
             return BadRequest(json_obj={"details": e.message}, \
                     message_type="wrong_params", request=request)
+        import pdb
+        pdb.set_trace()
         return Created(message_type="object_created", request=request)
 
     actions = {
@@ -107,10 +109,8 @@ def sections(request):
         'PUT': create_section,
         'POST': create_section}
     if request.method in actions.keys():
-        response = actions[request.method](request)
-    else:
-        response = NotSupported(message_type="invalid_method", request=request)
-    return response
+        return actions[request.method](request)
+    return NotSupported(message_type="invalid_method", request=request)
 
 
 def get_section_etag(request, section_id):

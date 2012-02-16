@@ -98,6 +98,16 @@ meta_children = {
     "unit": ('spiketrain','spike'), 
     "analogsignalarray": ('analogsignal',)}
 
+# factors to align time / sampling rate units for Analog Signals
+factor_options = {
+  "skhz": 1000.0,
+  "smhz": 1000000.0,
+  "mshz": 1.0/1000.0,
+  "msmhz": 1000.0,
+  "mcshz": 1.0/1000000.0,
+  "mcskhz": 1.0/1000.0,
+}
+
 # allowed parameters for GET requests
 request_params_cleaner = {
     'start_time': lambda x: float(x), # may raise ValueError
@@ -114,16 +124,6 @@ request_params_cleaner = {
     'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'max_results':  lambda x: abs(int(x)), # may raise ValueError
-}
-
-# factors to align time / sampling rate units for Analog Signals
-factor_options = {
-  "skhz": 1000.0,
-  "smhz": 1000000.0,
-  "mshz": 1.0/1000.0,
-  "msmhz": 1000.0,
-  "mcshz": 1.0/1000000.0,
-  "mcskhz": 1.0/1000.0,
 }
 
 # visibility options in GET request 
