@@ -1,9 +1,8 @@
 from django.http import HttpResponse
+from django.utils import simplejson
+from django.core.serializers.json import DjangoJSONEncoder
 from meta import meta_messages
-try:
-    import json
-except ImportError:
-    import simplejson as json
+from StringIO import StringIO
 
 #===============================================================================
 # here we implement REST API supporting functions
@@ -15,12 +14,14 @@ class BasicJSONResponse(HttpResponse):
     always appreciated.
     """
     def __init__(self, json_obj={}, message_type=None, request=None):
+        self.stream = StringIO()
         if request: 
             if request.user: json_obj["logged_in_as"] = request.user.username
         if message_type:
             json_obj["message_type"] = message_type
             json_obj["message"] = meta_messages[message_type]
-        super(BasicJSONResponse, self).__init__(json.dumps(json_obj))
+        js = simplejson.dump(json_obj, self.stream, cls=DjangoJSONEncoder, ensure_ascii=False)
+        super(BasicJSONResponse, self).__init__(self.stream.getvalue())
         self['Content-Type'] = "application/json"
         self['G-Node-Version'] = "1.0"
 
@@ -47,7 +48,7 @@ def auth_required(func):
     argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
     fname = func.func_name
     def auth_func(*args, **kwargs):
-        if not args[0].user.is_authenticated():
+        if not args[1].user.is_authenticated():
             return Unauthorized(message_type="not_authenticated")
         return func(*args, **kwargs)
     return auth_func

@@ -1,19 +1,18 @@
 from django.conf.urls.defaults import *
 
-from piston.resource import Resource
-from piston.authentication import HttpBasicAuthentication
-from metadata.handlers import SectionHandler
+from rest.management import ObjectHandler, CategoryHandler
+from rest.serializers import Serializer
 
-auth = HttpBasicAuthentication(realm="My Realm")
-ad = { 'authentication': auth }
+from metadata.models import Section, Property
 
-section_resource = Resource(handler=SectionHandler, **ad)
+section_manager_single = ObjectHandler(Serializer, Section)
+section_manager_category = CategoryHandler(Serializer, Section)
 
 urlpatterns = patterns('',
     # 1. Sections list
     # GET: get list of sections (as list, as tree etc.) POST/PUT - create, copy
     #url(r'^sections/$', 'metadata.views.sections', name="sections"),
-    url(r'^sections/$', section_resource, name="sections"),
+    url(r'^sections/$', section_manager_category, name="sections"),
 
     # 2. Section details
     # GET: get single section, PUT/POST: update (move), DELETE: archive section.
@@ -21,7 +20,7 @@ urlpatterns = patterns('',
     #url(r'^sections/(?P<section_id>[\d]+)/?$', \
     #    'metadata.views.section_details', name="section_details"),
     url(r'^sections/(?P<id>[\d]+)/?$', \
-        section_resource, name="section_details"),
+        section_manager_single, name="section_details"),
 )
 
 in_development = (

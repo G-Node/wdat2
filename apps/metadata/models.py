@@ -22,6 +22,8 @@ class Section(SafetyLevel, ObjectState):
         (20, _('Experiment')),
         (30, _('Dataset')),
     )
+    non_cascade_rel = ("property") # see REST JSON serializer
+
     name = models.CharField(_('name'), max_length=100)
     description = models.TextField(_('description'), blank=True)
     odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
@@ -169,6 +171,8 @@ class Property(ObjectState):
     Class represents a metadata "Property". Defines any kind of metadata 
     property and may be linked to the Section. 
     """
+    non_cascade_rel = ("value") # see REST JSON serializer
+
     name = models.CharField(_('name'), max_length=100)
     definition = models.TextField(_('definition'), blank=True)
     dependency = models.CharField(_('dependency'), blank=True, max_length=1000)
