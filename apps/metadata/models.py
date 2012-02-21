@@ -22,12 +22,12 @@ class Section(SafetyLevel, ObjectState):
         (20, _('Experiment')),
         (30, _('Dataset')),
     )
-    non_cascade_rel = ("property") # see REST JSON serializer
+    non_cascade_rel = ("property",) # see REST JSON serializer
 
     name = models.CharField(_('name'), max_length=100)
     description = models.TextField(_('description'), blank=True)
     odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
-    parent_section = models.ForeignKey('self', null=True) # link to itself to create a tree.
+    parent_section = models.ForeignKey('self', blank=True, null=True) # link to itself to create a tree.
     tree_position = models.IntegerField(_('tree position'), blank=True) # position in the list
     # field indicates whether it is a "template" section
     is_template = models.BooleanField(_('is template'), default=False)
@@ -39,6 +39,10 @@ class Section(SafetyLevel, ObjectState):
 
     def __unicode__(self):
         return self.name
+
+    @models.permalink
+    def get_absolute_url(self):
+        return ('section_details', [str(self.id)])
 
     def does_belong_to(self, user):
         if self.owner == user:
@@ -186,6 +190,16 @@ class Property(ObjectState):
 
     def __unicode__(self):
         return self.name
+
+    @models.permalink
+    def get_absolute_url(self):
+        return ('property_details', [str(self.id)])
+
+    def is_accessible(self, user):
+        return self.section.is_accessible(user)
+
+    def is_editable(self, user):
+        return self.section.is_editable(user)
 
     def does_belong_to(self, user):
         """ Defines whether this property belongs to a certain user. """

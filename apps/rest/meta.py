@@ -33,6 +33,7 @@ meta_messages = {
     "not_found": "The page you requested was not found.",
     "does_not_exist": "Object does not exist.",
     "deleted": "Object was deleted.",
+    "post_data_invalid": "The structure of the POST data is invalid.",
 }
 
 meta_objects = ("block", "segment", "event", "eventarray", "epoch", "epocharray", \

@@ -8,6 +8,9 @@ from metadata.models import Section, Property
 section_manager_single = ObjectHandler(Serializer, Section)
 section_manager_category = CategoryHandler(Serializer, Section)
 
+property_manager_single = ObjectHandler(Serializer, Property)
+property_manager_category = CategoryHandler(Serializer, Property)
+
 urlpatterns = patterns('',
     # 1. Sections list
     # GET: get list of sections (as list, as tree etc.) POST/PUT - create, copy
@@ -21,25 +24,23 @@ urlpatterns = patterns('',
     #    'metadata.views.section_details', name="section_details"),
     url(r'^sections/(?P<id>[\d]+)/?$', \
         section_manager_single, name="section_details"),
-)
 
-in_development = (
     # 3. Properties list (in the section, if provided)
     # GET: list the properties, PUT: create new property, POST: update 
     # properties as a list, DELETE: archive all properties
     url(r'^sections/(?P<section_id>[\d]+)/properties/?$', \
-        'metadata.views.properties', name="properties"),
+        property_manager_category, name="properties_for_section"),
     url(r'^properties/?$', \
-        'metadata.views.properties', name="properties"),
+        property_manager_category, name="properties"),
 
     # 4. Property details
     # GET: get property with all details, POST/PUT: update (move) property, 
     # DELETE: delete. Both URLs do the same.
-    url(r'^sections/(?P<section_id>[\d]+)/properties/(?P<property_id>[\d]+)/?$',\
-        'metadata.views.property_details', name="property_details"),
-    url(r'^properties/(?P<property_id>[\d]+)/?$',\
-        'metadata.views.property_details', name="property_details"),
+    url(r'^properties/(?P<id>[\d]+)/?$',\
+        property_manager_single, name="property_details"),
+)
 
+in_development = (
     # 5. Define in datafiles! #TODO
     # GET: all datafiles in this section
     url(r'^sections/(?P<section_id>[\d]+)/datafiles/?$',\

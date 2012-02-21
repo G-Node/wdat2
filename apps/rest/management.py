@@ -1,10 +1,16 @@
 from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.views.decorators.http import condition
+from django.utils import simplejson as json
+from django.utils.encoding import smart_unicode
+from django.db import models
+from django.db.models.fields import FieldDoesNotExist
+
+import settings
+import hashlib
 
 from rest.common import *
 from rest.meta import *
-import hashlib
 
 
 class RESTManager(object):
@@ -27,16 +33,16 @@ class RESTManager(object):
 
     def get(self, request, obj):
         """ retrieve and serialize single object """
-        resp_data = self.handler.serialize([obj], options=request.GET)[0]
+        resp_data = self.handler.serialize([obj], options=self.build_options(request))[0]
         return BasicJSONResponse(resp_data, "retrieved", request)
 
-    def get_list(self, request):
+    def get_list(self, request, *args, **kwargs):
         """ returns requested objects list """
         message_type = "no_objects_found"
         start_index, max_results = 0, 1000 # default
-        try: # assert GET parameters
+        try: # assert request parameters both from request.GET and from kwargs
             params = {} # a dict to later filter requested data
-            for k, v in request.GET.items():
+            for k, v in dict(request.GET.items() + kwargs.items()).items():
                 if k in request_params_cleaner.keys() and request_params_cleaner.get(k)(v):
                     params[str(k)] = request_params_cleaner.get(k)(v)
         except (ObjectDoesNotExist, ValueError, IndexError), e:
@@ -48,7 +54,7 @@ class RESTManager(object):
         # model-dependent filters
         for filter_name in self.list_filters:
             if filter_name in params.keys() and objects:
-                filter_func = get_filter_by_name(filter_name)
+                filter_func = self.get_filter_by_name(filter_name)
                 objects = filter_func(objects, params[filter_name], request.user)
         # post- filters
         if "start_index" in params.keys() and params["start_index"] < \
@@ -66,7 +72,7 @@ class RESTManager(object):
         }
         if objects:
             message_type = "object_selected"
-            resp_data["selected"] = self.handler.serialize(objects, options=request.GET)
+            resp_data["selected"] = self.handler.serialize(objects, self.build_options(request))
         else:
             resp_data["selected"] = None
         return BasicJSONResponse(resp_data, message_type, request)
@@ -78,16 +84,15 @@ class RESTManager(object):
         practical reasons (no automatic JSON parsing into an object). Create and
         update have very similar functionality thus implemented as one function.
         """
-        to_link, parents = None, None # handlers for specials (waveforms, units)
         try:
             rdata = json.loads(request._get_raw_post_data())
         except ValueError:
             return BadRequest(message_type="data_parsing_error", request=request)
 
-        if not type(rdata) == type({}) or not hasattr(rdata, 'fields'):
+        if not type(rdata) == type({}):
             return BadRequest(message_type="data_parsing_error", request=request)
 
-        if obj:
+        if not obj == None:
             update = True
             if not obj.is_editable(request.user): # method should exist, ensure
                 return Unauthorized(message_type="not_authorized", request=request)
@@ -99,12 +104,19 @@ class RESTManager(object):
             else:
                 obj.owner = request.user
 
-        # processing attributes
-        for field_name, field_value in rdata['fields'].iteritems():
-            if isinstance(field_value, str):
-                field_value = smart_unicode(field_value, options.get("encoding", settings.DEFAULT_CHARSET), strings_only=True)
+        # fields / values can be in both 'fields' attr or just in the request
+        if rdata.has_key('fields'):
+            rdata = rdata['fields']
 
-            field = Model._meta.get_field(field_name)
+        # processing attributes
+        for field_name, field_value in rdata.iteritems():
+            if isinstance(field_value, str):
+                field_value = smart_unicode(field_value, getattr(request, "encoding", None) or settings.DEFAULT_CHARSET, strings_only=True)
+            try:
+                field = self.model._meta.get_field(field_name)
+            except FieldDoesNotExist, v:
+                return BadRequest(json_obj={"details": v.message}, \
+                    message_type="post_data_invalid", request=request)
 
             # Handle special fields
             if hasattr(self.model, "is_special_field"):
@@ -141,7 +153,7 @@ class RESTManager(object):
                 except ValueError, v:
                     return BadRequest(json_obj={"details": v.message}, \
                         message_type="bad_float_data", request=request)
-            else:
+            elif field.editable:
                 setattr(obj, field_name, field.to_python(field_value))
 
         try: # catch exception if any of values provided do not match
@@ -156,9 +168,13 @@ class RESTManager(object):
 
         if update:
             request.method = "GET"
-            #request.GET["q"] = "info"
             return self.get(request, obj)
-        return Created(message_type="object_created", request=request)
+        options = self.build_options(request)
+        options["q"] = "info"
+        resp_data = self.handler.serialize([obj], options=options)[0]
+        #return Created({'permalink': request.build_absolute_uri(obj.get_absolute_url())}, \
+        #    message_type="object_created", request=request)
+        return Created(resp_data, message_type="object_created", request=request)
 
 
     def delete(self, request, obj):
@@ -169,7 +185,7 @@ class RESTManager(object):
         else:
             return Unauthorized(message_type="not_authorized", request=request)
 
-    def get_filter_by_name(filter_name):
+    def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
 
     def is_data_field(self, attr_name, value):
@@ -191,6 +207,11 @@ class RESTManager(object):
     def run_post_processing(self, obj):
         pass
 
+    def build_options(self, request):
+        options = dict(request.GET)
+        options["permalink_host"] = '%s://%s' % (request.is_secure() and \
+            'https' or 'http', request.get_host())
+        return options
 
 # HANDLERS ---------------------------------------------------------------------
 
@@ -258,7 +279,7 @@ class CategoryHandler(RESTManager):
             'PUT': self.create_or_update,
             'POST': self.create_or_update}
         if request.method in actions.keys():
-            return actions[request.method](request)
+            return actions[request.method](request, *args, **kwargs)
         return NotSupported(message_type="invalid_method", request=request)
 
 
@@ -278,7 +299,7 @@ def top_filter(objects, value, user):
 
 def parent_section_filter(objects, value, user=None):
     """ returns objects in a particular section """
-    return objects.filter(parent_section=value)
+    return filter(lambda s: s.section == value, objects) 
 
 def visibility_filter(objects, value, user):
     """ filters public / private / shared """

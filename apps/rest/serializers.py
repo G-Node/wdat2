@@ -1,4 +1,5 @@
 from django.core.serializers.python import Serializer as PythonSerializer
+from django.utils.encoding import smart_unicode
 
 
 class Serializer(PythonSerializer):
@@ -12,13 +13,12 @@ class Serializer(PythonSerializer):
         """
         Serialize a queryset.
         """
-        self.options = options # QueryDict from the response
-        self.cascade = options.__contains__("cascade")
-        self.q = options.get("q", "full")
-        self.selected_fields = options.get("fields", None)
-        self.use_natural_keys = options.get("use_natural_keys", False)
-        #import pdb
-        #pdb.set_trace()
+        self.options = options # dict(request.GET) from the response
+        self.cascade = options.has_key("cascade")
+        self.q = options.pop("q", "full")
+        self.host = options.pop("permalink_host", "")
+        self.selected_fields = options.pop("fields", None)
+        self.use_natural_keys = options.pop("use_natural_keys", False)
         self.start_serialization()
         for obj in queryset:
             self.start_object(obj)
@@ -33,7 +33,7 @@ class Serializer(PythonSerializer):
                                 self.handle_data_field(obj, field)
                             elif field.attname.find("__unit") > 0:
                                 pass # ignore unit fields as they are processed above
-                            elif self.serialize_attrs:
+                            elif self.serialize_attrs: # FIXME resolve choices
                                 self.handle_field(obj, field)
                     else:
                         if self.selected_fields is None or field.attname[:-3] in self.selected_fields:
@@ -42,6 +42,9 @@ class Serializer(PythonSerializer):
                 if field.serialize:
                     if self.selected_fields is None or field.attname in self.selected_fields:
                         self.handle_m2m_field(obj, field)
+            import pdb
+            pdb.set_trace()
+            # for field FIXME !!!!!
             if (self.serialize_rel and hasattr(obj, "non_cascade_rel") and \
                 field.attname in obj.non_cascade_rel) or self.cascade:
                 """ this is used to include some short-relatives into the 
@@ -52,6 +55,15 @@ class Serializer(PythonSerializer):
             self.end_object(obj)
         self.end_serialization()
         return self.getvalue()
+
+    def end_object(self, obj):
+        self.objects.append({
+            "model"     : smart_unicode(obj._meta),
+            #"pk"       : smart_unicode(obj._get_pk_val(), strings_only=True),
+            "permalink" : ''.join([self.host, obj.get_absolute_url()]),
+            "fields"    : self._current
+        })
+        self._current = None
 
     @property
     def serialize_data(self):

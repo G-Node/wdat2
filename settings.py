@@ -240,7 +240,7 @@ SUPPORTED_SERVICES = (
     ('spike_evaluation', 'Spike')
 )
 DEFAULT_SERVICE = SUPPORTED_SERVICES[0][0]
-
+DEFAULT_CHARSET = 'utf-8'
 # Maximum size, in bytes, of a request before it will be streamed to the
 # file system instead of into memory.
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 # i.e. 1 KB
