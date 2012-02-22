@@ -23,7 +23,6 @@ class RESTManager(object):
         self.model = model # required
         self.list_filters = { # this is a full list, overwrite in a parent class
             'top': top_filter,
-            'section_id': parent_section_filter,
             'visibility': visibility_filter,
             'owner': owner_filter,
             'created_min': created_min_filter,
@@ -92,6 +91,10 @@ class RESTManager(object):
         if not type(rdata) == type({}):
             return BadRequest(message_type="data_parsing_error", request=request)
 
+        # fields / values can be in both 'fields' attr or just in the request
+        if rdata.has_key('fields'):
+            rdata = rdata['fields']
+
         if not obj == None:
             update = True
             if not obj.is_editable(request.user): # method should exist, ensure
@@ -104,76 +107,30 @@ class RESTManager(object):
             else:
                 obj.owner = request.user
 
-        # fields / values can be in both 'fields' attr or just in the request
-        if rdata.has_key('fields'):
-            rdata = rdata['fields']
-
-        # processing attributes
-        for field_name, field_value in rdata.iteritems():
-            if isinstance(field_value, str):
-                field_value = smart_unicode(field_value, getattr(request, "encoding", None) or settings.DEFAULT_CHARSET, strings_only=True)
-            try:
-                field = self.model._meta.get_field(field_name)
-            except FieldDoesNotExist, v:
-                return BadRequest(json_obj={"details": v.message}, \
-                    message_type="post_data_invalid", request=request)
-
-            # Handle special fields
-            if hasattr(self.model, "is_special_field"):
-                if self.model.is_special_field(field_name): # every model can have special fields
-                    self.process_special_field(self, obj, field_name, field_value)
-
-            # Handle M2M relations TODO
-
-            # Handle FK fields (taken from django.core.Deserializer)
-            elif field.rel and isinstance(field.rel, models.ManyToOneRel):
-                if field_value is not None:
-                    if hasattr(field.rel.to._default_manager, 'get_by_natural_key'):
-                        if hasattr(field_value, '__iter__'):
-                            relativ = field.rel.to._default_manager.db_manager(db).get_by_natural_key(*field_value)
-                            value = getattr(relativ, field.rel.field_name)
-                            # If this is a natural foreign key to an object that
-                            # has a FK/O2O as the foreign key, use the FK value
-                            if field.rel.to._meta.pk.rel:
-                                value = value.pk
-                        else:
-                            value = field.rel.to._meta.get_field(field.rel.field_name).to_python(field_value)
-                        setattr(obj, field.attname, value)
-                    else:
-                        setattr(obj, field.attname, \
-                            field.rel.to._meta.get_field(field.rel.field_name).to_python(field_value))
-                else:
-                    setattr(obj, field.attname, None)
-
-            # Handle data/units fields
-            elif self.is_data_field(field_name, field_value): # process data field (with units)
-                try: # for data parsing see class methods / decorators
-                    setattr(obj, field_name, field_value["data"])
-                    setattr(obj, field_name + "__unit", value["unit"])
-                except ValueError, v:
-                    return BadRequest(json_obj={"details": v.message}, \
-                        message_type="bad_float_data", request=request)
-            elif field.editable:
-                setattr(obj, field_name, field.to_python(field_value))
-
-        try: # catch exception if any of values provided do not match
-            obj.full_clean()
+        try:
+            self.handler.deserialize(rdata, obj, encoding=getattr(request, \
+                "encoding", None) or settings.DEFAULT_CHARSET)
+        except FieldDoesNotExist, v: # or pass????
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="post_data_invalid", request=request)
+        except ValueError, v:
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="bad_float_data", request=request)
         except ValidationError, VE:
             return BadRequest(json_obj=VE.message_dict, \
                 message_type="bad_parameter", request=request)
+        #except Exception, e:
+        #    return BadRequest(json_obj={"details": e.message}, \
+        #        message_type="post_data_invalid", request=request)
 
-        obj.save() # processing (almost) done
-
-        self.run_post_processing(obj) # again, for some special cases
+        self.run_post_processing(obj) # for some special cases
 
         if update:
             request.method = "GET"
             return self.get(request, obj)
         options = self.build_options(request)
-        options["q"] = "info"
+        options["q"] = ["info"]
         resp_data = self.handler.serialize([obj], options=options)[0]
-        #return Created({'permalink': request.build_absolute_uri(obj.get_absolute_url())}, \
-        #    message_type="object_created", request=request)
         return Created(resp_data, message_type="object_created", request=request)
 
 
@@ -185,24 +142,9 @@ class RESTManager(object):
         else:
             return Unauthorized(message_type="not_authorized", request=request)
 
+
     def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
-
-    def is_data_field(self, attr_name, value):
-        """ determines if a given field has units and requires special proc."""
-        if type(value) == type({}) and value.has_key("data") and \
-            value.has_key("unit"):
-            return True
-        return False
-
-    def is_special_field(self, attr_name, value):
-        """ abstract method. determines if a field has a special shape """
-        return False
-
-    def process_special_field(self, obj, attr_name, value):
-        """ abstract method. use to process special shapes of some fields """
-        raise NotImplementedError("This is an abstract method. Please define it\
-            in a parent class.")
 
     def run_post_processing(self, obj):
         pass
@@ -297,10 +239,6 @@ def top_filter(objects, value, user):
         objects = filter(lambda s: s.parent_section not in shared_objects, shared_objects) 
     return objects
 
-def parent_section_filter(objects, value, user=None):
-    """ returns objects in a particular section """
-    return filter(lambda s: s.section == value, objects) 
-
 def visibility_filter(objects, value, user):
     """ filters public / private / shared """
     if value == "private":
@@ -311,8 +249,8 @@ def visibility_filter(objects, value, user):
         return filter(lambda s: not s.owner==user, objects)
 
 def owner_filter(objects, value, user):
-    """ objects belonging to a specific user """
-    return filter(lambda s: not s.owner==value, objects)
+    """ objects belonging to a specific user, by ID """
+    return filter(lambda s: s.get_owner().username == value, objects)
 
 def created_min_filter(objects, value, user):
     """ date created filter """

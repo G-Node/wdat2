@@ -25,6 +25,10 @@ class ObjectState(models.Model):
     class Meta:
         abstract = True
 
+    def get_owner(self):
+        """ required for filtering by owner in REST """
+        raise NotImplementedError
+
     def restore_object(self):
         self.current_state = 10
         self.save()

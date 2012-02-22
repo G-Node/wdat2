@@ -1,33 +1,26 @@
-from piston.handler import BaseHandler
-from piston.utils import rc, throttle
+from rest.management import CategoryHandler
 
-from metadata.models import Section
+def parent_section_filter(objects, value, user=None):
+    """ returns objects in a particular section """
+    return filter(lambda s: s.section.id == value, objects) 
 
-class SectionHandler(BaseHandler):
-    allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
-    fields = ('id', 'name', 'description', ('owner', ('username', 'first_name')), 'content_size')
-    #fields = ('name', 'description')
-    exclude = ('is_template')
-    model = Section
+class PropertyCategoryHandler(CategoryHandler):
+    """ add some specific filtering to the base Handler """
 
-    @classmethod
-    def content_size(self, section):
-        return len(section.description)
+    def __init__(self, *args, **kwargs):
+        super(CategoryHandler, self).__init__(*args, **kwargs)
+        self.list_filters['section_id'] = parent_section_filter
 
-    def create(self, request, *args, **kwargs):
-        if not self.has_model():
-            return rc.NOT_IMPLEMENTED
 
-        attrs = self.flatten_dict(request.data)
+def parent_property_filter(objects, value, user=None):
+    """ returns values for a particular property """
+    return filter(lambda s: s.property.id == value, objects) 
 
-        import pdb
-        pdb.set_trace()
-        try:
-            inst = self.queryset(request).get(**attrs)
-            return rc.DUPLICATE_ENTRY
-        except self.model.DoesNotExist:
-            inst = self.model(**attrs)
-            inst.save()
-            return inst
-        except self.model.MultipleObjectsReturned:
-            return rc.DUPLICATE_ENTRY
+class ValueCategoryHandler(CategoryHandler):
+    """ add some specific filtering to the base Handler """
+
+    def __init__(self, *args, **kwargs):
+        super(CategoryHandler, self).__init__(*args, **kwargs)
+        self.list_filters['property_id'] = parent_property_filter
+
+

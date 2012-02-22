@@ -118,10 +118,11 @@ request_params_cleaner = {
     'duration': lambda x: float(x), # may raise ValueError
     'samples_count': lambda x: int(x), # may raise ValueError
     'downsample': lambda x: int(x), # may raise ValueError
-    'section_id': lambda x: Section.objects.get(id=x), # may raise ObjectDoesNotExist
+    'section_id': lambda x: int(x), # may raise ValueError
+    'property_id': lambda x: int(x), # may raise ValueError
     'visibility':  lambda x: visibility_options[x], # may raise IndexError
     'top':  lambda x: top_options[x], # may raise IndexError
-    'owner':  lambda x: User.objects.get(username=x), # may raise ObjectDoesNotExist
+    'owner':  lambda x: str(x), # may raise UnicodeEncodeError?
     'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'max_results':  lambda x: abs(int(x)), # may raise ValueError

@@ -49,6 +49,9 @@ class Section(SafetyLevel, ObjectState):
             return True
         return False
 
+    def get_owner(self):
+        return self.owner
+
     def save(self, *args, **kwargs):
         """ override save to set up default tree position. Default position for
         a section - the last in the list (on top or inside parent section) """
@@ -175,8 +178,6 @@ class Property(ObjectState):
     Class represents a metadata "Property". Defines any kind of metadata 
     property and may be linked to the Section. 
     """
-    non_cascade_rel = ("value") # see REST JSON serializer
-
     name = models.CharField(_('name'), max_length=100)
     definition = models.TextField(_('definition'), blank=True)
     dependency = models.CharField(_('dependency'), blank=True, max_length=1000)
@@ -207,6 +208,10 @@ class Property(ObjectState):
             return True
         return False
 
+    #@property
+    #def owner(self):
+    #    return self.section.get_owner()
+
     @property
     def values(self):
         return self.value_set.filter(current_state=10)
@@ -218,6 +223,9 @@ class Property(ObjectState):
     def __len__(self):
         return len(self.values)
 
+    def get_owner(self):
+        return self.section.get_owner()
+
 
 class Value(ObjectState):
     """ 
@@ -227,5 +235,20 @@ class Value(ObjectState):
     property = models.ForeignKey(Property)
     data = models.TextField(_('value'), blank=True)
 
+    def __unicode__(self):
+        return self.data
+
+    @models.permalink
+    def get_absolute_url(self):
+        return ('value_details', [str(self.id)])
+
+    def get_owner(self):
+        return self.property.get_owner()
+
+    def is_accessible(self, user):
+        return self.property.is_accessible(user)
+
+    def is_editable(self, user):
+        return self.property.is_editable(user)
 
 

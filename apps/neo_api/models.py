@@ -82,6 +82,9 @@ class BaseInfo(ObjectState):
 
     def is_sliceable(self): return False
 
+    def get_owner(self):
+        return self.author
+
     class Meta:
         abstract = True
 

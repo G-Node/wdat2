@@ -3,13 +3,19 @@ from django.conf.urls.defaults import *
 from rest.management import ObjectHandler, CategoryHandler
 from rest.serializers import Serializer
 
-from metadata.models import Section, Property
+from metadata.serializers import PropertySerializer, SectionSerializer
+from metadata.handlers import PropertyCategoryHandler, ValueCategoryHandler
+from metadata.models import Section, Property, Value
 
-section_manager_single = ObjectHandler(Serializer, Section)
+section_manager_single = ObjectHandler(SectionSerializer, Section)
 section_manager_category = CategoryHandler(Serializer, Section)
 
-property_manager_single = ObjectHandler(Serializer, Property)
-property_manager_category = CategoryHandler(Serializer, Property)
+property_manager_single = ObjectHandler(PropertySerializer, Property)
+property_manager_category = PropertyCategoryHandler(PropertySerializer, Property)
+
+value_manager_single = ObjectHandler(Serializer, Value)
+value_manager_category = ValueCategoryHandler(Serializer, Value)
+
 
 urlpatterns = patterns('',
     # 1. Sections list
@@ -38,6 +44,20 @@ urlpatterns = patterns('',
     # DELETE: delete. Both URLs do the same.
     url(r'^properties/(?P<id>[\d]+)/?$',\
         property_manager_single, name="property_details"),
+
+    # 5. Properties list (in the section, if provided)
+    # GET: list the properties, PUT: create new property, POST: update 
+    # properties as a list, DELETE: archive all properties
+    url(r'^properties/(?P<property_id>[\d]+)/values/?$', \
+        value_manager_category, name="values_for_property"),
+    url(r'^values/?$', \
+        value_manager_category, name="values"),
+
+    # 6. Property details
+    # GET: get property with all details, POST/PUT: update (move) property, 
+    # DELETE: delete. Both URLs do the same.
+    url(r'^values/(?P<id>[\d]+)/?$',\
+        value_manager_single, name="value_details"),
 )
 
 in_development = (
