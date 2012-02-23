@@ -1,7 +1,11 @@
 # add performance testing!!
 
+import os
 import sys
-sys.path.append("/data/apps/g-node-portal/neoapi/")
+
+path = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(path[:path.find("apps/neo_api/fixtures")])
+
 import django_access
 import unittest
 import datetime as dte
@@ -27,12 +31,12 @@ def create_thomas():
     """
     This function creates NEO objects using Django ORM. It requires initial data
     in files, located 
-    ./080707/lfp_fix080707.dat
-    ./080707/lfp_sac080707.dat
+    ./testdata/lfp_fix080707.dat
+    ./testdata/lfp_sac080707.dat
     Normally, one can find these files at 
     gate.g-node.org:/groups/g-node-core/data/spike_lfp/
     """
-    u = User.objects.get(pk=12) # Change user!
+    u = User.objects.get(pk=2) # Change user!
     s_offset = len(Segment.objects.all()) # set the correct segment ID offset up!
     r_offset = len(RecordingChannel.objects.all()) # set the correct recording channel ID offset up!
     b = Block()
@@ -44,14 +48,14 @@ def create_thomas():
     b.save()
     # processing LFP FIX
     flag = math.floor(176*12/10)
-    f = open('080707/lfp_fix080707.dat', 'r')
+    f = open(path + '/testdata/lfp_fix080707.dat', 'r')
     for i, l in enumerate(f):
         if i < 176:
             s = new_segment(i, b, u) # create new segment
             for e in range(5): # create 5 random events - for WDAT testing
                 e = new_event(e, s, u)
         else:
-            s = Segment.objects.get(id=int(math.fmod(i, 176)) + s_offset)
+            s = Segment.objects.get(id=int(math.fmod(i, 176)) + s_offset + 1)
         if float(i)/176 == math.floor(float(i)/176):
             # create new recording channel
             r = RecordingChannel()
@@ -69,7 +73,7 @@ def create_thomas():
     f.close()
     # processing LFP SAC
     flag = math.floor(368*12/10)
-    f = open('080707/lfp_sac080707.dat', 'r')
+    f = open(path + '/testdata/lfp_sac080707.dat', 'r')
     for i, l in enumerate(f):
         if i < 368:
             # create new segment
@@ -77,10 +81,10 @@ def create_thomas():
             for e in range(5): # create 5 random events - for WDAT testing
                 e = new_event(e, s, u)
         else:
-            s = Segment.objects.get(id=int(math.fmod(i, 176)) + 175 + s_offset)
+            s = Segment.objects.get(id=int(math.fmod(i, 176)) + 175 + s_offset + 1)
         if float(i)/368 == math.floor(float(i)/368):
             # get the recording channel
-            r = RecordingChannel.objects.get(id=math.floor(float(i)/368) + r_offset)
+            r = RecordingChannel.objects.get(id=math.floor(float(i)/368) + r_offset + 1)
         ts = convert_to_timeseries(l)
         a = new_signal(i, "SAC", s, r, ts, u)
         # every 10% of file processed

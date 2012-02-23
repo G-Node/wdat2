@@ -1,5 +1,5 @@
 from django.core.serializers.python import Serializer as PythonSerializer
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import smart_unicode, is_protected_type
 from django.db import models
 import settings
 
@@ -13,17 +13,18 @@ class Serializer(PythonSerializer):
     special_for_deserialization = () # list of field names
     object_filters = ("full", "info", "data", "related")
     cascade = False
+    encoding = settings.DEFAULT_CHARSET
 
     def serialize(self, queryset, options={}):
         """
         Serialize a queryset. options => dict(request.GET)
         """
-        self.init_options = dict(options) # keep options for recursive
+        #self.init_options = dict(options) # keep options for recursive
         self.cascade = options.has_key("cascade")
-        self.q = options.pop("q", ["full"])[0] # request feature, values in []
-        self.host = options.pop("permalink_host", "")
-        self.selected_fields = options.pop("fields", None)
-        self.use_natural_keys = options.pop("use_natural_keys", False)
+        self.q = options.get("q", ["full"])[0] # request feature, values in []
+        self.host = options.get("permalink_host", "")
+        self.selected_fields = options.get("fields", None)
+        self.use_natural_keys = options.get("use_natural_keys", False)
         self.start_serialization()
         for obj in queryset:
             self.start_object(obj)
@@ -33,7 +34,7 @@ class Serializer(PythonSerializer):
                         if self.selected_fields is None or field.attname in self.selected_fields:
                             if field.attname in self.special_for_serialization \
                                 and self.serialize_attrs:
-                                obj.serialize_special(field)
+                                self.serialize_special(obj, field)
                             elif self.is_data_field_django(obj, field) and self.serialize_data:
                                 self.handle_data_field(obj, field)
                             elif field.attname.find("__unit") > 0:
@@ -54,13 +55,14 @@ class Serializer(PythonSerializer):
                     serialized object, e.g. Properties and Values into the Section, 
                     or all relatives ('cascade' mode) """
                     self._current[rel_name] = self.__class__().serialize(getattr(obj, \
-                        rel_name).all(), options=self.init_options) # FIXME does not work recursively
+                        rel_name).all(), options=options) # FIXME does not work recursively
             self.end_object(obj)
         self.end_serialization()
         return self.getvalue()
 
-    def deserialize(self, rdata, obj, encoding=settings.DEFAULT_CHARSET):
+    def deserialize(self, rdata, obj, encoding=None):
         """ parse incoming JSON into a given object (obj) skeleton """
+        if not encoding: encoding = self.encoding
         # processing attributes
         for field_name, field_value in rdata.iteritems():
             if isinstance(field_value, str):
@@ -149,7 +151,15 @@ class Serializer(PythonSerializer):
 
     def handle_data_field(self, obj, field):
         """ serialize data field """
-        raise NotImplementedError
+        data = field._get_val_from_obj(obj)
+        if not is_protected_type(data): data = field.value_to_string(obj)
+        units = smart_unicode(getattr(obj, field.attname + "__unit"), \
+            self.encoding, strings_only=True)
+        self._current[field.attname] = {
+            "data": data,
+            "units": units
+        }
+
 
     def serialize_special(self, obj, field):
         """ abstract method for special fields """

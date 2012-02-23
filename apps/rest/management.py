@@ -180,7 +180,7 @@ class ObjectHandler(RESTManager):
 
     #@condition(etag_func=get_obj_etag, last_modified_func=get_obj_lmodified)
     @auth_required
-    def __call__(self, request, *args, **kwargs):
+    def __call__(self, request, obj_id=None, *args, **kwargs):
         """
         GET: get, PUT/POST: update, DELETE: delete single object. Serves 
         partial data requests (info, data etc.) using GET params.
@@ -193,9 +193,14 @@ class ObjectHandler(RESTManager):
             'PUT': self.create_or_update,
             'POST': self.create_or_update,
             'DELETE': self.delete}
-        if request.method in actions.keys() and 'id' in kwargs.keys():
-            try: # check the object exists
-                obj = self.model.objects.get(id=kwargs['id'])
+        #import pdb
+        #pdb.set_trace()
+        if not obj_id: # obj_id can be in kwargs
+            if 'id' in kwargs.keys():
+                obj_id = kwargs['id']
+        if request.method in actions.keys() and obj_id:
+            try: # object exists
+                obj = self.model.objects.get(id=obj_id)
             except ObjectDoesNotExist:
                 return BadRequest(message_type="does_not_exist", request=request)
             if not obj.is_accessible(request.user): # security check

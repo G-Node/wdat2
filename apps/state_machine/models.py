@@ -98,7 +98,7 @@ class SafetyLevel(models.Model):
 
     def access_list(self):
         """ returns list of users having personal access to the object """
-        return [x.access_for for x in self.shared_with]
+        return [x.access_for for x in self.shared_with()]
 
     def remove_all_shares(self):
         pass
@@ -130,14 +130,14 @@ class SafetyLevel(models.Model):
         return self.is_readable(user) or self.is_editable(user)
 
     def is_readable(self, user):
-        if self.is_editable(user) or self.is_Public() or (self.is_Friendly() \
+        if self.is_editable(user) or self.is_public() or (self.is_friendly() \
             and Friendship.objects.are_friends(user, self.owner)) or \
             self.owner == user:
             return True
         return False
 
     def is_editable(self, user):
-        if (self.owner == user) or (user in self.access_list and \
+        if (self.owner == user) or (user in self.access_list() and \
             self.get_access_for_user(user).level == 2):
             return True
         return False

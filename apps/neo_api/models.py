@@ -73,6 +73,10 @@ class BaseInfo(ObjectState):
     author = models.ForeignKey(User)
     file_origin = models.ForeignKey(Datafile, blank=True, null=True)
 
+    @models.permalink
+    def get_absolute_url(self):
+        return ('neo_object_details', [self.obj_type, str(self.id)])
+
     def is_accessible(self, user):
         # FIXME should depend on the parent section!
         return self.author == user
@@ -533,7 +537,7 @@ class WaveForm(BaseInfo):
     Supporting class for Spikes and SpikeTrains.
     """
     channel_index = models.IntegerField('channel_index', null=True, blank=True)
-    time_of_spike_data = models.FloatField('time_of_spike_data', default=0.0) # default used when WF is related to a Spike
+    time_of_spike = models.FloatField('time_of_spike_data', default=0.0) # default used when WF is related to a Spike
     time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
     waveform_data = models.TextField('waveform_data')
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)

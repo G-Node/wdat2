@@ -9,6 +9,10 @@ from apps.ext.odml.property import Property as odml_property
 
 @task
 def import_xml(xml_file, where=None):
+    execute_import(xml_file, where=None)
+
+# the function should be available without task broker
+def execute_import(xml_file, where=None)
     """ Parses given XML file and imports sections/properties. Uses odML 
     parser. where should be of type Section. """
     def import_section(section, where, recursive=True):
@@ -19,8 +23,11 @@ def import_xml(xml_file, where=None):
         s = Section(title=section.name, parent_section=where, tree_position=tree_pos)
         s.save() # section saved 
         for p in section.properties: # saving properties
-            new_p = Property(title=p.name, value=str(p.values), section=s)
+            new_p = Property(title=p.name, section=s)
             new_p.save()
+            for value in p.values:
+                v = Value(data=v.value, property=p)
+                v.save()
         if recursive: # recursively saving other sections
             for i in section.sections:
                 import_section(i, s)
