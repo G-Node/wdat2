@@ -49,9 +49,6 @@ class Section(SafetyLevel, ObjectState):
             return True
         return False
 
-    def get_owner(self):
-        return self.owner
-
     def save(self, *args, **kwargs):
         """ override save to set up default tree position. Default position for
         a section - the last in the list (on top or inside parent section) """
@@ -223,9 +220,6 @@ class Property(ObjectState):
     def __len__(self):
         return len(self.values)
 
-    def get_owner(self):
-        return self.section.get_owner()
-
 
 class Value(ObjectState):
     """ 
@@ -241,9 +235,6 @@ class Value(ObjectState):
     @models.permalink
     def get_absolute_url(self):
         return ('value_details', [str(self.id)])
-
-    def get_owner(self):
-        return self.property.get_owner()
 
     def is_accessible(self, user):
         return self.property.is_accessible(user)

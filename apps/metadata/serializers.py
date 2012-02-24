@@ -5,8 +5,6 @@ from metadata.models import Value
 class PropertySerializer(Serializer):
     """ specal Serializer for Properties """
 
-    non_cascade_rel = ("value",) # reversed children are shown in REST responses
-
     """ here are the fields that require special REST processing. If set-up, you
     HAVE TO define methods for serialization (serialize_special) and 
     deserialization (deserialize_special) which will be used by REST manager for
@@ -19,6 +17,7 @@ class PropertySerializer(Serializer):
         if field_name == 'value_set':
             assert type(field_value) == type([])
             for v in field_value:
+                assert type(v) == type({}), "Values provided have incorrect data format."
                 assert v.has_key('fields')
                 if v.has_key('pk'):
                     try:
@@ -33,7 +32,6 @@ class PropertySerializer(Serializer):
                     value = Value(property=obj, data=v['fields']['data'])
                 value.save()
 
-
 class SectionSerializer(Serializer):
-    non_cascade_rel = ("property",) # reversed children are shown in REST responses
-
+    """ do not show properties within the list of sections """
+    excluded_rel = ("property",)

@@ -8,7 +8,11 @@ class Serializer(PythonSerializer):
     """ 
     Serialises/Deserial. G-Node models into JSON objects for HTTP REST responses
     """
-    non_cascade_rel = () # reversed children could be shown in REST responses
+
+    """ configure whether to show reversed relations (their permalinks) in the 
+    response by default """
+    show_kids = True # on/off
+    excluded_rel = () # some can be excluded
     special_for_serialization = () # list of field names
     special_for_deserialization = () # list of field names
     object_filters = ("full", "info", "data", "related")
@@ -50,17 +54,26 @@ class Serializer(PythonSerializer):
                         self.handle_m2m_field(obj, field)
             # process specially reverse relations, like properties for section
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
-                if (self.serialize_rel and rel_name[:-4] in self.non_cascade_rel) or self.cascade:
-                    """ this is used to include some short-relatives into the 
-                    serialized object, e.g. Properties and Values into the Section, 
-                    or all relatives ('cascade' mode) """
+                if self.cascade: # cascade related object load
                     self._current[rel_name] = self.__class__().serialize(getattr(obj, \
                         rel_name).all(), options=options) # FIXME does not work recursively
+                elif self.show_kids and self.serialize_rel and rel_name[:-4] not in self.excluded_rel:
+                    """ this is used to include some short-relatives into the 
+                    serialized object, e.g. permalinks of Properties and Values 
+                    into the Section """
+                    children = []
+                    for child in getattr(obj, rel_name).all():
+                        if hasattr(child, 'get_absolute_url'):
+                            children.append(''.join([self.host, child.get_absolute_url()]))
+                        else:
+                            children.append(smart_unicode(child._get_pk_val(), \
+                                strings_only=True) + ":" + smart_unicode(child._meta))
+                    self._current[rel_name] = children
             self.end_object(obj)
         self.end_serialization()
         return self.getvalue()
 
-    def deserialize(self, rdata, obj, encoding=None):
+    def deserialize(self, rdata, obj, user, encoding=None):
         """ parse incoming JSON into a given object (obj) skeleton """
         if not encoding: encoding = self.encoding
         # processing attributes
@@ -77,8 +90,13 @@ class Serializer(PythonSerializer):
                 # Handle M2M relations TODO
 
                 # Handle FK fields (taken from django.core.Deserializer)
-                if field.rel and isinstance(field.rel, models.ManyToOneRel):
+                #import pdb
+                #if field_name == 'author': pdb.set_trace()
+                if field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
                     if field_value is not None:
+                        related = field.rel.to.objects.get(id=field_value)
+                        if not related.is_editable(user): # security check
+                            raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
                         if hasattr(field.rel.to._default_manager, 'get_by_natural_key'):
                             if hasattr(field_value, '__iter__'):
                                 relativ = field.rel.to._default_manager.db_manager(db).get_by_natural_key(*field_value)

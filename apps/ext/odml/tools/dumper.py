@@ -12,10 +12,10 @@ def get_props(obj, props):
     return ", ".join(out)
 
 def dumpSection(section, indent=1):
-    if not section:
+    if section is None:
         return
 
-    print "%*s*%s (%s)" % (indent, " ", section.name, get_props(section, ["type", "definition", "id", "link", "import", "repository", "mapping"]))
+    print "%*s*%s (%s)" % (indent, " ", section.name, get_props(section, ["type", "definition", "id", "link", "include", "repository", "mapping"]))
 
     for prop in section.properties:
         print  "%*s:%s (%s)" % (indent + 1, " ", prop.name, get_props(prop, ["synonym", "definition", "mapping", "dependency", "dependencyValue"]))
@@ -24,3 +24,7 @@ def dumpSection(section, indent=1):
 
     for sub in section.sections:
         dumpSection(sub, indent * 2)
+
+def dumpDoc(doc):
+    for sec in doc:
+        dumpSection(sec)

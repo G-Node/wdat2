@@ -22,3 +22,8 @@ class NEOSerializer(Serializer):
             'data': getattr(obj, field_short),
             'unit': units
         }
+
+
+class NEOCategorySerializer(NEOSerializer):
+    """ do not show reverse relations when list is requested """
+    show_kids = False

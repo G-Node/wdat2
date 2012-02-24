@@ -1,14 +1,15 @@
 from django.conf.urls.defaults import *
 
-from rest.management import ObjectHandler, CategoryHandler
+from rest.management import ObjectHandler, CategoryHandler, process_REST
 from rest.serializers import Serializer
+from rest.common import BadRequest, Unauthorized, NotFound
 
 from neo_api.models import *
-from neo_api.serializers import NEOSerializer
+from neo_api.serializers import NEOSerializer, NEOCategorySerializer
 
 NEOCategoryHandlers, NEOObjectHandlers = {}, {}
 for key, classname in meta_classnames.items():
-    NEOCategoryHandlers[key] = CategoryHandler(NEOSerializer, classname)
+    NEOCategoryHandlers[key] = CategoryHandler(NEOCategorySerializer, classname)
     NEOObjectHandlers[key] = ObjectHandler(NEOSerializer, classname)
 
 
@@ -40,15 +41,14 @@ def check_obj_type(func):
 
 @check_obj_type
 def parse_neo_category(request, obj_type, *args, **kwargs):
-    return NEOCategoryHandlers[obj_type](request, *args, **kwargs)
+    return process_REST(request, handler=NEOCategoryHandlers[obj_type], *args, **kwargs)
 
 @check_obj_type
 def parse_neo_object(request, obj_type, id, *args, **kwargs):
-    return NEOObjectHandlers[obj_type](request, id, *args, **kwargs)
+    return process_REST(request, id, handler=NEOObjectHandlers[obj_type], *args, **kwargs)
 
 
 urlpatterns = patterns('',
-
     # here supported -> GET: query all category, PUT/POST: create new
     url(r'^(?P<obj_type>[\w]+)/?$', 'neo_api.urls.parse_neo_category', \
         name="neo_category"),

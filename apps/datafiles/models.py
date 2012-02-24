@@ -8,7 +8,7 @@ except ImportError:
 from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
-from state_machine.models import SafetyLevel, LinkedToProject, MetadataManager
+from state_machine.models import SafetyLevel, LinkedToProject, MetadataManager, ObjectState
 from django.core.files import storage
 from django.template.defaultfilters import filesizeformat
 from friends.models import Friendship
@@ -44,14 +44,13 @@ class FileSystemStorage(storage.FileSystemStorage):
         os.chmod(full_path, mode)
         return name
 
-class Datafile(SafetyLevel, LinkedToProject, MetadataManager):
+class Datafile(SafetyLevel, ObjectState):
     """
     Datafile is a class representing a data file stored at G-Node.
     """
     title = models.CharField(_('name'), blank=True, max_length=200)
     caption = models.TextField(_('description'), blank=True)
     date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
-    #owner = models.ForeignKey(User, related_name="related_file", blank=True, null=True)
     in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
     raw_file = models.FileField(_('data file'), storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField(_('keywords'))
@@ -70,6 +69,9 @@ class Datafile(SafetyLevel, LinkedToProject, MetadataManager):
     def get_absolute_url(self):
         return ("datafile_details", [self.pk])
     get_absolute_url = models.permalink(get_absolute_url)
+
+    def get_owner(self):
+        return self.owner
 
     @property
     def size(self):

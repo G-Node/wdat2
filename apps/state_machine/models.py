@@ -18,6 +18,7 @@ class ObjectState(models.Model):
         (20, _('Deleted')),
         (30, _('Archived')),
     )
+    owner = models.ForeignKey(User, editable=False)
     current_state = models.IntegerField(_('state'), choices=STATES, default=10)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
     last_modified = models.DateTimeField(auto_now=True) # Resp. H: Last-modified
@@ -27,7 +28,7 @@ class ObjectState(models.Model):
 
     def get_owner(self):
         """ required for filtering by owner in REST """
-        raise NotImplementedError
+        return self.owner
 
     def restore_object(self):
         self.current_state = 10
@@ -63,7 +64,6 @@ class SafetyLevel(models.Model):
         (3, _('Private')),
     )
     safety_level = models.IntegerField(_('privacy level'), choices=SAFETY_LEVELS, default=3)
-    owner = models.ForeignKey(User)
 
     class Meta:
         abstract = True

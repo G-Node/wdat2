@@ -7,8 +7,8 @@ from metadata.serializers import PropertySerializer, SectionSerializer
 from metadata.handlers import PropertyCategoryHandler, ValueCategoryHandler
 from metadata.models import Section, Property, Value
 
-section_manager_single = ObjectHandler(SectionSerializer, Section)
-section_manager_category = CategoryHandler(Serializer, Section)
+section_manager_single = ObjectHandler(Serializer, Section)
+section_manager_category = CategoryHandler(SectionSerializer, Section)
 
 property_manager_single = ObjectHandler(PropertySerializer, Property)
 property_manager_category = PropertyCategoryHandler(PropertySerializer, Property)

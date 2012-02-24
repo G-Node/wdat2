@@ -102,14 +102,11 @@ class RESTManager(object):
         else:
             update = False
             obj = self.model() # create object skeleton
-            if hasattr(obj, "author"):
-                obj.author = request.user
-            else:
-                obj.owner = request.user
+            obj.owner = request.user
 
         try:
-            self.handler.deserialize(rdata, obj, encoding=getattr(request, \
-                "encoding", None) or settings.DEFAULT_CHARSET)
+            self.handler.deserialize(rdata, obj, user=request.user,\
+                encoding=getattr(request, "encoding", None) or settings.DEFAULT_CHARSET)
         except FieldDoesNotExist, v: # or pass????
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="post_data_invalid", request=request)
@@ -119,9 +116,12 @@ class RESTManager(object):
         except ValidationError, VE:
             return BadRequest(json_obj=VE.message_dict, \
                 message_type="bad_parameter", request=request)
-        #except Exception, e:
-        #    return BadRequest(json_obj={"details": e.message}, \
-        #        message_type="post_data_invalid", request=request)
+        except (AssertionError, AttributeError), e:
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="post_data_invalid", request=request)
+        except (ReferenceError, ObjectDoesNotExist), e:
+            return Unauthorized(json_obj={"details": e.message}, \
+                message_type="wrong_reference", request=request)
 
         self.run_post_processing(obj) # for some special cases
 
@@ -157,28 +157,38 @@ class RESTManager(object):
 
 # HANDLERS ---------------------------------------------------------------------
 
+def get_obj_etag(request, obj_id=None, handler=None):
+    """ computes etag for object: for the moment it is just the hash of 
+    last modified """
+    if not handler or not obj_id:
+        return None
+    try:
+        obj = handler.model.objects.get(id = obj_id)
+        return hashlib.md5(str(obj.last_modified)).hexdigest()
+    except ObjectDoesNotExist:
+        return None
+
+def get_obj_lmodified(request, obj_id=None, handler=None):
+    """ returns last modified """
+    if not handler or not obj_id:
+        return None
+    try:
+        obj = handler.model.objects.get(id = obj_id)
+        return obj.last_modified
+    except ObjectDoesNotExist:
+        return None
+
+@condition(etag_func=get_obj_etag, last_modified_func=get_obj_lmodified)
+def process_REST(request, obj_id=None, handler=None, *args, **kwargs):
+    """ this is a trick to use eTag/last-modified 'condition' built-in Django 
+    decorator. one has to call a function and not a class because 'condition' 
+    decorator does not accept the 'self' agrument."""
+    return handler(request, obj_id, *args, **kwargs)
+
 
 class ObjectHandler(RESTManager):
     """ Handles requests for a single object """
 
-    def get_obj_etag(self, request, obj_id):
-        """ computes etag for object: for the moment it is just the hash of 
-        last modified """
-        try:
-            obj = self.model.objects.get(id = obj_id)
-            return hashlib.md5(str(obj.last_modified)).hexdigest()
-        except ObjectDoesNotExist:
-            return None
-
-    def get_obj_lmodified(self, request, obj_id):
-        """ returns last modified """
-        try:
-            obj = self.model.objects.get(id = obj_id)
-            return obj.last_modified
-        except ObjectDoesNotExist:
-            return None
-
-    #@condition(etag_func=get_obj_etag, last_modified_func=get_obj_lmodified)
     @auth_required
     def __call__(self, request, obj_id=None, *args, **kwargs):
         """
@@ -193,8 +203,6 @@ class ObjectHandler(RESTManager):
             'PUT': self.create_or_update,
             'POST': self.create_or_update,
             'DELETE': self.delete}
-        #import pdb
-        #pdb.set_trace()
         if not obj_id: # obj_id can be in kwargs
             if 'id' in kwargs.keys():
                 obj_id = kwargs['id']

@@ -8,6 +8,7 @@ from scipy import signal
 from fields import models as fmodels
 from state_machine.models import ObjectState
 from datafiles.models import Datafile
+from metadata.models import Section
 from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
 
 # default unit values and values limits
@@ -70,7 +71,6 @@ class BaseInfo(ObjectState):
         (20, 'Deleted'),
         (30, 'Archived'),
     )
-    author = models.ForeignKey(User)
     file_origin = models.ForeignKey(Datafile, blank=True, null=True)
 
     @models.permalink
@@ -78,16 +78,12 @@ class BaseInfo(ObjectState):
         return ('neo_object_details', [self.obj_type, str(self.id)])
 
     def is_accessible(self, user):
-        # FIXME should depend on the parent section!
-        return self.author == user
+        return self.owner == user
 
     def is_editable(self, user):
-        return self.author == user
+        return self.owner == user
 
     def is_sliceable(self): return False
-
-    def get_owner(self):
-        return self.author
 
     class Meta:
         abstract = True
@@ -132,6 +128,12 @@ class Block(BaseInfo):
     name = models.CharField('name', max_length=name_max_length)
     filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
     index = models.IntegerField('index', null=True, blank=True)
+    section = models.ForeignKey(Section, blank=True, null=True)
+
+    def is_accessible(self, user):
+        if self.section:
+            return self.owner == user or self.section.is_public()
+        return self.owner == user
 
     @property
     def info(self):
