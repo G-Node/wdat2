@@ -90,8 +90,6 @@ class Serializer(PythonSerializer):
                 # Handle M2M relations TODO
 
                 # Handle FK fields (taken from django.core.Deserializer)
-                #import pdb
-                #if field_name == 'author': pdb.set_trace()
                 if field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
                     if field_value is not None:
                         related = field.rel.to.objects.get(id=field_value)

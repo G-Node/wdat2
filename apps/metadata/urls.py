@@ -1,27 +1,38 @@
 from django.conf.urls.defaults import *
 
-from rest.management import ObjectHandler, CategoryHandler
+from rest.management import ObjectHandler, CategoryHandler, process_REST
 from rest.serializers import Serializer
 
 from metadata.serializers import PropertySerializer, SectionSerializer
 from metadata.handlers import PropertyCategoryHandler, ValueCategoryHandler
 from metadata.models import Section, Property, Value
 
-section_manager_single = ObjectHandler(Serializer, Section)
-section_manager_category = CategoryHandler(SectionSerializer, Section)
+# TODO move to views.py
 
-property_manager_single = ObjectHandler(PropertySerializer, Property)
-property_manager_category = PropertyCategoryHandler(PropertySerializer, Property)
+def section(request, id, *args, **kwargs):
+    return process_REST(request, id, handler=ObjectHandler(Serializer, Section), *args, **kwargs)
 
-value_manager_single = ObjectHandler(Serializer, Value)
-value_manager_category = ValueCategoryHandler(Serializer, Value)
+def section_list(request, *args, **kwargs):
+    return process_REST(request, handler=CategoryHandler(SectionSerializer, Section), *args, **kwargs)
+
+def property(request, id, *args, **kwargs):
+    return process_REST(request, id, handler=ObjectHandler(PropertySerializer, Property), *args, **kwargs)
+
+def property_list(request, *args, **kwargs):
+    return process_REST(request, handler=PropertyCategoryHandler(PropertySerializer, Property), *args, **kwargs)
+
+def value(request, id, *args, **kwargs):
+    return process_REST(request, id, handler=ObjectHandler(Serializer, Value), *args, **kwargs)
+
+def value_list(request, *args, **kwargs):
+    return process_REST(request, handler=ValueCategoryHandler(Serializer, Value), *args, **kwargs)
 
 
 urlpatterns = patterns('',
     # 1. Sections list
     # GET: get list of sections (as list, as tree etc.) POST/PUT - create, copy
     #url(r'^sections/$', 'metadata.views.sections', name="sections"),
-    url(r'^sections/$', section_manager_category, name="sections"),
+    url(r'^sections/$', 'metadata.urls.section_list', name="sections"),
 
     # 2. Section details
     # GET: get single section, PUT/POST: update (move), DELETE: archive section.
@@ -29,35 +40,35 @@ urlpatterns = patterns('',
     #url(r'^sections/(?P<section_id>[\d]+)/?$', \
     #    'metadata.views.section_details', name="section_details"),
     url(r'^sections/(?P<id>[\d]+)/?$', \
-        section_manager_single, name="section_details"),
+        'metadata.urls.section', name="section_details"),
 
     # 3. Properties list (in the section, if provided)
     # GET: list the properties, PUT: create new property, POST: update 
     # properties as a list, DELETE: archive all properties
     url(r'^sections/(?P<section_id>[\d]+)/properties/?$', \
-        property_manager_category, name="properties_for_section"),
+        'metadata.urls.property_list', name="properties_for_section"),
     url(r'^properties/?$', \
-        property_manager_category, name="properties"),
+        'metadata.urls.property_list', name="properties"),
 
     # 4. Property details
     # GET: get property with all details, POST/PUT: update (move) property, 
     # DELETE: delete. Both URLs do the same.
     url(r'^properties/(?P<id>[\d]+)/?$',\
-        property_manager_single, name="property_details"),
+        'metadata.urls.property', name="property_details"),
 
     # 5. Properties list (in the section, if provided)
     # GET: list the properties, PUT: create new property, POST: update 
     # properties as a list, DELETE: archive all properties
     url(r'^properties/(?P<property_id>[\d]+)/values/?$', \
-        value_manager_category, name="values_for_property"),
+        'metadata.urls.value_list', name="values_for_property"),
     url(r'^values/?$', \
-        value_manager_category, name="values"),
+        'metadata.urls.value_list', name="values"),
 
     # 6. Property details
     # GET: get property with all details, POST/PUT: update (move) property, 
     # DELETE: delete. Both URLs do the same.
     url(r'^values/(?P<id>[\d]+)/?$',\
-        value_manager_single, name="value_details"),
+        'metadata.urls.value', name="value_details"),
 )
 
 in_development = (

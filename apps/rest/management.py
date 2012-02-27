@@ -142,6 +142,8 @@ class RESTManager(object):
         else:
             return Unauthorized(message_type="not_authorized", request=request)
 
+    def check_incoming(self, request):
+
 
     def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
@@ -157,7 +159,7 @@ class RESTManager(object):
 
 # HANDLERS ---------------------------------------------------------------------
 
-def get_obj_etag(request, obj_id=None, handler=None):
+def get_obj_etag(request, obj_id=None, handler=None, *args, **kwargs):
     """ computes etag for object: for the moment it is just the hash of 
     last modified """
     if not handler or not obj_id:
@@ -168,7 +170,7 @@ def get_obj_etag(request, obj_id=None, handler=None):
     except ObjectDoesNotExist:
         return None
 
-def get_obj_lmodified(request, obj_id=None, handler=None):
+def get_obj_lmodified(request, obj_id=None, handler=None, *args, **kwargs):
     """ returns last modified """
     if not handler or not obj_id:
         return None
