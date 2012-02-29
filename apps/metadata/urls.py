@@ -3,7 +3,7 @@ from django.conf.urls.defaults import *
 from rest.management import ObjectHandler, CategoryHandler, process_REST
 from rest.serializers import Serializer
 
-from metadata.serializers import PropertySerializer, SectionSerializer
+from metadata.serializers import PropertySerializer, SectionSerializer, ValueSerializer
 from metadata.handlers import PropertyCategoryHandler, ValueCategoryHandler
 from metadata.models import Section, Property, Value
 
@@ -22,10 +22,10 @@ def property_list(request, *args, **kwargs):
     return process_REST(request, handler=PropertyCategoryHandler(PropertySerializer, Property), *args, **kwargs)
 
 def value(request, id, *args, **kwargs):
-    return process_REST(request, id, handler=ObjectHandler(Serializer, Value), *args, **kwargs)
+    return process_REST(request, id, handler=ObjectHandler(ValueSerializer, Value), *args, **kwargs)
 
 def value_list(request, *args, **kwargs):
-    return process_REST(request, handler=ValueCategoryHandler(Serializer, Value), *args, **kwargs)
+    return process_REST(request, handler=ValueCategoryHandler(ValueSerializer, Value), *args, **kwargs)
 
 
 urlpatterns = patterns('',

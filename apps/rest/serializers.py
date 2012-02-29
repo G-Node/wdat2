@@ -2,6 +2,7 @@ from django.core.serializers.python import Serializer as PythonSerializer
 from django.utils.encoding import smart_unicode, is_protected_type
 from django.db import models
 import settings
+import urlparse
 
 
 class Serializer(PythonSerializer):
@@ -13,11 +14,13 @@ class Serializer(PythonSerializer):
     response by default """
     show_kids = True # on/off
     excluded_rel = () # some can be excluded
+    do_not_show_if_empty = () # empty reverse relations are not shown
     special_for_serialization = () # list of field names
     special_for_deserialization = () # list of field names
     object_filters = ("full", "info", "data", "related")
     cascade = False
     encoding = settings.DEFAULT_CHARSET
+    use_natural_keys = True
 
     def serialize(self, queryset, options={}):
         """
@@ -28,8 +31,10 @@ class Serializer(PythonSerializer):
         self.q = options.get("q", ["full"])[0] # request feature, values in []
         self.host = options.get("permalink_host", "")
         self.selected_fields = options.get("fields", None)
-        self.use_natural_keys = options.get("use_natural_keys", False)
+        self.use_natural_keys = options.get("use_natural_keys", self.use_natural_keys)
         self.start_serialization()
+        import pdb
+        pdb.set_trace()
         for obj in queryset:
             self.start_object(obj)
             for field in obj._meta.local_fields:
@@ -68,7 +73,8 @@ class Serializer(PythonSerializer):
                         else:
                             children.append(smart_unicode(child._get_pk_val()) + \
                                 ": " + smart_unicode(child._meta))
-                    self._current[rel_name] = children
+                    if not (not children and rel_name[:-4] in self.do_not_show_if_empty):
+                        self._current[rel_name] = children
             self.end_object(obj)
         self.end_serialization()
         return self.getvalue()
@@ -87,28 +93,29 @@ class Serializer(PythonSerializer):
             else:
                 field = obj._meta.get_field(field_name)
 
-                # Handle M2M relations TODO
+                # Handle M2M relations
+                if field.rel and isinstance(field.rel, models.ManyToManyRel):
+                    m2m_data = []
+                    for m2m in field_value:
+                        if self.is_permalink(m2m):
+                            m2m_obj = self.get_by_permalink(field.rel.to, m2m)
+                        else:
+                            m2m_obj = field.rel.to.objects.get(id=m2m)
+                        if not m2m_obj.is_editable(user):
+                            raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
+                        m2m_data.append(m2m_obj)
+                    setattr(obj, field.attname, [x.id for x in m2m_data])
 
                 # Handle FK fields (taken from django.core.Deserializer)
-                if field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
+                elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
                     if field_value is not None:
-                        related = field.rel.to.objects.get(id=field_value)
+                        if self.is_permalink(field_value):
+                            related = self.get_by_permalink(field.rel.to, field_value)
+                        else:
+                            related = field.rel.to.objects.get(id=field_value)
                         if not related.is_editable(user): # security check
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
-                        if hasattr(field.rel.to._default_manager, 'get_by_natural_key'):
-                            if hasattr(field_value, '__iter__'):
-                                relativ = field.rel.to._default_manager.db_manager(db).get_by_natural_key(*field_value)
-                                value = getattr(relativ, field.rel.field_name)
-                                # If this is a natural foreign key to an object that
-                                # has a FK/O2O as the foreign key, use the FK value
-                                if field.rel.to._meta.pk.rel:
-                                    value = value.pk
-                            else:
-                                value = field.rel.to._meta.get_field(field.rel.field_name).to_python(field_value)
-                            setattr(obj, field.attname, value)
-                        else:
-                            setattr(obj, field.attname, \
-                                field.rel.to._meta.get_field(field.rel.field_name).to_python(field_value))
+                        setattr(obj, field.attname, related.id)
                     else:
                         setattr(obj, field.attname, None)
 
@@ -121,17 +128,43 @@ class Serializer(PythonSerializer):
         obj.full_clean()
         obj.save()
 
+    def handle_m2m_field(self, obj, field):
+        if field.rel.through._meta.auto_created:
+            self._current[field.name] = [self.resolve_permalink(related)
+                               for related in getattr(obj, field.name).iterator()]
+
+    def handle_data_field(self, obj, field):
+        """ serialize data field """
+        data = field._get_val_from_obj(obj)
+        if not is_protected_type(data): data = field.value_to_string(obj)
+        units = smart_unicode(getattr(obj, field.attname + "__unit"), \
+            self.encoding, strings_only=True)
+        self._current[field.attname] = {
+            "data": data,
+            "units": units
+        }
+
+    def resolve_permalink(self, obj):
+        if hasattr(obj, 'get_absolute_url'):
+            return ''.join([self.host, obj.get_absolute_url()])
+        return smart_unicode(obj._get_pk_val(), strings_only=True)
+
+    def get_by_permalink(self, model, plink):
+        path = urlparse.urlparse(plink).path
+        if path.rfind('/') + 1 == len(path): # remove trailing slash
+            path = path[:path.rfind('/')]
+        id = path[path.rfind('/') + 1:]
+        return model.objects.get(id=id)
+
     def end_object(self, obj):
         serialized = {
             "model"     : smart_unicode(obj._meta),
-            "fields"    : self._current
+            "fields"    : self._current,
+            "permalink" : self.resolve_permalink(obj)
         }
-        if hasattr(obj, 'get_absolute_url'):
-            serialized["permalink"] = ''.join([self.host, obj.get_absolute_url()])
-        else:
-            serialized["pk"] = smart_unicode(obj._get_pk_val(), strings_only=True)
         self.objects.append(serialized)
         self._current = None
+
 
     @property
     def serialize_data(self):
@@ -164,18 +197,9 @@ class Serializer(PythonSerializer):
             return True
         return False
 
-
-    def handle_data_field(self, obj, field):
-        """ serialize data field """
-        data = field._get_val_from_obj(obj)
-        if not is_protected_type(data): data = field.value_to_string(obj)
-        units = smart_unicode(getattr(obj, field.attname + "__unit"), \
-            self.encoding, strings_only=True)
-        self._current[field.attname] = {
-            "data": data,
-            "units": units
-        }
-
+    def is_permalink(self, link):
+        """ add more validation here? everything is a valid url.."""
+        return str(link).find("http://") > -1 
 
     def serialize_special(self, obj, field):
         """ abstract method for special fields """

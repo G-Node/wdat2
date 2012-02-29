@@ -1,4 +1,5 @@
 from rest.serializers import Serializer
+from rest.meta import meta_objects
 from django.core.exceptions import ObjectDoesNotExist
 from metadata.models import Value
 
@@ -35,3 +36,7 @@ class PropertySerializer(Serializer):
 class SectionSerializer(Serializer):
     """ do not show properties within the list of sections """
     excluded_rel = ("property",)
+
+class ValueSerializer(Serializer):
+    """ do not show all relations with NEO data objects """
+    do_not_show_if_empty = meta_objects
