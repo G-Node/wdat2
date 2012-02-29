@@ -46,29 +46,16 @@ urlpatterns = patterns('',
     (r'^bbauth/', include('bbauth.urls')),
     (r'^authsub/', include('authsub.urls')),
     (r'^profiles/', include('profiles.urls')),
-    #(r'^blog/', include('blog.urls')),
     (r'^tags/', include('tag_app.urls')),
     (r'^invitations/', include('friends_app.urls')),
     (r'^notices/', include('notification.urls')),
     (r'^messages/', include('messages.urls')),
     (r'^announcements/', include('announcements.urls')),
-    #(r'^tweets/', include('microblogging.urls')),
-    #(r'^tribes/', include('tribes.urls')),
     (r'^comments/', include('threadedcomments.urls')),
-    #(r'^robots.txt$', include('robots.urls')),
     (r'^i18n/', include('django.conf.urls.i18n')),
-    #(r'^bookmarks/', include('bookmarks.urls')),
     (r'^admin/(.*)', include(admin.site.urls)),
-    #(r'^photos/', include('photos.urls')),
     (r'^avatar/', include('avatar.urls')),
-    #(r'^swaps/', include('swaps.urls')),
-    #(r'^flag/', include('flag.urls')),
-    #(r'^locations/', include('locations.urls')),
     (r'^projects/', include('projects.urls')),
-    
-    #(r'^feeds/tweets/(.*)/$', 'django.contrib.syndication.views.feed', tweets_feed_dict),
-    #(r'^feeds/posts/(.*)/$', 'django.contrib.syndication.views.feed', blogs_feed_dict),
-    #(r'^feeds/bookmarks/(.*)/?$', 'django.contrib.syndication.views.feed', bookmarks_feed_dict),
 )
 
 ## @@@ for now, we'll use friends_app to glue this stuff together
@@ -105,26 +92,18 @@ friends_bookmarks_kwargs = {
 }
 
 urlpatterns += patterns('',
-    #url(r'^grappelli/', include('grappelli.urls')),
-    #url(r'^experiments/', include('experiments.urls')),
-    #url(r'^datasets/', include('datasets.urls')),
     #url(r'^datafiles/', include('datafiles.urls')),
     url(r'^trash_folder/', include('trash_folder.urls')),
     url(r'^captcha/', include('captcha.urls')),
     url(r'^system_dashboard/', include('system_dashboard.urls')),
     url(r'^metadata/', include('metadata.urls')),
-    #url(r'^timeseries/', include('timeseries.urls')),
     url(r'^neo/', include('neo_api.urls')),
     url(r'^electrophysiology/', include('neo_api.urls')),
+    #url(r'^labels/', include('labels.urls')),
     # - that's a jerky workaround for POST without trailing slash. If there are
     # more POST-type URL, better change to middleware:
     # http://djangosnippets.org/snippets/601/
-    #url(r'^neo$', 'neo_api.views.process', name="create"),
     url(r'^task_broker/', include('djcelery.urls')),
-    #url('^photos/friends_photos/$', 'friends_app.views.friends_objects', kwargs=friends_photos_kwargs, name="friends_photos"),
-    #url('^blog/friends_blogs/$', 'friends_app.views.friends_objects', kwargs=friends_blogs_kwargs, name="friends_blogs"),
-    #url('^tweets/friends_tweets/$', 'friends_app.views.friends_objects', kwargs=friends_tweets_kwargs, name="friends_tweets"),
-    #url('^bookmarks/friends_bookmarks/$', 'friends_app.views.friends_objects', kwargs=friends_bookmarks_kwargs, name="friends_bookmarks"),
 )
 
 if settings.SERVE_MEDIA:

@@ -205,10 +205,6 @@ class Property(ObjectState):
             return True
         return False
 
-    #@property
-    #def owner(self):
-    #    return self.section.get_owner()
-
     @property
     def values(self):
         return self.value_set.filter(current_state=10)

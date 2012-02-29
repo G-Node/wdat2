@@ -25,7 +25,7 @@ meta_messages = {
     "object_created": "Object created successfully.",
     "object_updated": "Object updated successfully. Data changes saved.",
     "object_selected": "Here is the list of requested objects.",
-    "processed": "Your request was processed successfully."
+    "processed": "Your request was processed successfully.",
     "data_parsing_error": "Data, sent in the request body, cannot be parsed. Please ensure, the data is sent in JSON format.",
     "data_inconsistency": "The dimensions of the data provided do not match.",
     "wrong_params": "Parameters provided are incorrect. Please consider details in the 'details' element.",

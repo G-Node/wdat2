@@ -8,7 +8,7 @@ from scipy import signal
 from fields import models as fmodels
 from state_machine.models import ObjectState
 from datafiles.models import Datafile
-from metadata.models import Section
+from metadata.models import Section, Value
 from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
 
 # default unit values and values limits
@@ -72,6 +72,7 @@ class BaseInfo(ObjectState):
         (30, 'Archived'),
     )
     file_origin = models.ForeignKey(Datafile, blank=True, null=True)
+    metadata = models.ManyToManyField(Value, blank=True, null=True)
 
     @models.permalink
     def get_absolute_url(self):

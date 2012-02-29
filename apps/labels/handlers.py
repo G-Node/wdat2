@@ -1,6 +1,13 @@
-from labels.models import Label
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils import simplejson as json
+
 from rest.meta import meta_objects
+from rest.management import CategoryHandler
+from rest.common import *
+
+from labels.models import Label
 from neo_api.models import meta_classnames
+from metadata.models import Value
 
 class LabelHandler(CategoryHandler):
 
@@ -24,34 +31,36 @@ class LabelHandler(CategoryHandler):
                 if not value.is_editable(request.user):
                     raise ReferenceError("You are not authorized to edit this value: %s" % value.id)
                 for obj_type in meta_objects:
-                    if rdata.has_key[obj_type]:
+                    if rdata.has_key(obj_type):
                         assert type(rdata[obj_type]) == type([])
                         for obj_id in rdata[obj_type]:
                             obj = meta_classnames[obj_type].objects.get(id=obj_id)
                             if not obj.is_editable(request.user):
                                 raise ReferenceError("You are not authorized to edit this %s: %s" % (obj.obj_type, obj.id))
                             iterator = Label.objects.filter(odml_value=value, neo_id=obj.id, \
-                                neo_type=obj.obj_type, owner=request.user)
-                            for l in iterator:
-                                if request.method == 'POST' or request.method == 'PUT': 
-                                    l = Label(value, obj.id, obj.obj_type, owner=request.user)
+                                neo_type=Label.neo_int_type(obj.obj_type), owner=request.user)
+                            if request.method == 'POST' or request.method == 'PUT' and not iterator:
+                                l = Label(odml_value=value, neo_id=obj.id, \
+                                    neo_type=Label.neo_int_type(obj.obj_type), owner=request.user)
                                 labels.append(l)
+                            elif request.method == 'DELETE':
+                                for l in iterator:
+                                    labels.append(l)
 
             for l in labels: # implemented as transaction 
                 if request.method == 'POST' or request.method == 'PUT': 
                     l.save()
                 elif request.method == 'DELETE':
                     l.delete_object()
-        except AssertionError:
-            return BadRequest(message_type="data_parsing_error", request=request)
+        except (AssertionError, ValueError), e:
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="data_parsing_error", request=request)
         except ObjectDoesNotExist, e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="does_not_exist", request=request)
         except ReferenceError, e:
             return Unauthorized(json_obj={"details": e.message}, \
                 message_type="not_authorized", request=request)
-        except ValueError:
-            return BadRequest(message_type="data_parsing_error", request=request)
 
         response = {'labels processed': len(labels)}
         return BasicJSONResponse(response, message_type="processed", request=request)

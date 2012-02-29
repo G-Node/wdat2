@@ -66,8 +66,8 @@ class Serializer(PythonSerializer):
                         if hasattr(child, 'get_absolute_url'):
                             children.append(''.join([self.host, child.get_absolute_url()]))
                         else:
-                            children.append(smart_unicode(child._get_pk_val(), \
-                                strings_only=True) + ":" + smart_unicode(child._meta))
+                            children.append(smart_unicode(child._get_pk_val()) + \
+                                ": " + smart_unicode(child._meta))
                     self._current[rel_name] = children
             self.end_object(obj)
         self.end_serialization()

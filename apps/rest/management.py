@@ -142,9 +142,6 @@ class RESTManager(object):
         else:
             return Unauthorized(message_type="not_authorized", request=request)
 
-    def check_incoming(self, request):
-
-
     def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
 

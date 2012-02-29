@@ -158,6 +158,7 @@ INSTALLED_APPS = (
     'metadata',
     #'timeseries',
     'neo_api',
+    #'labels',
     #'benchmarks',
     #'dfiles',
     #'evaluations',
