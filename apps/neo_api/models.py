@@ -547,6 +547,7 @@ class WaveForm(BaseInfo):
     waveform_size = models.IntegerField('waveform_size', blank=True, null=True) # in bytes, for better performance
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
     spike = models.ForeignKey(Spike, blank=True, null=True)
+    metadata = "Please look on the metadata of the parent object"
 
     @apply
     def waveform():

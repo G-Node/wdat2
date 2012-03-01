@@ -33,8 +33,6 @@ class Serializer(PythonSerializer):
         self.selected_fields = options.get("fields", None)
         self.use_natural_keys = options.get("use_natural_keys", self.use_natural_keys)
         self.start_serialization()
-        import pdb
-        pdb.set_trace()
         for obj in queryset:
             self.start_object(obj)
             for field in obj._meta.local_fields:
@@ -89,7 +87,7 @@ class Serializer(PythonSerializer):
 
             # Handle special fields
             if field_name in self.special_for_deserialization:
-                self.deserialize_special(obj, field_name, field_value)
+                self.deserialize_special(obj, field_name, field_value, user)
             else:
                 field = obj._meta.get_field(field_name)
 
@@ -144,6 +142,11 @@ class Serializer(PythonSerializer):
             "units": units
         }
 
+    @classmethod
+    def is_permalink(self, link):
+        """ add more validation here? everything is a valid url.."""
+        return str(link).find("http://") > -1 
+
     def resolve_permalink(self, obj):
         if hasattr(obj, 'get_absolute_url'):
             return ''.join([self.host, obj.get_absolute_url()])
@@ -196,10 +199,6 @@ class Serializer(PythonSerializer):
         if (field.attname + "__unit") in [f.attname for f in obj._meta.local_fields]:
             return True
         return False
-
-    def is_permalink(self, link):
-        """ add more validation here? everything is a valid url.."""
-        return str(link).find("http://") > -1 
 
     def serialize_special(self, obj, field):
         """ abstract method for special fields """

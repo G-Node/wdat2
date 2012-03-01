@@ -110,9 +110,9 @@ class RESTManager(object):
         except FieldDoesNotExist, v: # or pass????
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="post_data_invalid", request=request)
-        #except ValueError, v:
-        #    return BadRequest(json_obj={"details": v.message}, \
-        #        message_type="bad_float_data", request=request)
+        except ValueError, v:
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="bad_float_data", request=request)
         except ValidationError, VE:
             return BadRequest(json_obj=VE.message_dict, \
                 message_type="bad_parameter", request=request)
