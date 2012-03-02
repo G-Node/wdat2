@@ -6,10 +6,11 @@ from django.core.exceptions import PermissionDenied, ValidationError
 import numpy as np
 from scipy import signal
 from fields import models as fmodels
-from state_machine.models import ObjectState
+from state_machine.models import ObjectState, SafetyLevel
 from datafiles.models import Datafile
 from metadata.models import Section, Value
 from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
+from neo_api.serializers import NEOSerializer
 
 # default unit values and values limits
 name_max_length = 100
@@ -105,6 +106,10 @@ class BaseInfo(ObjectState):
         return "%s_%d" % (self.obj_type, self.id)
 
     @property
+    def default_serializer(self):
+        return NEOSerializer
+
+    @property
     def info(self):
         raise NotImplementedError("This is an abstract class")
 
@@ -121,7 +126,7 @@ class BaseInfo(ObjectState):
 #===============================================================================
 
 # 1 (of 15)
-class Block(BaseInfo):
+class Block(SafetyLevel, BaseInfo):
     """
     NEO Block @ G-Node.
     """
@@ -131,11 +136,6 @@ class Block(BaseInfo):
     index = models.IntegerField('index', null=True, blank=True)
     section = models.ForeignKey(Section, blank=True, null=True)
 
-    def is_accessible(self, user):
-        if self.section:
-            return self.owner == user or self.section.is_public()
-        return self.owner == user
-
     @property
     def info(self):
         pass
@@ -143,6 +143,10 @@ class Block(BaseInfo):
     @property
     def size(self):
         return int(np.array([w.size for w in self.segment_set.all()]).sum())
+
+    @property
+    def acl_type(self):
+        return 3 # See state_machine.models.SingleAccess (permissions)
 
 
 # 2 (of 15)
@@ -547,7 +551,7 @@ class WaveForm(BaseInfo):
     waveform_size = models.IntegerField('waveform_size', blank=True, null=True) # in bytes, for better performance
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
     spike = models.ForeignKey(Spike, blank=True, null=True)
-    metadata = "Please look on the metadata of the parent object"
+    metadata = "Please look at the metadata of the parent object"
 
     @apply
     def waveform():

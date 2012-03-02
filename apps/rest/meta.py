@@ -1,5 +1,4 @@
 from django.contrib.auth.models import User
-from metadata.models import Section, Property
 import datetime
 
 meta_messages = {
@@ -128,6 +127,8 @@ request_params_cleaner = {
     'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'max_results':  lambda x: abs(int(x)), # may raise ValueError
+    'show_kids': lambda x: bool(int(x)), # may raise ValueError
+    'cascade': lambda x: bool(int(x)), # may raise ValueError
 }
 
 # visibility options in GET request 

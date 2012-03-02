@@ -93,6 +93,6 @@ class Datafile(SafetyLevel, ObjectState):
 
     @property
     def acl_type(self):
-        return 1 # Datafile has an acl type #1 (required for permissions)
+        return 2 # See state_machine.models.SingleAccess (permissions)
 
 

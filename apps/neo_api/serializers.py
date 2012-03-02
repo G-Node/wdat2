@@ -1,6 +1,5 @@
 from django.utils.encoding import smart_unicode
 from rest.serializers import Serializer
-from neo_api.models import SpikeTrain, AnalogSignal, IrSaAnalogSignal, WaveForm
 
 
 class NEOSerializer(Serializer):

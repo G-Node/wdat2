@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
 
 from state_machine.models import SafetyLevel, ObjectState
-
+from metadata.serializers import SectionSerializer, PropertySerializer, ValueSerializer
 
 class Section(SafetyLevel, ObjectState):
     """
@@ -62,6 +62,10 @@ class Section(SafetyLevel, ObjectState):
         super(Section, self).save(*args, **kwargs)
 
     @property
+    def default_serializer(self):
+        return SectionSerializer
+
+    @property
     def rest_filters(self):
         """ supported filters for REST API """
         return ['top', 'section_id', 'visibility', 'owner', 'created_min', \
@@ -73,7 +77,7 @@ class Section(SafetyLevel, ObjectState):
 
     @property
     def acl_type(self):
-        return 2 # Section has an acl type #2 (required for permissions)
+        return 1 # See state_machine.models.SingleAccess (permissions)
 
     def get_tree(self, id_only=False):
         """ returns section with its children as lists tree """
@@ -206,6 +210,10 @@ class Property(ObjectState):
         return False
 
     @property
+    def default_serializer(self):
+        return PropertySerializer
+
+    @property
     def values(self):
         return self.value_set.filter(current_state=10)
 
@@ -222,7 +230,7 @@ class Value(ObjectState):
     Class implemented metadata Value. 
     """
     #FIXME add more attributes to the value
-    property = models.ForeignKey(Property)
+    parent_property = models.ForeignKey(Property) # can't use just property((
     data = models.TextField(_('value'), blank=True)
 
     def __unicode__(self):
@@ -231,6 +239,10 @@ class Value(ObjectState):
     @models.permalink
     def get_absolute_url(self):
         return ('value_details', [str(self.id)])
+
+    @property
+    def default_serializer(self):
+        return ValueSerializer
 
     def is_accessible(self, user):
         return self.property.is_accessible(user)

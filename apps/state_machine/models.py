@@ -73,9 +73,9 @@ class SafetyLevel(models.Model):
         users is a dict of the form {'user_id': 'access level', } """
         current_users = [x.access_for for x in self.shared_with]
         users_to_remove = list(set([x.id for x in current_users]) - set(users.keys()))
-        for user_id, level in users: # create new accesses and update old ones
+        for user_id, level in users.items(): # create new accesses and update old ones
             try:
-                u = User.objects.get(id=user_id)
+                u = User.objects.get(id=int(user_id))
             except:
                 raise ValueError("Provided user ID is not valid: %s" % user_id)
             if level not in dict(SingleAccess.ACCESS_LEVELS).keys():
@@ -86,11 +86,13 @@ class SafetyLevel(models.Model):
                 p.access_level = level
                 p.save()
             else: # create new access
-                p = SingleAccess(self, u, level)
+                p = SingleAccess(object_id=self.id, object_type=self.acl_type, \
+                    access_for=u, access_level=level)
                 p.save()
         for u in users_to_remove: # delete legacy accesses
             self.shared_with.get(access_for=u).delete()
 
+    @property
     def shared_with(self):
         """ returns a QuerySet of all specific accesses. Method relies on 
         'parent' object's ID and type (this is an abstract class anyway) """
@@ -98,7 +100,7 @@ class SafetyLevel(models.Model):
 
     def access_list(self):
         """ returns list of users having personal access to the object """
-        return [x.access_for for x in self.shared_with()]
+        return [x.access_for for x in self.shared_with]
 
     def remove_all_shares(self):
         pass
@@ -132,13 +134,13 @@ class SafetyLevel(models.Model):
     def is_readable(self, user):
         if self.is_editable(user) or self.is_public() or (self.is_friendly() \
             and Friendship.objects.are_friends(user, self.owner)) or \
-            self.owner == user:
+            (user in self.access_list()) or self.owner == user:
             return True
         return False
 
     def is_editable(self, user):
         if (self.owner == user) or (user in self.access_list() and \
-            self.get_access_for_user(user).level == 2):
+            self.get_access_for_user(user).access_level == 2):
             return True
         return False
 
@@ -157,8 +159,9 @@ class SingleAccess(models.Model):
         (2, _('Can edit')),
     )
     OBJECT_TYPES = (
-        (1, _('Datafile')),
-        (2, _('Section')),
+        (1, _('Section')),
+        (2, _('Datafile')),
+        (3, _('Block')),
     )
     object_id = models.IntegerField(_('object ID')) # ID of the File/Section
     object_type = models.IntegerField(_('object type'), choices=OBJECT_TYPES)
@@ -166,7 +169,9 @@ class SingleAccess(models.Model):
     access_for = models.ForeignKey(User) # with whom it is shared
     access_level = models.IntegerField(_('access level'), choices=ACCESS_LEVELS, default=1)
 
-
+    def resolve_access_level(self, value):
+        """ convert from int to str and vice versa TODO """
+        pass
 
 
 

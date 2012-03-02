@@ -10,11 +10,13 @@ class Serializer(PythonSerializer):
     Serialises/Deserial. G-Node models into JSON objects for HTTP REST responses
     """
 
-    """ configure whether to show reversed relations (their permalinks) in the 
-    response by default """
-    show_kids = True # on/off
-    excluded_rel = () # some can be excluded
-    do_not_show_if_empty = () # empty reverse relations are not shown
+    """ configure whether to show reversed relations (kids) in the response 
+    kids - e.g. a Block is a kid of a Section, a Segment is a kid of a Block 
+    etc."""
+    show_kids = True # on/off - show permalinks of kids by default, cascade=False
+    excluded_permalink = () # kid's permalinks are not shown even if show_kids=True
+    excluded_cascade = () # do not process these kids when cascade=False
+    do_not_show_if_empty = () # empty (no permalink) kids are not shown
     special_for_serialization = () # list of field names
     special_for_deserialization = () # list of field names
     object_filters = ("full", "info", "data", "related")
@@ -26,11 +28,11 @@ class Serializer(PythonSerializer):
         """
         Serialize a queryset. options => dict(request.GET)
         """
-        #self.init_options = dict(options) # keep options for recursive
         self.cascade = options.has_key("cascade")
-        self.q = options.get("q", ["full"])[0] # request feature, values in []
+        self.q = options.get("q", "full") # request feature, values in []
         self.host = options.get("permalink_host", "")
         self.selected_fields = options.get("fields", None)
+        self.show_kids = options.get("show_kids", self.show_kids)
         self.use_natural_keys = options.get("use_natural_keys", self.use_natural_keys)
         self.start_serialization()
         for obj in queryset:
@@ -57,10 +59,15 @@ class Serializer(PythonSerializer):
                         self.handle_m2m_field(obj, field)
             # process specially reverse relations, like properties for section
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
-                if self.cascade: # cascade related object load
-                    self._current[rel_name] = self.__class__().serialize(getattr(obj, \
-                        rel_name).all(), options=options) # FIXME does not work recursively
-                elif self.show_kids and self.serialize_rel and rel_name[:-4] not in self.excluded_rel:
+                if self.cascade and rel_name[:-4] not in self.excluded_cascade: # cascade related object load
+                    kid_model = filter(lambda x: x.get_accessor_name() == rel_name,\
+                        obj._meta.get_all_related_objects())[0].model # FIXME add many to many?
+                    if hasattr(kid_model, 'default_serializer'):
+                        serializer = kid_model().default_serializer
+                    else: serializer = self.__class__
+                    self._current[rel_name] = serializer().serialize(getattr(obj, \
+                        rel_name).all(), options=options)
+                elif self.show_kids and self.serialize_rel and rel_name[:-4] not in self.excluded_permalink:
                     """ this is used to include some short-relatives into the 
                     serialized object, e.g. permalinks of Properties and Values 
                     into the Section """

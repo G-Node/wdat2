@@ -9,6 +9,7 @@ from django.db.models.fields import FieldDoesNotExist
 import settings
 import hashlib
 
+from state_machine.models import SafetyLevel
 from rest.common import *
 from rest.meta import *
 
@@ -30,39 +31,45 @@ class RESTManager(object):
         }
         self.assistant = {} # to store some params for serialization/deserial.
 
+    def clean_get_params(self, request):
+        """ clean request GET params """
+        try: # assert request parameters both from request.GET and from kwargs
+            params = {} # a dict to later filter requested data
+            for k, v in request.GET.items():
+                if k in request_params_cleaner.keys():
+                    params[str(k)] = request_params_cleaner.get(k)(v)
+            params["permalink_host"] = '%s://%s' % (request.is_secure() and \
+                'https' or 'http', request.get_host())
+            self.options = params
+        except (ObjectDoesNotExist, ValueError, IndexError), e:
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="wrong_params", request=request)
+
     def get(self, request, obj):
         """ retrieve and serialize single object """
-        resp_data = self.handler.serialize([obj], options=self.build_options(request))[0]
+        resp_data = self.handler.serialize([obj], options=self.options)[0]
         return BasicJSONResponse(resp_data, "retrieved", request)
 
     def get_list(self, request, *args, **kwargs):
         """ returns requested objects list """
         message_type = "no_objects_found"
         start_index, max_results = 0, 1000 # default
-        try: # assert request parameters both from request.GET and from kwargs
-            params = {} # a dict to later filter requested data
-            for k, v in dict(request.GET.items() + kwargs.items()).items():
-                if k in request_params_cleaner.keys() and request_params_cleaner.get(k)(v):
-                    params[str(k)] = request_params_cleaner.get(k)(v)
-        except (ObjectDoesNotExist, ValueError, IndexError), e:
-            return BadRequest(json_obj={"details": e.message}, \
-                message_type="wrong_params", request=request)
         # pre- filters
         objects = filter(lambda s: s.is_accessible(request.user), self.model.objects.all())
         objects_total = len(objects)
         # model-dependent filters
         for filter_name in self.list_filters:
-            if filter_name in params.keys() and objects:
+            if filter_name in self.options.keys() and objects:
                 filter_func = self.get_filter_by_name(filter_name)
-                objects = filter_func(objects, params[filter_name], request.user)
+                objects = filter_func(objects, self.options[filter_name], request.user)
         # post- filters
-        if "start_index" in params.keys() and params["start_index"] < \
+        if "start_index" in self.options.keys() and self.options["start_index"] < \
             len(objects) and objects:
-            start_index = params["start_index"]
+            start_index = self.options["start_index"]
         objects = objects[start_index:]
-        if "max_results" in params.keys() and params["max_results"] < \
+        if "max_results" in self.options.keys() and self.options["max_results"] < \
             len(objects) and objects:
-            max_results = params["max_results"]
+            max_results = self.options["max_results"]
         objects = objects[:max_results]
         resp_data = {
             "objects_total": objects_total,
@@ -71,7 +78,7 @@ class RESTManager(object):
         }
         if objects:
             message_type = "object_selected"
-            resp_data["selected"] = self.handler.serialize(objects, self.build_options(request))
+            resp_data["selected"] = self.handler.serialize(objects, self.options)
         else:
             resp_data["selected"] = None
         return BasicJSONResponse(resp_data, message_type, request)
@@ -128,7 +135,7 @@ class RESTManager(object):
         if update:
             request.method = "GET"
             return self.get(request, obj)
-        options = self.build_options(request)
+        options = self.options
         options["q"] = ["info"]
         resp_data = self.handler.serialize([obj], options=options)[0]
         return Created(resp_data, message_type="object_created", request=request)
@@ -148,11 +155,6 @@ class RESTManager(object):
     def run_post_processing(self, obj):
         pass
 
-    def build_options(self, request):
-        options = dict(request.GET)
-        options["permalink_host"] = '%s://%s' % (request.is_secure() and \
-            'https' or 'http', request.get_host())
-        return options
 
 # HANDLERS ---------------------------------------------------------------------
 
@@ -182,6 +184,9 @@ def process_REST(request, obj_id=None, handler=None, *args, **kwargs):
     """ this is a trick to use eTag/last-modified 'condition' built-in Django 
     decorator. one has to call a function and not a class because 'condition' 
     decorator does not accept the 'self' agrument."""
+    error = handler.clean_get_params(request)
+    if error:
+        return error
     return handler(request, obj_id, *args, **kwargs)
 
 
@@ -235,6 +240,74 @@ class CategoryHandler(RESTManager):
         if request.method in actions.keys():
             return actions[request.method](request, *args, **kwargs)
         return NotSupported(message_type="invalid_method", request=request)
+
+
+class ACLHandler(RESTManager):
+    """ Handles requests for a single object """
+
+    @auth_required
+    def __call__(self, request, id, *args, **kwargs):
+        """ 
+        GET: return ACL, PUT/POST: change permissions for an object.
+
+        request: incoming HTTP request
+        """
+        def acl_update(obj, safety_level, users, cascade=False):
+            """ recursively update permissions """
+            if safety_level:
+                obj.safety_level = safety_level
+                obj.full_clean()
+                obj.save()
+            if not users == None:
+                obj.share(users)
+            if cascade:
+                for related in obj._meta.get_all_related_objects():
+                    if issubclass(related.model, SafetyLevel): # reversed child can be shared
+                        for c in getattr(obj, related.get_accessor_name()).all():
+                            acl_update(c, safety_level, users, cascade)
+
+        actions = ('GET', 'PUT', 'POST')
+        if not request.method in actions:
+            return NotSupported(message_type="invalid_method", request=request)
+
+        try:
+            obj = self.model.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return BadRequest(message_type="does_not_exist", request=request)
+
+        if not request.method == 'GET':
+            try: # TODO DRY
+                rdata = json.loads(request._get_raw_post_data())
+            except ValueError:
+                return BadRequest(message_type="data_parsing_error", request=request)
+
+            if not type(rdata) == type({}):
+                return BadRequest(message_type="data_parsing_error", request=request)
+
+            try:
+                safety_level = None
+                if rdata.has_key('safety_level'):
+                    safety_level = rdata['safety_level']
+
+                users = None
+                if rdata.has_key('shared_with'):
+                    assert type(rdata['shared_with']) == type({}), "Wrong user data."
+                    users = rdata['shared_with']
+
+                acl_update(obj, safety_level, users, self.options.has_key('cascade'))
+            except ValidationError, VE:
+                return BadRequest(json_obj=VE.message_dict, \
+                    message_type="bad_parameter", request=request)
+            except (AssertionError, AttributeError, ValueError), e:
+                return BadRequest(json_obj={"details": e.message}, \
+                    message_type="post_data_invalid", request=request)
+
+        resp_data = {}
+        resp_data['safety_level'] = obj.safety_level
+        resp_data['shared_with'] = dict([(sa.access_for.username, sa.access_level) \
+            for sa in obj.shared_with])
+        return BasicJSONResponse(resp_data, "object_selected", request)
+
 
 
 # FILTERS ----------------------------------------------------------------------
