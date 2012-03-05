@@ -41,7 +41,7 @@ class RESTManager(object):
             params["permalink_host"] = '%s://%s' % (request.is_secure() and \
                 'https' or 'http', request.get_host())
             self.options = params
-        except (ObjectDoesNotExist, ValueError, IndexError), e:
+        except (ObjectDoesNotExist, ValueError, IndexError, KeyError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="wrong_params", request=request)
 

@@ -59,6 +59,8 @@ class Section(SafetyLevel, ObjectState):
                 sections = self.parent_section.section_set.all()
             last_pos = (sections.aggregate(Max('tree_position'))['tree_position__max'] or 0)
             self.tree_position = last_pos + 1
+        """ one should write a validation that any self-loops are being created """
+        # TODO
         super(Section, self).save(*args, **kwargs)
 
     @property

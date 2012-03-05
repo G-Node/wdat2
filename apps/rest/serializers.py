@@ -19,7 +19,6 @@ class Serializer(PythonSerializer):
     do_not_show_if_empty = () # empty (no permalink) kids are not shown
     special_for_serialization = () # list of field names
     special_for_deserialization = () # list of field names
-    object_filters = ("full", "info", "data", "related")
     cascade = False
     encoding = settings.DEFAULT_CHARSET
     use_natural_keys = True

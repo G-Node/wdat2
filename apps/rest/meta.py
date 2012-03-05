@@ -129,7 +129,14 @@ request_params_cleaner = {
     'max_results':  lambda x: abs(int(x)), # may raise ValueError
     'show_kids': lambda x: bool(int(x)), # may raise ValueError
     'cascade': lambda x: bool(int(x)), # may raise ValueError
+    'q': lambda x: object_filters[str(x)], # may raise ValueError or IndexError
 }
+
+object_filters = {
+    "full": "full",
+    "info": "info",
+    "data": "data",
+    "related": "related"}
 
 # visibility options in GET request 
 visibility_options = {
