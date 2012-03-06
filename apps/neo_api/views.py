@@ -1,13 +1,14 @@
-from rest.management import ObjectHandler, CategoryHandler, ACLHandler, process_REST
+from rest.management import BaseHandler, ACLHandler, process_REST
 from rest.common import BadRequest, Unauthorized, NotFound
 
 from neo_api.models import *
 from neo_api.serializers import NEOSerializer, NEOCategorySerializer
+from neo_api.handlers import NEOHandler
 
 NEOCategoryHandlers, NEOObjectHandlers, NEOACLHandlers = {}, {}, {}
 for key, classname in meta_classnames.items():
-    NEOCategoryHandlers[key] = CategoryHandler(NEOCategorySerializer, classname)
-    NEOObjectHandlers[key] = ObjectHandler(NEOSerializer, classname)
+    NEOCategoryHandlers[key] = NEOHandler(NEOCategorySerializer, classname)
+    NEOObjectHandlers[key] = NEOHandler(NEOSerializer, classname)
     NEOACLHandlers[key] = ACLHandler(NEOSerializer, classname)
 
 

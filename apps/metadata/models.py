@@ -247,9 +247,9 @@ class Value(ObjectState):
         return ValueSerializer
 
     def is_accessible(self, user):
-        return self.property.is_accessible(user)
+        return self.parent_property.is_accessible(user)
 
     def is_editable(self, user):
-        return self.property.is_editable(user)
+        return self.parent_property.is_editable(user)
 
 

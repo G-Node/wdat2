@@ -2,7 +2,6 @@ from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.views.decorators.http import condition
 from django.utils import simplejson as json
-from django.utils.encoding import smart_unicode
 from django.db import models
 from django.db.models.fields import FieldDoesNotExist
 
@@ -14,7 +13,7 @@ from rest.common import *
 from rest.meta import *
 
 
-class RESTManager(object):
+class BaseHandler(object):
     """
     An abstract class that implements basic REST API functions like get single 
     object, get list of objects, create, update and delete objects.
@@ -30,6 +29,41 @@ class RESTManager(object):
             'created_max': created_max_filter,
         }
         self.assistant = {} # to store some params for serialization/deserial.
+        self.actions = {
+            'GET': self.get,
+            'PUT': self.create_or_update,
+            'POST': self.create_or_update,
+            'DELETE': self.delete }
+        self.start_index = 0
+        self.max_results = 1000
+
+    @auth_required
+    def __call__(self, request, obj_id=None, *args, **kwargs):
+        """
+        GET: get, PUT/POST: update, DELETE: delete single object. Serves 
+        partial data requests (info, data etc.) using GET params.
+
+        request: incoming HTTP request
+        obj_id: ID of the object from request URL
+        """
+        if request.method in self.actions.keys():
+            objects = None
+            if obj_id:
+                try: # object exists?
+                    obj = self.model.objects.get(id=obj_id)
+                except ObjectDoesNotExist:
+                    return BadRequest(message_type="does_not_exist", request=request)
+                if not obj.is_accessible(request.user): # first security check
+                    return Unauthorized(message_type="not_authorized", request=request)
+                objects = [obj]
+            else:
+                objects = self.model.objects.all()
+            if not request.method == 'PUT':
+                objects = self.do_filter(request.user, objects)
+            return self.actions[request.method](request, objects)
+        else:
+            return NotSupported(message_type="invalid_method", request=request)
+
 
     def clean_get_params(self, request):
         """ clean request GET params """
@@ -45,109 +79,116 @@ class RESTManager(object):
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="wrong_params", request=request)
 
-    def get(self, request, obj):
-        """ retrieve and serialize single object """
-        resp_data = self.handler.serialize([obj], options=self.options)[0]
-        return BasicJSONResponse(resp_data, "retrieved", request)
+    def clean_post_data(self, rdata):
+        """ post data clean up """
+        rdata = json.loads(rdata)
+        if not type(rdata) == type({}):
+            raise TypeError
+        # fields / values can be in both 'fields' attr or just in the request
+        if rdata.has_key('fields'):
+            rdata = rdata['fields']
+        return rdata
 
-    def get_list(self, request, *args, **kwargs):
-        """ returns requested objects list """
-        message_type = "no_objects_found"
-        start_index, max_results = 0, 1000 # default
+    def do_filter(self, user, objects):
+        """ filter objects as per request params """
         # pre- filters
-        objects = filter(lambda s: s.is_accessible(request.user), self.model.objects.all())
-        objects_total = len(objects)
+        if "start_index" in self.options.keys() and self.options["start_index"] < \
+            len(objects) and objects:
+            self.start_index = self.options["start_index"]
+        objects = objects[self.start_index:]
+        if "max_results" in self.options.keys() and self.options["max_results"] < \
+            len(objects) and objects:
+            self.max_results = self.options["max_results"]
+        objects = objects[:self.max_results]
         # model-dependent filters
         for filter_name in self.list_filters:
             if filter_name in self.options.keys() and objects:
                 filter_func = self.get_filter_by_name(filter_name)
-                objects = filter_func(objects, self.options[filter_name], request.user)
+                objects = filter_func(objects, self.options[filter_name], user)
         # post- filters
-        if "start_index" in self.options.keys() and self.options["start_index"] < \
-            len(objects) and objects:
-            start_index = self.options["start_index"]
-        objects = objects[start_index:]
-        if "max_results" in self.options.keys() and self.options["max_results"] < \
-            len(objects) and objects:
-            max_results = self.options["max_results"]
-        objects = objects[:max_results]
+        import time
+        print time.ctime()
+        objects = filter(lambda s: s.is_accessible(user), objects)
+        print time.ctime()
+        return objects
+
+
+    def get(self, request, objects):
+        """ returns requested objects list """
+        message_type = "no_objects_found"
         resp_data = {
-            "objects_total": objects_total,
             "objects_selected": len(objects),
-            "selected_range": [start_index, start_index + len(objects)],
+            "selected_range": [self.start_index, self.start_index + len(objects)],
+            "selected": None
         }
         if objects:
+            resp_data["selected"] = self.handler.serialize(objects, options=self.options)
             message_type = "object_selected"
-            resp_data["selected"] = self.handler.serialize(objects, self.options)
-        else:
-            resp_data["selected"] = None
         return BasicJSONResponse(resp_data, message_type, request)
 
 
-    def create_or_update(self, request, obj=None):
+    def create_or_update(self, request, objects=None):
         """
         We "boycott" everything "that's not made by our hands" for security and
         practical reasons (no automatic JSON parsing into an object). Create and
         update have very similar functionality thus implemented as one function.
         """
         try:
-            rdata = json.loads(request._get_raw_post_data())
+            rdata = self.clean_post_data(request._get_raw_post_data())
         except ValueError:
             return BadRequest(message_type="data_parsing_error", request=request)
-
-        if not type(rdata) == type({}):
+        except TypeError:
             return BadRequest(message_type="data_parsing_error", request=request)
 
-        # fields / values can be in both 'fields' attr or just in the request
-        if rdata.has_key('fields'):
-            rdata = rdata['fields']
-
-        if not obj == None:
-            update = True
-            if not obj.is_editable(request.user): # method should exist, ensure
-                return Unauthorized(message_type="not_authorized", request=request)
-        else:
+        if request.method == 'PUT':
             update = False
-            obj = self.model() # create object skeleton
-            obj.owner = request.user
+            objects = [self.model()] # create object skeleton
+            objects[0].owner = request.user
+        else:
+            update = True
+            for obj in objects:
+                if not obj.is_editable(request.user): # method should exist, ensure
+                    return Unauthorized(message_type="not_authorized", request=request)
 
-        try:
-            self.handler.deserialize(rdata, obj, user=request.user,\
-                encoding=getattr(request, "encoding", None) or settings.DEFAULT_CHARSET)
-        except FieldDoesNotExist, v: # or pass????
-            return BadRequest(json_obj={"details": v.message}, \
-                message_type="post_data_invalid", request=request)
-        except ValueError, v:
-            return BadRequest(json_obj={"details": v.message}, \
-                message_type="bad_float_data", request=request)
-        except ValidationError, VE:
-            return BadRequest(json_obj=VE.message_dict, \
-                message_type="bad_parameter", request=request)
-        except (AssertionError, AttributeError), e:
-            return BadRequest(json_obj={"details": e.message}, \
-                message_type="post_data_invalid", request=request)
-        except (ReferenceError, ObjectDoesNotExist), e:
-            return Unauthorized(json_obj={"details": e.message}, \
-                message_type="wrong_reference", request=request)
+        for obj in objects:
+            try:
+                self.handler.deserialize(rdata, obj, user=request.user,\
+                    encoding=getattr(request, "encoding", None) or settings.DEFAULT_CHARSET)
+            except FieldDoesNotExist, v: # or pass????
+                return BadRequest(json_obj={"details": v.message}, \
+                    message_type="post_data_invalid", request=request)
+            except ValueError, v:
+                return BadRequest(json_obj={"details": v.message}, \
+                    message_type="bad_float_data", request=request)
+            except ValidationError, VE:
+                return BadRequest(json_obj=VE.message_dict, \
+                    message_type="bad_parameter", request=request)
+            except (AssertionError, AttributeError), e:
+                return BadRequest(json_obj={"details": e.message}, \
+                    message_type="post_data_invalid", request=request)
+            except (ReferenceError, ObjectDoesNotExist), e:
+                return Unauthorized(json_obj={"details": e.message}, \
+                    message_type="wrong_reference", request=request)
 
-        self.run_post_processing(obj) # for some special cases
+            self.run_post_processing(obj) # for some special cases
 
         if update:
             request.method = "GET"
-            return self.get(request, obj)
-        options = self.options
-        options["q"] = ["info"]
-        resp_data = self.handler.serialize([obj], options=options)[0]
+            return self.get(request, objects)
+
+        self.options["q"] = "info"
+        resp_data = self.handler.serialize(objects, options=self.options)
         return Created(resp_data, message_type="object_created", request=request)
 
 
-    def delete(self, request, obj):
+    def delete(self, request, objects):
         """ delete (archive) provided object """
-        if obj.is_editable(request.user): # method should exist, ensure
-            obj.delete_object()
-            return BasicJSONResponse(message_type="deleted", request=request)
-        else:
-            return Unauthorized(message_type="not_authorized", request=request)
+        for obj in objects:
+            if obj.is_editable(request.user): # method should exist, ensure
+                obj.delete_object()
+            else:
+                return Unauthorized(message_type="not_authorized", request=request)
+        return BasicJSONResponse(message_type="deleted", request=request)
 
     def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
@@ -190,59 +231,7 @@ def process_REST(request, obj_id=None, handler=None, *args, **kwargs):
     return handler(request, obj_id, *args, **kwargs)
 
 
-class ObjectHandler(RESTManager):
-    """ Handles requests for a single object """
-
-    @auth_required
-    def __call__(self, request, obj_id=None, *args, **kwargs):
-        """
-        GET: get, PUT/POST: update, DELETE: delete single object. Serves 
-        partial data requests (info, data etc.) using GET params.
-
-        request: incoming HTTP request
-        obj_id: ID of the object from request URL
-        """
-        actions = {
-            'GET': self.get,
-            'PUT': self.create_or_update,
-            'POST': self.create_or_update,
-            'DELETE': self.delete}
-        if not obj_id: # obj_id can be in kwargs
-            if 'id' in kwargs.keys():
-                obj_id = kwargs['id']
-        if request.method in actions.keys() and obj_id:
-            try: # object exists
-                obj = self.model.objects.get(id=obj_id)
-            except ObjectDoesNotExist:
-                return BadRequest(message_type="does_not_exist", request=request)
-            if not obj.is_accessible(request.user): # security check
-                return Unauthorized(message_type="not_authorized", request=request)
-            response = actions[request.method](request, obj)
-        else:
-            response = NotSupported(message_type="invalid_method", request=request)
-        return response
-
-
-class CategoryHandler(RESTManager):
-    """ Handles requests for a single object """
-
-    @auth_required
-    def __call__(self, request, *args, **kwargs):
-        """ 
-        GET: query all objects, PUT/POST: create new, copy.
-
-        request: incoming HTTP request
-        """
-        actions = {
-            'GET': self.get_list,
-            'PUT': self.create_or_update,
-            'POST': self.create_or_update}
-        if request.method in actions.keys():
-            return actions[request.method](request, *args, **kwargs)
-        return NotSupported(message_type="invalid_method", request=request)
-
-
-class ACLHandler(RESTManager):
+class ACLHandler(BaseHandler):
     """ Handles requests for a single object """
 
     @auth_required
@@ -276,12 +265,11 @@ class ACLHandler(RESTManager):
             return BadRequest(message_type="does_not_exist", request=request)
 
         if not request.method == 'GET':
-            try: # TODO DRY
-                rdata = json.loads(request._get_raw_post_data())
+            try:
+                rdata = self.clean_post_data(request._get_raw_post_data())
             except ValueError:
                 return BadRequest(message_type="data_parsing_error", request=request)
-
-            if not type(rdata) == type({}):
+            except TypeError:
                 return BadRequest(message_type="data_parsing_error", request=request)
 
             try:

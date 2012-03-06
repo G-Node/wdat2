@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.utils.encoding import smart_unicode
 import datetime
 
 meta_messages = {
@@ -123,13 +124,15 @@ request_params_cleaner = {
     'property_id': lambda x: int(x), # may raise ValueError
     'visibility':  lambda x: visibility_options[x], # may raise IndexError
     'top':  lambda x: top_options[x], # may raise IndexError
-    'owner':  lambda x: str(x), # may raise UnicodeEncodeError?
+    'owner':  lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'max_results':  lambda x: abs(int(x)), # may raise ValueError
     'show_kids': lambda x: bool(int(x)), # may raise ValueError
     'cascade': lambda x: bool(int(x)), # may raise ValueError
     'q': lambda x: object_filters[str(x)], # may raise ValueError or IndexError
+    'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
 }
 
 object_filters = {

@@ -14,13 +14,14 @@ class NEOSerializer(Serializer):
     def serialize_special(self, obj, field):
         """ fields containing comma-separated float values require special 
         serialization, similar to data-fields """
-        field_short = field.name[:field.name.find("_data")]
-        units = smart_unicode(getattr(obj, field_short + "__unit"), self.encoding,\
-            strings_only=True)
-        self._current[field_short] = {
-            'data': getattr(obj, field_short),
-            'unit': units
-        }
+        if self.serialize_data:
+            field_short = field.name[:field.name.find("_data")]
+            units = smart_unicode(getattr(obj, field_short + "__unit"), self.encoding,\
+                strings_only=True)
+            self._current[field_short] = {
+                'data': getattr(obj, field_short),
+                'unit': units
+            }
 
 
 class NEOCategorySerializer(NEOSerializer):

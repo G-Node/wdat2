@@ -591,3 +591,13 @@ meta_classnames = {
     "recordingchannelgroup": RecordingChannelGroup,
     "recordingchannel": RecordingChannel}
 
+
+def get_type_by_class(cls):
+    """
+    Returns the type of the object (string), like 'segment' or 'event'.
+    """
+    for obj_type in meta_objects:
+        if issubclass(cls, meta_classnames[obj_type]):
+            return obj_type
+
+
