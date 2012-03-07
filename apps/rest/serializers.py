@@ -27,12 +27,15 @@ class Serializer(PythonSerializer):
         """
         Serialize a queryset. options => dict(request.GET)
         """
-        self.cascade = options.has_key("cascade")
-        self.q = options.get("q", "full") # request feature, values in []
-        self.host = options.get("permalink_host", "")
-        self.selected_fields = options.get("fields", None)
-        self.show_kids = options.get("show_kids", self.show_kids)
-        self.use_natural_keys = options.get("use_natural_keys", self.use_natural_keys)
+        def parse_options(self, options):
+            self.options = options
+            self.cascade = options.has_key("cascade")
+            self.q = options.get("q", "full")
+            self.host = options.get("permalink_host", "")
+            self.selected_fields = options.get("fields", None)
+            self.show_kids = options.get("show_kids", self.show_kids)
+            self.use_natural_keys = options.get("use_natural_keys", self.use_natural_keys)
+        parse_options(self, options)
         self.start_serialization()
         for obj in queryset:
             self.start_object(obj)

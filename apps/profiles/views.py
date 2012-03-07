@@ -20,8 +20,6 @@ from profiles.forms import ProfileForm
 
 from avatar.templatetags.avatar_tags import avatar
 
-from experiments.models import Experiment
-
 
 if "notification" in settings.INSTALLED_APPS:
     from notification import models as notification
@@ -128,10 +126,6 @@ def profile(request, username, template_name="profiles/profile.html", extra_cont
     previous_invitations_to = FriendshipInvitation.objects.invitations(to_user=other_user, from_user=request.user)
     previous_invitations_from = FriendshipInvitation.objects.invitations(to_user=request.user, from_user=other_user)
 
-    experiments = Experiment.objects.filter(current_state=10, owner=other_user)
-    experiments = experiments.order_by("-date_created")
-    experiments = filter(lambda x: x.is_accessible(request.user), experiments)
-    
     return render_to_response(template_name, dict({
         "is_me": is_me,
         "is_friend": is_friend,
@@ -141,7 +135,6 @@ def profile(request, username, template_name="profiles/profile.html", extra_cont
         "invite_form": invite_form,
         "previous_invitations_to": previous_invitations_to,
         "previous_invitations_from": previous_invitations_from,
-        "experiments": experiments,
     }, **extra_context), context_instance=RequestContext(request))
 
 

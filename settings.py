@@ -137,7 +137,7 @@ INSTALLED_APPS = (
     'captcha',
     
     # internal (for now)
-    'projects',
+    #'projects',
     #'tasks',
     #'experiments',
     #'datasets',
@@ -156,8 +156,8 @@ INSTALLED_APPS = (
     'ldap_backend',
     'system_dashboard',
     'metadata',
-    #'timeseries',
     'neo_api',
+    #'timeseries',
     #'labels',
     #'benchmarks',
     #'dfiles',
@@ -182,7 +182,8 @@ AUTH_PROFILE_MODULE = 'profiles.Profile'
 NOTIFICATION_LANGUAGE_MODULE = 'account.Account'
 
 LOGIN_URL = "/account/login/"
-LOGIN_REDIRECT_URLNAME = "what_next"
+#LOGIN_REDIRECT_URLNAME = "what_next"
+LOGIN_REDIRECT_URLNAME = "profile_list"
 
 INTERNAL_IPS = (
     '127.0.0.1',

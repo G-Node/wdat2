@@ -8,13 +8,13 @@ except ImportError:
 from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
-from state_machine.models import SafetyLevel, LinkedToProject, MetadataManager, ObjectState
+from state_machine.models import SafetyLevel, ObjectState
 from django.core.files import storage
 from django.template.defaultfilters import filesizeformat
 from friends.models import Friendship
-from pinax.apps.projects.models import Project
 from tagging.fields import TagField
 from django.utils.translation import ugettext_lazy as _
+from metadata.models import Section
 import settings
 
 def make_upload_path(self, filename):
@@ -50,8 +50,7 @@ class Datafile(SafetyLevel, ObjectState):
     """
     title = models.CharField(_('name'), blank=True, max_length=200)
     caption = models.TextField(_('description'), blank=True)
-    date_added = models.DateTimeField(_('date added'), default=datetime.now, editable=False)
-    in_projects = models.ManyToManyField(Project, blank=True, verbose_name=_('related projects'))
+    section = models.ForeignKey(Section, blank=True, null=True)
     raw_file = models.FileField(_('data file'), storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField(_('keywords'))
     # here we put file info extracted using neuroshare, stored as JSON

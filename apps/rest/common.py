@@ -25,6 +25,9 @@ class BasicJSONResponse(HttpResponse):
         self['Content-Type'] = "application/json"
         self['G-Node-Version'] = "1.0"
 
+class Success(BasicJSONResponse):
+    status_code = 200
+
 class Created(BasicJSONResponse):
     status_code = 201
 
@@ -33,6 +36,9 @@ class BadRequest(BasicJSONResponse):
 
 class Unauthorized(BasicJSONResponse):
     status_code = 401
+
+class Forbidden(BasicJSONResponse):
+    status_code = 403
 
 class NotFound(BasicJSONResponse):
     status_code = 404
@@ -48,7 +54,10 @@ def auth_required(func):
     argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
     fname = func.func_name
     def auth_func(*args, **kwargs):
-        if not args[1].user.is_authenticated():
+        user = None
+        for a in args:
+            if hasattr(a, 'user'): user = a.user
+        if not user or not user.is_authenticated():
             return Unauthorized(message_type="not_authenticated")
         return func(*args, **kwargs)
     return auth_func

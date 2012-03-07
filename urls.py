@@ -55,7 +55,7 @@ urlpatterns = patterns('',
     (r'^i18n/', include('django.conf.urls.i18n')),
     (r'^admin/(.*)', include(admin.site.urls)),
     (r'^avatar/', include('avatar.urls')),
-    (r'^projects/', include('projects.urls')),
+    #(r'^projects/', include('projects.urls')),
 )
 
 ## @@@ for now, we'll use friends_app to glue this stuff together
@@ -92,7 +92,7 @@ friends_bookmarks_kwargs = {
 }
 
 urlpatterns += patterns('',
-    #url(r'^datafiles/', include('datafiles.urls')),
+    url(r'^datafiles/', include('datafiles.urls')),
     url(r'^trash_folder/', include('trash_folder.urls')),
     url(r'^captcha/', include('captcha.urls')),
     url(r'^system_dashboard/', include('system_dashboard.urls')),

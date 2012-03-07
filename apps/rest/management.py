@@ -18,8 +18,8 @@ class BaseHandler(object):
     An abstract class that implements basic REST API functions like get single 
     object, get list of objects, create, update and delete objects.
     """
-    def __init__(self, handler, model):
-        self.handler = handler() # serializer
+    def __init__(self, serializer, model):
+        self.serializer = serializer() # serializer
         self.model = model # required
         self.list_filters = { # this is a full list, overwrite in a parent class
             'top': top_filter,
@@ -52,9 +52,9 @@ class BaseHandler(object):
                 try: # object exists?
                     obj = self.model.objects.get(id=obj_id)
                 except ObjectDoesNotExist:
-                    return BadRequest(message_type="does_not_exist", request=request)
+                    return NotFound(message_type="does_not_exist", request=request)
                 if not obj.is_accessible(request.user): # first security check
-                    return Unauthorized(message_type="not_authorized", request=request)
+                    return Forbidden(message_type="not_authorized", request=request)
                 objects = [obj]
             else:
                 objects = self.model.objects.all()
@@ -106,10 +106,7 @@ class BaseHandler(object):
                 filter_func = self.get_filter_by_name(filter_name)
                 objects = filter_func(objects, self.options[filter_name], user)
         # post- filters
-        import time
-        print time.ctime()
         objects = filter(lambda s: s.is_accessible(user), objects)
-        print time.ctime()
         return objects
 
 
@@ -122,9 +119,9 @@ class BaseHandler(object):
             "selected": None
         }
         if objects:
-            resp_data["selected"] = self.handler.serialize(objects, options=self.options)
+            resp_data["selected"] = self.serializer.serialize(objects, options=self.options)
             message_type = "object_selected"
-        return BasicJSONResponse(resp_data, message_type, request)
+        return Success(resp_data, message_type, request)
 
 
     def create_or_update(self, request, objects=None):
@@ -135,9 +132,7 @@ class BaseHandler(object):
         """
         try:
             rdata = self.clean_post_data(request._get_raw_post_data())
-        except ValueError:
-            return BadRequest(message_type="data_parsing_error", request=request)
-        except TypeError:
+        except (ValueError, TypeError):
             return BadRequest(message_type="data_parsing_error", request=request)
 
         if request.method == 'PUT':
@@ -148,11 +143,11 @@ class BaseHandler(object):
             update = True
             for obj in objects:
                 if not obj.is_editable(request.user): # method should exist, ensure
-                    return Unauthorized(message_type="not_authorized", request=request)
+                    return Forbidden(message_type="not_authorized", request=request)
 
         for obj in objects:
             try:
-                self.handler.deserialize(rdata, obj, user=request.user,\
+                self.serializer.deserialize(rdata, obj, user=request.user,\
                     encoding=getattr(request, "encoding", None) or settings.DEFAULT_CHARSET)
             except FieldDoesNotExist, v: # or pass????
                 return BadRequest(json_obj={"details": v.message}, \
@@ -161,13 +156,17 @@ class BaseHandler(object):
                 return BadRequest(json_obj={"details": v.message}, \
                     message_type="bad_float_data", request=request)
             except ValidationError, VE:
-                return BadRequest(json_obj=VE.message_dict, \
+                if hasattr(VE, 'message_dict'):
+                    json_obj=VE.message_dict
+                else:
+                    json_obj={"details": ", ".join(VE.messages)}
+                return BadRequest(json_obj=json_obj, \
                     message_type="bad_parameter", request=request)
             except (AssertionError, AttributeError), e:
                 return BadRequest(json_obj={"details": e.message}, \
                     message_type="post_data_invalid", request=request)
             except (ReferenceError, ObjectDoesNotExist), e:
-                return Unauthorized(json_obj={"details": e.message}, \
+                return NotFound(json_obj={"details": e.message}, \
                     message_type="wrong_reference", request=request)
 
             self.run_post_processing(obj) # for some special cases
@@ -177,7 +176,7 @@ class BaseHandler(object):
             return self.get(request, objects)
 
         self.options["q"] = "info"
-        resp_data = self.handler.serialize(objects, options=self.options)
+        resp_data = self.serializer.serialize(objects, options=self.options)[0]
         return Created(resp_data, message_type="object_created", request=request)
 
 
@@ -187,8 +186,8 @@ class BaseHandler(object):
             if obj.is_editable(request.user): # method should exist, ensure
                 obj.delete_object()
             else:
-                return Unauthorized(message_type="not_authorized", request=request)
-        return BasicJSONResponse(message_type="deleted", request=request)
+                return Forbidden(message_type="not_authorized", request=request)
+        return Success(message_type="deleted", request=request)
 
     def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
@@ -262,14 +261,12 @@ class ACLHandler(BaseHandler):
         try:
             obj = self.model.objects.get(id=id)
         except ObjectDoesNotExist:
-            return BadRequest(message_type="does_not_exist", request=request)
+            return NotFound(message_type="does_not_exist", request=request)
 
         if not request.method == 'GET':
             try:
                 rdata = self.clean_post_data(request._get_raw_post_data())
-            except ValueError:
-                return BadRequest(message_type="data_parsing_error", request=request)
-            except TypeError:
+            except (ValueError, TypeError):
                 return BadRequest(message_type="data_parsing_error", request=request)
 
             try:
@@ -294,7 +291,7 @@ class ACLHandler(BaseHandler):
         resp_data['safety_level'] = obj.safety_level
         resp_data['shared_with'] = dict([(sa.access_for.username, sa.access_level) \
             for sa in obj.shared_with])
-        return BasicJSONResponse(resp_data, "object_selected", request)
+        return Success(resp_data, "object_selected", request)
 
 
 

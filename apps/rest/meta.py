@@ -35,12 +35,16 @@ meta_messages = {
     "does_not_exist": "Object does not exist.",
     "deleted": "Object was deleted.",
     "post_data_invalid": "The structure of the POST data is invalid.",
-    "wrong_reference": "You may be referencing an object you don't have access to."
+    "wrong_reference": "You may be referencing an object you don't have access to.",
+    "not_an_archive": "The file is not an archive.",
+    "task_started": "The task has been started.",
+    "x_progress_missing": "You must provide X-Progress-ID header or query param.",
 }
 
 meta_objects = ("block", "segment", "event", "eventarray", "epoch", "epocharray", \
     "unit", "spiketrain", "analogsignal", "analogsignalarray", \
-    "irsaanalogsignal", "spike", "recordingchannelgroup", "recordingchannel")
+    "irsaanalogsignal", "spike", "recordingchannelgroup", "recordingchannel",\
+    "waveform")
 
 # attribute name. underscore indicates whether attribute is mandatory
 meta_attributes = {

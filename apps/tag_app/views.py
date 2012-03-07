@@ -11,8 +11,6 @@ from django.contrib.auth.decorators import login_required
 
 from tagging.models import Tag, TaggedItem
 
-from experiments.models import Experiment
-from datasets.models import RDataset
 from datafiles.models import Datafile
 from wiki.models import Article as WikiArticle
 
@@ -28,19 +26,11 @@ def tags(request, tag, template_name='tags/index.html'):
 
     wiki_article_tags = TaggedItem.objects.get_by_model(WikiArticle, tag)
 
-    experiment_tags = TaggedItem.objects.get_by_model(Experiment, tag).filter(current_state=10)
-    experiment_tags = filter(lambda x: x.is_accessible(request.user), experiment_tags)
-
-    dataset_tags = TaggedItem.objects.get_by_model(RDataset, tag).filter(current_state=10)
-    dataset_tags = filter(lambda x: x.is_accessible(request.user), dataset_tags)
-
     datafile_tags = TaggedItem.objects.get_by_model(Datafile, tag).filter(current_state=10)
     datafile_tags = filter(lambda x: x.is_accessible(request.user), datafile_tags)
 
     return render_to_response(template_name, {
         'tag': tag,
-        'experiment_tags': experiment_tags,
-        'dataset_tags': dataset_tags,
         'datafile_tags': datafile_tags,
-	'wiki_article_tags': wiki_article_tags,
+        'wiki_article_tags': wiki_article_tags,
     }, context_instance=RequestContext(request))

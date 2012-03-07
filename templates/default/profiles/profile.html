@@ -143,29 +143,7 @@
 
                 <div class="hr"> </div>
                 
-                <h2>{% trans "Experiments" %}</h2>
-
-                {% if experiments %}
-                    <table class="bookmarks">
-                        {% for exprt in experiments %}
-                        <tr class="{% cycle odd,even %}">
-                            <td class="meta">
-                                {{ exprt.date_created|date }}
-                            </td>
-                            <td>
-                                <h2><a href="{{ exprt.get_absolute_url }}">{{ exprt.title }}</a></h2>
-                                <div class="body">{{ exprt.caption|truncatewords:25 }}</div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>{% trans "No experiments started yet." %}</p>
-                {% endif %}
-                
-                <div class="hr"> </div>
-
-		{% comment %}                
+ 		{% comment %}                
                 <h2>{% trans "Bookmarks" %}</h2>
                 
                 {% if other_user.saved_bookmarks.all %}

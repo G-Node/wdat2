@@ -20,36 +20,6 @@
         {% endfor %}
     </table>
 
-    <h2>{% trans "All Experiments Matching " %}<i>"{{ tag }}"</i></h2>
-    {% if experiment_tags %}
-    {% autopaginate experiment_tags 20 %}
-        <div class="thumb-row clearfix">
-        {% for exprt in experiment_tags %}
-                <div class="gallery-photo-thumb">
-                    <a href="{{ exprt.get_absolute_url }}">{{ exprt.title|truncate_dot:30|escape }}</a> made by <a href="{% url profile_detail exprt.owner.username %}">{{ exprt.owner }}</a>
-                </div>
-        {% endfor %}
-        </div>
-	{% paginate %}
-    {% else %}
-        No experiments matching tag.
-    {% endif %}
-
-    <h2>{% trans "All Datasets Matching " %}<i>"{{ tag }}"</i></h2>
-    {% if dataset_tags %}
-    {% autopaginate dataset_tags 20 %}
-        <div class="thumb-row clearfix">
-        {% for dataset in dataset_tags %}
-                <div class="gallery-photo-thumb">
-                    <a href="{{ dataset.get_absolute_url }}">{{ dataset.title }}</a> by <a href="{% url profile_detail dataset.owner.username %}">{{ dataset.owner }}</a>,
-                </div>
-        {% endfor %}
-        </div>
-	{% paginate %}
-    {% else %}
-        No datasets matching tag.
-    {% endif %}
-
     <h2>{% trans "All Files Matching " %}<i>"{{ tag }}"</i></h2>
     {% if datafile_tags %}
     {% autopaginate datafile_tags 20 %}

@@ -9,21 +9,39 @@ class NEOSerializer(Serializer):
     HAVE TO define methods for serialization (serialize_special) and 
     deserialization (deserialize_special) which will be used by REST manager for
     processing GET/POST/PUT requests. """
-    special_for_serialization = ('times_data', 'signal_data', 'waveform_data')
+    special_for_serialization = ('times_data', 'signal_data', 't_start', 'waveform_data')
 
     def serialize_special(self, obj, field):
         """ fields containing comma-separated float values require special 
         serialization, similar to data-fields """
         if self.serialize_data:
-            field_short = field.name[:field.name.find("_data")]
-            units = smart_unicode(getattr(obj, field_short + "__unit"), self.encoding,\
-                strings_only=True)
-            self._current[field_short] = {
-                'data': getattr(obj, field_short),
-                'unit': units
-            }
+            if field.attname == 't_start': # all have this attribute, skip other fields
 
+                if obj.obj_type == "irsaanalogsignal":
+                    signal, times, t_start = obj.get_slice(self.options)
+                    attrs = {"signal": signal, "times": times, "t_start": t_start}
+                elif obj.obj_type == "analogsignal":
+                    signal, t_start = obj.get_slice(self.options)
+                    attrs = {"signal": signal, "t_start": t_start}
+                elif obj.obj_type == "spiketrain":
+                    times, t_start = obj.get_slice(self.options)
+                    attrs = {"times": times, "t_start": t_start}
+                for key, attr in attrs:
+                    units = smart_unicode(getattr(obj, key + "__unit"), \
+                        self.encoding, strings_only=True)
+                    self._current[key] = {
+                        'data': attr,
+                        'unit': units
+                    }
+            """ # maybe some validation needed
+            if any([p in self.options.keys() for p in ("start_time", \
+                "end_time", "start_index", "end_index", "duration", \
+                "samples_count", "downsample")]):
+            """
+                    
 
 class NEOCategorySerializer(NEOSerializer):
     """ do not show reverse relations when list is requested """
     show_kids = False
+
+

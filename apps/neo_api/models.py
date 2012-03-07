@@ -281,6 +281,10 @@ class SpikeTrain(BaseInfo):
     times__unit = fmodels.TimeUnitField('spike_data__unit', default=def_data_unit)
     times_size = models.IntegerField('times_size', blank=True) # in bytes, for better performance
 
+    def get_slice(self, start_time=None, end_time=None, start_index=None,\
+            end_index=None, duration=None, samples_count=None, downsample=None):
+        return self.times, self.t_start
+
     @apply
     def times():
         def fget(self):

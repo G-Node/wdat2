@@ -13,8 +13,6 @@ from django.core.exceptions import ImproperlyConfigured
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from experiments.models import Experiment
-from datasets.models import RDataset
 from datafiles.models import Datafile
 from pinax.apps.projects.models import Project
 from django.utils.translation import ugettext as _
@@ -25,8 +23,6 @@ def state_overview(request, template_name="system_dashboard/state_overview.html"
 	# Basic system state values
 	user_count = User.objects.all().count()
 	file_count = Datafile.objects.all().count()
-	dataset_count = RDataset.objects.all().count()
-	experiment_count = Experiment.objects.all().count()
 	project_count = Project.objects.all().count()
 	total_space_used = 0
 	for datafile in Datafile.objects.all():
@@ -37,8 +33,6 @@ def state_overview(request, template_name="system_dashboard/state_overview.html"
 	return render_to_response(template_name, {
 	"user_count": user_count,
 	"file_count": file_count,
-	"dataset_count": dataset_count,
-	"experiment_count": experiment_count,
 	"project_count": project_count,
 	"total_space_used": tspu_res,
 	"total_space": tsp_res,
@@ -86,8 +80,6 @@ def object_statistics(request, template_name="system_dashboard/object_statistics
 		res_days.insert(0, datetime.date(prev_year, prev_month, d+1))
 	for d in res_days:
 	    res_project.append(Project.objects.all().filter(created__year=d.year).filter(created__month=d.month).filter(created__day=d.day).count())
-	    res_exprt.append(Experiment.objects.all().filter(date_created__year=d.year).filter(date_created__month=d.month).filter(date_created__day=d.day).count())
-    	    res_dataset.append(RDataset.objects.all().filter(date_added__year=d.year).filter(date_added__month=d.month).filter(date_added__day=d.day).count())
 	    res_file.append(Datafile.objects.all().filter(date_added__year=d.year).filter(date_added__month=d.month).filter(date_added__day=d.day).count())
 	
 	if len(res_days) == 12:
@@ -100,8 +92,6 @@ def object_statistics(request, template_name="system_dashboard/object_statistics
 	return render_to_response(template_name, {
 		"res_day_display": res_day_display,
 		"res_project": res_project,
-		"res_exprt": res_exprt,
-		"res_dataset": res_dataset,
 		"res_file": res_file,
 		"fltr": fltr,
 		"f_1": f_1,
