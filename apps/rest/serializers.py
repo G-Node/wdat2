@@ -19,7 +19,7 @@ class Serializer(PythonSerializer):
     do_not_show_if_empty = () # empty (no permalink) kids are not shown
     special_for_serialization = () # list of field names
     special_for_deserialization = () # list of field names
-    cascade = False
+    cascade = False # TODO change to number of levels
     encoding = settings.DEFAULT_CHARSET
     use_natural_keys = True
 
@@ -86,7 +86,7 @@ class Serializer(PythonSerializer):
         self.end_serialization()
         return self.getvalue()
 
-    def deserialize(self, rdata, obj, user, encoding=None):
+    def deserialize(self, rdata, obj, user, encoding=None, m2m_append=True):
         """ parse incoming JSON into a given object (obj) skeleton """
         if not encoding: encoding = self.encoding
         # processing attributes
@@ -111,7 +111,11 @@ class Serializer(PythonSerializer):
                         if not m2m_obj.is_editable(user):
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
                         m2m_data.append(m2m_obj)
-                    setattr(obj, field.attname, [x.id for x in m2m_data])
+                    # FIXME there must be two options: append and overwrite
+                    if m2m_append:
+                        setattr(obj, field.attname, field.values() + [x.id for x in m2m_data])
+                    else:
+                        setattr(obj, field.attname, [x.id for x in m2m_data])
 
                 # Handle FK fields (taken from django.core.Deserializer)
                 elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:

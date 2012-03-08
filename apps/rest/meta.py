@@ -117,6 +117,7 @@ factor_options = {
 
 # allowed parameters for GET requests
 request_params_cleaner = {
+    # signal / times group
     'start_time': lambda x: float(x), # may raise ValueError
     'end_time': lambda x: float(x), # may raise ValueError
     'start_index': lambda x: int(x), # may raise ValueError
@@ -124,8 +125,20 @@ request_params_cleaner = {
     'duration': lambda x: float(x), # may raise ValueError
     'samples_count': lambda x: int(x), # may raise ValueError
     'downsample': lambda x: int(x), # may raise ValueError
+
+    # metadata group
     'section_id': lambda x: int(x), # may raise ValueError
     'property_id': lambda x: int(x), # may raise ValueError
+
+    # data group
+    'section': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+
+    # functional group
+    'm2m_append':  lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+
+    # common
     'visibility':  lambda x: visibility_options[x], # may raise IndexError
     'top':  lambda x: top_options[x], # may raise IndexError
     'owner':  lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
@@ -135,8 +148,7 @@ request_params_cleaner = {
     'show_kids': lambda x: bool(int(x)), # may raise ValueError
     'cascade': lambda x: bool(int(x)), # may raise ValueError
     'q': lambda x: object_filters[str(x)], # may raise ValueError or IndexError
-    'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
-    'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    'every': lambda x: int(x), # may raise ValueError
 }
 
 object_filters = {
