@@ -18,27 +18,22 @@ class NEOSerializer(Serializer):
             if field.attname == 't_start': # all have this attribute, skip other fields
 
                 if obj.obj_type == "irsaanalogsignal":
-                    signal, times, t_start = obj.get_slice(self.options)
+                    signal, times, t_start = obj.get_slice(**self.options)
                     attrs = {"signal": signal, "times": times, "t_start": t_start}
                 elif obj.obj_type == "analogsignal":
-                    signal, t_start = obj.get_slice(self.options)
+                    signal, t_start = obj.get_slice(**self.options)
                     attrs = {"signal": signal, "t_start": t_start}
                 elif obj.obj_type == "spiketrain":
-                    times, t_start = obj.get_slice(self.options)
+                    times, t_start = obj.get_slice(**self.options)
                     attrs = {"times": times, "t_start": t_start}
-                for key, attr in attrs:
+                for key, attr in attrs.items():
                     units = smart_unicode(getattr(obj, key + "__unit"), \
                         self.encoding, strings_only=True)
                     self._current[key] = {
                         'data': attr,
                         'unit': units
                     }
-            """ # maybe some validation needed
-            if any([p in self.options.keys() for p in ("start_time", \
-                "end_time", "start_index", "end_index", "duration", \
-                "samples_count", "downsample")]):
-            """
-                    
+
 
 class NEOCategorySerializer(NEOSerializer):
     """ do not show reverse relations when list is requested """

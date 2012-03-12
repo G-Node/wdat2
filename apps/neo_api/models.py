@@ -282,7 +282,8 @@ class SpikeTrain(BaseInfo):
     times_size = models.IntegerField('times_size', blank=True) # in bytes, for better performance
 
     def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None, downsample=None):
+            end_index=None, duration=None, samples_count=None, downsample=None,\
+            **kwargs):
         return self.times, self.t_start
 
     @apply
@@ -350,7 +351,8 @@ class AnalogSignal(BaseInfo):
     signal_size = models.IntegerField('signal_size', blank=True) # in bytes, for better performance
 
     def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None, downsample=None):
+            end_index=None, duration=None, samples_count=None, downsample=None,\
+            **kwargs):
         """
         Implements dataslicing/downsampling. Floats/integers are expected.
         'downsample' parameter defines the new resampled resolution.
@@ -437,7 +439,8 @@ class IrSaAnalogSignal(BaseInfo):
     object_size = models.IntegerField('object_size', blank=True) # in bytes, for better performance
 
     def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None, downsample=None):
+            end_index=None, duration=None, samples_count=None, downsample=None,\
+            **kwargs):
         """
         Implements dataslicing/downsampling. Floats/integers are expected.
         'downsample' parameter defines the new resampled resolution.
