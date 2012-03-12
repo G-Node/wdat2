@@ -12,6 +12,10 @@ from state_machine.models import SafetyLevel
 from rest.common import *
 from rest.meta import *
 
+# TODO
+# simple full-text search filter 
+# bulk objects creation
+
 
 class BaseHandler(object):
     """
