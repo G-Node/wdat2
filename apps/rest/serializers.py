@@ -89,6 +89,7 @@ class Serializer(PythonSerializer):
     def deserialize(self, rdata, obj, user, encoding=None):
         """ parse incoming JSON into a given object (obj) skeleton """
         if not encoding: encoding = self.encoding
+        m2m_dict = {} # temporary store m2m values to assign them after full_clean
         # processing attributes
         for field_name, field_value in rdata.iteritems():
             if isinstance(field_value, str):
@@ -103,7 +104,7 @@ class Serializer(PythonSerializer):
                 # Handle M2M relations
                 if field.rel and isinstance(field.rel, models.ManyToManyRel):
                     m2m_data = []
-                    for m2m in field_value:
+                    for m2m in field_value: # we support both ID and permalinks
                         if self.is_permalink(m2m):
                             m2m_obj = self.get_by_permalink(field.rel.to, m2m)
                         else:
@@ -111,7 +112,7 @@ class Serializer(PythonSerializer):
                         if not m2m_obj.is_editable(user):
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
                         m2m_data.append(m2m_obj)
-                    setattr(obj, field.attname, [x.id for x in m2m_data])
+                    m2m_dict[field.attname] = [x.id for x in m2m_data]
 
                 # Handle FK fields (taken from django.core.Deserializer)
                 elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
@@ -129,11 +130,17 @@ class Serializer(PythonSerializer):
                 # Handle data/units fields
                 elif self.is_data_field_json(field_name, field_value):
                     setattr(obj, field_name, field_value["data"])
-                    setattr(obj, field_name + "__unit", field_value["unit"])
-                elif field.editable:
+                    setattr(obj, field_name + "__unit", field_value["units"])
+                elif field.editable and not field.attname == 'id': 
+                    #TODO raise error when trying to change id or date_created etc.
                     setattr(obj, field_name, field.to_python(field_value))
         obj.full_clean()
         obj.save()
+        # process m2m only after full_clean (for new objects - after acquiring id)
+        if m2m_dict:
+            for k, v in m2m_dict.items():
+                setattr(obj, k, v)
+
 
     def handle_m2m_field(self, obj, field):
         if field.rel.through._meta.auto_created:
@@ -199,7 +206,7 @@ class Serializer(PythonSerializer):
     def is_data_field_json(self, attr_name, value):
         """ determines if a given field has units and requires special proc."""
         if type(value) == type({}) and value.has_key("data") and \
-            value.has_key("unit"):
+            value.has_key("units"):
             return True
         return False
 

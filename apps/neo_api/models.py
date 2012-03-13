@@ -551,7 +551,7 @@ class WaveForm(BaseInfo):
     Supporting class for Spikes and SpikeTrains.
     """
     channel_index = models.IntegerField('channel_index', null=True, blank=True)
-    time_of_spike = models.FloatField('time_of_spike_data', default=0.0) # default used when WF is related to a Spike
+    time_of_spike = models.FloatField('time_of_spike', default=0.0) # default used when WF is related to a Spike
     time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
     waveform_data = models.TextField('waveform_data')
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
@@ -596,7 +596,8 @@ meta_classnames = {
     "irsaanalogsignal": IrSaAnalogSignal,
     "spike": Spike,
     "recordingchannelgroup": RecordingChannelGroup,
-    "recordingchannel": RecordingChannel}
+    "recordingchannel": RecordingChannel,
+    "waveform": WaveForm}
 
 
 def get_type_by_class(cls):
