@@ -130,7 +130,7 @@ request_params_cleaner = {
     'section_id': lambda x: int(x), # may raise ValueError
     'property_id': lambda x: int(x), # may raise ValueError
 
-    # data group
+    # data (NEO) group
     'section': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
@@ -139,6 +139,7 @@ request_params_cleaner = {
     'm2m_append':  lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
 
     # common
+    'bulk_update': lambda x: bool(int(x)), # may raise ValueError
     'visibility':  lambda x: visibility_options[x], # may raise IndexError
     'top':  lambda x: top_options[x], # may raise IndexError
     'owner':  lambda x: smart_unicode(x), # may raise UnicodeEncodeError?

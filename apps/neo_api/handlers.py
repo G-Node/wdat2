@@ -8,7 +8,8 @@ class NEOHandler(BaseHandler):
 
     def __init__(self, *args, **kwargs):
         super(NEOHandler, self).__init__(*args, **kwargs)
-        self.list_filters['property'] = self.property_filter
+        self.list_filters['section'] = self.section_filter
+        self.list_filters['property'] = self.value_filter
         self.list_filters['value'] = self.value_filter
 
     def section_filter(self, objects, ss, user=None):

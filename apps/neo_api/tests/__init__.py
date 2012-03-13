@@ -131,8 +131,13 @@ class TestGeneric(TestCase):
             # TODO more convenient checks?
             
 
-    def test_filters(self):
+    def test_delete(self):
         pass
+
+
+class TestFilters(self):
+    pass
+
 
 
 class TestSecurity(TestCase):

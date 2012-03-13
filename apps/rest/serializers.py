@@ -113,7 +113,8 @@ class Serializer(PythonSerializer):
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
                         m2m_data.append(m2m_obj)
                     if m2m_append: # append to existing m2m
-                        m2m_dict[field.attname] = field.values() + [x.id for x in m2m_data]
+                        m2m_dict[field.attname] = [x.id for x in getattr(obj, \
+                            field.attname).all()] + [x.id for x in m2m_data]
                     else: # overwrite m2m
                         m2m_dict[field.attname] = [x.id for x in m2m_data]
 

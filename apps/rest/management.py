@@ -35,12 +35,12 @@ class BaseHandler(object):
         self.assistant = {} # to store some params for serialization/deserial.
         self.actions = {
             'GET': self.get,
-            'PUT': self.create_or_update,
             'POST': self.create_or_update,
             'DELETE': self.delete }
         self.start_index = 0
         self.max_results = 100
         self.m2m_append = True
+        self.update = True # create / update via POST
 
     @auth_required
     def __call__(self, request, obj_id=None, *args, **kwargs):
@@ -53,7 +53,8 @@ class BaseHandler(object):
         """
         if request.method in self.actions.keys():
             objects = None
-            if obj_id:
+
+            if obj_id: # single object case
                 try: # object exists?
                     obj = self.model.objects.get(id=obj_id)
                 except ObjectDoesNotExist:
@@ -61,10 +62,17 @@ class BaseHandler(object):
                 if not obj.is_accessible(request.user): # first security check
                     return Forbidden(message_type="not_authorized", request=request)
                 objects = [obj]
-            else:
+
+            else:# a category case
                 objects = self.model.objects.all()
-            if not request.method == 'PUT':
+                import pdb
+                pdb.set_trace()
+                if not self.options.has_key('bulk_update') and request.method == 'POST':
+                    self.update = False
+
+            if self.update: # filtering
                 objects = self.do_filter(request.user, objects)
+
             return self.actions[request.method](request, objects)
         else:
             return NotSupported(message_type="invalid_method", request=request)
@@ -114,7 +122,7 @@ class BaseHandler(object):
             filtered = []
             every = self.options['every']
             le = len(objects)
-            for i in range( le / (le - (le % every)) ):
+            for i in range( (le - (le % every)) / every ):
                 filtered.append(objects[((i + 1) * every) - 1])
             objects = filtered
 
@@ -151,15 +159,13 @@ class BaseHandler(object):
         except (ValueError, TypeError):
             return BadRequest(message_type="data_parsing_error", request=request)
 
-        if request.method == 'PUT':
-            update = False
-            objects = [self.model()] # create object skeleton
-            objects[0].owner = request.user
-        else:
-            update = True
+        if self.update:
             for obj in objects:
                 if not obj.is_editable(request.user): # method should exist, ensure
                     return Forbidden(message_type="not_authorized", request=request)
+        else:
+            objects = [self.model()] # create object skeleton
+            objects[0].owner = request.user
 
         for obj in objects:
             try:
@@ -167,7 +173,7 @@ class BaseHandler(object):
                 if self.options.has_key('m2m_append'):
                     self.m2m_append = False
                 self.serializer.deserialize(rdata, obj, user=request.user,\
-                    encoding=encoding, )
+                    encoding=encoding, m2m_append=self.m2m_append)
             except FieldDoesNotExist, v: # or pass????
                 return BadRequest(json_obj={"details": v.message}, \
                     message_type="post_data_invalid", request=request)
@@ -190,7 +196,7 @@ class BaseHandler(object):
 
             self.run_post_processing(obj) # for some special cases
 
-        if update:
+        if self.update:
             request.method = "GET"
             return self.get(request, objects)
 
