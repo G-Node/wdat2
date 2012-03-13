@@ -12,6 +12,10 @@ from state_machine.models import SafetyLevel
 from rest.common import *
 from rest.meta import *
 
+# TODO
+# simple full-text search filter 
+# bulk objects creation
+
 
 class BaseHandler(object):
     """
@@ -35,7 +39,8 @@ class BaseHandler(object):
             'POST': self.create_or_update,
             'DELETE': self.delete }
         self.start_index = 0
-        self.max_results = 1000
+        self.max_results = 100
+        self.m2m_append = True
 
     @auth_required
     def __call__(self, request, obj_id=None, *args, **kwargs):
@@ -91,22 +96,33 @@ class BaseHandler(object):
 
     def do_filter(self, user, objects):
         """ filter objects as per request params """
-        # pre- filters
-        if "start_index" in self.options.keys() and self.options["start_index"] < \
-            len(objects) and objects:
-            self.start_index = self.options["start_index"]
-        objects = objects[self.start_index:]
-        if "max_results" in self.options.keys() and self.options["max_results"] < \
-            len(objects) and objects:
-            self.max_results = self.options["max_results"]
-        objects = objects[:self.max_results]
         # model-dependent filters
         for filter_name in self.list_filters:
             if filter_name in self.options.keys() and objects:
                 filter_func = self.get_filter_by_name(filter_name)
                 objects = filter_func(objects, self.options[filter_name], user)
-        # post- filters
+        # post- filters, in order: security - index - every - max results
         objects = filter(lambda s: s.is_accessible(user), objects)
+
+        if "start_index" in self.options.keys() and self.options["start_index"] < \
+            len(objects) and objects:
+            self.start_index = self.options["start_index"]
+        objects = objects[self.start_index:]
+
+        if self.options.has_key('every') and self.options['every'] > 1 and \
+            self.options['every'] < len(objects) + 1:
+            filtered = []
+            every = self.options['every']
+            le = len(objects)
+            for i in range( le / (le - (le % every)) ):
+                filtered.append(objects[((i + 1) * every) - 1])
+            objects = filtered
+
+        if "max_results" in self.options.keys() and self.options["max_results"] < \
+            len(objects) and objects:
+            self.max_results = self.options["max_results"]
+        objects = objects[:self.max_results]
+
         return objects
 
 
@@ -147,8 +163,11 @@ class BaseHandler(object):
 
         for obj in objects:
             try:
+                encoding = getattr(request, "encoding", None) or settings.DEFAULT_CHARSET
+                if self.options.has_key('m2m_append'):
+                    self.m2m_append = False
                 self.serializer.deserialize(rdata, obj, user=request.user,\
-                    encoding=getattr(request, "encoding", None) or settings.DEFAULT_CHARSET)
+                    encoding=encoding, )
             except FieldDoesNotExist, v: # or pass????
                 return BadRequest(json_obj={"details": v.message}, \
                     message_type="post_data_invalid", request=request)
@@ -329,5 +348,4 @@ def created_min_filter(objects, value, user):
 def created_max_filter(objects, value, user):
     """ date created filter """
     return filter(lambda s: s.date_created < value, objects)
-
 

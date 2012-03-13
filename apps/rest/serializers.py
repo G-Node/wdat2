@@ -86,7 +86,7 @@ class Serializer(PythonSerializer):
         self.end_serialization()
         return self.getvalue()
 
-    def deserialize(self, rdata, obj, user, encoding=None):
+    def deserialize(self, rdata, obj, user, encoding=None, m2m_append=True):
         """ parse incoming JSON into a given object (obj) skeleton """
         if not encoding: encoding = self.encoding
         m2m_dict = {} # temporary store m2m values to assign them after full_clean
@@ -112,7 +112,10 @@ class Serializer(PythonSerializer):
                         if not m2m_obj.is_editable(user):
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
                         m2m_data.append(m2m_obj)
-                    m2m_dict[field.attname] = [x.id for x in m2m_data]
+                    if m2m_append: # append to existing m2m
+                        m2m_dict[field.attname] = field.values() + [x.id for x in m2m_data]
+                    else: # overwrite m2m
+                        m2m_dict[field.attname] = [x.id for x in m2m_data]
 
                 # Handle FK fields (taken from django.core.Deserializer)
                 elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
