@@ -217,5 +217,9 @@ class DatafilesTest(TestCase):
         self.assertEqual(Datafile.objects.get(pk=2).current_state, 20)
 
 
+""" TODO tests for archiving:
+ - add all formats (zip, tar, bz2, gz)
+ - files made by zip in different OS!!
 
+"""
 

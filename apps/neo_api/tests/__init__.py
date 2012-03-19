@@ -139,6 +139,7 @@ class TestFilters(self):
     pass
 
 
+# DELETE - does not appear in queries - test
 
 class TestSecurity(TestCase):
     """

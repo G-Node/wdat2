@@ -62,19 +62,20 @@ class Serializer(PythonSerializer):
             # process specially reverse relations, like properties for section
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
                 if self.cascade and rel_name[:-4] not in self.excluded_cascade: # cascade related object load
-                    kid_model = filter(lambda x: x.get_accessor_name() == rel_name,\
-                        obj._meta.get_all_related_objects())[0].model # FIXME add many to many?
+                    kid_model = getattr(obj, rel_name).model # below is an alternative
+                    #kid_model = filter(lambda x: x.get_accessor_name() == rel_name,\
+                    #    obj._meta.get_all_related_objects())[0].model # FIXME add many to many?
                     if hasattr(kid_model, 'default_serializer'):
                         serializer = kid_model().default_serializer
                     else: serializer = self.__class__
                     self._current[rel_name] = serializer().serialize(getattr(obj, \
-                        rel_name).all(), options=options)
+                        rel_name).filter(current_state=10), options=options)
                 elif self.show_kids and self.serialize_rel and rel_name[:-4] not in self.excluded_permalink:
                     """ this is used to include some short-relatives into the 
                     serialized object, e.g. permalinks of Properties and Values 
                     into the Section """
                     children = []
-                    for child in getattr(obj, rel_name).all():
+                    for child in getattr(obj, rel_name).filter(current_state=10):
                         if hasattr(child, 'get_absolute_url'):
                             children.append(''.join([self.host, child.get_absolute_url()]))
                         else:

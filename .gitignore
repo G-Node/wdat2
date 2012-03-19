@@ -6,5 +6,6 @@ deploy/
 logs/
 patches/
 local_settings.py
+celeryconfig.py
 *~
 *.pyc

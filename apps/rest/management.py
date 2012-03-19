@@ -1,14 +1,16 @@
 from django.http import HttpResponse
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError, FieldError
 from django.views.decorators.http import condition
 from django.utils import simplejson as json
 from django.db import models
 from django.db.models.fields import FieldDoesNotExist
+from django.contrib.auth.models import User
+from django.utils.encoding import smart_unicode
 
 import settings
 import hashlib
 
-from state_machine.models import SafetyLevel
+from state_machine.models import SafetyLevel, SingleAccess
 from rest.common import *
 from rest.meta import *
 
@@ -38,8 +40,8 @@ class BaseHandler(object):
             'POST': self.create_or_update,
             'DELETE': self.delete }
         self.start_index = 0
-        self.max_results = 100
-        self.m2m_append = True
+        self.max_results = settings.REST_CONFIG['max_results'] # 1000
+        self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
         self.update = True # create / update via POST
 
     @auth_required
@@ -56,22 +58,23 @@ class BaseHandler(object):
 
             if obj_id: # single object case
                 try: # object exists?
-                    obj = self.model.objects.get(id=obj_id)
+                    obj = self.model.objects.filter(id=obj_id)
                 except ObjectDoesNotExist:
                     return NotFound(message_type="does_not_exist", request=request)
                 if not obj.is_accessible(request.user): # first security check
                     return Forbidden(message_type="not_authorized", request=request)
-                objects = [obj]
 
             else:# a category case
                 objects = self.model.objects.all()
-                import pdb
-                pdb.set_trace()
                 if not self.options.has_key('bulk_update') and request.method == 'POST':
                     self.update = False
 
             if self.update: # filtering
-                objects = self.do_filter(request.user, objects)
+                try:
+                    objects = self.do_filter(request.user, objects)
+                except FieldError, e: # filter key/value are wrong
+                    return BadRequest(json_obj={"details": e.message}, \
+                message_type="wrong_params", request=request)
 
             return self.actions[request.method](request, objects)
         else:
@@ -83,8 +86,14 @@ class BaseHandler(object):
         try: # assert request parameters both from request.GET and from kwargs
             params = {} # a dict to later filter requested data
             for k, v in request.GET.items():
+
+                # predefined filters
                 if k in request_params_cleaner.keys():
-                    params[str(k)] = request_params_cleaner.get(k)(v)
+                    params[smart_unicode(k)] = request_params_cleaner.get(k)(v)
+
+                # attribute- and other filters
+                params[smart_unicode(k)] = smart_unicode(v)
+
             params["permalink_host"] = '%s://%s' % (request.is_secure() and \
                 'https' or 'http', request.get_host())
             self.options = params
@@ -104,19 +113,62 @@ class BaseHandler(object):
 
     def do_filter(self, user, objects):
         """ filter objects as per request params """
-        # model-dependent filters
-        for filter_name in self.list_filters:
-            if filter_name in self.options.keys() and objects:
-                filter_func = self.get_filter_by_name(filter_name)
-                objects = filter_func(objects, self.options[filter_name], user)
-        # post- filters, in order: security - index - every - max results
-        objects = filter(lambda s: s.is_accessible(user), objects)
 
+        # FIXME
+        from datetime import datetime
+        print "filters started: " + str(datetime.now())
+
+        attr_filters = {}
+        for key, value in self.options.items():
+            if self.list_filters.has_key(key) and objects:
+                filter_func = self.list_filters[key]
+                objects = filter_func(objects, self.options[key], user)
+            else:
+                attr_filters[key] = value # collect attribute-specific filters
+
+        # FIXME
+        print "predefined filters done: " + str(datetime.now())
+
+
+        if attr_filters: # better for performance if done as one query
+            objects = objects.filter(**attr_filters)
+
+        # FIXME
+        print "model-specific filters done: " + str(datetime.now())
+
+        # post- filters, in order: security - index - every - max results
+        objects = filter(lambda s: s.current_state == 10 and s.is_accessible(user), objects)
+
+        # FIXME
+        print "security filters done: " + str(datetime.now())
+
+
+        start_index = self.start_index
         if "start_index" in self.options.keys() and self.options["start_index"] < \
             len(objects) and objects:
-            self.start_index = self.options["start_index"]
-        objects = objects[self.start_index:]
+            start_index = self.options["start_index"]
+        objects = objects[start_index:]
 
+        # filtering by groups of some number with some spacing - periodic filter
+        if self.options.has_key('spacing') and self.options.has_key('groups_of'):
+            spacing = self.options['spacing']
+            groups_of = self.options['groups_of']
+            filtered = []
+            if spacing > 0 and groups_of > 0 and groups_of < len(objects):
+                fg = int( len(objects) / (spacing + groups_of) ) # number of full groups
+                for i in range(fg):
+                    for j in range(groups_of):
+                        filtered.append(objects[(i * (spacing + groups_of)) + j])
+                # don't forget there could some objects left as non-full group
+                ind = fg * (spacing + groups_of) # index of the 1st object in the orphaned group
+                left = groups_of
+                if groups_of > len(objects) - ind: # if objects left are not enough to fill a group
+                    left = len(objects) - ind
+                for i in range(left):
+                    filtered.append(objects[ind + i])
+            objects = filtered
+
+        """ this is an old filter 'every': replaced by 
         if self.options.has_key('every') and self.options['every'] > 1 and \
             self.options['every'] < len(objects) + 1:
             filtered = []
@@ -125,11 +177,17 @@ class BaseHandler(object):
             for i in range( (le - (le % every)) / every ):
                 filtered.append(objects[((i + 1) * every) - 1])
             objects = filtered
+        """
 
+        max_results = self.max_results
         if "max_results" in self.options.keys() and self.options["max_results"] < \
             len(objects) and objects:
-            self.max_results = self.options["max_results"]
-        objects = objects[:self.max_results]
+            max_results = self.options["max_results"]
+        objects = objects[:max_results]
+
+        # FIXME
+        print "other filters done: " + str(datetime.now())
+
 
         return objects
 
@@ -139,10 +197,11 @@ class BaseHandler(object):
         message_type = "no_objects_found"
         resp_data = {
             "objects_selected": len(objects),
-            "selected_range": [self.start_index, self.start_index + len(objects)],
+            "selected_range": None,
             "selected": None
         }
         if objects:
+            selected_range = [self.start_index, self.start_index + len(objects) - 1]
             resp_data["selected"] = self.serializer.serialize(objects, options=self.options)
             message_type = "object_selected"
         return Success(resp_data, message_type, request)
@@ -156,8 +215,9 @@ class BaseHandler(object):
         """
         try:
             rdata = self.clean_post_data(request._get_raw_post_data())
-        except (ValueError, TypeError):
-            return BadRequest(message_type="data_parsing_error", request=request)
+        except (ValueError, TypeError), e:
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="data_parsing_error", request=request)
 
         if self.update:
             for obj in objects:
@@ -221,7 +281,93 @@ class BaseHandler(object):
         pass
 
 
-# HANDLERS ---------------------------------------------------------------------
+class ACLHandler(BaseHandler):
+    """ Handles requests for a single object """
+
+    @auth_required
+    def __call__(self, request, id, *args, **kwargs):
+        """ 
+        GET: return ACL, PUT/POST: change permissions for an object.
+
+        request: incoming HTTP request
+        """
+        def acl_update(obj, safety_level, users, cascade=False):
+            """ recursively update permissions """
+            if safety_level:
+                obj.safety_level = safety_level
+                obj.full_clean()
+                obj.save()
+            if not users == None:
+                obj.share(users)
+            if cascade:
+                for related in obj._meta.get_all_related_objects():
+                    if issubclass(related.model, SafetyLevel): # reversed child can be shared
+                        for c in getattr(obj, related.get_accessor_name()).all():
+                            acl_update(c, safety_level, users, cascade)
+
+        def clean_users(users):
+            """ if users contain usernames they should be resolved """
+            cleaned_users = {}
+            for user, access in users.items():
+                try: # resolving users
+                    user = int(user)
+                    u = User.objects.get(id=user)
+                except ValueError: # username is given
+                    u = User.objects.get(username=user)
+
+                # resolving access types
+                if not access in dict(SingleAccess.ACCESS_LEVELS).keys():
+                    keys = [k for k, v in dict(SingleAccess.ACCESS_LEVELS).iteritems() \
+                        if smart_unicode(access).lower() in v.lower()]
+                    if keys:
+                        access = keys[0]
+                    else:
+                        raise ValueError("Provided access level for the user ID %s \
+                    is not valid: %s" % (u.username, access))
+
+                cleaned_users[u.id] = access
+            return cleaned_users
+
+        actions = ('GET', 'PUT', 'POST')
+        if not request.method in actions:
+            return NotSupported(message_type="invalid_method", request=request)
+
+        try:
+            obj = self.model.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return NotFound(message_type="does_not_exist", request=request)
+
+        if not request.method == 'GET':
+            try:
+                rdata = self.clean_post_data(request._get_raw_post_data())
+            except (ValueError, TypeError):
+                return BadRequest(message_type="data_parsing_error", request=request)
+
+            try:
+                safety_level = None
+                if rdata.has_key('safety_level'):
+                    safety_level = rdata['safety_level']
+
+                users = None
+                if rdata.has_key('shared_with'):
+                    assert type(rdata['shared_with']) == type({}), "Wrong user data."
+                    users = clean_users(rdata['shared_with'])
+
+                acl_update(obj, safety_level, users, self.options.has_key('cascade'))
+            except ValidationError, VE:
+                return BadRequest(json_obj=VE.message_dict, \
+                    message_type="bad_parameter", request=request)
+            except (ObjectDoesNotExist, AssertionError, AttributeError, ValueError), e:
+                return BadRequest(json_obj={"details": e.message}, \
+                    message_type="post_data_invalid", request=request)
+
+        resp_data = {}
+        resp_data['safety_level'] = obj.safety_level
+        resp_data['shared_with'] = dict([(sa.access_for.username, sa.access_level) \
+            for sa in obj.shared_with])
+        return Success(resp_data, "object_selected", request)
+
+
 
 def get_obj_etag(request, obj_id=None, handler=None, *args, **kwargs):
     """ computes etag for object: for the moment it is just the hash of 
@@ -253,70 +399,6 @@ def process_REST(request, obj_id=None, handler=None, *args, **kwargs):
     if error:
         return error
     return handler(request, obj_id, *args, **kwargs)
-
-
-class ACLHandler(BaseHandler):
-    """ Handles requests for a single object """
-
-    @auth_required
-    def __call__(self, request, id, *args, **kwargs):
-        """ 
-        GET: return ACL, PUT/POST: change permissions for an object.
-
-        request: incoming HTTP request
-        """
-        def acl_update(obj, safety_level, users, cascade=False):
-            """ recursively update permissions """
-            if safety_level:
-                obj.safety_level = safety_level
-                obj.full_clean()
-                obj.save()
-            if not users == None:
-                obj.share(users)
-            if cascade:
-                for related in obj._meta.get_all_related_objects():
-                    if issubclass(related.model, SafetyLevel): # reversed child can be shared
-                        for c in getattr(obj, related.get_accessor_name()).all():
-                            acl_update(c, safety_level, users, cascade)
-
-        actions = ('GET', 'PUT', 'POST')
-        if not request.method in actions:
-            return NotSupported(message_type="invalid_method", request=request)
-
-        try:
-            obj = self.model.objects.get(id=id)
-        except ObjectDoesNotExist:
-            return NotFound(message_type="does_not_exist", request=request)
-
-        if not request.method == 'GET':
-            try:
-                rdata = self.clean_post_data(request._get_raw_post_data())
-            except (ValueError, TypeError):
-                return BadRequest(message_type="data_parsing_error", request=request)
-
-            try:
-                safety_level = None
-                if rdata.has_key('safety_level'):
-                    safety_level = rdata['safety_level']
-
-                users = None
-                if rdata.has_key('shared_with'):
-                    assert type(rdata['shared_with']) == type({}), "Wrong user data."
-                    users = rdata['shared_with']
-
-                acl_update(obj, safety_level, users, self.options.has_key('cascade'))
-            except ValidationError, VE:
-                return BadRequest(json_obj=VE.message_dict, \
-                    message_type="bad_parameter", request=request)
-            except (AssertionError, AttributeError, ValueError), e:
-                return BadRequest(json_obj={"details": e.message}, \
-                    message_type="post_data_invalid", request=request)
-
-        resp_data = {}
-        resp_data['safety_level'] = obj.safety_level
-        resp_data['shared_with'] = dict([(sa.access_for.username, sa.access_level) \
-            for sa in obj.shared_with])
-        return Success(resp_data, "object_selected", request)
 
 
 

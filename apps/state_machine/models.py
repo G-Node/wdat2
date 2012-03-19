@@ -156,7 +156,7 @@ class SingleAccess(models.Model):
     """
     ACCESS_LEVELS = (
         (1, _('Read-only')),
-        (2, _('Can edit')),
+        (2, _('Edit')),
     )
     OBJECT_TYPES = (
         (1, _('Section')),

@@ -1,5 +1,7 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest.management import BaseHandler
 from metadata.models import Property
+from datafiles.models import Datafile
 from neo_api.models import get_type_by_class
 
 
@@ -9,8 +11,9 @@ class NEOHandler(BaseHandler):
     def __init__(self, *args, **kwargs):
         super(NEOHandler, self).__init__(*args, **kwargs)
         self.list_filters['section'] = self.section_filter
-        self.list_filters['property'] = self.value_filter
+        self.list_filters['property'] = self.property_filter
         self.list_filters['value'] = self.value_filter
+        self.list_filters['datafile'] = self.datafile_filter
 
     def section_filter(self, objects, ss, user=None):
         """ filters objects contained in a particular section """
@@ -22,7 +25,8 @@ class NEOHandler(BaseHandler):
             LEFT JOIN metadata_property p ON (v.parent_property_id = p.id)\
             LEFT JOIN metadata_section s ON (p.section_id = s.id)\
             where s.name LIKE "%%' + ss + '%%"'
-        return filter(lambda obj: obj in self.model.objects.raw(query), objects)
+        filtered = [f.id for f in self.model.objects.raw(query)]
+        return filter(lambda obj: obj.id in filtered, objects)
 
     def property_filter(self, objects, ss, user=None):
         """ filters objects by related metadata property name """
@@ -33,7 +37,8 @@ class NEOHandler(BaseHandler):
             LEFT JOIN metadata_value v ON (meta.value_id = v.id)\
             LEFT JOIN metadata_property p ON (v.parent_property_id = p.id)\
             where p.name LIKE "%%' + ss + '%%"'
-        return filter(lambda obj: obj in self.model.objects.raw(query), objects)
+        filtered = [f.id for f in self.model.objects.raw(query)]
+        return filter(lambda obj: obj.id in filtered, objects)
 
     def value_filter(self, objects, ss, user=None):
         """ filters objects tagged with particular metadata values """
@@ -43,5 +48,16 @@ class NEOHandler(BaseHandler):
             LEFT JOIN ' + db_table + '_metadata meta ON (model.id = meta.' + cls + '_id)\
             LEFT JOIN metadata_value v ON (meta.value_id = v.id)\
             where v.data LIKE "%%' + ss + '%%"'
-        return filter(lambda obj: obj in self.model.objects.raw(query), objects)
+        filtered = [f.id for f in self.model.objects.raw(query)]
+        return filter(lambda obj: obj.id in filtered, objects)
+
+    def datafile_filter(self, objects, ss, user=None):
+        """ filters NEO objects belonging to a particular datafile """
+        try:
+            datafile = Datafile.objects.get(id=ss)
+        except ObjectDoesNotExist:
+            return []
+        return filter(lambda obj: obj.file_origin == datafile, objects)
+
+
 

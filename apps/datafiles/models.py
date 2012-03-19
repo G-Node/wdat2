@@ -48,19 +48,25 @@ class Datafile(SafetyLevel, ObjectState):
     """
     Datafile is a class representing a data file stored at G-Node.
     """
+    FORMAT_MAP = (
+        (0, _('unknown')),
+        (1, _('python-neuroshare')),
+        (2, _('neo-io')),
+        (3, _('ascii-csv')),
+    )
     title = models.CharField(_('name'), blank=True, max_length=200)
     caption = models.TextField(_('description'), blank=True)
     section = models.ForeignKey(Section, blank=True, null=True)
     raw_file = models.FileField(_('data file'), storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField(_('keywords'))
     # here we put file info extracted using neuroshare, stored as JSON
-    extracted_info = models.TextField('extracted_info', blank=True, null=True)
+    extracted_info = models.TextField('extracted_info', blank=True, null=True, editable=False)
     # indicate whether the file is convertible using NEO / Neuroshare
-    convertible = models.NullBooleanField('convertible', blank=True, null=True)
+    conversion_type = models.IntegerField(_('conversion_type'), choices=FORMAT_MAP, default=0, editable=False)
     # store ID of the last Task Broker task
-    last_task_id = models.CharField('last_task_id', blank=True, max_length=255)
+    last_task_id = models.CharField('last_task_id', blank=True, max_length=255, editable=False)
     # indicate whether some information was extracted from file (if archive)
-    extracted = models.CharField('extracted', default="virgin", max_length=20)
+    operations_log = models.TextField('operations_log', blank=True, null=True, editable=False)
 
     def __unicode__(self):
         return self.title
@@ -93,5 +99,9 @@ class Datafile(SafetyLevel, ObjectState):
     @property
     def acl_type(self):
         return 2 # See state_machine.models.SingleAccess (permissions)
+
+    @property
+    def convertible(self):
+        return bool(self.conversion_type)
 
 

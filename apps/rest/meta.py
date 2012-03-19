@@ -9,7 +9,7 @@ meta_messages = {
     "invalid_method": "This URL does not support the method specified.",
     "invalid_obj_type": "You provided an invalid NEO object type parameter, or this parameter is missing. Here is the list of NEO object types supported: 'block', 'segment', 'event', 'eventarray', 'epoch', 'epocharray', 'unit', 'spiketrain', 'analogsignal', 'analogsignalarray', 'irsaanalogsignal', 'spike', 'recordingchannelgroup', 'recordingchannel'. Please correct the type and send the request again.",
     "missing_parameter": "Parameters, shown above, are missing. We need these parameters to proceed with the request.",
-    "bad_parameter": "Some of the parameters provided are incorrect or object with a given ID does not exist. Please consider values below:",
+    "bad_parameter": "Some of the parameters provided are incorrect or object with a given ID does not exist.",
     "wrong_parent": "A parent object with this ID does not exist: ",
     "debug": "Debugging message.",
     "dict_required": "The following parameter must be of a type dict containing 'data' and 'units' keys: ",
@@ -37,6 +37,7 @@ meta_messages = {
     "post_data_invalid": "The structure of the POST data is invalid.",
     "wrong_reference": "You may be referencing an object you don't have access to.",
     "not_an_archive": "The file is not an archive.",
+    "non_convertible": "The file cannot be converted.",
     "task_started": "The task has been started.",
     "x_progress_missing": "You must provide X-Progress-ID header or query param.",
 }
@@ -127,6 +128,8 @@ request_params_cleaner = {
     'downsample': lambda x: int(x), # may raise ValueError
 
     # metadata group
+    'name': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'section_id': lambda x: int(x), # may raise ValueError
     'property_id': lambda x: int(x), # may raise ValueError
 
@@ -134,9 +137,10 @@ request_params_cleaner = {
     'section': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    'datafile': lambda x: int(x), # may raise UnicodeEncodeError?
 
     # functional group
-    'm2m_append':  lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    'm2m_append':  lambda x: bool(int(x)), # may raise ValueError
 
     # common
     'bulk_update': lambda x: bool(int(x)), # may raise ValueError
@@ -149,7 +153,9 @@ request_params_cleaner = {
     'show_kids': lambda x: bool(int(x)), # may raise ValueError
     'cascade': lambda x: bool(int(x)), # may raise ValueError
     'q': lambda x: object_filters[str(x)], # may raise ValueError or IndexError
-    'every': lambda x: int(x), # may raise ValueError
+    'groups_of': lambda x: int(x), # may raise ValueError
+    'spacing': lambda x: int(x), # may raise ValueError
+    #'every': lambda x: int(x), # replaced by groups_of + spacing
 }
 
 object_filters = {

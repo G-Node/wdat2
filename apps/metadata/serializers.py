@@ -16,24 +16,16 @@ class PropertySerializer(Serializer):
     def deserialize_special(self, obj, field_name, field_value, user):
         """ process 'value_set' in POST/PUT requests so to update values for 
          this property at once """
+        if not obj.id:
+            raise ReferenceError("Please save the Property before providing values.")
         if field_name == 'value_set':
-            model = filter(lambda x: x.get_accessor_name() == field_name, \
-                obj._meta.get_all_related_many_to_many_objects())[0].model
-            assert type(field_value) == type([])
+            model = getattr(obj, 'value_set').model
+            assert type(field_value) == type([]), "Values should be provided as list."
             for v in field_value:
-                assert type(v) == type({}), "Values provided have incorrect data format."
-                assert v.has_key('fields')
-                if v.has_key('pk'):
-                    try:
-                        value = model.objects.get(id=v['pk'])
-                        if not value.property == obj:
-                            raise ObjectDoesNotExist
-                    except ObjectDoesNotExist:
-                        raise ValueError("Value with this PK does not exist or \
-                            does not belong to this property.")
-                    value.data = v['fields']['data']
-                else:
-                    value = model(property=obj, data=v['fields']['data'])
+                assert type(v) == type({}), "Each Value provided should be of type dict."
+                if v.has_key('fields'):
+                    v = v['fields']
+                value = model(parent_property=obj, owner=user, data=v['data'])
                 value.save()
 
 class SectionSerializer(Serializer):

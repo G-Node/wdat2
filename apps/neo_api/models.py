@@ -9,7 +9,7 @@ from fields import models as fmodels
 from state_machine.models import ObjectState, SafetyLevel
 from datafiles.models import Datafile
 from metadata.models import Section, Value
-from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options
+from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options, meta_parents
 from neo_api.serializers import NEOSerializer
 
 # default unit values and values limits
@@ -80,10 +80,23 @@ class BaseInfo(ObjectState):
         return ('neo_object_details', [self.obj_type, str(self.id)])
 
     def is_accessible(self, user):
+        """ closest parent defines access permissions """
+        parent = getattr(self, meta_parents[self.obj_type][0])
+        if parent:
+            return parent.is_accessible(user)
+        if self.file_origin:
+            return self.file_origin.is_accessible(user)
         return self.owner == user
 
     def is_editable(self, user):
+        """ closest parent defines edit permissions """
+        parent = getattr(self, meta_parents[self.obj_type][0])
+        if parent:
+            return parent.is_editable(user)
+        if self.file_origin:
+            return self.file_origin.is_editable(user)
         return self.owner == user
+
 
     def is_sliceable(self): return False
 
