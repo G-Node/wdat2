@@ -31,8 +31,6 @@ class BaseHandler(object):
             'top': top_filter,
             'visibility': visibility_filter,
             'owner': owner_filter,
-            'created_min': created_min_filter,
-            'created_max': created_max_filter,
         }
         self.assistant = {} # to store some params for serialization/deserial.
         self.actions = {
@@ -72,7 +70,7 @@ class BaseHandler(object):
             if self.update: # filtering
                 try:
                     objects = self.do_filter(request.user, objects)
-                except FieldError, e: # filter key/value are wrong
+                except (ObjectDoesNotExist, FieldError), e: # filter key/value are wrong
                     return BadRequest(json_obj={"details": e.message}, \
                 message_type="wrong_params", request=request)
 
@@ -101,6 +99,7 @@ class BaseHandler(object):
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="wrong_params", request=request)
 
+
     def clean_post_data(self, rdata):
         """ post data clean up """
         rdata = json.loads(rdata)
@@ -110,6 +109,7 @@ class BaseHandler(object):
         if rdata.has_key('fields'):
             rdata = rdata['fields']
         return rdata
+
 
     def do_filter(self, user, objects):
         """ filter objects as per request params """
@@ -167,17 +167,6 @@ class BaseHandler(object):
                 for i in range(left):
                     filtered.append(objects[ind + i])
             objects = filtered
-
-        """ this is an old filter 'every': replaced by 
-        if self.options.has_key('every') and self.options['every'] > 1 and \
-            self.options['every'] < len(objects) + 1:
-            filtered = []
-            every = self.options['every']
-            le = len(objects)
-            for i in range( (le - (le % every)) / every ):
-                filtered.append(objects[((i + 1) * every) - 1])
-            objects = filtered
-        """
 
         max_results = self.max_results
         if "max_results" in self.options.keys() and self.options["max_results"] < \
@@ -427,13 +416,13 @@ def visibility_filter(objects, value, user):
 
 def owner_filter(objects, value, user):
     """ objects belonging to a specific user, by ID """
-    return filter(lambda s: s.get_owner().username == value, objects)
+    try: # resolving users
+        user = int(user)
+        u = User.objects.get(id=user)
+    except ValueError: # username is given
+        u = User.objects.get(username=user)
+    return objects.filter(owner=u)
 
-def created_min_filter(objects, value, user):
-    """ date created filter """
-    return filter(lambda s: s.date_created > value, objects)
 
-def created_max_filter(objects, value, user):
-    """ date created filter """
-    return filter(lambda s: s.date_created < value, objects)
+
 
