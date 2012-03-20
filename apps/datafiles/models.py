@@ -53,6 +53,7 @@ class Datafile(SafetyLevel, ObjectState):
         (1, _('python-neuroshare')),
         (2, _('neo-io')),
         (3, _('ascii-csv')),
+        (4, _('odml')),
     )
     title = models.CharField(_('name'), blank=True, max_length=200)
     caption = models.TextField(_('description'), blank=True)

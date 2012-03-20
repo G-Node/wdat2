@@ -45,6 +45,9 @@ def extract_file_info(file_id):
             e.message + ";\n\n"
     finally:
         f.close()
+
+    # 4. try odML
+    # TODO
         
     # add other file validators here
 

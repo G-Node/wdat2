@@ -127,12 +127,6 @@ request_params_cleaner = {
     'samples_count': lambda x: int(x), # may raise ValueError
     'downsample': lambda x: int(x), # may raise ValueError
 
-    # metadata group
-    'name': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
-    'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
-    'section_id': lambda x: int(x), # may raise ValueError
-    'property_id': lambda x: int(x), # may raise ValueError
-
     # data (NEO) group
     'section': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?

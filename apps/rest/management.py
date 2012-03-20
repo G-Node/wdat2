@@ -52,14 +52,12 @@ class BaseHandler(object):
         obj_id: ID of the object from request URL
         """
         if request.method in self.actions.keys():
-            objects = None
 
             if obj_id: # single object case
-                try: # object exists?
-                    obj = self.model.objects.filter(id=obj_id)
-                except ObjectDoesNotExist:
+                objects = self.model.objects.filter(id=obj_id)
+                if not objects: # object not exists?
                     return NotFound(message_type="does_not_exist", request=request)
-                if not obj.is_accessible(request.user): # first security check
+                if not objects[0].is_accessible(request.user): # first security check
                     return Forbidden(message_type="not_authorized", request=request)
 
             else:# a category case
@@ -70,7 +68,8 @@ class BaseHandler(object):
             if self.update: # filtering
                 try:
                     objects = self.do_filter(request.user, objects)
-                except (ObjectDoesNotExist, FieldError), e: # filter key/value are wrong
+                except (ObjectDoesNotExist, FieldError, ValidationError), e:
+                    # filter key/value are wrong
                     return BadRequest(json_obj={"details": e.message}, \
                 message_type="wrong_params", request=request)
 
@@ -81,20 +80,25 @@ class BaseHandler(object):
 
     def clean_get_params(self, request):
         """ clean request GET params """
+        attr_filters = {}
+        params = {}
         try: # assert request parameters both from request.GET and from kwargs
-            params = {} # a dict to later filter requested data
             for k, v in request.GET.items():
 
-                # predefined filters
-                if k in request_params_cleaner.keys():
-                    params[smart_unicode(k)] = request_params_cleaner.get(k)(v)
+                # predefined filters; taking first match
+                matched = [key for key in request_params_cleaner.keys() if k.startswith(key)]
+                if matched:
+                    params[smart_unicode(k)] = request_params_cleaner.get(matched[0])(v)
+                #if k in request_params_cleaner.keys():
+                #    params[smart_unicode(k)] = request_params_cleaner.get(k)(v)
 
-                # attribute- and other filters
-                params[smart_unicode(k)] = smart_unicode(v)
+                else: # attribute- and other filters
+                    attr_filters[smart_unicode(k)] = smart_unicode(v)
 
             params["permalink_host"] = '%s://%s' % (request.is_secure() and \
                 'https' or 'http', request.get_host())
             self.options = params
+            self.attr_filters = attr_filters # save here attribute-specific filters
         except (ObjectDoesNotExist, ValueError, IndexError, KeyError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="wrong_params", request=request)
@@ -114,34 +118,18 @@ class BaseHandler(object):
     def do_filter(self, user, objects):
         """ filter objects as per request params """
 
-        # FIXME
-        from datetime import datetime
-        print "filters started: " + str(datetime.now())
-
-        attr_filters = {}
         for key, value in self.options.items():
-            if self.list_filters.has_key(key) and objects:
-                filter_func = self.list_filters[key]
+            matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
+            if matched and objects:
+                filter_func = self.list_filters[matched[0]]
                 objects = filter_func(objects, self.options[key], user)
-            else:
-                attr_filters[key] = value # collect attribute-specific filters
 
-        # FIXME
-        print "predefined filters done: " + str(datetime.now())
+        if self.attr_filters: # better for performance if done as one query
+            objects = objects.filter(**self.attr_filters)
 
-
-        if attr_filters: # better for performance if done as one query
-            objects = objects.filter(**attr_filters)
-
-        # FIXME
-        print "model-specific filters done: " + str(datetime.now())
-
+        # FIXME make more efficient
         # post- filters, in order: security - index - every - max results
         objects = filter(lambda s: s.current_state == 10 and s.is_accessible(user), objects)
-
-        # FIXME
-        print "security filters done: " + str(datetime.now())
-
 
         start_index = self.start_index
         if "start_index" in self.options.keys() and self.options["start_index"] < \
@@ -173,10 +161,6 @@ class BaseHandler(object):
             len(objects) and objects:
             max_results = self.options["max_results"]
         objects = objects[:max_results]
-
-        # FIXME
-        print "other filters done: " + str(datetime.now())
-
 
         return objects
 
@@ -395,24 +379,22 @@ def process_REST(request, obj_id=None, handler=None, *args, **kwargs):
 
 def top_filter(objects, value, user):
     """ for hierarchical models, returns the top of the hierarchy """
-    objects = None
     if value == "owned":
         return objects.filter(owner=user, parent_section=None)
     if value == "shared":
         """ top shared objects for a given user. if a section's direct 
         parent is not shared, a section displays on top of the tree. """
-        shared_objects = filter(lambda s: s.is_accessible(user) and not s.owner==user, objects)
-        objects = filter(lambda s: s.parent_section not in shared_objects, shared_objects) 
-    return objects
+        shared = objects.exclude(owner=user)
+        return shared.filter(parent_section=None)
 
 def visibility_filter(objects, value, user):
     """ filters public / private / shared """
     if value == "private":
-        return filter(lambda s: s.current_state==3, objects)
+        return objects.filter(current_state=3)
     if value == "public":
-        return filter(lambda s: s.current_state==1, objects)
+        return objects.filter(current_state=1)
     if value == "shared":
-        return filter(lambda s: not s.owner==user, objects)
+        return objects.exclude(owner=user) # permissions are validated later anyway
 
 def owner_filter(objects, value, user):
     """ objects belonging to a specific user, by ID """
