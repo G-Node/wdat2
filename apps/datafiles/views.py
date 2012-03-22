@@ -103,7 +103,8 @@ def convert(request, datafile):
         task_id = str(converted.task_id) # this line is required, due to short tasks
         datafile.last_task_id = task_id
         datafile.save()
-        return Success(message_type="task_started", request=request)
+        return Success(json_obj={"task_id": task_id}, \
+            message_type="task_started", request=request)
     return BadRequest(message_type="non_convertible", request=request)
 
 

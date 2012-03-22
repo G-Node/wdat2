@@ -172,7 +172,7 @@ class Section(SafetyLevel, ObjectState):
         return 1
 
 
-class Property(ObjectState):
+class Property(SafetyLevel, ObjectState):
     """ 
     Class represents a metadata "Property". Defines any kind of metadata 
     property and may be linked to the Section. 
@@ -195,11 +195,11 @@ class Property(ObjectState):
     def get_absolute_url(self):
         return ('property_details', [str(self.id)])
 
-    def is_accessible(self, user):
-        return self.section.is_accessible(user)
+    #def is_accessible(self, user):
+    #    return self.section.is_accessible(user)
 
-    def is_editable(self, user):
-        return self.section.is_editable(user)
+    #def is_editable(self, user):
+    #    return self.section.is_editable(user)
 
     def does_belong_to(self, user):
         """ Defines whether this property belongs to a certain user. """
@@ -223,7 +223,7 @@ class Property(ObjectState):
         return len(self.values)
 
 
-class Value(ObjectState):
+class Value(SafetyLevel, ObjectState):
     """ 
     Class implemented metadata Value. 
     """
@@ -242,10 +242,10 @@ class Value(ObjectState):
     def default_serializer(self):
         return ValueSerializer
 
-    def is_accessible(self, user):
-        return self.parent_property.is_accessible(user)
+    #def is_accessible(self, user):
+    #    return self.parent_property.is_accessible(user)
 
-    def is_editable(self, user):
-        return self.parent_property.is_editable(user)
+    #def is_editable(self, user):
+    #    return self.parent_property.is_editable(user)
 
 
