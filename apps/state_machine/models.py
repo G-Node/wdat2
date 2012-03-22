@@ -103,7 +103,7 @@ class SafetyLevel(models.Model):
         return [x.access_for for x in self.shared_with]
 
     def remove_all_shares(self):
-        pass
+        raise NotImplementedError
 
     def publish_object():
         self.safety_level = 1
@@ -118,11 +118,13 @@ class SafetyLevel(models.Model):
         return self.safety_level == 3
 
     def get_access_for_user(self, user):
-        try:
-            access = self.shared_with.get(access_for=user)
-            return access
-        except:
-            return None
+        return self.shared_with.filter(access_for=user)
+
+    @property
+    def acl_type(self):
+        """ object type for direct permissions. normally the lowercase name of 
+        the class """
+        return type(self).__name__.lower()
 
     def is_accessible(self, user):
         """
@@ -158,13 +160,8 @@ class SingleAccess(models.Model):
         (1, _('Read-only')),
         (2, _('Edit')),
     )
-    OBJECT_TYPES = (
-        (1, _('Section')),
-        (2, _('Datafile')),
-        (3, _('Block')),
-    )
     object_id = models.IntegerField(_('object ID')) # ID of the File/Section
-    object_type = models.IntegerField(_('object type'), choices=OBJECT_TYPES)
+    object_type = models.CharField(_('object type'), max_length=20)
     # the pair above identifies a unique object for ACL record
     access_for = models.ForeignKey(User) # with whom it is shared
     access_level = models.IntegerField(_('access level'), choices=ACCESS_LEVELS, default=1)
@@ -172,78 +169,5 @@ class SingleAccess(models.Model):
     def resolve_access_level(self, value):
         """ convert from int to str and vice versa TODO """
         pass
-
-
-
-
-#---- BELOW DEPRECATED SINCE FEBRUARY 2012, THE NEW DATA API -------------------
-
-class MetadataManager:
-    """
-    Class to represent some common methods, applicable for "metadata" (for 
-    Datafiles, Datasets etc.)
-    """
-    def get_metadata(self):
-        metadata = []
-        for section in self.section_set.filter(current_state=10).order_by("tree_position"):
-            metadata.append(section.get_tree())
-        return metadata
-
-    def get_metadata_root_id(self):
-        """
-        Method is needed to keep the first level of metadata tree opened.
-        """
-        if self.section_set.filter(current_state=10):
-            return self.section_set.filter(current_state=10)[0].id
-        else:
-            return None
-
-    def has_metadata(self):
-        if self.section_set.filter(current_state=10):
-            return True
-        return False
-
-    def objects_count(self):
-        """
-        Number of 'linked' (through odML sections) objects - datasets, files etc.
-        """
-        datasets_no = 0
-        datafiles_no = 0
-        timeseries_no = 0
-        files_vo = 0
-        sections = self.section_set.all().filter(current_state=10)
-        for sec in sections:
-            s1, s2, s3, s4 = sec.get_objects_count()
-            datasets_no += s1
-            datafiles_no += s2
-            timeseries_no += s3
-            files_vo += s4
-        return datasets_no, datafiles_no, timeseries_no, files_vo
-
-    def objects_count_str(self):
-        s1, s2, s3, s4 = self.objects_count()
-        result = ""
-        if s1: result = "Datasets (" + str(s1) + "), "
-        if s2: result = result + "Files (" + str(s2) + "), "
-        if s3: result = result + "Time Series (" + str(s3) + "), "
-        if result: result = result[:len(result)-2]
-        return result
-
-class LinkedToProject:
-    """
-    Class represents methods to link an object (e.g. Dataset or Experiment) to a 
-    Project. An object (self) must contain a field (in_projects) to store links.
-    """
-    def add_linked_project(self, project):
-        try:
-            self.in_projects.add(project)
-        except BaseException:
-            raise "This Django object doesn't have a container for links to projects."
-
-    def remove_linked_project(self, project):
-        try:
-            self.in_projects.remove(project)
-        except BaseException:
-            raise "This Django object doesn't have a container for links to projects."
 
 

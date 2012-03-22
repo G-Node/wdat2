@@ -7,6 +7,8 @@ from django.db.models.fields import FieldDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_unicode
 
+from friends.models import Friendship
+
 import settings
 import hashlib
 
@@ -26,8 +28,8 @@ class BaseHandler(object):
     """
     def __init__(self, serializer, model):
         self.serializer = serializer() # serializer
-        self.model = model # required
-        self.list_filters = { # this is a full list, overwrite in a parent class
+        self.model = model # the model to work with, required
+        self.list_filters = { # common filters, extend in a parent class
             'top': top_filter,
             'visibility': visibility_filter,
             'owner': owner_filter,
@@ -42,10 +44,11 @@ class BaseHandler(object):
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
         self.update = True # create / update via POST
 
+
     @auth_required
     def __call__(self, request, obj_id=None, *args, **kwargs):
         """
-        GET: get, PUT/POST: update, DELETE: delete single object. Serves 
+        GET: get, POST: update, DELETE: delete single object. Serves 
         partial data requests (info, data etc.) using GET params.
 
         request: incoming HTTP request
@@ -89,8 +92,6 @@ class BaseHandler(object):
                 matched = [key for key in request_params_cleaner.keys() if k.startswith(key)]
                 if matched:
                     params[smart_unicode(k)] = request_params_cleaner.get(matched[0])(v)
-                #if k in request_params_cleaner.keys():
-                #    params[smart_unicode(k)] = request_params_cleaner.get(k)(v)
 
                 else: # attribute- and other filters
                     attr_filters[smart_unicode(k)] = smart_unicode(v)
@@ -117,7 +118,6 @@ class BaseHandler(object):
 
     def do_filter(self, user, objects):
         """ filter objects as per request params """
-
         for key, value in self.options.items():
             matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
             if matched and objects:
@@ -127,9 +127,21 @@ class BaseHandler(object):
         if self.attr_filters: # better for performance if done as one query
             objects = objects.filter(**self.attr_filters)
 
-        # FIXME make more efficient
-        # post- filters, in order: security - index - every - max results
-        objects = filter(lambda s: s.current_state == 10 and s.is_accessible(user), objects)
+        # security filter, concatenate 3 QuerySets:
+        # 1. all public objects 
+        q1 = objects.filter(safety_level=1).exclude(owner=user)
+
+        # 2. all *friendly*-shared objects
+        friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
+            + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
+        q2 = objects.filter(safety_level=2, owner__in=friends)
+
+        # 3. All private direct shares
+        dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
+            object_type=self.model.acl_type)]
+        q3 = objects.filter(id__in=dir_acc)
+
+        objects = q1 | q2 | q3 | objects.filter(owner=user)
 
         start_index = self.start_index
         if "start_index" in self.options.keys() and self.options["start_index"] < \
@@ -174,7 +186,7 @@ class BaseHandler(object):
             "selected": None
         }
         if objects:
-            selected_range = [self.start_index, self.start_index + len(objects) - 1]
+            resp_data["selected_range"] = [self.start_index, self.start_index + len(objects) - 1]
             resp_data["selected"] = self.serializer.serialize(objects, options=self.options)
             message_type = "object_selected"
         return Success(resp_data, message_type, request)

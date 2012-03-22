@@ -98,10 +98,6 @@ class Datafile(SafetyLevel, ObjectState):
         return False
 
     @property
-    def acl_type(self):
-        return 2 # See state_machine.models.SingleAccess (permissions)
-
-    @property
     def convertible(self):
         return bool(self.conversion_type)
 

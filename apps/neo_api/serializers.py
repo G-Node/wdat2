@@ -33,7 +33,7 @@ class NEOSerializer(Serializer):
                         self.encoding, strings_only=True)
                     self._current[key] = {
                         'data': attr,
-                        'unit': units
+                        'units': units
                     }
 
     def deserialize_special(self, obj, field_name, field_value, user):

@@ -22,6 +22,19 @@ class Serializer(PythonSerializer):
     cascade = False
     encoding = settings.DEFAULT_CHARSET
     use_natural_keys = True
+    q = 'info'
+
+    @property
+    def serialize_data(self):
+        return self.q == 'full' or self.q == 'data'
+
+    @property
+    def serialize_attrs(self):
+        return self.q == 'full' or self.q == 'info' or self.q == 'beard'
+
+    @property
+    def serialize_rel(self):
+        return self.q == 'full' or self.q == 'beard'
 
     def serialize(self, queryset, options={}):
         """
@@ -30,37 +43,54 @@ class Serializer(PythonSerializer):
         def parse_options(self, options):
             self.options = options
             self.cascade = options.has_key("cascade")
-            self.q = options.get("q", "full")
+            """ q - amount of information about an object to return:
+            - 'link' - just permalink
+            - 'info' - object with local attributes
+            - 'beard' - object with local attributes AND foreign keys resolved
+            - 'data' - data-arrays or any high-volume data associated
+            - 'full' - everything mentioned above """
+            self.q = options.get("q", "info")
             self.host = options.get("permalink_host", "")
             self.selected_fields = options.get("fields", None)
             self.show_kids = options.get("show_kids", self.show_kids)
             self.use_natural_keys = options.get("use_natural_keys", self.use_natural_keys)
+
         parse_options(self, options)
         self.start_serialization()
+
         for obj in queryset:
             self.start_object(obj)
-            for field in obj._meta.local_fields:
+
+            for field in obj._meta.local_fields: # local fields / FK fields
                 if field.serialize:
                     if field.rel is None:
-                        if self.selected_fields is None or field.attname in self.selected_fields:
+                        if self.selected_fields is None or field.attname in\
+                            self.selected_fields:
                             if field.attname in self.special_for_serialization \
                                 and self.serialize_attrs:
                                 self.serialize_special(obj, field)
-                            elif self.is_data_field_django(obj, field) and self.serialize_data:
-                                self.handle_data_field(obj, field)
+                            elif self.is_data_field_django(obj, field):
+                                if self.serialize_data:
+                                    self.handle_data_field(obj, field)
                             elif field.attname.find("__unit") > 0:
                                 pass # ignore unit fields as they are processed above
                             elif self.serialize_attrs: # FIXME resolve choices
                                 self.handle_field(obj, field)
-                    else:
-                        if self.selected_fields is None or field.attname[:-3] in self.selected_fields:
+                    elif self.serialize_rel:
+                        if self.selected_fields is None or field.attname[:-3]\
+                            in self.selected_fields:
                             self.handle_fk_field(obj, field)
-            for field in obj._meta.many_to_many:
-                if field.serialize:
-                    if self.selected_fields is None or field.attname in self.selected_fields:
-                        self.handle_m2m_field(obj, field)
+
+            if self.serialize_rel: # m2m fields
+                for field in obj._meta.many_to_many:
+                    if field.serialize:
+                        if self.selected_fields is None or field.attname in \
+                            self.selected_fields:
+                            self.handle_m2m_field(obj, field)
+
             # process specially reverse relations, like properties for section
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
+
                 if self.cascade and rel_name[:-4] not in self.excluded_cascade: # cascade related object load
                     kid_model = getattr(obj, rel_name).model # below is an alternative
                     #kid_model = filter(lambda x: x.get_accessor_name() == rel_name,\
@@ -70,7 +100,9 @@ class Serializer(PythonSerializer):
                     else: serializer = self.__class__
                     self._current[rel_name] = serializer().serialize(getattr(obj, \
                         rel_name).filter(current_state=10), options=options)
-                elif self.show_kids and self.serialize_rel and rel_name[:-4] not in self.excluded_permalink:
+
+                elif self.show_kids and self.serialize_rel and rel_name[:-4] not\
+                    in self.excluded_permalink:
                     """ this is used to include some short-relatives into the 
                     serialized object, e.g. permalinks of Properties and Values 
                     into the Section """
@@ -83,8 +115,10 @@ class Serializer(PythonSerializer):
                                 ": " + smart_unicode(child._meta))
                     if not (not children and rel_name[:-4] in self.do_not_show_if_empty):
                         self._current[rel_name] = children
+
             self.end_object(obj)
         self.end_serialization()
+
         return self.getvalue()
 
     def deserialize(self, rdata, obj, user, encoding=None, m2m_append=True):
@@ -189,24 +223,6 @@ class Serializer(PythonSerializer):
         self.objects.append(serialized)
         self._current = None
 
-
-    @property
-    def serialize_data(self):
-        if self.q == 'full' or self.q == 'data':
-            return True
-        return False
-
-    @property
-    def serialize_attrs(self):
-        if self.q == 'full' or self.q == 'info':
-            return True
-        return False
-
-    @property
-    def serialize_rel(self):
-        if self.q == 'full' or self.q == 'related':
-            return True
-        return False
 
     def is_data_field_json(self, attr_name, value):
         """ determines if a given field has units and requires special proc."""

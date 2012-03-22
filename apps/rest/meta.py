@@ -153,10 +153,11 @@ request_params_cleaner = {
 }
 
 object_filters = {
+    "link": "link",
     "full": "full",
     "info": "info",
     "data": "data",
-    "related": "related"}
+    "beard": "beard"}
 
 # visibility options in GET request 
 visibility_options = {

@@ -77,10 +77,6 @@ class Section(SafetyLevel, ObjectState):
     def sections(self):
         return self.section_set.filter(current_state=10).order_by("tree_position")
 
-    @property
-    def acl_type(self):
-        return 1 # See state_machine.models.SingleAccess (permissions)
-
     def get_tree(self, id_only=False):
         """ returns section with its children as lists tree """
         sec_tree = []

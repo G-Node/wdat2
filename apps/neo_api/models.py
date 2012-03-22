@@ -157,10 +157,6 @@ class Block(SafetyLevel, BaseInfo):
     def size(self):
         return int(np.array([w.size for w in self.segment_set.all()]).sum())
 
-    @property
-    def acl_type(self):
-        return 3 # See state_machine.models.SingleAccess (permissions)
-
 
 # 2 (of 15)
 class Segment(BaseInfo):
