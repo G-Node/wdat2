@@ -124,22 +124,24 @@ class Serializer(PythonSerializer):
     def deserialize(self, rdata, obj, user, encoding=None, m2m_append=True):
         """ parse incoming JSON into a given object (obj) skeleton """
         if not encoding: encoding = self.encoding
-        m2m_dict = {} # temporary store m2m values to assign them after full_clean
+        update_kwargs = {} # dict to collect parsed values for update
+        m2m_dict = {} # temporary m2m values to assign them after full_clean
 
-        # processing attributes
+        # parsing attributes
         for field_name, field_value in rdata.iteritems():
             if isinstance(field_value, str):
                 field_value = smart_unicode(field_value, encoding, strings_only=True)
 
             # Handle special fields
             if field_name in self.special_for_deserialization:
-                self.deserialize_special(obj, field_name, field_value, user)
+                self.deserialize_special(update_kwargs, field_name, field_value, user)
             else:
                 field = obj._meta.get_field(field_name)
 
                 # Handle M2M relations
                 if field.rel and isinstance(field.rel, models.ManyToManyRel):
                     m2m_data = []
+
                     for m2m in field_value: # we support both ID and permalinks
                         if self.is_permalink(m2m):
                             m2m_obj = self.get_by_permalink(field.rel.to, m2m)
@@ -148,10 +150,6 @@ class Serializer(PythonSerializer):
                         if not m2m_obj.is_editable(user):
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
                         m2m_data.append(m2m_obj)
-                    if m2m_append: # append to existing m2m
-                        m2m_dict[field.attname] = [x.id for x in getattr(obj, \
-                            field.attname).all()] + [x.id for x in m2m_data]
-                    else: # overwrite m2m
                         m2m_dict[field.attname] = [x.id for x in m2m_data]
 
                 # Handle FK fields (taken from django.core.Deserializer)
@@ -161,27 +159,54 @@ class Serializer(PythonSerializer):
                             related = self.get_by_permalink(field.rel.to, field_value)
                         else:
                             related = field.rel.to.objects.get(id=field_value)
-                        if not related.is_editable(user): # security check
+                        if not related.is_editable(user): # permission check
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
-                        setattr(obj, field.attname, related.id)
+                        update_kwargs[field.attname] = related.id # establish rel
                     else:
-                        setattr(obj, field.attname, None)
+                        update_kwargs[field.attname] = None # remove relation
 
                 # Handle data/units fields
                 elif self.is_data_field_json(field_name, field_value):
-                    setattr(obj, field_name, field_value["data"])
-                    setattr(obj, field_name + "__unit", field_value["units"])
+                    update_kwargs[field_name] = field_value["data"]
+                    update_kwargs[field_name + "__unit"] = field_value["units"]
 
                 # handle standard fields
                 elif field.editable and not field.attname == 'id': 
-                    #TODO raise error when trying to change id or date_created etc.
-                    setattr(obj, field_name, field.to_python(field_value))
-        obj.full_clean()
-        obj.save()
-        # process m2m only after full_clean (for new objects - after acquiring id)
-        if m2m_dict:
-            for k, v in m2m_dict.items():
-                setattr(obj, k, v)
+                    #TODO raise error when trying to change id or date_created etc?
+                    update_kwargs[field_name] = field.to_python(field_value)
+
+        if len(obj) > 1: # bulk update
+            obj.update(**update_kwargs) # no save required
+
+            if m2m_dict:  # work out m2m, so far I see no other way as raw SQL
+                db_table = self.model._meta.db_table
+                obj_ids = [x.id for x in obj]
+
+                for rel_key, ids in m2m_dict.items(): # rel_key = name of the m2m field
+                    remote_model_name = getattr(self.model, rel_key).field.rel.to.__name__.lower()
+                    query = "INSERT INTO %s_%s (%s_id, %s_id) VALUES " % \
+                        (db_table, rel_key, self.model.__name__.lower(), remote_model_name)
+
+                    for_update = []
+                    for i in obj_ids: # main model (with m2m field) ids
+                        for j in ids: # remote m2m ids
+                            for_update.append("(%d, %d)" % (i, j))
+                    query += ", ".join(for_update)
+                    self.model.objects.raw(query)
+        else:
+            for name, value in update_kwargs.items():
+                setattr(obj, name, value)
+            obj.full_clean()
+            obj.save()
+
+            # process m2m only after full_clean (for new objects - after acquiring id)
+            if m2m_dict:
+                for k, v in m2m_dict.items():
+                    if m2m_append: # append to existing m2m
+                        v = [x.id for x in getattr(obj, k).objects.all()] + \
+                            [x.id for x in m2m_data]
+                    setattr(obj, k, v) # update m2m
+
 
 
     def handle_m2m_field(self, obj, field):

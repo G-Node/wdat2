@@ -36,14 +36,6 @@ class NEOSerializer(Serializer):
                         'units': units
                     }
 
-    def deserialize_special(self, obj, field_name, field_value, user):
-        """ process special data fields having decorated properties as fields """
-        if not self.is_data_field_json(field_name, field_value):
-            raise ValidationError("The field %s must be a dict with 'data' and\
- 'units' keys." % field_name)
-        setattr(obj, field_name, field_value["data"])
-        setattr(obj, field_name + "__unit", field_value["units"])
-
 
 class NEOCategorySerializer(NEOSerializer):
     """ do not show reverse relations when list is requested """

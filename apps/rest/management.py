@@ -60,21 +60,31 @@ class BaseHandler(object):
                 objects = self.model.objects.filter(id=obj_id)
                 if not objects: # object not exists?
                     return NotFound(message_type="does_not_exist", request=request)
-                if not objects[0].is_accessible(request.user): # first security check
+                if request.method == 'GET' and not objects[0].is_accessible(request.user):
+                    # get single object
                     return Forbidden(message_type="not_authorized", request=request)
 
-            else:# a category case
-                objects = self.model.objects.all()
-                if not self.options.has_key('bulk_update') and request.method == 'POST':
-                    self.update = False
+                elif not objects[0].is_editable(request.user):
+                    # update or delete single
+                    return Forbidden(message_type="not_authorized", request=request)
 
-            if self.update: # filtering
-                try:
-                    objects = self.do_filter(request.user, objects)
-                except (ObjectDoesNotExist, FieldError, ValidationError), e:
-                    # filter key/value are wrong
-                    return BadRequest(json_obj={"details": e.message}, \
-                message_type="wrong_params", request=request)
+            else: # a category case
+                update = self.options.has_key('bulk_update')
+                if request.method == 'GET' or (request.method == 'POST' and update):
+                    # get or bulk update
+                    objects = self.model.objects.all()
+                    try:
+                        objects = self.do_filter(request.user, objects, update)
+                    except (ObjectDoesNotExist, FieldError, ValidationError), e:
+                        # filter key/value is/are wrong
+                        return BadRequest(json_obj={"details": e.message}, \
+                            message_type="wrong_params", request=request)
+                    except ReferenceError, e: # attempt to update non-editable objects
+                        return Forbidden(json_obj={"details": e.message}, \
+                            message_type="not_authorized", request=request)
+
+                else: # create case
+                    objects = None
 
             return self.actions[request.method](request, objects)
         else:
@@ -116,7 +126,7 @@ class BaseHandler(object):
         return rdata
 
 
-    def do_filter(self, user, objects):
+    def do_filter(self, user, objects, update=False):
         """ filter objects as per request params """
         for key, value in self.options.items():
             matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
@@ -124,10 +134,12 @@ class BaseHandler(object):
                 filter_func = self.list_filters[matched[0]]
                 objects = filter_func(objects, self.options[key], user)
 
-        if self.attr_filters: # better for performance if done as one query
+        if self.attr_filters: # include attr filters
             objects = objects.filter(**self.attr_filters)
 
-        # security filter, concatenate 3 QuerySets:
+
+        # permissions filter:
+
         # 1. all public objects 
         q1 = objects.filter(safety_level=1).exclude(owner=user)
 
@@ -141,7 +153,21 @@ class BaseHandler(object):
             object_type=self.model.acl_type)]
         q3 = objects.filter(id__in=dir_acc)
 
-        objects = q1 | q2 | q3 | objects.filter(owner=user)
+        perm_filtered = q1 | q2 | q3
+
+        if update:
+            # 1. All private direct shares with 'edit' level
+            dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
+                object_type=self.model.acl_type, access_level=2)]
+            available = objects.filter(id__in=dir_acc)
+
+            if not self.options['mode'] == 'ignore':
+                if not perm_filtered.count() == available.count():
+                    raise ReferenceError("Some of the objects in your query are prohibited from update.")
+
+            perm_filtered = objects.filter(id__in=dir_acc) # not to damage QuerySet
+
+        objects = perm_filtered | objects.filter(owner=user)
 
         start_index = self.start_index
         if "start_index" in self.options.keys() and self.options["start_index"] < \
@@ -177,7 +203,7 @@ class BaseHandler(object):
         return objects
 
 
-    def get(self, request, objects):
+    def get(self, request, objects, code=200):
         """ returns requested objects list """
         message_type = "no_objects_found"
         resp_data = {
@@ -189,6 +215,8 @@ class BaseHandler(object):
             resp_data["selected_range"] = [self.start_index, self.start_index + len(objects) - 1]
             resp_data["selected"] = self.serializer.serialize(objects, options=self.options)
             message_type = "object_selected"
+        if code == 201:
+            return Created(resp_data, message_type="object_created", request=request)
         return Success(resp_data, message_type, request)
 
 
@@ -204,50 +232,46 @@ class BaseHandler(object):
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="data_parsing_error", request=request)
 
-        if self.update:
+        if objects: # FIXME performance!
             for obj in objects:
                 if not obj.is_editable(request.user): # method should exist, ensure
                     return Forbidden(message_type="not_authorized", request=request)
+            return_code = 200
         else:
             objects = [self.model()] # create object skeleton
             objects[0].owner = request.user
+            return_code = 201
 
-        for obj in objects:
-            try:
-                encoding = getattr(request, "encoding", None) or settings.DEFAULT_CHARSET
-                if self.options.has_key('m2m_append'):
-                    self.m2m_append = False
-                self.serializer.deserialize(rdata, obj, user=request.user,\
-                    encoding=encoding, m2m_append=self.m2m_append)
-            except FieldDoesNotExist, v: # or pass????
-                return BadRequest(json_obj={"details": v.message}, \
-                    message_type="post_data_invalid", request=request)
-            except ValueError, v:
-                return BadRequest(json_obj={"details": v.message}, \
-                    message_type="bad_float_data", request=request)
-            except ValidationError, VE:
-                if hasattr(VE, 'message_dict'):
-                    json_obj=VE.message_dict
-                else:
-                    json_obj={"details": ", ".join(VE.messages)}
-                return BadRequest(json_obj=json_obj, \
-                    message_type="bad_parameter", request=request)
-            except (AssertionError, AttributeError), e:
-                return BadRequest(json_obj={"details": e.message}, \
-                    message_type="post_data_invalid", request=request)
-            except (ReferenceError, ObjectDoesNotExist), e:
-                return NotFound(json_obj={"details": e.message}, \
-                    message_type="wrong_reference", request=request)
+        try:
+            encoding = getattr(request, "encoding", None) or settings.DEFAULT_CHARSET
+            if self.options.has_key('m2m_append'):
+                self.m2m_append = False
+            self.serializer.deserialize(rdata, objects, user=request.user,\
+                encoding=encoding, m2m_append=self.m2m_append)
+        except FieldDoesNotExist, v:
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="post_data_invalid", request=request)
+        except ValueError, v:
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="bad_float_data", request=request)
+        except ValidationError, VE:
+            if hasattr(VE, 'message_dict'):
+                json_obj=VE.message_dict
+            else:
+                json_obj={"details": ", ".join(VE.messages)}
+            return BadRequest(json_obj=json_obj, \
+                message_type="bad_parameter", request=request)
+        except (AssertionError, AttributeError), e:
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="post_data_invalid", request=request)
+        except (ReferenceError, ObjectDoesNotExist), e:
+            return NotFound(json_obj={"details": e.message}, \
+                message_type="wrong_reference", request=request)
 
-            self.run_post_processing(obj) # for some special cases
+        self.run_post_processing(obj) # for some special cases
 
-        if self.update:
-            request.method = "GET"
-            return self.get(request, objects)
-
-        self.options["q"] = "info"
-        resp_data = self.serializer.serialize(objects, options=self.options)[0]
-        return Created(resp_data, message_type="object_created", request=request)
+        request.method = "GET"
+        return self.get(request, objects, return_code)
 
 
     def delete(self, request, objects):
