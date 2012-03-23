@@ -48,7 +48,7 @@ class BaseHandler(object):
     @auth_required
     def __call__(self, request, obj_id=None, *args, **kwargs):
         """
-        GET: get, POST: update, DELETE: delete single object. Serves 
+        GET: get, POST: create/update, DELETE: delete single object. Serves 
         partial data requests (info, data etc.) using GET params.
 
         request: incoming HTTP request

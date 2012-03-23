@@ -125,6 +125,7 @@ class Serializer(PythonSerializer):
         """ parse incoming JSON into a given object (obj) skeleton """
         if not encoding: encoding = self.encoding
         m2m_dict = {} # temporary store m2m values to assign them after full_clean
+
         # processing attributes
         for field_name, field_value in rdata.iteritems():
             if isinstance(field_value, str):
@@ -170,6 +171,8 @@ class Serializer(PythonSerializer):
                 elif self.is_data_field_json(field_name, field_value):
                     setattr(obj, field_name, field_value["data"])
                     setattr(obj, field_name + "__unit", field_value["units"])
+
+                # handle standard fields
                 elif field.editable and not field.attname == 'id': 
                     #TODO raise error when trying to change id or date_created etc.
                     setattr(obj, field_name, field.to_python(field_value))
