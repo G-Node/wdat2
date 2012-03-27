@@ -1,9 +1,11 @@
 from django.core.serializers.python import Serializer as PythonSerializer
 from django.utils.encoding import smart_unicode, is_protected_type
 from django.db import models
+from django.db import connection, transaction
+
 import settings
 import urlparse
-
+import itertools
 
 class Serializer(PythonSerializer):
     """ 
@@ -136,7 +138,7 @@ class Serializer(PythonSerializer):
             if field_name in self.special_for_deserialization:
                 self.deserialize_special(update_kwargs, field_name, field_value, user)
             else:
-                field = obj._meta.get_field(field_name)
+                field = obj[0]._meta.get_field(field_name)
 
                 # Handle M2M relations
                 if field.rel and isinstance(field.rel, models.ManyToManyRel):
@@ -150,7 +152,7 @@ class Serializer(PythonSerializer):
                         if not m2m_obj.is_editable(user):
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
                         m2m_data.append(m2m_obj)
-                        m2m_dict[field.attname] = [x.id for x in m2m_data]
+                        m2m_dict[field.attname] = [int(x.id) for x in m2m_data]
 
                 # Handle FK fields (taken from django.core.Deserializer)
                 elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
@@ -175,25 +177,42 @@ class Serializer(PythonSerializer):
                     #TODO raise error when trying to change id or date_created etc?
                     update_kwargs[field_name] = field.to_python(field_value)
 
-        if len(obj) > 1: # bulk update
-            obj.update(**update_kwargs) # no save required
+        if len(obj) > 1: # bulk update, obj is QuerySet
+            obj_ids = [int(x[0]) for x in obj.values_list('pk')] # ids of selected objects
+            # evaluated because SQL does not support update for sliced querysets
+            obj.model.objects.filter(pk__in=obj_ids).update(**update_kwargs)
 
             if m2m_dict:  # work out m2m, so far I see no other way as raw SQL
-                db_table = self.model._meta.db_table
-                obj_ids = [x.id for x in obj]
+                db_table = obj.model._meta.db_table
+                cursor = connection.cursor()
 
-                for rel_key, ids in m2m_dict.items(): # rel_key = name of the m2m field
-                    remote_model_name = getattr(self.model, rel_key).field.rel.to.__name__.lower()
-                    query = "INSERT INTO %s_%s (%s_id, %s_id) VALUES " % \
-                        (db_table, rel_key, self.model.__name__.lower(), remote_model_name)
+                for rem_key, rem_ids in m2m_dict.items(): # rem_key = name of the m2m field
+                    remote_m_name = getattr(obj.model, rem_key).field.rel.to.__name__.lower()
+                    base_m_name = obj.model.__name__.lower()
+                    curr_m2m = [] # existing m2m relations
 
-                    for_update = []
-                    for i in obj_ids: # main model (with m2m field) ids
-                        for j in ids: # remote m2m ids
-                            for_update.append("(%d, %d)" % (i, j))
-                    query += ", ".join(for_update)
-                    self.model.objects.raw(query)
-        else:
+                    if not m2m_append: # remove existing m2m if overwrite mode
+                        cursor.execute("DELETE FROM %s_%s WHERE %s_id IN %s" %\
+                            (db_table, rem_key, base_m_name, str(tuple(obj_ids))))
+                    else: # select the ones which are already 
+                        cursor.execute("SELECT %s_id, %s_id FROM %s_%s WHERE %s_id IN %s" %\
+                            (base_m_name, remote_m_name, db_table, rem_key, \
+                                base_m_name, str(tuple(obj_ids))))
+                        curr_m2m = [str(x) for x in cursor.fetchall()]
+
+                    # new combinations of base model and remote model ids
+                    to_insert = [str(x) for x in itertools.product(obj_ids, rem_ids)]
+                    # exclude already existing relations from the insert
+                    for_update = list(set(to_insert) - set(curr_m2m))
+
+                    if for_update:
+                        query = "INSERT INTO %s_%s (%s_id, %s_id) VALUES " % \
+                            (db_table, rem_key, base_m_name, remote_m_name)
+                        query += ", ".join(for_update)
+                        cursor.execute(query) # insert new m2m values
+                        transaction.commit_unless_managed()                    
+        else: # new object
+            obj = obj[0]
             for name, value in update_kwargs.items():
                 setattr(obj, name, value)
             obj.full_clean()

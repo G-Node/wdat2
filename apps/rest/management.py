@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.utils.encoding import smart_unicode
 
 from friends.models import Friendship
+from datetime import datetime
 
 import settings
 import hashlib
@@ -39,7 +40,7 @@ class BaseHandler(object):
             'GET': self.get,
             'POST': self.create_or_update,
             'DELETE': self.delete }
-        self.start_index = 0
+        self.offset = 0
         self.max_results = settings.REST_CONFIG['max_results'] # 1000
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
         self.update = True # create / update via POST
@@ -128,6 +129,9 @@ class BaseHandler(object):
 
     def do_filter(self, user, objects, update=False):
         """ filter objects as per request params """
+
+        print "Filtering started: " + str(datetime.datetime.now()) # FIXME
+
         for key, value in self.options.items():
             matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
             if matched and objects:
@@ -137,9 +141,9 @@ class BaseHandler(object):
         if self.attr_filters: # include attr filters
             objects = objects.filter(**self.attr_filters)
 
+        print "option filters done: " + str(datetime.datetime.now()) # FIXME
 
         # permissions filter:
-
         # 1. all public objects 
         q1 = objects.filter(safety_level=1).exclude(owner=user)
 
@@ -161,44 +165,52 @@ class BaseHandler(object):
                 object_type=self.model.acl_type, access_level=2)]
             available = objects.filter(id__in=dir_acc)
 
-            if not self.options['mode'] == 'ignore':
+            if self.options.has_key('mode') and not self.options['mode'] == 'ignore':
                 if not perm_filtered.count() == available.count():
-                    raise ReferenceError("Some of the objects in your query are prohibited from update.")
+                    raise ReferenceError("Some of the objects in your query are not available for an update.")
 
             perm_filtered = objects.filter(id__in=dir_acc) # not to damage QuerySet
 
         objects = perm_filtered | objects.filter(owner=user)
 
-        start_index = self.start_index
-        if "start_index" in self.options.keys() and self.options["start_index"] < \
-            len(objects) and objects:
-            start_index = self.options["start_index"]
-        objects = objects[start_index:]
+        print "permissions done: " + str(datetime.datetime.now()) # FIXME
 
-        # filtering by groups of some number with some spacing - periodic filter
+        # offset - limit - groups_of - spacing filters
+        # create list of indexes first, then evaluate the queryset
+
+        offset = self.offset
+        if self.options.has_key('offset') and objects:
+            offset = self.options["offset"]
+
+        max_results = self.max_results
+        if self.options.has_key('max_results') and objects:
+            max_results = self.options["max_results"]
+
+        # evaluate queryset here
+        objects = objects.all()[offset:max_results]
+
+        # temporary switched off
+        """
         if self.options.has_key('spacing') and self.options.has_key('groups_of'):
             spacing = self.options['spacing']
             groups_of = self.options['groups_of']
-            filtered = []
-            if spacing > 0 and groups_of > 0 and groups_of < len(objects):
-                fg = int( len(objects) / (spacing + groups_of) ) # number of full groups
+            objs = objects.all() # be careful, work with a diff queryset
+            length = objs.count()
+            if spacing > 0 and groups_of > 0 and groups_of < length:
+                fg = int( length / (spacing + groups_of) ) # number of full groups
                 for i in range(fg):
-                    for j in range(groups_of):
-                        filtered.append(objects[(i * (spacing + groups_of)) + j])
-                # don't forget there could some objects left as non-full group
-                ind = fg * (spacing + groups_of) # index of the 1st object in the orphaned group
-                left = groups_of
-                if groups_of > len(objects) - ind: # if objects left are not enough to fill a group
-                    left = len(objects) - ind
-                for i in range(left):
-                    filtered.append(objects[ind + i])
-            objects = filtered
+                    st_ind = (i * (spacing + groups_of))
+                    end_ind = st_ind + groups_of
+                    objs = objs | objects.all()[st_ind:end_ind]
 
-        max_results = self.max_results
-        if "max_results" in self.options.keys() and self.options["max_results"] < \
-            len(objects) and objects:
-            max_results = self.options["max_results"]
-        objects = objects[:max_results]
+                # don't forget there could some objects left as non-full group
+                ind = fg * (spacing + groups_of) # index of the 1st object in the 'orphaned' group
+                if ((length - 1) - ind) > -1: # some objects left
+                    objs = objs | objects.all()[ind:]
+            objects = objs
+        """
+
+        print "numbering filters finished: " + str(datetime.datetime.now()) # FIXME
 
         return objects
 
@@ -212,8 +224,8 @@ class BaseHandler(object):
             "selected": None
         }
         if objects:
-            resp_data["selected_range"] = [self.start_index, self.start_index + len(objects) - 1]
             resp_data["selected"] = self.serializer.serialize(objects, options=self.options)
+            resp_data["selected_range"] = [self.offset, self.offset + len(objects) - 1]
             message_type = "object_selected"
         if code == 201:
             return Created(resp_data, message_type="object_created", request=request)
@@ -232,13 +244,10 @@ class BaseHandler(object):
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="data_parsing_error", request=request)
 
-        if objects: # FIXME performance!
-            for obj in objects:
-                if not obj.is_editable(request.user): # method should exist, ensure
-                    return Forbidden(message_type="not_authorized", request=request)
+        if objects:
             return_code = 200
         else:
-            objects = [self.model()] # create object skeleton
+            objects = [self.model()] # new object skeleton
             objects[0].owner = request.user
             return_code = 201
 
@@ -268,10 +277,12 @@ class BaseHandler(object):
             return NotFound(json_obj={"details": e.message}, \
                 message_type="wrong_reference", request=request)
 
-        self.run_post_processing(obj) # for some special cases
+        self.run_post_processing(objects) # for some special cases
 
         request.method = "GET"
-        return self.get(request, objects, return_code)
+        ids = [x.id for x in objects] 
+        # need refresh the QuerySet, f.e. in case of a bulk update
+        return self.get(request, self.model.objects.filter(pk__in=ids), return_code)
 
 
     def delete(self, request, objects):

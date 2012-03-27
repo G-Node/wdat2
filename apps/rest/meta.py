@@ -143,6 +143,7 @@ request_params_cleaner = {
     'owner':  lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+    'offset': lambda x: int(x), # may raise ValueError
     'max_results':  lambda x: abs(int(x)), # may raise ValueError
     'show_kids': lambda x: bool(int(x)), # may raise ValueError
     'cascade': lambda x: bool(int(x)), # may raise ValueError
