@@ -79,25 +79,6 @@ class BaseInfo(SafetyLevel, ObjectState):
     def get_absolute_url(self):
         return ('neo_object_details', [self.obj_type, str(self.id)])
 
-    #def is_accessible(self, user):
-    #    """ closest parent defines access permissions """
-    #    parent = getattr(self, meta_parents[self.obj_type][0])
-    #    if parent:
-    #        return parent.is_accessible(user)
-    #    if self.file_origin:
-    #        return self.file_origin.is_accessible(user)
-    #    return self.owner == user
-
-    #def is_editable(self, user):
-    #    """ closest parent defines edit permissions """
-    #    parent = getattr(self, meta_parents[self.obj_type][0])
-    #    if parent:
-    #        return parent.is_editable(user)
-    #    if self.file_origin:
-    #        return self.file_origin.is_editable(user)
-    #    return self.owner == user
-
-
     def is_sliceable(self): return False
 
     class Meta:
@@ -295,7 +276,7 @@ class SpikeTrain(BaseInfo):
             **kwargs):
         return self.times, self.t_start
 
-    @apply
+    @apply # this property has been deprecated, making the solution more uniform
     def times():
         def fget(self):
             return _data_as_list(self.times_data)

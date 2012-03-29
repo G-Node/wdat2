@@ -141,7 +141,7 @@ class Serializer(PythonSerializer):
                 field = obj[0]._meta.get_field(field_name)
 
                 # Handle M2M relations
-                if field.rel and isinstance(field.rel, models.ManyToManyRel):
+                if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
                     m2m_data = []
 
                     for m2m in field_value: # we support both ID and permalinks
@@ -163,9 +163,9 @@ class Serializer(PythonSerializer):
                             related = field.rel.to.objects.get(id=field_value)
                         if not related.is_editable(user): # permission check
                             raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
-                        update_kwargs[field.attname] = related.id # establish rel
+                        update_kwargs[field.name] = related.id # establish rel
                     else:
-                        update_kwargs[field.attname] = None # remove relation
+                        update_kwargs[field.name] = None # remove relation
 
                 # Handle data/units fields
                 elif self.is_data_field_json(field_name, field_value):
@@ -180,6 +180,7 @@ class Serializer(PythonSerializer):
         if len(obj) > 1: # bulk update, obj is QuerySet
             obj_ids = [int(x[0]) for x in obj.values_list('pk')] # ids of selected objects
             # evaluated because SQL does not support update for sliced querysets
+            # TODO: do not bulk-update DATA fields (times, signal, waveform)
             obj.model.objects.filter(pk__in=obj_ids).update(**update_kwargs)
 
             if m2m_dict:  # work out m2m, so far I see no other way as raw SQL
@@ -222,7 +223,7 @@ class Serializer(PythonSerializer):
             if m2m_dict:
                 for k, v in m2m_dict.items():
                     if m2m_append: # append to existing m2m
-                        v = [x.id for x in getattr(obj, k).objects.all()] + \
+                        v = [x.id for x in getattr(obj, k).all()] + \
                             [x.id for x in m2m_data]
                     setattr(obj, k, v) # update m2m
 
@@ -288,7 +289,7 @@ class Serializer(PythonSerializer):
         """ abstract method for special fields """
         raise NotImplementedError
 
-    def deserialize_special(self, obj, field_name, field_value):
+    def deserialize_special(self, update_kwargs, field_name, field_value, user):
         """ abstract method for special fields """
         raise NotImplementedError
 

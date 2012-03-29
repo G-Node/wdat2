@@ -42,7 +42,8 @@ class ValueSerializer(Serializer):
     """ do not show all relations with NEO data objects. Deserialize reverse m2m
     with all NEO objects """
     do_not_show_if_empty = meta_objects
-    special_for_deserialization = tuple(x + "_set" for x in meta_objects)
+    #special_for_deserialization = tuple(x + "_set" for x in meta_objects)
+    # TODO think about reverse m2m deserializition in general
 
     def deserialize_special(self, obj, field_name, field_value, user):
         assert type(field_value) == type([])

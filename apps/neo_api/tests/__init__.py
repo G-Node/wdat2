@@ -73,8 +73,9 @@ class TestGeneric(TestCase):
         expected: 201 created
         """
         for obj_type, obj in sample_objects.items():
+            print "Processing: %s" % obj_type
             for i in range(5): # create a few objects
-                response = self.client.put("/neo/%s/" % obj_type, \
+                response = self.client.post("/neo/%s/" % obj_type, \
                     json.dumps(obj), content_type="application/json")
                 self.assertEqual(response.status_code, 201, \
                     "Obj type %s; response: %s" % (obj_type, response.content))
@@ -135,7 +136,7 @@ class TestGeneric(TestCase):
         pass
 
 
-class TestFilters(self):
+class TestFilters:
     pass
 
 

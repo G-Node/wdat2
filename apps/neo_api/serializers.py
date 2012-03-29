@@ -11,7 +11,7 @@ class NEOSerializer(Serializer):
     deserialization (deserialize_special) which will be used by REST manager for
     processing GET/POST/PUT requests. """
     special_for_serialization = ('times_data', 'signal_data', 't_start', 'waveform_data')
-    special_for_deserialization = ('times', 'signal', 'waveform')
+    #special_for_deserialization = ('times', 'signal', 'waveform')
 
     def serialize_special(self, obj, field):
         """ fields containing comma-separated float values require special 

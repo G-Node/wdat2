@@ -4,6 +4,7 @@ from django.views.decorators.http import condition
 from django.utils import simplejson as json
 from django.db import models
 from django.db.models.fields import FieldDoesNotExist
+from django.db.models.fields.related import ForeignKey
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_unicode
 
@@ -58,7 +59,7 @@ class BaseHandler(object):
         if request.method in self.actions.keys():
 
             if obj_id: # single object case
-                objects = self.model.objects.filter(id=obj_id)
+                objects = self.model.objects.select_related(*self._fkeys_list()).filter(id=obj_id)
                 if not objects: # object not exists?
                     return NotFound(message_type="does_not_exist", request=request)
                 if request.method == 'GET' and not objects[0].is_accessible(request.user):
@@ -72,8 +73,8 @@ class BaseHandler(object):
             else: # a category case
                 update = self.options.has_key('bulk_update')
                 if request.method == 'GET' or (request.method == 'POST' and update):
-                    # get or bulk update
-                    objects = self.model.objects.all()
+                    # get or bulk update, important - select related
+                    objects = self.model.objects.select_related(*self._fkeys_list())
                     try:
                         objects = self.do_filter(request.user, objects, update)
                     except (ObjectDoesNotExist, FieldError, ValidationError), e:
@@ -90,6 +91,12 @@ class BaseHandler(object):
             return self.actions[request.method](request, objects)
         else:
             return NotSupported(message_type="invalid_method", request=request)
+
+    def _fkeys_list(self):
+        """ list of foreign key fields of the associated model is required for
+        select_related() function of the queryset, because it does not work with
+        FK fields with null=True. """
+        return [f.name for f in self.model._meta.fields if isinstance(f, ForeignKey)]
 
 
     def clean_get_params(self, request):
@@ -179,11 +186,11 @@ class BaseHandler(object):
         # create list of indexes first, then evaluate the queryset
 
         offset = self.offset
-        if self.options.has_key('offset') and objects:
+        if self.options.has_key('offset'):
             offset = self.options["offset"]
 
         max_results = self.max_results
-        if self.options.has_key('max_results') and objects:
+        if self.options.has_key('max_results'):
             max_results = self.options["max_results"]
 
         # evaluate queryset here
