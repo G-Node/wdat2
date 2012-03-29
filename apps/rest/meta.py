@@ -21,7 +21,7 @@ meta_messages = {
     "data_missing": "Some of the required parameters are missing: 'data', 'units' or 'channel_index'.",
     "units_missing": "You need to specify units (for example, 'ms' or 'mV') for following parameters.",
     "not_iterable": "Parameter must be of type 'list'",
-    "bad_float_data": "The data given is not a list of comma-separated float / integer values. Please check your input.",
+    "bad_float_data": "The data given does not satisfy the attributes of the model. Please check your input.",
     "object_created": "Object created successfully.",
     "object_updated": "Object updated successfully. Data changes saved.",
     "object_selected": "Here is the list of requested objects.",

@@ -182,7 +182,7 @@ class BaseHandler(object):
 
         print "permissions done: " + str(datetime.datetime.now()) # FIXME
 
-        # offset - limit - groups_of - spacing filters
+        # offset - max_results - groups_of - spacing filters
         # create list of indexes first, then evaluate the queryset
 
         offset = self.offset
@@ -194,7 +194,7 @@ class BaseHandler(object):
             max_results = self.options["max_results"]
 
         # evaluate queryset here
-        objects = objects.all()[offset:max_results]
+        objects = objects.all()[ offset: offset + max_results ]
 
         # temporary switched off
         """

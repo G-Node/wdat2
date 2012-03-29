@@ -11,7 +11,6 @@ class NEOSerializer(Serializer):
     deserialization (deserialize_special) which will be used by REST manager for
     processing GET/POST/PUT requests. """
     special_for_serialization = ('times_data', 'signal_data', 't_start', 'waveform_data')
-    #special_for_deserialization = ('times', 'signal', 'waveform')
 
     def serialize_special(self, obj, field):
         """ fields containing comma-separated float values require special 
@@ -38,7 +37,9 @@ class NEOSerializer(Serializer):
 
 
 class NEOCategorySerializer(NEOSerializer):
-    """ do not show reverse relations when list is requested """
+    """ do not show reverse relations when list is requested. do not perform
+    bulk update for data-array fields (makes no sense anyway) """
     show_kids = False
+    excluded_bulk_update = ('times', 'signal', 'waveform')
 
 

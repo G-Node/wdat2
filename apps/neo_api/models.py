@@ -276,7 +276,7 @@ class SpikeTrain(BaseInfo):
             **kwargs):
         return self.times, self.t_start
 
-    @apply # this property has been deprecated, making the solution more uniform
+    @apply
     def times():
         def fget(self):
             return _data_as_list(self.times_data)

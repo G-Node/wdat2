@@ -12,12 +12,11 @@ class Serializer(PythonSerializer):
     Serialises/Deserial. G-Node models into JSON objects for HTTP REST responses
     """
 
-    """ configure whether to show reversed relations (kids) in the response 
-    kids - e.g. a Block is a kid of a Section, a Segment is a kid of a Block 
-    etc."""
-    show_kids = True # on/off - show permalinks of kids by default, cascade=False
+    """ configure whether to show FK-relations in the response """
+    show_kids = True # on/off - show permalinks of kids by default when cascade=False
     excluded_permalink = () # kid's permalinks are not shown even if show_kids=True
     excluded_cascade = () # do not process these kids when cascade=False
+    excluded_bulk_update = () # raise error when bulk update on these fields
     do_not_show_if_empty = () # empty (no permalink) kids are not shown
     special_for_serialization = () # list of field names
     special_for_deserialization = () # list of field names
@@ -138,49 +137,51 @@ class Serializer(PythonSerializer):
             if field_name in self.special_for_deserialization:
                 self.deserialize_special(update_kwargs, field_name, field_value, user)
             else:
-                field = obj[0]._meta.get_field(field_name)
-
-                # Handle M2M relations
-                if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
-                    m2m_data = []
-
-                    for m2m in field_value: # we support both ID and permalinks
-                        if self.is_permalink(m2m):
-                            m2m_obj = self.get_by_permalink(field.rel.to, m2m)
-                        else:
-                            m2m_obj = field.rel.to.objects.get(id=m2m)
-                        if not m2m_obj.is_editable(user):
-                            raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
-                        m2m_data.append(m2m_obj)
-                        m2m_dict[field.attname] = [int(x.id) for x in m2m_data]
-
-                # Handle FK fields (taken from django.core.Deserializer)
-                elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
-                    if field_value is not None:
-                        if self.is_permalink(field_value):
-                            related = self.get_by_permalink(field.rel.to, field_value)
-                        else:
-                            related = field.rel.to.objects.get(id=field_value)
-                        if not related.is_editable(user): # permission check
-                            raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
-                        update_kwargs[field.name] = related.id # establish rel
-                    else:
-                        update_kwargs[field.name] = None # remove relation
-
                 # Handle data/units fields
-                elif self.is_data_field_json(field_name, field_value):
+                if self.is_data_field_json(field_name, field_value):
                     update_kwargs[field_name] = field_value["data"]
                     update_kwargs[field_name + "__unit"] = field_value["units"]
+                else:
+                    field = obj[0]._meta.get_field(field_name)
 
-                # handle standard fields
-                elif field.editable and not field.attname == 'id': 
-                    #TODO raise error when trying to change id or date_created etc?
-                    update_kwargs[field_name] = field.to_python(field_value)
+                    # Handle M2M relations
+                    if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
+                        m2m_data = []
+
+                        for m2m in field_value: # we support both ID and permalinks
+                            if self.is_permalink(m2m):
+                                m2m_obj = self.get_by_permalink(field.rel.to, m2m)
+                            else:
+                                m2m_obj = field.rel.to.objects.get(id=m2m)
+                            if not m2m_obj.is_editable(user):
+                                raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
+                            m2m_data.append(m2m_obj)
+                            m2m_dict[field.attname] = [int(x.id) for x in m2m_data]
+
+                    # Handle FK fields (taken from django.core.Deserializer)
+                    elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
+                        if field_value is not None:
+                            if self.is_permalink(field_value):
+                                related = self.get_by_permalink(field.rel.to, field_value)
+                            else:
+                                related = field.rel.to.objects.get(id=field_value)
+                            if not related.is_editable(user): # permission check
+                                raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
+                            update_kwargs[field.name] = related # establish rel
+                        else:
+                            update_kwargs[field.name] = None # remove relation
+
+                    # handle standard fields
+                    elif field.editable and not field.attname == 'id': 
+                        #TODO raise error when trying to change id or date_created etc?
+                        update_kwargs[field_name] = field.to_python(field_value)
 
         if len(obj) > 1: # bulk update, obj is QuerySet
             obj_ids = [int(x[0]) for x in obj.values_list('pk')] # ids of selected objects
+            # do not bulk-update fields like arrays etc.
+            if [k for k in update_kwargs.keys() if k in self.excluded_bulk_update]:
+                raise ValueError("Bulk update for any of the fields %s is not allowed. And maybe doesn't make too much sense.")
             # evaluated because SQL does not support update for sliced querysets
-            # TODO: do not bulk-update DATA fields (times, signal, waveform)
             obj.model.objects.filter(pk__in=obj_ids).update(**update_kwargs)
 
             if m2m_dict:  # work out m2m, so far I see no other way as raw SQL
