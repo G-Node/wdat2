@@ -67,8 +67,7 @@ class Serializer(PythonSerializer):
                     if field.rel is None:
                         if self.selected_fields is None or field.attname in\
                             self.selected_fields:
-                            if field.attname in self.special_for_serialization \
-                                and self.serialize_attrs:
+                            if field.attname in self.special_for_serialization:
                                 self.serialize_special(obj, field)
                             elif self.is_data_field_django(obj, field):
                                 if self.serialize_data:

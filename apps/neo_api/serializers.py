@@ -15,6 +15,7 @@ class NEOSerializer(Serializer):
     def serialize_special(self, obj, field):
         """ fields containing comma-separated float values require special 
         serialization, similar to data-fields """
+
         if self.serialize_data:
             if field.attname == 't_start': # all have this attribute, skip other fields
 

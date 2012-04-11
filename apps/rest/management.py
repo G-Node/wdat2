@@ -137,8 +137,6 @@ class BaseHandler(object):
     def do_filter(self, user, objects, update=False):
         """ filter objects as per request params """
 
-        print "Filtering started: " + str(datetime.datetime.now()) # FIXME
-
         for key, value in self.options.items():
             matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
             if matched and objects:
@@ -147,8 +145,6 @@ class BaseHandler(object):
 
         if self.attr_filters: # include attr filters
             objects = objects.filter(**self.attr_filters)
-
-        print "option filters done: " + str(datetime.datetime.now()) # FIXME
 
         # permissions filter:
         # 1. all public objects 
@@ -179,8 +175,6 @@ class BaseHandler(object):
             perm_filtered = objects.filter(id__in=dir_acc) # not to damage QuerySet
 
         objects = perm_filtered | objects.filter(owner=user)
-
-        print "permissions done: " + str(datetime.datetime.now()) # FIXME
 
         # offset - max_results - groups_of - spacing filters
         # create list of indexes first, then evaluate the queryset
@@ -216,8 +210,6 @@ class BaseHandler(object):
                     objs = objs | objects.all()[ind:]
             objects = objs
         """
-
-        print "numbering filters finished: " + str(datetime.datetime.now()) # FIXME
 
         return objects
 
@@ -309,7 +301,7 @@ class BaseHandler(object):
 
 
 class ACLHandler(BaseHandler):
-    """ Handles requests for a single object """
+    """ Handles ACL for a single object """
 
     @auth_required
     def __call__(self, request, id, *args, **kwargs):
@@ -395,6 +387,31 @@ class ACLHandler(BaseHandler):
         return Success(resp_data, "object_selected", request)
 
 
+class DataHandler(BaseHandler):
+    """ Handles binary Data responses for a single data-object, like 
+    AnalogSignal, Spiketrain """
+    def __init__(self, serializer, model):
+        super(DataHandler, self).__init__(serializer, model)
+        self.actions = { 'GET': self.get }
+
+
+    def get(self, request, objects, code=200):
+        """ returns object(s) data as binary file """
+        message_type = "no_objects_found"
+        resp_data = {
+            "objects_selected": len(objects),
+            "selected_range": None,
+            "selected": None
+        }
+        if objects:
+            resp_data["selected"] = self.serializer.serialize(objects, options=self.options)
+            resp_data["selected_range"] = [self.offset, self.offset + len(objects) - 1]
+            message_type = "object_selected"
+        if code == 201:
+            return Created(resp_data, message_type="object_created", request=request)
+        return Success(resp_data, message_type, request)
+
+
 
 def get_obj_etag(request, obj_id=None, handler=None, *args, **kwargs):
     """ computes etag for object: for the moment it is just the hash of 
@@ -453,10 +470,10 @@ def visibility_filter(objects, value, user):
 def owner_filter(objects, value, user):
     """ objects belonging to a specific user, by ID """
     try: # resolving users
-        user = int(user)
+        user = int(value)
         u = User.objects.get(id=user)
     except ValueError: # username is given
-        u = User.objects.get(username=user)
+        u = User.objects.get(username=value)
     return objects.filter(owner=u)
 
 

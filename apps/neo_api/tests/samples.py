@@ -40,19 +40,19 @@ epoch = {
         "units": "ms"
     },
     "label": "Displaying blue screen",
-    "segment": "1",
-    "epocharray": "1"}
+    "segment": 1,
+    "epocharray": 1}
 
 # 7
 recordingchannelgroup = {
     "name": "Tethrode #5",
-    "block": "1"}
+    "block": 1}
 
 # 8
 recordingchannel = {
     "name": "Electrode #1",
     "index": 1,
-    "recordingchannelgroup": "1"}
+    "recordingchannelgroup": 1}
 
 # 9
 unit = {
@@ -80,8 +80,8 @@ analogsignal = {
         "units": "mV", 
         "data": [12.2, 12.7, 19.0, 7.81, 3.42, 9.28, -5.86]
     },
-    "segment": "1",
-    "recordingchannel": "1"}
+    "segment": 1,
+    "recordingchannel": 1}
 
 # 12
 irsaanalogsignal = {
@@ -98,8 +98,8 @@ irsaanalogsignal = {
         "units": "ms", 
         "data": [155.0, 158.0, 160.0, 161.0, 162.0, 165.0, 168.0]
     },
-    "segment": "1",
-    "recordingchannel": "1"}
+    "segment": 1,
+    "recordingchannel": 1}
 
 # 13
 spike = {
@@ -115,8 +115,8 @@ spike = {
         "data": 15.0,
         "units": "ms"
     },
-    "segment": "1",
-    "unit": "1"}
+    "segment": 1,
+    "unit": 1}
 
 # 14
 spiketrain = {
@@ -132,8 +132,8 @@ spiketrain = {
         "units": "ms", 
         "data": [-4.88, 3.42, 2.44]
     },
-    "segment": "1",
-    "unit": "1"
+    "segment": 1,
+    "unit": 1
 }
 
 # 15
@@ -147,8 +147,8 @@ waveform = {
         "units": "mV", 
         "data": [5.86, -1.46, -0.488, -7.32, -9.77, -12.7, -12.7]
     },
-    "spiketrain": "1",
-    "spike": "1",
+    "spiketrain": 1,
+    "spike": 1,
 }
 
 sample_objects = {
