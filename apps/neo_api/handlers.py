@@ -59,6 +59,45 @@ class NEOHandler(BaseHandler):
         return objects.filter(file_origin=ss)
 
 
+class MetadataHandler(BaseHandler):
+    """ responses containing full object's metadata as a list of property:value
+    pairs; a sort of a shortcut to avoid requesting metadata for an object in 
+    several requests.
+
+    NEO objects only """
+
+    def __init__(self, *args, **kwargs):
+        super(MetadataHandler, self).__init__(*args, **kwargs)
+        self.actions = { 'GET': self.get }
+
+    def get(self, request, objects, code=200):
+        """ returns object(s) data as binary file """
+        assert hasattr(self.model, 'metadata'), "Object cannot have metadata"
+        assert self.model.metadata.field.rel.to.__name__.lower() == 'value', "Object cannot have metadata"
+        assert len(objects) < 2, "Requested metadata for more than one object"
+
+        message_type = "no_metadata_found"
+        resp_data = {}
+
+        if objects:
+            values = objects[0].metadata.select_related() # resolves properties in one SQL
+            if values:
+                pairs = []
+                for v in values:
+                    pairs.append([self.serializer.serialize([v.parent_property], \
+                        options=self.options)[0], self.serializer.serialize([v], \
+                            options=self.options)[0]])
+                resp_data["metadata"] = pairs
+                message_type = "metadata_found"
+
+        return Success(resp_data, message_type, request)
+
+
+
+
+# DEPRECATED -------------------------------------------------------------------
+
+
 
 class DataHandler(BaseHandler):
     """ Handles binary Data responses for a single data-object, like 
@@ -134,10 +173,7 @@ class DataHandler(BaseHandler):
             waveform, t_start = obj.get_slice(**self.kwargs)
             attrs = {"waveform": waveform, "t_start": t_start}
 
-
         data = objects.values_list('id', flat=True)
-
-
 
         if data: 
 
@@ -148,42 +184,5 @@ class DataHandler(BaseHandler):
             return response
 
             return Success(resp_data, message_type, request)
-
-
-
-
-class MetadataHandler(BaseHandler):
-    """ responses containing full object's metadata as a list of property:value
-    pairs; a sort of a shortcut to avoid requesting metadata for an object in 
-    several requests.
-
-    NEO objects only """
-
-    def __init__(self, *args, **kwargs):
-        super(MetadataHandler, self).__init__(*args, **kwargs)
-        self.actions = { 'GET': self.get }
-
-    def get(self, request, objects, code=200):
-        """ returns object(s) data as binary file """
-        assert hasattr(self.model, 'metadata'), "Object cannot have metadata"
-        assert self.model.metadata.field.rel.to.__name__.lower() == 'value', "Object cannot have metadata"
-        assert len(objects) < 2, "Requested metadata for more than one object"
-
-        message_type = "no_metadata_found"
-        resp_data = {}
-
-        if objects:
-            values = objects[0].metadata.select_related() # resolves properties in one SQL
-            if values:
-                pairs = []
-                for v in values:
-                    pairs.append([self.serializer.serialize([v.parent_property], \
-                        options=self.options)[0], self.serializer.serialize([v], \
-                            options=self.options)[0]])
-                resp_data["metadata"] = pairs
-                message_type = "metadata_found"
-
-        return Success(resp_data, message_type, request)
-
 
 

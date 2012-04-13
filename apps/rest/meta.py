@@ -42,6 +42,7 @@ meta_messages = {
     "non_convertible": "The file cannot be converted.",
     "task_started": "The task has been started.",
     "x_progress_missing": "You must provide X-Progress-ID header or query param.",
+    "wrong_index": "Some of the indexes provided are could not be evaluated.",
 }
 
 meta_objects = ("block", "segment", "event", "eventarray", "epoch", "epocharray", \

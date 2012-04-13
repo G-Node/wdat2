@@ -62,12 +62,11 @@ class BaseHandler(object):
                 objects = self.model.objects.select_related(*self._fkeys_list()).filter(id=obj_id)
                 if not objects: # object not exists?
                     return NotFound(message_type="does_not_exist", request=request)
-                if request.method == 'GET' and not objects[0].is_accessible(request.user):
-                    # get single object
-                    return Forbidden(message_type="not_authorized", request=request)
+                if request.method == 'GET': # get single object
+                    if not objects[0].is_accessible(request.user):
+                        return Forbidden(message_type="not_authorized", request=request)
 
-                elif not objects[0].is_editable(request.user):
-                    # update or delete single
+                elif not objects[0].is_editable(request.user): # modify single
                     return Forbidden(message_type="not_authorized", request=request)
 
             else: # a category case
@@ -222,12 +221,21 @@ class BaseHandler(object):
             "selected_range": None,
             "selected": None
         }
+
         if objects:
-            resp_data["selected"] = self.serializer.serialize(objects, options=self.options)
+            try:
+                srlzd = self.serializer.serialize(objects, options=self.options)
+            except IndexError, e: # wrong index requested while signal slicing
+                return BadRequest(json_obj={"details": e.message}, \
+                    message_type="wrong_index", request=request)
+
+            resp_data["selected"] = srlzd
             resp_data["selected_range"] = [self.offset, self.offset + len(objects) - 1]
             message_type = "object_selected"
+
         if code == 201:
             return Created(resp_data, message_type="object_created", request=request)
+
         return Success(resp_data, message_type, request)
 
 

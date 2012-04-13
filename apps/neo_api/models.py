@@ -372,12 +372,14 @@ class AnalogSignal(BaseInfo):
                 s_index = e_index - samples_count
         if s_index >= 0 and s_index < e_index and e_index < len(dataslice):
             dataslice = dataslice[s_index:e_index+1]
-            t_start = (s_index * 1.0 / self.sampling_rate * 1.0 / factor) # compute new t_start
+            t_start += (s_index * 1.0 / self.sampling_rate * 1.0 / factor) # compute new t_start
         else:
-            raise IndexError("Index is out of range. From the values provided \
-we can't get the slice of the signal. We calculated the start index as %d and \
-end index as %d. The whole signal has %d datapoints." % (s_index, e_index, \
-len(dataslice)))
+            raise IndexError( "Index is out of range for an. signal %s. From the\
+values provided we can't get the slice of the signal. We calculated the start \
+index as %d and end index as %d. Please check those. The whole signal has %d \
+datapoints, sampling rate is %s %s, t_start is %s %s" % (self.id, s_index, \
+e_index, len(dataslice), self.sampling_rate, self.sampling_rate__unit.lower(), \
+self.t_start, self.t_start__unit.lower() ) )
         if downsample and downsample < len(dataslice):
             dataslice = signal.resample(np.array(dataslice), downsample).tolist()
         return dataslice, t_start
