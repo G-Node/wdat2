@@ -86,7 +86,7 @@ class SafetyLevel(models.Model):
                 p.access_level = level
                 p.save()
             else: # create new access
-                p = SingleAccess(object_id=self.id, object_type=self.acl_type, \
+                p = SingleAccess(object_id=self.id, object_type=self.acl_type(), \
                     access_for=u, access_level=level)
                 p.save()
         for u in users_to_remove: # delete legacy accesses
@@ -96,7 +96,7 @@ class SafetyLevel(models.Model):
     def shared_with(self):
         """ returns a QuerySet of all specific accesses. Method relies on 
         'parent' object's ID and type (this is an abstract class anyway) """
-        return SingleAccess.objects.filter(object_id=self.id, object_type=self.acl_type)
+        return SingleAccess.objects.filter(object_id=self.id, object_type=self.acl_type())
 
     def access_list(self):
         """ returns list of users having personal access to the object """
@@ -118,13 +118,18 @@ class SafetyLevel(models.Model):
         return self.safety_level == 3
 
     def get_access_for_user(self, user):
-        return self.shared_with.filter(access_for=user)
+        """ returns appropriate SingleAccess object, if a given user has access 
+        to this object """
+        sa = self.shared_with.filter(access_for=user)
+        if sa: # FIXME there should be always one access, right?
+            return sa[0]
+        return None
 
-    @property
+    @classmethod
     def acl_type(self):
         """ object type for direct permissions. normally the lowercase name of 
         the class """
-        return type(self).__name__.lower()
+        return self.__name__.lower()
 
     def is_accessible(self, user):
         """
@@ -141,6 +146,10 @@ class SafetyLevel(models.Model):
         return False
 
     def is_editable(self, user):
+        """ User may edit if:
+        - user is an owner, or
+        - user has a direct access with level 2 (edit)
+        """
         if (self.owner == user) or (user in self.access_list() and \
             self.get_access_for_user(user).access_level == 2):
             return True

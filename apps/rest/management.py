@@ -155,8 +155,8 @@ class BaseHandler(object):
         q2 = objects.filter(safety_level=2, owner__in=friends)
 
         # 3. All private direct shares
-        dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
-            object_type=self.model.acl_type)]
+        dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
+            object_type=self.model.acl_type())]
         q3 = objects.filter(id__in=dir_acc)
 
         perm_filtered = q1 | q2 | q3
@@ -164,7 +164,7 @@ class BaseHandler(object):
         if update:
             # 1. All private direct shares with 'edit' level
             dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
-                object_type=self.model.acl_type, access_level=2)]
+                object_type=self.model.acl_type(), access_level=2)]
             available = objects.filter(id__in=dir_acc)
 
             if self.options.has_key('mode') and not self.options['mode'] == 'ignore':
