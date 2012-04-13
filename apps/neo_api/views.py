@@ -1,14 +1,16 @@
 from rest.management import BaseHandler, ACLHandler, process_REST
 from rest.common import BadRequest, Unauthorized, NotFound
+from rest.serializers import Serializer
 
 from neo_api.models import *
 from neo_api.serializers import NEOSerializer, NEOCategorySerializer
-from neo_api.handlers import NEOHandler
+from neo_api.handlers import NEOHandler, MetadataHandler
 
-NEOCategoryHandlers, NEOObjectHandlers, NEOACLHandlers = {}, {}, {}
+NEOCategoryHandlers, NEOObjectHandlers, NEOACLHandlers, MetadataHandlers = {}, {}, {}, {}
 for key, classname in meta_classnames.items():
     NEOCategoryHandlers[key] = NEOHandler(NEOCategorySerializer, classname)
     NEOObjectHandlers[key] = NEOHandler(NEOSerializer, classname)
+    MetadataHandlers[key] = MetadataHandler(Serializer, classname) # using ordinary serializer
     NEOACLHandlers[key] = ACLHandler(NEOSerializer, classname)
 
 
@@ -47,7 +49,10 @@ def parse_neo_object(request, obj_type, id, *args, **kwargs):
     return process_REST(request, id, handler=NEOObjectHandlers[obj_type], *args, **kwargs)
 
 @check_obj_type
+def get_metadata(request, obj_type, id, *args, **kwargs):
+    return process_REST(request, id, handler=MetadataHandlers[obj_type], *args, **kwargs)
+
+@check_obj_type
 def parse_object_acl(request, obj_type, id, *args, **kwargs):
     return process_REST(request, id, handler=NEOACLHandlers[obj_type], *args, **kwargs)
-
 

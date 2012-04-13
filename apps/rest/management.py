@@ -387,31 +387,7 @@ class ACLHandler(BaseHandler):
         return Success(resp_data, "object_selected", request)
 
 
-class DataHandler(BaseHandler):
-    """ Handles binary Data responses for a single data-object, like 
-    AnalogSignal, Spiketrain """
-    def __init__(self, serializer, model):
-        super(DataHandler, self).__init__(serializer, model)
-        self.actions = { 'GET': self.get }
-
-
-    def get(self, request, objects, code=200):
-        """ returns object(s) data as binary file """
-        message_type = "no_objects_found"
-        resp_data = {
-            "objects_selected": len(objects),
-            "selected_range": None,
-            "selected": None
-        }
-        if objects:
-            resp_data["selected"] = self.serializer.serialize(objects, options=self.options)
-            resp_data["selected_range"] = [self.offset, self.offset + len(objects) - 1]
-            message_type = "object_selected"
-        if code == 201:
-            return Created(resp_data, message_type="object_created", request=request)
-        return Success(resp_data, message_type, request)
-
-
+# REST wrapper -----------------------------------------------------------------
 
 def get_obj_etag(request, obj_id=None, handler=None, *args, **kwargs):
     """ computes etag for object: for the moment it is just the hash of 

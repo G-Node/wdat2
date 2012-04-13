@@ -28,6 +28,9 @@ class NEOSerializer(Serializer):
                 elif obj.obj_type == "spiketrain":
                     times, t_start = obj.get_slice(**self.options)
                     attrs = {"times": times, "t_start": t_start}
+                elif obj.obj_type == "waveform":
+                    waveform, t_start = obj.get_slice(**self.options)
+                    attrs = {"waveform": waveform, "t_start": t_start}
                 for key, attr in attrs.items():
                     units = smart_unicode(getattr(obj, key + "__unit"), \
                         self.encoding, strings_only=True)

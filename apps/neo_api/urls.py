@@ -10,6 +10,10 @@ urlpatterns = patterns('',
     url(r'^(?P<obj_type>[\w]+)/(?P<id>[\d]+)/?$', \
         'neo_api.views.parse_neo_object', name="neo_object_details"),
 
+    # responds with full object metadata, only GET supported
+    url(r'^(?P<obj_type>[\w]+)/(?P<id>[\d]+)/metadata/?$', \
+        'neo_api.views.get_metadata', name="neo_object_metadata"),
+
     # access lists, manage permissions
     url(r'^(?P<obj_type>[\w]+)/(?P<id>[\d]+)/acl/?$', \
         'neo_api.views.parse_object_acl', name="neo_object_acl"),

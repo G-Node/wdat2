@@ -274,6 +274,7 @@ class SpikeTrain(BaseInfo):
     def get_slice(self, start_time=None, end_time=None, start_index=None,\
             end_index=None, duration=None, samples_count=None, downsample=None,\
             **kwargs):
+        # FIXME Not yet implemented
         return self.times, self.t_start
 
     @apply
@@ -559,6 +560,12 @@ class WaveForm(BaseInfo):
         def fdel(self):
             pass
         return property(**locals())
+
+    def get_slice(self, start_time=None, end_time=None, start_index=None,\
+            end_index=None, duration=None, samples_count=None, downsample=None,\
+            **kwargs):
+        # FIXME Not yet implemented
+        return self.waveform, self.t_start
 
     @property
     def size(self):
