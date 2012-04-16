@@ -170,7 +170,7 @@ class SingleAccess(models.Model):
         (2, _('Edit')),
     )
     object_id = models.IntegerField(_('object ID')) # ID of the File/Section
-    object_type = models.CharField(_('object type'), max_length=20)
+    object_type = models.CharField(_('object type'), max_length=30)
     # the pair above identifies a unique object for ACL record
     access_for = models.ForeignKey(User) # with whom it is shared
     access_level = models.IntegerField(_('access level'), choices=ACCESS_LEVELS, default=1)
