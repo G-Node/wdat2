@@ -76,10 +76,9 @@ class Serializer(PythonSerializer):
                                 pass # ignore unit fields as they are processed above
                             elif self.serialize_attrs: # FIXME resolve choices
                                 self.handle_field(obj, field)
-                    elif self.serialize_rel:
-                        if self.selected_fields is None or field.attname[:-3]\
-                            in self.selected_fields:
-                            self.handle_fk_field(obj, field)
+                    elif self.selected_fields is None or field.attname[:-3]\
+                        in self.selected_fields:
+                        self.handle_fk_field(obj, field)
 
             if self.serialize_rel: # m2m fields
                 for field in obj._meta.many_to_many:
