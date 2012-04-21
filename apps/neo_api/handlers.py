@@ -12,7 +12,6 @@ class NEOHandler(BaseHandler):
         self.list_filters['section'] = self.section_filter
         self.list_filters['property'] = self.property_filter
         self.list_filters['value'] = self.value_filter
-        self.list_filters['datafile'] = self.datafile_filter
 
 
     def section_filter(self, objects, ss, user=None):
@@ -52,11 +51,6 @@ class NEOHandler(BaseHandler):
             where v.data LIKE "%%' + ss + '%%"'
         filtered = [f.id for f in self.model.objects.raw(query)]
         return objects.filter(id__in=filtered)
-
-
-    def datafile_filter(self, objects, ss, user=None):
-        """ filters NEO objects belonging to a particular datafile """
-        return objects.filter(file_origin=ss)
 
 
 class MetadataHandler(BaseHandler):
