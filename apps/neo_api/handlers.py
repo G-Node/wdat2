@@ -53,6 +53,54 @@ class NEOHandler(BaseHandler):
         return objects.filter(id__in=filtered)
 
 
+    def run_post_processing(self, *args, **kwargs):
+        """ process m2m metadata tagging for all related objects down the 
+        hierarchy """
+        objects = kwargs.pop("objects")
+        request = kwargs.pop("request")
+        rdata = kwargs.pop("rdata")
+        tags = {'metadata': rdata['metadata']}
+
+        if rdata.kas_key('metadata') and objects: # 2 alternatives, profile!!
+
+            # bulk-update option
+
+            exobj = objects[0]
+            # loop over FK relations, e.g. over segments connected to a block
+            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), \
+                dir(exobj)):
+
+                kid_model = getattr(exobj, rel_name).model
+                rels = kid_model.objects.filter(id__in=[x.id for x in objects])
+                # permissions
+                filtered = self.do_filter(request.user, rels, update=True)
+
+                self.serializer.deserialize(tags, filtered, user=request.user,\
+                    encoding=encoding, m2m_append=self.m2m_append)
+
+                self.run_post_processing(objects=filtered, request=request,\
+                    rdata=tags)
+
+            """
+            for obj in objects: # loop-update option
+
+                # loop over downstream FK relations, e.g. over segments connected to a block
+                for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4),\
+                    dir(obj)):
+
+                    rels = getattr(obj, rel_name).filter(current_state=10)
+                    # permissions
+                    filtered = self.do_filter(request.user, rels, update=True)
+
+                    tags = {'metadata': rdata['metadata']}
+                    self.serializer.deserialize(tags, filtered, user=request.user,\
+                        encoding=encoding, m2m_append=self.m2m_append)
+
+                    self.run_post_processing(objects=filtered, request=request,\
+                        rdata=tags)
+            """
+
+
 class MetadataHandler(BaseHandler):
     """ responses containing full object's metadata as a list of property:value
     pairs; a sort of a shortcut to avoid requesting metadata for an object in 

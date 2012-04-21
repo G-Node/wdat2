@@ -284,7 +284,7 @@ class BaseHandler(object):
             return NotFound(json_obj={"details": e.message}, \
                 message_type="wrong_reference", request=request)
 
-        self.run_post_processing(objects) # for some special cases
+        self.run_post_processing(objects=objects, request=request, rdata=rdata)
 
         request.method = "GET"
         ids = [x.id for x in objects] 
@@ -304,8 +304,9 @@ class BaseHandler(object):
     def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
 
-    def run_post_processing(self, obj):
-        pass
+    def run_post_processing(self, *args, **kwargs):
+        """ use this method for any update post-processing """
+        pass        
 
 
 class ACLHandler(BaseHandler):
