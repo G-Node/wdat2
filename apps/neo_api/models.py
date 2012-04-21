@@ -72,7 +72,7 @@ class BaseInfo(SafetyLevel, ObjectState):
         (20, 'Deleted'),
         (30, 'Archived'),
     )
-    file_origin = models.ForeignKey(Datafile, blank=True, null=True)
+    file_origin = models.ForeignKey(Datafile, blank=True, null=True, editable=False)
     metadata = models.ManyToManyField(Value, blank=True, null=True)
 
     @models.permalink
