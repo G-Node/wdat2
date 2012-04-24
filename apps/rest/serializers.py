@@ -154,7 +154,7 @@ class Serializer(PythonSerializer):
                             if not m2m_obj.is_editable(user):
                                 raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
                             m2m_data.append(m2m_obj)
-                            m2m_dict[field.attname] = [int(x.id) for x in m2m_data]
+                            m2m_dict[field.name] = [int(x.id) for x in m2m_data]
 
                     # Handle FK fields (taken from django.core.Deserializer)
                     elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
@@ -198,17 +198,17 @@ class Serializer(PythonSerializer):
                         cursor.execute("SELECT %s_id, %s_id FROM %s_%s WHERE %s_id IN %s" %\
                             (base_m_name, remote_m_name, db_table, rem_key, \
                                 base_m_name, str(tuple(obj_ids))))
-                        curr_m2m = [str(x) for x in cursor.fetchall()]
+                        curr_m2m = [x for x in cursor.fetchall()]
 
                     # new combinations of base model and remote model ids
-                    to_insert = [str(x) for x in itertools.product(obj_ids, rem_ids)]
+                    to_insert = [x for x in itertools.product(obj_ids, rem_ids)]
                     # exclude already existing relations from the insert
                     for_update = list(set(to_insert) - set(curr_m2m))
 
                     if for_update:
                         query = "INSERT INTO %s_%s (%s_id, %s_id) VALUES " % \
                             (db_table, rem_key, base_m_name, remote_m_name)
-                        query += ", ".join(for_update)
+                        query += ", ".join([str(u) for u in for_update])
                         cursor.execute(query) # insert new m2m values
                         transaction.commit_unless_managed()                    
         else: # new object

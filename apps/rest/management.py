@@ -146,7 +146,7 @@ class BaseHandler(object):
 
             # convert to list if needed
             for key, value in self.attr_filters.items():
-                if key.find('__in') > 0:
+                if key.find('__in') > 0 and type(value) == type(''):
                     new_val = value.replace('[', '').replace(']', '')
                     new_val = new_val.replace('(', '').replace('])', '')
                     

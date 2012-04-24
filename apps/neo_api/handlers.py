@@ -1,5 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.servers.basehttp import FileWrapper
+from django.db import models
 
 from rest.management import BaseHandler
 from rest.common import Success
@@ -74,38 +75,40 @@ class NEOHandler(BaseHandler):
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), \
                 dir(exobj)):
 
-                rm = getattr(exobj, rel_name) # kid related manager
-                #kid_model = rm.model
+                rm = getattr(exobj, rel_name) # parent / kid related manager
 
-                # FIXME: better way to find parent field?
-                parent_field = [f for f in rm.model._meta.local_fields \
-                    if (not f.rel is None) and \
-                        (f.rel.to.__name__.lower() == exobj.__class__.__name__.lower())][0]
-                field_name = parent_field.name
-                kid_model = parent_field.model
+                # FIXME: better way to find kid's parent field?
+                for f in rm.model._meta.local_fields:
+                    if f.rel and isinstance(f.rel, models.ManyToOneRel) and \
+                        (f.rel.to.__name__.lower() == exobj.__class__.__name__.lower()):
+                        parent_field = f
+                        break
 
-                cond = {}
-                cond[field_name + '__in'] = objects.values_list('id', flat=True)
+                if parent_field:
+                    field_name = parent_field.name
+                    kid_model = parent_field.model
 
-                #rels = kid_model.objects.filter(**cond)
-                ids = kid_model.objects.all()
-                import pdb
-                pdb.set_trace()
+                    # filter by parent + permissions; evaluate ids first
+                    self.attr_filters[field_name + '__in'] = [int(v) for v in objects.values_list('id', flat=True)]
+                    filtered = self.do_filter(request.user, kid_model.objects.all(), update=True)
+                    po = self.attr_filters.pop(field_name + '__in') # remove for recursive
 
-                ids = ids.filter(**cond).values_list('id', flat=True)
+                    if filtered:
+                        self.serializer.deserialize(tags, filtered, user=request.user,\
+                            encoding=encoding, m2m_append=self.m2m_append)
 
+                        self.run_post_processing(objects=filtered, request=request,\
+                            rdata=tags)
 
+                    #cond = {}
+                    #cond[field_name + '__in'] = objects.values_list('id', flat=True)
 
-                rels = kid_model.objects.filter(id__in=ids)
-                # permissions
-                filtered = self.do_filter(request.user, rels, update=True)
+                    #rels = kid_model.objects.filter(**cond)
+                    #ids = kid_model.objects.all()
 
-                if filtered:
-                    self.serializer.deserialize(tags, filtered, user=request.user,\
-                        encoding=encoding, m2m_append=self.m2m_append)
+                    #ids = ids.filter(**cond).values_list('id', flat=True)
 
-                    self.run_post_processing(objects=filtered, request=request,\
-                        rdata=tags)
+                    #rels = kid_model.objects.filter(id__in=ids)
 
             """
             for obj in objects: # loop-update option
