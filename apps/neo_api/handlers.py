@@ -59,6 +59,9 @@ class NEOHandler(BaseHandler):
     def run_post_processing(self, *args, **kwargs):
         """ process m2m metadata tagging for all related objects down the 
         hierarchy """
+        if self.options.has_key('cascade') and not self.options['cascade']:
+            return None # explicitly avoid m2m propagation
+
         objects = kwargs.pop("objects")
         request = kwargs.pop("request")
         rdata = kwargs.pop("rdata")
