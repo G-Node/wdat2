@@ -111,6 +111,8 @@ class TestGeneric(TestCase):
                             rdata = json.loads(response.content)
                             self.assertEqual(str(rdata['selected'][0]['fields'][field.attname]),\
                                 str(v))
+        # test that editable fileds has not been changed
+
 
 
     def test_update_relations(self):

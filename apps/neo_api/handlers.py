@@ -4,6 +4,8 @@ from django.core.servers.basehttp import FileWrapper
 from rest.management import BaseHandler
 from rest.common import Success
 
+import settings
+
 class NEOHandler(BaseHandler):
     """ add some specific filtering to the base Handler """
 
@@ -59,10 +61,12 @@ class NEOHandler(BaseHandler):
         objects = kwargs.pop("objects")
         request = kwargs.pop("request")
         rdata = kwargs.pop("rdata")
-        tags = {'metadata': rdata['metadata']}
+        encoding = getattr(request, "encoding", None) or settings.DEFAULT_CHARSET
 
-        if rdata.kas_key('metadata') and objects: # 2 alternatives, profile!!
+        if rdata.has_key('metadata') and len(objects) > 0:
+            tags = {'metadata': rdata['metadata']}
 
+            # 2 alternatives, profile!!
             # bulk-update option
 
             exobj = objects[0]
@@ -70,16 +74,38 @@ class NEOHandler(BaseHandler):
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), \
                 dir(exobj)):
 
-                kid_model = getattr(exobj, rel_name).model
-                rels = kid_model.objects.filter(id__in=[x.id for x in objects])
+                rm = getattr(exobj, rel_name) # kid related manager
+                #kid_model = rm.model
+
+                # FIXME: better way to find parent field?
+                parent_field = [f for f in rm.model._meta.local_fields \
+                    if (not f.rel is None) and \
+                        (f.rel.to.__name__.lower() == exobj.__class__.__name__.lower())][0]
+                field_name = parent_field.name
+                kid_model = parent_field.model
+
+                cond = {}
+                cond[field_name + '__in'] = objects.values_list('id', flat=True)
+
+                #rels = kid_model.objects.filter(**cond)
+                ids = kid_model.objects.all()
+                import pdb
+                pdb.set_trace()
+
+                ids = ids.filter(**cond).values_list('id', flat=True)
+
+
+
+                rels = kid_model.objects.filter(id__in=ids)
                 # permissions
                 filtered = self.do_filter(request.user, rels, update=True)
 
-                self.serializer.deserialize(tags, filtered, user=request.user,\
-                    encoding=encoding, m2m_append=self.m2m_append)
+                if filtered:
+                    self.serializer.deserialize(tags, filtered, user=request.user,\
+                        encoding=encoding, m2m_append=self.m2m_append)
 
-                self.run_post_processing(objects=filtered, request=request,\
-                    rdata=tags)
+                    self.run_post_processing(objects=filtered, request=request,\
+                        rdata=tags)
 
             """
             for obj in objects: # loop-update option

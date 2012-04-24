@@ -76,7 +76,7 @@ class BaseHandler(object):
                     objects = self.model.objects.select_related(*self._fkeys_list())
                     try:
                         objects = self.do_filter(request.user, objects, update)
-                    except (ObjectDoesNotExist, FieldError, ValidationError), e:
+                    except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
                         # filter key/value is/are wrong
                         return BadRequest(json_obj={"details": e.message}, \
                             message_type="wrong_params", request=request)
@@ -142,7 +142,16 @@ class BaseHandler(object):
                 filter_func = self.list_filters[matched[0]]
                 objects = filter_func(objects, self.options[key], user)
 
-        if self.attr_filters: # include attr filters
+        if self.attr_filters: # include django lookup filters
+
+            # convert to list if needed
+            for key, value in self.attr_filters.items():
+                if key.find('__in') > 0:
+                    new_val = value.replace('[', '').replace(']', '')
+                    new_val = new_val.replace('(', '').replace('])', '')
+                    
+                    self.attr_filters[key] = [int(v) for v in new_val.split(',')]
+
             objects = objects.filter(**self.attr_filters)
 
         # permissions filter:
@@ -267,7 +276,7 @@ class BaseHandler(object):
         except FieldDoesNotExist, v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="post_data_invalid", request=request)
-        except ValueError, v:
+        except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
         except ValidationError, VE:
