@@ -578,6 +578,42 @@ class WaveForm(BaseInfo):
         self.waveform_size = len(self.waveform) * 24
         super(WaveForm, self).save(*args, **kwargs)
 
+
+# data-storage models
+#===============================================================================
+
+class Data1DField(models.Field):
+    description = "1D array stored as float[] in PostgreSQL"
+
+    __metaclass__ = models.SubfieldBase
+
+    def __init__(self, *args, **kwargs):
+        super(Data1DField, self).__init__(*args, **kwargs)
+
+    def db_type(self, connection):
+        return 'float[]'
+
+    def to_python(self, value):
+        # PERFORMANCE
+        return np.array(value)
+
+    def get_prep_value(self, value):
+        # PERFORMANCE
+        return "{" + ", ".join([str(x) for x in value]) + "}"
+
+
+class Data1D(models.Model):
+    """ abstract class to handle 1D array in the database """
+    data = Data1DField('data')
+
+    class Meta:
+        abstract = True
+
+
+class SignalData(Data1D):
+    pass
+
+
 # supporting functions
 #===============================================================================
 

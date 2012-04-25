@@ -59,7 +59,7 @@ class Serializer(PythonSerializer):
         parse_options(self, options)
         self.start_serialization()
 
-        for obj in queryset:
+        for obj in queryset: # homogenious objects
             self.start_object(obj)
 
             for field in obj._meta.local_fields: # local fields / FK fields
