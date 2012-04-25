@@ -84,15 +84,15 @@ class BaseInfo(SafetyLevel, ObjectState):
     class Meta:
         abstract = True
 
-    @property
-    def obj_type(self):
-        """
-        Returns the type of the object (string), like 'segment' or 'event'.
-        """
-        for obj_type in meta_objects:
-            if isinstance(self, meta_classnames[obj_type]):
-                return obj_type
-        raise TypeError("Critical error. Panic. NEO object can't define it's own type. Tell system developers.")
+    #@property
+    #def obj_type(self):
+    #    """
+    #    Returns the type of the object (string), like 'segment' or 'event'.
+    #    """
+    #    for obj_type in meta_objects:
+    #        if isinstance(self, meta_classnames[obj_type]):
+    #            return obj_type
+    #    raise TypeError("Critical error. Panic. NEO object can't define it's own type. Tell system developers.")
 
     @property
     def neo_id(self):

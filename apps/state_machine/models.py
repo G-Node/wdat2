@@ -50,6 +50,11 @@ class ObjectState(models.Model):
         return self.current_state == 10
 
 
+    @property
+    def obj_type(self):
+        return self.__class__.__name__.lower()
+
+
 class SafetyLevel(models.Model):
     """
     Safety level represents a level of access to an object by other users. An 

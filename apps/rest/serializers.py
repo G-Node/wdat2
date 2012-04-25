@@ -56,8 +56,15 @@ class Serializer(PythonSerializer):
             self.show_kids = options.get("show_kids", self.show_kids)
             self.use_natural_keys = options.get("use_natural_keys", self.use_natural_keys)
 
+        if not len(queryset) > 0:
+            return None
+
         parse_options(self, options)
         self.start_serialization()
+
+        # if objects have data, retrieve it first
+        #if queryset[0].__class__.__name__.lower() in []:
+        #    ids = 
 
         for obj in queryset: # homogenious objects
             self.start_object(obj)

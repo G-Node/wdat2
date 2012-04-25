@@ -70,8 +70,11 @@ class NEOHandler(BaseHandler):
         if rdata.has_key('metadata') and len(objects) > 0:
             tags = {'metadata': rdata['metadata']}
 
-            # 2 alternatives, profile!!
-            # bulk-update option
+            # here is the 'bulk-update' option is implemented. other option 
+            # would be to loop over the children and update them one-by-one.
+            # however i thought this should be more slower way, as it generally
+            # should require more SQL requests to the DB. Well, some profiling
+            # needed.
 
             exobj = objects[0]
             # loop over FK relations, e.g. over segments connected to a block
@@ -102,35 +105,6 @@ class NEOHandler(BaseHandler):
 
                         self.run_post_processing(objects=filtered, request=request,\
                             rdata=tags)
-
-                    #cond = {}
-                    #cond[field_name + '__in'] = objects.values_list('id', flat=True)
-
-                    #rels = kid_model.objects.filter(**cond)
-                    #ids = kid_model.objects.all()
-
-                    #ids = ids.filter(**cond).values_list('id', flat=True)
-
-                    #rels = kid_model.objects.filter(id__in=ids)
-
-            """
-            for obj in objects: # loop-update option
-
-                # loop over downstream FK relations, e.g. over segments connected to a block
-                for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4),\
-                    dir(obj)):
-
-                    rels = getattr(obj, rel_name).filter(current_state=10)
-                    # permissions
-                    filtered = self.do_filter(request.user, rels, update=True)
-
-                    tags = {'metadata': rdata['metadata']}
-                    self.serializer.deserialize(tags, filtered, user=request.user,\
-                        encoding=encoding, m2m_append=self.m2m_append)
-
-                    self.run_post_processing(objects=filtered, request=request,\
-                        rdata=tags)
-            """
 
 
 class MetadataHandler(BaseHandler):
