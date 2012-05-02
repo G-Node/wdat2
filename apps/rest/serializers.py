@@ -62,9 +62,16 @@ class Serializer(PythonSerializer):
         parse_options(self, options)
         self.start_serialization()
 
-        # if objects have data, retrieve it first
-        #if queryset[0].__class__.__name__.lower() in []:
-        #    ids = 
+        # if objects have data, start to retrieve it first
+        #exobj = queryset[0] # example object
+        #if exobj.obj_type in [
+        #    "analogsignal",
+        #    "irsaanalogsignal",
+        #    "spiketrain",
+        #    "waveform"]:
+            #data_ids = queryset.values_list('data_key', flat=True)
+            # problem: how to retreive a slice with diff time window? hm..
+            #ids[obj_id] = exobj.obj_type
 
         for obj in queryset: # homogenious objects
             self.start_object(obj)

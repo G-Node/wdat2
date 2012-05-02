@@ -26,6 +26,10 @@ class ObjectState(models.Model):
     class Meta:
         abstract = True
 
+    @property
+    def obj_type(self):
+        return self.__class__.__name__.lower()
+
     def get_owner(self):
         """ required for filtering by owner in REST """
         return self.owner
@@ -48,11 +52,6 @@ class ObjectState(models.Model):
 
     def is_active(self):
         return self.current_state == 10
-
-
-    @property
-    def obj_type(self):
-        return self.__class__.__name__.lower()
 
 
 class SafetyLevel(models.Model):

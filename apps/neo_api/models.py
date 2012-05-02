@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.fields import TextField
 from django.contrib.auth.models import User
 from datetime import datetime
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -11,6 +12,7 @@ from datafiles.models import Datafile
 from metadata.models import Section, Value
 from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options, meta_parents
 from neo_api.serializers import NEOSerializer
+
 
 # default unit values and values limits
 name_max_length = 100
@@ -34,12 +36,15 @@ def _find_nearest(array, value):
 def _data_as_list(data):
     """
     Returns a list of floats from comma-separated text or empty list.
-    """
+
+    # old way:
     l = []
     if len(data):
         for s in str(data).split(','):
             l.append(float(s))
     return l
+    """
+    return list(l)
 
 def _clean_csv(arr):
     """
@@ -83,16 +88,6 @@ class BaseInfo(SafetyLevel, ObjectState):
 
     class Meta:
         abstract = True
-
-    #@property
-    #def obj_type(self):
-    #    """
-    #    Returns the type of the object (string), like 'segment' or 'event'.
-    #    """
-    #    for obj_type in meta_objects:
-    #        if isinstance(self, meta_classnames[obj_type]):
-    #            return obj_type
-    #    raise TypeError("Critical error. Panic. NEO object can't define it's own type. Tell system developers.")
 
     @property
     def neo_id(self):
@@ -582,24 +577,73 @@ class WaveForm(BaseInfo):
 # data-storage models
 #===============================================================================
 
-class Data1DField(models.Field):
-    description = "1D array stored as float[] in PostgreSQL"
+import os
+import settings
+import tables as tb
 
-    __metaclass__ = models.SubfieldBase
+class ArrayInHDF5(ObjectState):
+    path = models.FilePathField( blank=True, max_length=100 )
+
+    class Meta:
+        abstract = True
+
+    def get_slice(self, start=0, end=10**9):
+        """ returns a slice of the analog signal data.
+        start, end - indexes as int """
+
+        with tb.openFile(self.path, 'r') as f:
+            l = list( f.getNode( '/', str(self.id) ) [ start : end ] )
+        return l
+
+    def save(self, *args, **kwargs):
+        """ 'data' attribute with a list of datapoints and a user are expected 
+        in kwargs """
+        data = kwargs.pop('data')
+        super(ArrayInHDF5, self).save(*args, **kwargs) # first get an ID
+
+        path = os.path.join( settings.HDF_STORAGE_ROOT, \
+            str(self.owner.username), datetime.now().strftime("%Y%m%d") )
+        if not os.path.exists(path):
+            os.makedirs(path) # make dirs if missing
+
+        self.path = os.path.join( path, str(self.id) + '.h5' )
+        super(ArrayInHDF5, self).save(*args, **kwargs) # save the path
+
+        with tb.openFile(self.path, 'w') as f:
+            c = f.createArray('/', str(self.id), data)
+
+
+class Signals(ArrayInHDF5):
+    description = " data for analog signals "
+
+
+
+# EXPERIMENTAL - MySQl and PostgreSQL back-ends for array-type data
+
+class Data1DField(TextField):
+    description = "1D array stored as float[] in PostgreSQL"
 
     def __init__(self, *args, **kwargs):
         super(Data1DField, self).__init__(*args, **kwargs)
 
     def db_type(self, connection):
-        return 'float[]'
-
-    def to_python(self, value):
-        # PERFORMANCE
-        return np.array(value)
+        if connection.settings_dict['ENGINE'] == 'django.db.backends.mysql':
+            return 'longtext'
+        else: # PostgreSQL, others are not supported
+            return 'float[]'
 
     def get_prep_value(self, value):
-        # PERFORMANCE
-        return "{" + ", ".join([str(x) for x in value]) + "}"
+        """ we expect value as a 'list' object from JSON. A list is given as the
+        function output too. Some performance related test scripts are located 
+        in performance.py file """
+
+        # 1 loops, best of 3: 3.49 s per loop
+        if settings.DATABASE_ENGINE == 'postgresql_psycopg2':
+            valstr = str(value)
+            return "{" + valstr[ 1 : len(valstr) - 1 ] + "}"
+
+        else:
+            return ", ".join([str(x)[:12] for x in value])
 
 
 class Data1D(models.Model):
@@ -610,8 +654,23 @@ class Data1D(models.Model):
         abstract = True
 
 
-class SignalData(Data1D):
-    pass
+class ArrayInSQL(Data1D):
+    """ analogsignal data array handler in SQL backend (MySQL/PostgreSQL) """
+
+    def get_slice(self, start=0, end=10**9):
+        """ returns a slice of the analog signal data. start, end - integers """
+
+        db_table = self._meta.db_table
+
+        if settings.DATABASE_ENGINE == 'postgresql_psycopg2':
+            query = 'SELECT id, data[' + str(start) + ' : ' + str(end) + ']\
+                FROM ' + db_table + ' WHERE id = ' + str(self.id)
+        else: # mysql
+            query = "SELECT `id`, SUBSTRING(`data`, " + str(start) +\
+                ", " + str(end) + ") FROM `" + db_table + "`"  + ' WHERE id = '\
+                     + str(self.id)
+
+        return self.objects.raw(query)
 
 
 # supporting functions
