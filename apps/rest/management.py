@@ -308,8 +308,12 @@ class BaseHandler(object):
             encoding = getattr(request, "encoding", None) or settings.DEFAULT_CHARSET
             if self.options.has_key('m2m_append'):
                 self.m2m_append = False
+
+            # parse the request data
             update_kwargs, m2m_dict = self.serializer.deserialize(rdata, \
                 objects, user=request.user, encoding=encoding, m2m_append=self.m2m_append)
+
+            # TODO insert here the transaction begin
 
             rev = Revision.get_next_number(request.user) # get new revision
             update_kwargs['revision'] = rev # all objects will assigned new rev
@@ -318,6 +322,8 @@ class BaseHandler(object):
             # recursively create updated versions of the objects
             create_version( objects=objects, fk_kwargs=update_kwargs, \
                 m2m_dict=m2m_dict, m2m_append=self.m2m_append)
+
+            # TODO insert here the transaction end
 
             # here is an alternative how to make updates in bulk (faster but no
             # versioning)

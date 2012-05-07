@@ -142,10 +142,9 @@ class MetadataHandler(BaseHandler):
 
 
 
-
-# DEPRECATED -------------------------------------------------------------------
-
-
+#-------------------------------------------------------------------------------
+# Here is an alternative of DataHandler, streaming files to a response in chunks
+#-------------------------------------------------------------------------------
 
 class DataHandler(BaseHandler):
     """ Handles binary Data responses for a single data-object, like 
