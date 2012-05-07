@@ -56,56 +56,6 @@ class NEOHandler(BaseHandler):
         return objects.filter(id__in=filtered)
 
 
-    def run_post_processing(self, *args, **kwargs):
-        """ process m2m metadata tagging for all related objects down the 
-        hierarchy """
-        if self.options.has_key('cascade') and not self.options['cascade']:
-            return None # explicitly avoid m2m propagation
-
-        objects = kwargs.pop("objects")
-        request = kwargs.pop("request")
-        rdata = kwargs.pop("rdata")
-        encoding = getattr(request, "encoding", None) or settings.DEFAULT_CHARSET
-
-        if rdata.has_key('metadata') and len(objects) > 0:
-            tags = {'metadata': rdata['metadata']}
-
-            # here is the 'bulk-update' option is implemented. other option 
-            # would be to loop over the children and update them one-by-one.
-            # however i thought this should be more slower way, as it generally
-            # should require more SQL requests to the DB. Well, some profiling
-            # needed.
-
-            exobj = objects[0]
-            # loop over FK relations, e.g. over segments connected to a block
-            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), \
-                dir(exobj)):
-
-                rm = getattr(exobj, rel_name) # parent / kid related manager
-
-                # FIXME: better way to find kid's parent field?
-                for f in rm.model._meta.local_fields:
-                    if f.rel and isinstance(f.rel, models.ManyToOneRel) and \
-                        (f.rel.to.__name__.lower() == exobj.__class__.__name__.lower()):
-                        parent_field = f
-                        break
-
-                if parent_field:
-                    field_name = parent_field.name
-                    kid_model = parent_field.model
-
-                    # filter by parent + permissions; evaluate ids first
-                    self.attr_filters[field_name + '__in'] = [int(v) for v in objects.values_list('id', flat=True)]
-                    filtered = self.do_filter(request.user, kid_model.objects.all(), update=True)
-                    po = self.attr_filters.pop(field_name + '__in') # remove for recursive
-
-                    if filtered:
-                        self.serializer.deserialize(tags, filtered, user=request.user,\
-                            encoding=encoding, m2m_append=self.m2m_append)
-
-                        self.run_post_processing(objects=filtered, request=request,\
-                            rdata=tags)
-
 
 class MetadataHandler(BaseHandler):
     """ responses containing full object's metadata as a list of property:value
