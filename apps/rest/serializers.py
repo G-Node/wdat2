@@ -16,7 +16,6 @@ class Serializer(PythonSerializer):
     show_kids = True # on/off - show permalinks of kids by default when cascade=False
     excluded_permalink = () # kid's permalinks are not shown even if show_kids=True
     excluded_cascade = () # do not process these kids when cascade=False
-    excluded_bulk_update = () # raise error when bulk update on these fields
     do_not_show_if_empty = () # empty (no permalink) kids are not shown
     special_for_serialization = () # list of field names
     special_for_deserialization = () # list of field names
@@ -61,6 +60,8 @@ class Serializer(PythonSerializer):
 
         parse_options(self, options)
         self.start_serialization()
+
+        # calulate the size of the response, if data is requested
 
         # if objects have data, start to retrieve it first
         #exobj = queryset[0] # example object
@@ -134,8 +135,8 @@ class Serializer(PythonSerializer):
 
         return self.getvalue()
 
-    def deserialize(self, rdata, obj, user, encoding=None, m2m_append=True):
-        """ parse incoming JSON into a given object (obj) skeleton """
+    def deserialize(self, rdata, model, user, encoding=None, m2m_append=True):
+        """ parse incoming JSON into a given dicts of attributes and m2m's """
         if not encoding: encoding = self.encoding
         update_kwargs = {} # dict to collect parsed values for update
         m2m_dict = {} # temporary m2m values to assign them after full_clean
@@ -154,7 +155,7 @@ class Serializer(PythonSerializer):
                     update_kwargs[field_name] = field_value["data"]
                     update_kwargs[field_name + "__unit"] = field_value["units"]
                 else:
-                    field = obj[0]._meta.get_field(field_name)
+                    field = model._meta.get_field(field_name)
 
                     # Handle M2M relations
                     if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
@@ -188,58 +189,7 @@ class Serializer(PythonSerializer):
                         #TODO raise error when trying to change id or date_created etc?
                         update_kwargs[field_name] = field.to_python(field_value)
 
-        if len(obj) > 1: # bulk update, obj is QuerySet
-            obj_ids = [int(x[0]) for x in obj.values_list('pk')] # ids of selected objects
-            # do not bulk-update fields like arrays etc.
-            if [k for k in update_kwargs.keys() if k in self.excluded_bulk_update]:
-                raise ValueError("Bulk update for any of the fields %s is not allowed. And maybe doesn't make too much sense.")
-            # evaluated because SQL does not support update for sliced querysets
-            obj.model.objects.filter(pk__in=obj_ids).update(**update_kwargs)
-
-            if m2m_dict:  # work out m2m, so far I see no other way as raw SQL
-                db_table = obj.model._meta.db_table
-                cursor = connection.cursor()
-
-                for rem_key, rem_ids in m2m_dict.items(): # rem_key = name of the m2m field
-                    remote_m_name = getattr(obj.model, rem_key).field.rel.to.__name__.lower()
-                    base_m_name = obj.model.__name__.lower()
-                    curr_m2m = [] # existing m2m relations
-
-                    if not m2m_append: # remove existing m2m if overwrite mode
-                        cursor.execute("DELETE FROM %s_%s WHERE %s_id IN %s" %\
-                            (db_table, rem_key, base_m_name, str(tuple(obj_ids))))
-                    else: # select the ones which are already 
-                        cursor.execute("SELECT %s_id, %s_id FROM %s_%s WHERE %s_id IN %s" %\
-                            (base_m_name, remote_m_name, db_table, rem_key, \
-                                base_m_name, str(tuple(obj_ids))))
-                        curr_m2m = [x for x in cursor.fetchall()]
-
-                    # new combinations of base model and remote model ids
-                    to_insert = [x for x in itertools.product(obj_ids, rem_ids)]
-                    # exclude already existing relations from the insert
-                    for_update = list(set(to_insert) - set(curr_m2m))
-
-                    if for_update:
-                        query = "INSERT INTO %s_%s (%s_id, %s_id) VALUES " % \
-                            (db_table, rem_key, base_m_name, remote_m_name)
-                        query += ", ".join([str(u) for u in for_update])
-                        cursor.execute(query) # insert new m2m values
-                        transaction.commit_unless_managed()                    
-        else: # new object
-            obj = obj[0]
-            for name, value in update_kwargs.items():
-                setattr(obj, name, value)
-            obj.full_clean()
-            obj.save()
-
-            # process m2m only after full_clean (for new objects - after acquiring id)
-            if m2m_dict:
-                for k, v in m2m_dict.items():
-                    if m2m_append: # append to existing m2m
-                        v = [x.id for x in getattr(obj, k).all()] + \
-                            [x.id for x in m2m_data]
-                    setattr(obj, k, v) # update m2m
-
+        return update_kwargs, m2m_dict
 
 
     def handle_m2m_field(self, obj, field):

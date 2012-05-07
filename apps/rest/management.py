@@ -45,6 +45,7 @@ class BaseHandler(object):
         self.max_results = settings.REST_CONFIG['max_results'] # 1000
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
         self.update = True # create / update via POST
+        self.excluded_bulk_update = () # error when bulk update on these fields
 
 
     @auth_required
@@ -254,6 +255,42 @@ class BaseHandler(object):
         practical reasons (no automatic JSON parsing into an object). Create and
         update have very similar functionality thus implemented as one function.
         """
+        def create_version(objects, fk_kwargs, m2m_dict=None, m2m_append=True):
+            """ recursively create new versions of the given objects with 
+            attributes given in fk_kwargs """
+            for obj in objects:
+                for name, value in update_kwargs.items():
+                    setattr(obj, name, value)
+                    obj.full_clean()
+                    obj.save() # creates new version with updated values
+
+                if m2m_dict: # process m2m only after acquiring id
+                    for k, v in m2m_dict.items():
+                        if m2m_append: # append to existing m2m
+                            v = [x.id for x in getattr(obj, k).all()] + \
+                                [x.id for x in m2m_data]
+                        setattr(obj, k, v) # update m2m
+                obj.save_m2m()
+
+                # need to create new versions for all related FKs with the 
+                # reference to the new version of the parent
+                for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
+                    rm = getattr(obj, rel_name) # parent / kid related manager
+
+                    # a reverse field should always exist
+                    reverse_field = [f for f in rm.model._meta.local_fields if \
+                        f.rel and \
+                        isinstance(f.rel, models.ManyToOneRel) and \
+                        (f.rel.to.__name__.lower() == exobj.__class__.__name__.lower())][0]
+
+                    fk_kwargs = { # only change parent and revision number
+                        'revision': rev, # all FKs should have the same revision
+                        'id': None } # clean ids so new objects are saved
+                    fk_kwargs[reverse_field.name + '_id'] = obj.id
+
+                    update_fks = getattr(obj, rel_name).filter(current_state=10)
+                    create_version( objects = update_fks, fk_kwargs = fk_kwargs )
+
         try:
             rdata = self.clean_post_data(request._get_raw_post_data())
         except (ValueError, TypeError), e:
@@ -271,8 +308,59 @@ class BaseHandler(object):
             encoding = getattr(request, "encoding", None) or settings.DEFAULT_CHARSET
             if self.options.has_key('m2m_append'):
                 self.m2m_append = False
-            self.serializer.deserialize(rdata, objects, user=request.user,\
-                encoding=encoding, m2m_append=self.m2m_append)
+            update_kwargs, m2m_dict = self.serializer.deserialize(rdata, \
+                objects, user=request.user, encoding=encoding, m2m_append=self.m2m_append)
+
+            rev = Revision.get_next_number(request.user) # get new revision
+            update_kwargs['revision'] = rev # all objects will assigned new rev
+            update_kwargs['id'] = None # clean ids so new objects are saved
+
+            # recursively create updated versions of the objects
+            create_version( objects=objects, fk_kwargs=update_kwargs, \
+                m2m_dict=m2m_dict, m2m_append=self.m2m_append)
+
+            # here is an alternative how to make updates in bulk (faster but no
+            # versioning)
+            """
+            if len(obj) > 1: # bulk update, obj is QuerySet
+                obj_ids = [int(x[0]) for x in obj.values_list('pk')] # ids of selected objects
+                # do not bulk-update fields like arrays etc.
+                if [k for k in update_kwargs.keys() if k in self.excluded_bulk_update]:
+                    raise ValueError("Bulk update for any of the fields %s is not allowed. And maybe doesn't make too much sense.")
+                # evaluated because SQL does not support update for sliced querysets
+                obj.model.objects.filter(pk__in=obj_ids).update(**update_kwargs)
+
+                if m2m_dict:  # work out m2m, so far I see no other way as raw SQL
+                    db_table = obj.model._meta.db_table
+                    cursor = connection.cursor()
+
+                    for rem_key, rem_ids in m2m_dict.items(): # rem_key = name of the m2m field
+                        remote_m_name = getattr(obj.model, rem_key).field.rel.to.__name__.lower()
+                        base_m_name = obj.model.__name__.lower()
+                        curr_m2m = [] # existing m2m relations
+
+                        if not m2m_append: # remove existing m2m if overwrite mode
+                            cursor.execute("DELETE FROM %s_%s WHERE %s_id IN %s" %\
+                                (db_table, rem_key, base_m_name, str(tuple(obj_ids))))
+                        else: # select the ones which are already 
+                            cursor.execute("SELECT %s_id, %s_id FROM %s_%s WHERE %s_id IN %s" %\
+                                (base_m_name, remote_m_name, db_table, rem_key, \
+                                    base_m_name, str(tuple(obj_ids))))
+                            curr_m2m = [x for x in cursor.fetchall()]
+
+                        # new combinations of base model and remote model ids
+                        to_insert = [x for x in itertools.product(obj_ids, rem_ids)]
+                        # exclude already existing relations from the insert
+                        for_update = list(set(to_insert) - set(curr_m2m))
+
+                        if for_update:
+                            query = "INSERT INTO %s_%s (%s_id, %s_id) VALUES " % \
+                                (db_table, rem_key, base_m_name, remote_m_name)
+                            query += ", ".join([str(u) for u in for_update])
+                            cursor.execute(query) # insert new m2m values
+                            transaction.commit_unless_managed()
+            """
+
         except FieldDoesNotExist, v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="post_data_invalid", request=request)

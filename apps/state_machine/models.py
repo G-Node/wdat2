@@ -4,6 +4,23 @@ from django.utils.translation import ugettext_lazy as _
 from friends.models import Friendship
 from datetime import datetime
 
+class Revision(models.Model):
+    """ Every user has a revision history of its objects. A new revision is
+    created with every transaction (object(s) are created or modified). Every
+    object has a revision number, to which it belongs. This allows to flexibly
+    query object from different revisions.
+    """
+    number = models.IntegerField(editable=False)
+    # this field contains all previous revisions as list of CSVs
+    history = models.CommaSeparatedIntegerField(max_length=10000, blank=True, editable=False)
+    owner = models.ForeignKey(User, editable=False)
+    date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)    
+
+    @classmethod
+    def get_next_number(self, user):
+        revs = self.objects.filter(owner=user)
+        return revs.aggregate( Max('number') )['number__max'] + 1
+
 
 class ObjectState(models.Model):
     """

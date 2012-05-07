@@ -5,7 +5,7 @@ from datetime import datetime
 from django.core.exceptions import PermissionDenied, ValidationError
 
 import numpy as np
-from scipy import signal
+from scipy import signal as spsignal
 from fields import models as fmodels
 from state_machine.models import ObjectState, SafetyLevel
 from datafiles.models import Datafile
@@ -25,13 +25,6 @@ def_samp_unit = "Hz"
 
 # supporting functions
 #===============================================================================
-
-def _find_nearest(array, value):
-    """
-    Finds index of the nearest value to the given value in the given array.
-    """
-    idx = (np.abs(array - float(value))).argmin()
-    return idx
 
 def _data_as_list(data):
     """
@@ -262,36 +255,66 @@ class SpikeTrain(BaseInfo):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
     # NEO data arrays
-    times_data = models.TextField('spike_data', blank=True) # use 'spike_times' property to get data
+    #times_data = models.TextField('times_data', blank=True) # use 'spike_times' property to get data
+    times_data = models.IntegerField('times_data', blank=True) # ID of the ArrayInHDF5
     times__unit = fmodels.TimeUnitField('spike_data__unit', default=def_data_unit)
     times_size = models.IntegerField('times_size', blank=True) # in bytes, for better performance
 
-    def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None, downsample=None,\
-            **kwargs):
-        # FIXME Not yet implemented
-        return self.times, self.t_start
+    def times(self, **kwargs):
+        """ implements dataslicing/downsampling. Floats/integers are expected.
+        'downsample' parameter defines the new resampled resolution.  """
 
-    @apply
-    def times():
-        def fget(self):
-            return _data_as_list(self.times_data)
-        def fset(self, arr):
-            self.times_data = _clean_csv(arr)
-        def fdel(self):
-            pass
-        return property(**locals())
+        def _find_nearest(array, value):
+            """ Finds index of the nearest value to the given value in the 
+            given array. """
+            return (np.abs(array - float(value))).argmin()
+
+        # compute the boundaries if indexes are given
+        s_index = kwargs.get('start_index', 0)
+        e_index = kwargs.get('end_index', 10**9)
+
+        if kwargs.has_key('samples_count'):
+            if kwargs.has_key('start_time') or kwargs.has_key('start_index'):
+                e_index = s_index + samples_count
+            else:
+                s_index = e_index - samples_count
+
+        # compute the boundaries if times are given
+        t = ArrayInHDF5.objects.get( id = self.times_data )
+        times = t.get_slice() # need full array to compute the boundaries
+
+        if kwargs.has_key('start_time'):
+            s_index = _find_nearest(times, kwargs['start_time'])
+        if kwargs.has_key('end_time'):
+            e_index = _find_nearest(times, kwargs['end_time'])
+
+        if kwargs.has_key('duration'):
+            duration = kwargs['duration']
+            if kwargs.has_key('start_time') or kwargs.has_key('start_index'):
+                e_index = _find_nearest(times, times[start_index] + duration)
+            else:
+                s_index = _find_nearest(times, times[end_index] + duration)
+
+        # load the signal, sliced
+        if s_index >= 0 and s_index < e_index:
+            times = times[ s_index : e_index+1 ]
+            t_start = times[0] # compute new t_start
+        else:
+            raise IndexError("Index is out of range. From the values provided \
+we can't get the slice of the SpikeTrain. We calculated the start index as %d \
+and end index as %d. The size of the signal is %d bytes." % (s_index, e_index, \
+self.size ))
+
+        # downsampling..
+        downsample = kwargs.get('downsample', None)
+        if downsample and downsample < len(signal):
+            times = spsignal.resample(times, downsample).tolist()
+        return times, t_start
 
     @property
     def size(self):
         return int(np.array([w.size for w in self.waveform_set.all()]).sum()) +\
             self.times_size
-
-    def save(self, *args, **kwargs):
-        # override save to keep signal size up to date
-        self.times_size = len(self.times) * 24
-        super(SpikeTrain, self).save(*args, **kwargs)
-
 
 # 11 (of 15)
 class AnalogSignalArray(BaseInfo):
@@ -332,62 +355,57 @@ class AnalogSignal(BaseInfo):
     recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
     analogsignalarray = models.ForeignKey(AnalogSignalArray, blank=True, null=True)
     # NEO data arrays
-    signal_data = models.TextField('signal_data') # use 'signal' property to get data
+    #signal_data = models.TextField('signal_data') # use 'signal' property to get data
+    signal_data = models.IntegerField('signal_data') # ID of the ArrayInHDF5
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     signal_size = models.IntegerField('signal_size', blank=True) # in bytes, for better performance
 
-    def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None, downsample=None,\
-            **kwargs):
-        """
-        Implements dataslicing/downsampling. Floats/integers are expected.
-        'downsample' parameter defines the new resampled resolution.
-        """
-        dataslice = self.signal
-        t_start = self.t_start
+    def signal(self, **kwargs):
+        """ implements dataslicing/downsampling. Floats/integers are expected.
+        'downsample' parameter defines the new resampled resolution.  """
+
         # calculate the factor to align time / sampling rate units
         factor = factor_options.get("%s%s" % (self.t_start__unit.lower(), \
             self.sampling_rate__unit.lower()), 1.0)
-        s_index = start_index
-        if not s_index: s_index = 0
-        e_index = end_index or (len(dataslice) - 1)
-        if start_time:
-            s_index = int(round(self.sampling_rate * (start_time - t_start) * factor))
-        if end_time:
-            e_index = int(round(self.sampling_rate * (end_time - t_start) * factor))
-        if duration:
-            if start_time or start_index:
-                e_index = s_index + int(round(self.sampling_rate * duration * factor))
-            else:
-                s_index = e_index - int(round(self.sampling_rate * duration * factor))
+
+        # compute the boundaries if indexes are given
+        s_index = kwargs.get('start_index', 0)
+        e_index = kwargs.get('end_index', 10**9)
+
+        samples_count = kwargs.get('samples_count', None)
         if samples_count:
-            if start_time or start_index:
+            if kwargs.has_key('start_time') or kwargs.has_key('start_index'):
                 e_index = s_index + samples_count
             else:
                 s_index = e_index - samples_count
-        if s_index >= 0 and s_index < e_index and e_index < len(dataslice):
-            dataslice = dataslice[s_index:e_index+1]
+
+        if kwargs.has_key('start_time'):
+            s_index = int(round(self.sampling_rate * (kwargs['start_time'] - t_start) * factor))
+        if kwargs.has_key('end_time'):
+            e_index = int(round(self.sampling_rate * (kwargs['end_time'] - t_start) * factor))
+        duration = kwargs.get('duration', None)
+        if duration:
+            if kwargs.has_key('start_time') or kwargs.has_key('start_index'):
+                e_index = s_index + int(round(self.sampling_rate * duration * factor))
+            else:
+                s_index = e_index - int(round(self.sampling_rate * duration * factor))
+
+        if s_index >= 0 and s_index < e_index:
+            s = ArrayInHDF5.objects.get( id = self.signal_data )
+            signal = s.get_slice( s_index, e_index+1 )
             t_start += (s_index * 1.0 / self.sampling_rate * 1.0 / factor) # compute new t_start
         else:
             raise IndexError( "Index is out of range for an. signal %s. From the\
 values provided we can't get the slice of the signal. We calculated the start \
-index as %d and end index as %d. Please check those. The whole signal has %d \
-datapoints, sampling rate is %s %s, t_start is %s %s" % (self.id, s_index, \
-e_index, len(dataslice), self.sampling_rate, self.sampling_rate__unit.lower(), \
-self.t_start, self.t_start__unit.lower() ) )
-        if downsample and downsample < len(dataslice):
-            dataslice = signal.resample(np.array(dataslice), downsample).tolist()
-        return dataslice, t_start
+index as %d and end index as %d. Please check those. The sampling rate is %s %s,\
+ t_start is %s %s" % (self.id, s_index, e_index, self.sampling_rate, \
+self.sampling_rate__unit.lower(), self.t_start, self.t_start__unit.lower() ) )
 
-    @apply
-    def signal():
-        def fget(self):
-            return _data_as_list(self.signal_data)
-        def fset(self, arr):
-            self.signal_data = _clean_csv(arr)
-        def fdel(self):
-            pass
-        return property(**locals())
+        downsample = kwargs.get('downsample', None)
+        if downsample and downsample < len(signal):
+            new_rate = ( float(downsample) / float(len(signal)) ) * self.sampling_rate
+            dataslice = spsignal.resample(signal, downsample).tolist()
+        return dataslice, t_start, new_rate
 
     @property
     def size(self):
@@ -400,11 +418,6 @@ self.t_start, self.t_start__unit.lower() ) )
         an AnalogSignalArray. 
         """
         return (self.analogsignalarray.count() == 0)
-
-    def save(self, *args, **kwargs):
-        # override save to keep signal size up to date
-        self.signal_size = len(self.signal) * 24            
-        super(AnalogSignal, self).save(*args, **kwargs)
 
 
 # 13 (of 15)
@@ -420,97 +433,80 @@ class IrSaAnalogSignal(BaseInfo):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
     # NEO data arrays
-    signal_data = models.TextField('signal_data') # use 'signal' property to get data
+    signal_data = models.IntegerField('signal_data') # ID of the ArrayInHDF5
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
-    times_data = models.TextField('times_data', blank=True) # use 'times' property to get data
+    #times_data = models.TextField('times_data', blank=True) # use 'times' property to get data
+    times_data = models.IntegerField('signal_data')
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
     object_size = models.IntegerField('object_size', blank=True) # in bytes, for better performance
 
-    def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None, downsample=None,\
-            **kwargs):
-        """
-        Implements dataslicing/downsampling. Floats/integers are expected.
-        'downsample' parameter defines the new resampled resolution.
-        """
-        dataslice = self.signal
-        t_start = self.t_start
-        times = self.times
-        # calculate the factor to align time / sampling rate units
-        #factor = factor_options.get("%s%s" % (self.t_start__unit.lower(), \
-        #    self.sampling_rate__unit.lower()), 1.0)
-        s_index = start_index
-        if not s_index: s_index = 0
-        e_index = end_index or (len(dataslice) - 1)
-        if start_time: # TODO
-            s_index = _find_nearest(np.array(times), start_time)
-        if end_time: # TODO
-            e_index = _find_nearest(np.array(times), end_time)
-        if duration:
-            if start_time:
-                e_index = _find_nearest(np.array(times), start_time + duration)
-            if start_index:
-                e_index = _find_nearest(np.array(times), times[start_index] + duration)
-            if end_time:
-                e_index = _find_nearest(np.array(times), start_time - duration)
-            if end_index:
-                e_index = _find_nearest(np.array(times), times[end_index] - duration)
-        if samples_count:
-            if start_time or start_index:
+    def signal(self, **kwargs):
+        """ implements dataslicing/downsampling. Floats/integers are expected.
+        'downsample' parameter defines the new resampled resolution.  """
+
+        def _find_nearest(array, value):
+            """ Finds index of the nearest value to the given value in the 
+            given array. """
+            return (np.abs(array - float(value))).argmin()
+
+        # compute the boundaries if indexes are given
+        s_index = kwargs.get('start_index', 0)
+        e_index = kwargs.get('end_index', 10**9)
+
+        if kwargs.has_key('samples_count'):
+            if kwargs.has_key('start_time') or kwargs.has_key('start_index'):
                 e_index = s_index + samples_count
             else:
                 s_index = e_index - samples_count
-        if s_index >= 0 and s_index < e_index and e_index < len(dataslice):
-            dataslice = dataslice[s_index:e_index+1]
-            times = times[s_index:e_index+1]
+
+        # compute the boundaries if times are given
+        t = ArrayInHDF5.objects.get( id = self.times_data )
+        times = t.get_slice() # need full array to compute the boundaries
+
+        if kwargs.has_key('start_time'):
+            s_index = _find_nearest(times, kwargs['start_time'])
+        if kwargs.has_key('end_time'):
+            e_index = _find_nearest(times, kwargs['end_time'])
+
+        if kwargs.has_key('duration'):
+            duration = kwargs['duration']
+            if kwargs.has_key('start_time') or kwargs.has_key('start_index'):
+                e_index = _find_nearest(times, times[start_index] + duration)
+            else:
+                s_index = _find_nearest(times, times[end_index] + duration)
+
+        # load the signal, sliced
+        if s_index >= 0 and s_index < e_index:
+            s = ArrayInHDF5.objects.get( id = self.signal_data )
+            signal = s.get_slice( s_index, e_index+1 )
+            times = times[ s_index : e_index+1 ]
             t_start = times[0] # compute new t_start
         else:
             raise IndexError("Index is out of range. From the values provided \
 we can't get the slice of the signal. We calculated the start index as %d and \
-end index as %d. The whole signal has %d datapoints." % (s_index, e_index, \
-len(dataslice)))
-        if downsample and downsample < len(dataslice):
-            dataslice = signal.resample(np.array(dataslice), downsample).tolist()
-            times = signal.resample(np.array(times), downsample).tolist()
-        return dataslice, times, t_start
+end index as %d. The size of the signal is %d bytes." % (s_index, e_index, \
+self.size ))
 
+        # downsampling..
+        downsample = kwargs.get('downsample', None)
+        if downsample and downsample < len(signal):
+            dataslice = spsignal.resample(signal, downsample).tolist()
+            times = spsignal.resample(times, downsample).tolist()
 
-    @apply
-    def signal():
-        def fget(self):
-            return _data_as_list(self.signal_data)
-        def fset(self, arr):
-            self.signal_data = _clean_csv(arr)
-        def fdel(self):
-            pass
-        return property(**locals())
-
-    @apply
-    def times():
-        def fget(self):
-            return _data_as_list(self.times_data)
-        def fset(self, arr):
-            self.times_data = _clean_csv(arr)
-        def fdel(self):
-            pass
-        return property(**locals())
+        return signal, times, t_start
 
     @property
     def size(self):
         return self.object_size
 
-    def save(self, *args, **kwargs):
-        # override save to keep signal size up to date
-        self.object_size = (len(self.signal) * 24) + \
-            (len(self.times) * 24)
-        super(IrSaAnalogSignal, self).save(*args, **kwargs)
-
     def full_clean(self, *args, **kwargs):
         """
         Add some validation to keep 'signal' and 'times' dimensions consistent.
         """
-        if not len(self.signal) == len(self.times):
-            raise ValidationError({"Data Inconsistent": meta_messages["data_inconsistency"]})
+        signal, times, t_start = self.signal()
+        if not len( signal ) == len( self.times ):
+            raise ValidationError({"Data Inconsistent": \
+                meta_messages["data_inconsistency"]})
         super(IrSaAnalogSignal, self).full_clean(*args, **kwargs)
 
 # 14 (of 15)
@@ -541,13 +537,23 @@ class WaveForm(BaseInfo):
     channel_index = models.IntegerField('channel_index', null=True, blank=True)
     time_of_spike = models.FloatField('time_of_spike', default=0.0) # default used when WF is related to a Spike
     time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
-    waveform_data = models.TextField('waveform_data')
+    #waveform_data = models.TextField('waveform_data')
+    waveform_data = models.IntegerField('waveform_data') # ID of the ArrayInHDF5
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
     waveform_size = models.IntegerField('waveform_size', blank=True, null=True) # in bytes, for better performance
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
     spike = models.ForeignKey(Spike, blank=True, null=True)
     metadata = "Please look at the metadata of the parent object"
 
+    def waveform(self, **kwargs):
+        """ start_index, end_index are supported """
+        start_index = kwargs.get('start_index', 0)
+        end_index = kwargs.get('end_index', 10**9)
+
+        a = ArrayInHDF5.objects.get( id = self.waveform_data )
+        return a.get_slice( start_index, end_index )
+
+    """
     @apply
     def waveform():
         def fget(self):
@@ -557,21 +563,11 @@ class WaveForm(BaseInfo):
         def fdel(self):
             pass
         return property(**locals())
-
-    def get_slice(self, start_time=None, end_time=None, start_index=None,\
-            end_index=None, duration=None, samples_count=None, downsample=None,\
-            **kwargs):
-        # FIXME Not yet implemented
-        return self.waveform, self.t_start
+    """
 
     @property
     def size(self):
         return self.waveform_size
-
-    def save(self, *args, **kwargs):
-        # override save to keep signal size up to date
-        self.waveform_size = len(self.waveform) * 24
-        super(WaveForm, self).save(*args, **kwargs)
 
 
 # data-storage models
@@ -584,15 +580,12 @@ import tables as tb
 class ArrayInHDF5(ObjectState):
     path = models.FilePathField( blank=True, max_length=100 )
 
-    class Meta:
-        abstract = True
-
     def get_slice(self, start=0, end=10**9):
         """ returns a slice of the analog signal data.
         start, end - indexes as int """
 
         with tb.openFile(self.path, 'r') as f:
-            l = list( f.getNode( '/', str(self.id) ) [ start : end ] )
+            l = f.getNode( '/', str(self.id) )[ start : end ]
         return l
 
     def save(self, *args, **kwargs):
@@ -611,11 +604,6 @@ class ArrayInHDF5(ObjectState):
 
         with tb.openFile(self.path, 'w') as f:
             c = f.createArray('/', str(self.id), data)
-
-
-class Signals(ArrayInHDF5):
-    description = " data for analog signals "
-
 
 
 # EXPERIMENTAL - MySQl and PostgreSQL back-ends for array-type data
