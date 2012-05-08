@@ -119,10 +119,11 @@ class ArrayInHDF5(Datafile):
             l = f.getNode( '/', str(self.id) )[ start : end ]
         return l
 
+    def has_array(self):
+        return self.file_type == 5
 
+    """ # deprecated
     def save(self, *args, **kwargs):
-        """ 'data' attribute with a list of datapoints and a user are expected 
-        in kwargs """
         data = kwargs.pop('data')
         super(ArrayInHDF5, self).save(*args, **kwargs) # first get an ID
 
@@ -136,6 +137,7 @@ class ArrayInHDF5(Datafile):
 
         with tb.openFile(self.path, 'w') as f:
             c = f.createArray('/', str(self.id), data)
+    """
 
 
 # EXPERIMENTAL - MySQl and PostgreSQL back-ends for array-type data

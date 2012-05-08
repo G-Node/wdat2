@@ -8,7 +8,7 @@ import numpy as np
 from scipy import signal as spsignal
 from fields import models as fmodels
 from state_machine.models import ObjectState, SafetyLevel
-from datafiles.models import Datafile
+from datafiles.models import Datafile, ArrayInHDF5
 from metadata.models import Section, Value
 from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options, meta_parents
 from neo_api.serializers import NEOSerializer
@@ -565,7 +565,7 @@ class WaveForm(BaseInfo):
     def waveform():
         def fget(self, **kwargs):
             """ only start_index, end_index are supported """
-            if not hasattr(self, '_waveform'):
+            if not hasattr(self, '_waveform'): # could be a trick with new slices..
 
                 start_index = kwargs.get('start_index', 0)
                 end_index = kwargs.get('end_index', 10**9)
@@ -575,8 +575,8 @@ class WaveForm(BaseInfo):
 
             return self._waveform
 
-        def fset(self, arr):
-            self._waveform = arr
+        def fset(self, ref):
+            self.waveform_data = ref
         def fdel(self):
             pass
         return property(**locals())
@@ -591,103 +591,8 @@ class WaveForm(BaseInfo):
 
     def save(self, *args, **kwargs):
         """ need to save data """
-        if hasattr(self, '_waveform'):
-            a = ArrayInHDF5()
-            a.save( data = self._waveform )
-            self.waveform_data = a.id
-            self.waveform_size = a.nbytes # update size
         super(WaveForm, self).save(*args, **kwargs)
-
-
-# data-storage models
-#===============================================================================
-
-import os
-import settings
-import tables as tb
-
-class ArrayInHDF5(ObjectState):
-    path = models.FilePathField( blank=True, max_length=100 )
-
-    def get_slice(self, start=0, end=10**9):
-        """ returns a slice of the analog signal data.
-        start, end - indexes as int """
-
-        with tb.openFile(self.path, 'r') as f:
-            l = f.getNode( '/', str(self.id) )[ start : end ]
-        return l
-
-    def save(self, *args, **kwargs):
-        """ 'data' attribute with a list of datapoints and a user are expected 
-        in kwargs """
-        data = kwargs.pop('data')
-        super(ArrayInHDF5, self).save(*args, **kwargs) # first get an ID
-
-        path = os.path.join( settings.HDF_STORAGE_ROOT, \
-            str(self.owner.username), datetime.now().strftime("%Y%m%d") )
-        if not os.path.exists(path):
-            os.makedirs(path) # make dirs if missing
-
-        self.path = os.path.join( path, str(self.id) + '.h5' )
-        super(ArrayInHDF5, self).save(*args, **kwargs) # save the path
-
-        with tb.openFile(self.path, 'w') as f:
-            c = f.createArray('/', str(self.id), data)
-
-
-# EXPERIMENTAL - MySQl and PostgreSQL back-ends for array-type data
-
-class Data1DField(TextField):
-    description = "1D array stored as float[] in PostgreSQL"
-
-    def __init__(self, *args, **kwargs):
-        super(Data1DField, self).__init__(*args, **kwargs)
-
-    def db_type(self, connection):
-        if connection.settings_dict['ENGINE'] == 'django.db.backends.mysql':
-            return 'longtext'
-        else: # PostgreSQL, others are not supported
-            return 'float[]'
-
-    def get_prep_value(self, value):
-        """ we expect value as a 'list' object from JSON. A list is given as the
-        function output too. Some performance related test scripts are located 
-        in performance.py file """
-
-        # 1 loops, best of 3: 3.49 s per loop
-        if settings.DATABASE_ENGINE == 'postgresql_psycopg2':
-            valstr = str(value)
-            return "{" + valstr[ 1 : len(valstr) - 1 ] + "}"
-
-        else:
-            return ", ".join([str(x)[:12] for x in value])
-
-
-class Data1D(models.Model):
-    """ abstract class to handle 1D array in the database """
-    data = Data1DField('data')
-
-    class Meta:
-        abstract = True
-
-
-class ArrayInSQL(Data1D):
-    """ analogsignal data array handler in SQL backend (MySQL/PostgreSQL) """
-
-    def get_slice(self, start=0, end=10**9):
-        """ returns a slice of the analog signal data. start, end - integers """
-
-        db_table = self._meta.db_table
-
-        if settings.DATABASE_ENGINE == 'postgresql_psycopg2':
-            query = 'SELECT id, data[' + str(start) + ' : ' + str(end) + ']\
-                FROM ' + db_table + ' WHERE id = ' + str(self.id)
-        else: # mysql
-            query = "SELECT `id`, SUBSTRING(`data`, " + str(start) +\
-                ", " + str(end) + ") FROM `" + db_table + "`"  + ' WHERE id = '\
-                     + str(self.id)
-
-        return self.objects.raw(query)
+        self.waveform_size = self.waveform.get_slice().nbytes # update size
 
 
 # supporting functions
