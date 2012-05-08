@@ -65,11 +65,7 @@ class Serializer(PythonSerializer):
 
         # if objects have data, start to retrieve it first
         #exobj = queryset[0] # example object
-        #if exobj.obj_type in [
-        #    "analogsignal",
-        #    "irsaanalogsignal",
-        #    "spiketrain",
-        #    "waveform"]:
+        #if exobj.has_data:
             #data_ids = queryset.values_list('data_key', flat=True)
             # problem: how to retreive a slice with diff time window? hm..
             #ids[obj_id] = exobj.obj_type
@@ -146,9 +142,10 @@ class Serializer(PythonSerializer):
             if isinstance(field_value, str):
                 field_value = smart_unicode(field_value, encoding, strings_only=True)
 
-            # Handle special fields
+            # Handle special model fields
             if field_name in self.special_for_deserialization:
-                self.deserialize_special(update_kwargs, field_name, field_value, user)
+                update_kwargs = self.deserialize_special(update_kwargs, \
+                    field_name, field_value, user)
             else:
                 # Handle data/units fields
                 if self.is_data_field_json(field_name, field_value):
@@ -162,24 +159,13 @@ class Serializer(PythonSerializer):
                         m2m_data = []
 
                         for m2m in field_value: # we support both ID and permalinks
-                            if self.is_permalink(m2m):
-                                m2m_obj = self.get_by_permalink(field.rel.to, m2m)
-                            else:
-                                m2m_obj = field.rel.to.objects.get(id=m2m)
-                            if not m2m_obj.is_editable(user):
-                                raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
-                            m2m_data.append(m2m_obj)
+                            m2m_data.append( self._resolve_ref(field.rel.to, m2m, user) )
                             m2m_dict[field.name] = [int(x.id) for x in m2m_data]
 
                     # Handle FK fields (taken from django.core.Deserializer)
                     elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
                         if field_value is not None:
-                            if self.is_permalink(field_value):
-                                related = self.get_by_permalink(field.rel.to, field_value)
-                            else:
-                                related = field.rel.to.objects.get(id=field_value)
-                            if not related.is_editable(user): # permission check
-                                raise ReferenceError("Name: %s; Value: %s" % (field_name, field_value)) 
+                            related = self._resolve_ref(field.rel.to, field_value, user)
                             update_kwargs[field.name] = related # establish rel
                         else:
                             update_kwargs[field.name] = None # remove relation
@@ -212,6 +198,22 @@ class Serializer(PythonSerializer):
     def is_permalink(self, link):
         """ add more validation here? everything is a valid url.."""
         return str(link).find("http://") > -1 
+
+    def _resolve_ref(self, model, ref, user):
+        """ resolves a reference - can be permalink, ID of the object or a hash.
+        validates permissions. returns back resolved object or error """
+        if self.is_permalink( ref ):
+            obj = self.get_by_permalink( model, ref )
+        else:
+            try: # ID is provided as local_id, int
+                ref = int(ref)
+                obj = model.fetch_by_lid( id=ref, revision=user.at_revision)
+            except ValueError:
+                obj = model.fetch_by_guid( guid=ref )
+
+        if not obj.is_editable(user):
+            raise ReferenceError("Name: %s; Value: %s" % (model.__name__, ref))
+        return obj
 
     def resolve_permalink(self, obj):
         if hasattr(obj, 'get_absolute_url'):

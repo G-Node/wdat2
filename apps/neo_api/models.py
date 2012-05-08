@@ -92,6 +92,10 @@ class BaseInfo(SafetyLevel, ObjectState):
         return NEOSerializer
 
     @property
+    def has_data(self):
+        return False # no data by default
+
+    @property
     def info(self):
         raise NotImplementedError("This is an abstract class")
 
@@ -312,6 +316,10 @@ self.size ))
         return times, t_start
 
     @property
+    def has_data(self):
+        return True
+
+    @property
     def size(self):
         return int(np.array([w.size for w in self.waveform_set.all()]).sum()) +\
             self.times_size
@@ -408,6 +416,10 @@ self.sampling_rate__unit.lower(), self.t_start, self.t_start__unit.lower() ) )
         return dataslice, t_start, new_rate
 
     @property
+    def has_data(self):
+        return True
+
+    @property
     def size(self):
         return self.signal_size
 
@@ -496,6 +508,10 @@ self.size ))
         return signal, times, t_start
 
     @property
+    def has_data(self):
+        return True
+
+    @property
     def size(self):
         return self.object_size
 
@@ -545,29 +561,42 @@ class WaveForm(BaseInfo):
     spike = models.ForeignKey(Spike, blank=True, null=True)
     metadata = "Please look at the metadata of the parent object"
 
-    def waveform(self, **kwargs):
-        """ start_index, end_index are supported """
-        start_index = kwargs.get('start_index', 0)
-        end_index = kwargs.get('end_index', 10**9)
-
-        a = ArrayInHDF5.objects.get( id = self.waveform_data )
-        return a.get_slice( start_index, end_index )
-
-    """
     @apply
     def waveform():
-        def fget(self):
-            return _data_as_list(self.waveform_data)
+        def fget(self, **kwargs):
+            """ only start_index, end_index are supported """
+            if not hasattr(self, '_waveform'):
+
+                start_index = kwargs.get('start_index', 0)
+                end_index = kwargs.get('end_index', 10**9)
+
+                a = ArrayInHDF5.objects.get( id = self.waveform_data )
+                self._waveform = a.get_slice( start_index, end_index )
+
+            return self._waveform
+
         def fset(self, arr):
-            self.waveform_data = _clean_csv(arr)
+            self._waveform = arr
         def fdel(self):
             pass
         return property(**locals())
-    """
+
+    @property
+    def has_data(self):
+        return True
 
     @property
     def size(self):
         return self.waveform_size
+
+    def save(self, *args, **kwargs):
+        """ need to save data """
+        if hasattr(self, '_waveform'):
+            a = ArrayInHDF5()
+            a.save( data = self._waveform )
+            self.waveform_data = a.id
+            self.waveform_size = a.nbytes # update size
+        super(WaveForm, self).save(*args, **kwargs)
 
 
 # data-storage models

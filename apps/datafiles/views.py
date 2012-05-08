@@ -98,7 +98,7 @@ def convert(request, datafile):
         "3": convert_from_csv
     }
     if datafile.convertible:
-        method = CONVERSION_MAP[str(datafile.conversion_type)]
+        method = CONVERSION_MAP[str(datafile.file_type)]
         converted = method.delay(datafile.id)
         task_id = str(converted.task_id) # this line is required, due to short tasks
         datafile.last_task_id = task_id

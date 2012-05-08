@@ -54,6 +54,7 @@ class Datafile(SafetyLevel, ObjectState):
         (2, _('neo-io')),
         (3, _('ascii-csv')),
         (4, _('odml')),
+        (5, _('hdf5_array')),
     )
     title = models.CharField(_('name'), blank=True, max_length=200)
     caption = models.TextField(_('description'), blank=True)
@@ -63,7 +64,7 @@ class Datafile(SafetyLevel, ObjectState):
     # here we put file info extracted using neuroshare, stored as JSON
     extracted_info = models.TextField('extracted_info', blank=True, null=True, editable=False)
     # indicate whether the file is convertible using NEO / Neuroshare
-    conversion_type = models.IntegerField(_('conversion_type'), choices=FORMAT_MAP, default=0, editable=False)
+    file_type = models.IntegerField(_('file_type'), choices=FORMAT_MAP, default=0, editable=False)
     # store ID of the last Task Broker task
     last_task_id = models.CharField('last_task_id', blank=True, max_length=255, editable=False)
     # indicate whether some information was extracted from file (if archive)
@@ -99,6 +100,95 @@ class Datafile(SafetyLevel, ObjectState):
 
     @property
     def convertible(self):
-        return bool(self.conversion_type)
+        return bool(self.file_type)
 
+
+# data-storage models
+#===============================================================================
+
+import os
+import tables as tb
+
+class ArrayInHDF5(Datafile):
+
+    def get_slice(self, start=0, end=10**9):
+        """ returns a slice of the analog signal data.
+        start, end - indexes as int """
+
+        with tb.openFile(self.raw_file.path, 'r') as f:
+            l = f.getNode( '/', str(self.id) )[ start : end ]
+        return l
+
+
+    def save(self, *args, **kwargs):
+        """ 'data' attribute with a list of datapoints and a user are expected 
+        in kwargs """
+        data = kwargs.pop('data')
+        super(ArrayInHDF5, self).save(*args, **kwargs) # first get an ID
+
+        path = os.path.join( settings.HDF_STORAGE_ROOT, \
+            str(self.owner.username), datetime.now().strftime("%Y%m%d") )
+        if not os.path.exists(path):
+            os.makedirs(path) # make dirs if missing
+
+        self.path = os.path.join( path, str(self.id) + '.h5' )
+        super(ArrayInHDF5, self).save(*args, **kwargs) # save the path
+
+        with tb.openFile(self.path, 'w') as f:
+            c = f.createArray('/', str(self.id), data)
+
+
+# EXPERIMENTAL - MySQl and PostgreSQL back-ends for array-type data
+
+class Data1DField(TextField):
+    description = "1D array stored as float[] in PostgreSQL"
+
+    def __init__(self, *args, **kwargs):
+        super(Data1DField, self).__init__(*args, **kwargs)
+
+    def db_type(self, connection):
+        if connection.settings_dict['ENGINE'] == 'django.db.backends.mysql':
+            return 'longtext'
+        else: # PostgreSQL, others are not supported
+            return 'float[]'
+
+    def get_prep_value(self, value):
+        """ we expect value as a 'list' object from JSON. A list is given as the
+        function output too. Some performance related test scripts are located 
+        in performance.py file """
+
+        # 1 loops, best of 3: 3.49 s per loop
+        if settings.DATABASE_ENGINE == 'postgresql_psycopg2':
+            valstr = str(value)
+            return "{" + valstr[ 1 : len(valstr) - 1 ] + "}"
+
+        else:
+            return ", ".join([str(x)[:12] for x in value])
+
+
+class Data1D(models.Model):
+    """ abstract class to handle 1D array in the database """
+    data = Data1DField('data')
+
+    class Meta:
+        abstract = True
+
+
+class ArrayInSQL(Data1D):
+    """ analogsignal data array handler in SQL backend (MySQL/PostgreSQL) """
+
+    def get_slice(self, start=0, end=10**9):
+        """ returns a slice of the analog signal data. start, end - integers """
+
+        db_table = self._meta.db_table
+
+        if settings.DATABASE_ENGINE == 'postgresql_psycopg2':
+            query = 'SELECT id, data[' + str(start) + ' : ' + str(end) + ']\
+                FROM ' + db_table + ' WHERE id = ' + str(self.id)
+        else: # mysql
+            query = "SELECT `id`, SUBSTRING(`data`, " + str(start) +\
+                ", " + str(end) + ") FROM `" + db_table + "`"  + ' WHERE id = '\
+                     + str(self.id)
+
+        return self.objects.raw(query)
 

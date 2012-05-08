@@ -15,14 +15,14 @@ def extract_file_info(file_id):
     """ This task uses conversion libraries defined at Datafile.FORMAT_MAP to 
     extract information about a given file with neurophysiological data. Saves 
     a dict with the extracted information to the Datafile object and sets up a
-    'conversion_type' if the file is readable."""
+    'file_type' if the file is readable."""
     d = Datafile.objects.get(id=file_id) # may raise DoesNotExist
 
     # 1. try python-neuroshare
     try:
         f = ns.File(d.raw_file.path) # may raise IOerror / not able to read
         d.extracted_info = json.dumps(f._info)
-        d.conversion_type = 1 # should check other f options?
+        d.file_type = 1 # should check other f options?
         d.operations_log = (d.operations_log or "") + "python-neuroshare: validation success;\n\n"
     except (ArgumentError, DLLTypeUnknown, DLLNotFound), e:
         d.operations_log = (d.operations_log or "") + "python-neuroshare: validation failure\n" +\
@@ -38,7 +38,7 @@ def extract_file_info(file_id):
             s = line.split(",")
             arr = np.array(s, dtype=float)
         # check all lines or just wait if any line could be converted?
-        d.conversion_type = 3 # should check other f options?
+        d.file_type = 3 # should check other f options?
         d.operations_log = (d.operations_log or "") + "ascii-csv: validation successful;\n\n"
     except Exception, e: # file is not CSV float values
         d.operations_log = (d.operations_log or "") + "ascii-csv: validation failure\n" +\

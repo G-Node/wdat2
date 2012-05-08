@@ -4,6 +4,18 @@ from django.utils.translation import ugettext_lazy as _
 from friends.models import Friendship
 from datetime import datetime
 
+import pickle
+
+class CurrentRevision(models.Model):
+    """ stores actual revision number for every user """
+    user = models.ForeignKey(User, unique=True)
+    revision = models.ForeignKey(Revision)
+
+    @classmethod
+    def at_revision(self, user):
+        return self.objects.get( user = user ).revision
+
+
 class Revision(models.Model):
     """ Every user has a revision history of its objects. A new revision is
     created with every transaction (object(s) are created or modified). Every
@@ -11,15 +23,21 @@ class Revision(models.Model):
     query object from different revisions.
     """
     number = models.IntegerField(editable=False)
+    prev_revision = models.ForeignKey(self, editable=False)
     # this field contains all previous revisions as list of CSVs
     history = models.CommaSeparatedIntegerField(max_length=10000, blank=True, editable=False)
     owner = models.ForeignKey(User, editable=False)
-    date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)    
+    date_created = models.DateTimeField(default=datetime.now, editable=False)    
 
     @classmethod
-    def get_next_number(self, user):
+    def generate_next(self, user):
+        """ creates a new revision number for a given user """
         revs = self.objects.filter(owner=user)
-        return revs.aggregate( Max('number') )['number__max'] + 1
+        number = revs.aggregate( Max('number') )['number__max'] + 1
+        curr_rev  = CurrentRevision.at_revision( user )
+        rev = self.objects.create( number, curr_rev, curr_rev.history + ', ' +\
+            str(number), user )
+        return rev.number
 
 
 class ObjectState(models.Model):
@@ -29,12 +47,21 @@ class ObjectState(models.Model):
     following cycle:
 
     Active <--> Deleted -> Archived
+
+    Versioning is implemented as "full copy" mode. For every change, a new 
+    revision is created and a new version of the object and it's related objects
+    (FKs and M2Ms) are created.
     """
     STATES = (
         (10, _('Active')),
         (20, _('Deleted')),
         (30, _('Archived')),
     )
+    # global ID, equivalent to an object hash
+    guid = models.CharField(max_length=40, editable=False)
+    # local ID, unique between object versions, distinct between objects
+    local_id = models.IntegerField(editable=False)
+    revision = models.IntegerField(editable=False)
     owner = models.ForeignKey(User, editable=False)
     current_state = models.IntegerField(_('state'), choices=STATES, default=10)
     date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
@@ -42,6 +69,45 @@ class ObjectState(models.Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def last_revision(self, local_id, revision):
+        """ fetching the last revision number for a given local ID """
+        ids = [int(x) for x in revision.history.split(', ')]
+        filtered = self.objects.filter(local_id = local_id).filter(revision__in = ids))
+        return filtered.aggregate( Max('revision') )['revision__max']
+
+    @classmethod
+    def select_related(self, curr_rev):
+        """ SHOULD NOT HIT THE DATABASE """
+        local_revs = ??? # FIXME
+        return self.objects.select_related(*self._fkeys_list()).filter( revision = local_rev)
+
+    @classmethod
+    def fetch_by_lid(self, local_id, revision):
+        """ filtering by a given local id and all previous revisions, then 
+        taking the latest one. hits the Database. """
+        local_rev = self.last_revision(local_id, revision)
+        return self.objects.filter(local_id = local_id, revision = local_rev)
+
+    @classmethod
+    def fetch_by_guid(self, guid):
+        """ fetches the object by it's hash """
+        return self.objects.get( guid = guid )
+
+    def _fkeys_list(self):
+        """ list of foreign key fields of the associated model is required for
+        select_related() function of the queryset, because it does not work with
+        FK fields with null=True. """
+        return [f.name for f in self._meta.fields if isinstance(f, ForeignKey)]
+
+    def _get_new_local_id(self):
+        """ next local ID (unique between object versions) for a local type """
+        return self.objects.aggregate( Max('local_id') )['local_id__max'] + 1
+
+    def compute_hash(self):
+        """ computes the hash of itself """
+        return hashlib.sha1( pickle.dumps(self) ).hexdigest()
 
     @property
     def obj_type(self):

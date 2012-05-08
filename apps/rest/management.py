@@ -14,7 +14,7 @@ from datetime import datetime
 import settings
 import hashlib
 
-from state_machine.models import SafetyLevel, SingleAccess
+from state_machine.models import SafetyLevel, SingleAccess, CurrentRevision, Revision
 from rest.common import *
 from rest.meta import *
 
@@ -57,10 +57,11 @@ class BaseHandler(object):
         request: incoming HTTP request
         obj_id: ID of the object from request URL
         """
+        curr_rev  = CurrentRevision.at_revision( request.user )
         if request.method in self.actions.keys():
 
             if obj_id: # single object case
-                objects = self.model.objects.select_related(*self._fkeys_list()).filter(id=obj_id)
+                objects = self.model.fetch_by_lid( obj_id, curr_rev )
                 if not objects: # object not exists?
                     return NotFound(message_type="does_not_exist", request=request)
                 if request.method == 'GET': # get single object
@@ -74,7 +75,7 @@ class BaseHandler(object):
                 update = self.options.has_key('bulk_update')
                 if request.method == 'GET' or (request.method == 'POST' and update):
                     # get or bulk update, important - select related
-                    objects = self.model.objects.select_related(*self._fkeys_list())
+                    objects = self.model.select_related( curr_rev )
                     try:
                         objects = self.do_filter(request.user, objects, update)
                     except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
@@ -91,12 +92,6 @@ class BaseHandler(object):
             return self.actions[request.method](request, objects)
         else:
             return NotSupported(message_type="invalid_method", request=request)
-
-    def _fkeys_list(self):
-        """ list of foreign key fields of the associated model is required for
-        select_related() function of the queryset, because it does not work with
-        FK fields with null=True. """
-        return [f.name for f in self.model._meta.fields if isinstance(f, ForeignKey)]
 
 
     def clean_get_params(self, request):
@@ -137,6 +132,7 @@ class BaseHandler(object):
     def do_filter(self, user, objects, update=False):
         """ filter objects as per request params """
 
+        # GET params filters
         for key, value in self.options.items():
             matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
             if matched and objects:
@@ -255,18 +251,21 @@ class BaseHandler(object):
         practical reasons (no automatic JSON parsing into an object). Create and
         update have very similar functionality thus implemented as one function.
         """
-        def create_version(objects, fk_kwargs, m2m_dict=None, m2m_append=True):
+        def create_version(objects, fk_kwargs, m2m_dict):
             """ recursively create new versions of the given objects with 
             attributes given in fk_kwargs """
             for obj in objects:
                 for name, value in update_kwargs.items():
                     setattr(obj, name, value)
-                    obj.full_clean()
-                    obj.save() # creates new version with updated values
+                if not obj.local_id: # request for a new object, not a change
+                    obj.local_id = obj._get_new_local_id()
+                obj.guid = obj.compute_hash() # recompute hash 
+                obj.full_clean()
+                obj.save() # creates new version with updated values
 
                 if m2m_dict: # process m2m only after acquiring id
                     for k, v in m2m_dict.items():
-                        if m2m_append: # append to existing m2m
+                        if self.m2m_append: # append to existing m2m
                             v = [x.id for x in getattr(obj, k).all()] + \
                                 [x.id for x in m2m_data]
                         setattr(obj, k, v) # update m2m
@@ -288,8 +287,14 @@ class BaseHandler(object):
                         'id': None } # clean ids so new objects are saved
                     fk_kwargs[reverse_field.name + '_id'] = obj.id
 
+                    # metadata tagging propagates down the hierarchy by default
+                    if m2m_dict.has_key('metadata') and \
+                        self.options.has_key('cascade') and \
+                            not self.options['cascade']:
+                        tags = {'metadata': m2m_dict['metadata']}
+
                     update_fks = getattr(obj, rel_name).filter(current_state=10)
-                    create_version( objects = update_fks, fk_kwargs = fk_kwargs )
+                    create_version( objects, fk_kwargs, tags )
 
         try:
             rdata = self.clean_post_data(request._get_raw_post_data())
@@ -315,9 +320,8 @@ class BaseHandler(object):
 
             # TODO insert here the transaction begin
 
-            rev = Revision.get_next_number(request.user) # get new revision
+            rev = Revision.generate_next(request.user) # get new revision
             update_kwargs['revision'] = rev # all objects will assigned new rev
-            update_kwargs['id'] = None # clean ids so new objects are saved
 
             # recursively create updated versions of the objects
             create_version( objects=objects, fk_kwargs=update_kwargs, \
