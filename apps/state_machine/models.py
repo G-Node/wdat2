@@ -6,16 +6,6 @@ from datetime import datetime
 
 import pickle
 
-class CurrentRevision(models.Model):
-    """ stores actual revision number for every user """
-    user = models.ForeignKey(User, unique=True)
-    revision = models.ForeignKey(Revision)
-
-    @classmethod
-    def at_revision(self, user):
-        return self.objects.get( user = user ).revision
-
-
 class Revision(models.Model):
     """ Every user has a revision history of its objects. A new revision is
     created with every transaction (object(s) are created or modified). Every
@@ -23,7 +13,7 @@ class Revision(models.Model):
     query object from different revisions.
     """
     number = models.IntegerField(editable=False)
-    prev_revision = models.ForeignKey(self, editable=False)
+    prev_revision = models.ForeignKey('self', editable=False)
     # this field contains all previous revisions as list of CSVs
     history = models.CommaSeparatedIntegerField(max_length=10000, blank=True, editable=False)
     owner = models.ForeignKey(User, editable=False)
@@ -38,6 +28,16 @@ class Revision(models.Model):
         rev = self.objects.create( number, curr_rev, curr_rev.history + ', ' +\
             str(number), user )
         return rev.number
+
+
+class CurrentRevision(models.Model):
+    """ stores actual revision number for every user """
+    user = models.ForeignKey(User, unique=True)
+    revision = models.ForeignKey(Revision)
+
+    @classmethod
+    def at_revision(self, user):
+        return self.objects.get( user = user ).revision
 
 
 class ObjectState(models.Model):
@@ -74,13 +74,13 @@ class ObjectState(models.Model):
     def last_revision(self, local_id, revision):
         """ fetching the last revision number for a given local ID """
         ids = [int(x) for x in revision.history.split(', ')]
-        filtered = self.objects.filter(local_id = local_id).filter(revision__in = ids))
+        filtered = self.objects.filter(local_id = local_id).filter(revision__in = ids)
         return filtered.aggregate( Max('revision') )['revision__max']
 
     @classmethod
     def select_related(self, curr_rev):
         """ SHOULD NOT HIT THE DATABASE """
-        local_revs = ??? # FIXME
+        local_revs = None #??? # FIXME
         return self.objects.select_related(*self._fkeys_list()).filter( revision = local_rev)
 
     @classmethod

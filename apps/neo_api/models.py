@@ -580,6 +580,30 @@ class WaveForm(BaseInfo, DataObject):
         a = ArrayInHDF5.objects.get( id = self.waveform )
         return a.get_slice( start_index, end_index ) # returns array as list
 
+    """ # DEPRECATED way for handling data attribute
+    @apply
+    def waveform():
+        def fget(self, **kwargs):
+            # try to cache signal - could be a trick with new slices..
+            if not hasattr(self, '_waveform'):
+
+                start_index = kwargs.get('start_index', 0)
+                end_index = kwargs.get('end_index', 10**9)
+
+                a = ArrayInHDF5.objects.get( id = self.waveform_data )
+                self._waveform = a.get_slice( start_index, end_index )
+
+            return self._waveform
+
+        def fset(self, ref):
+            self.waveform_data = ref
+            self._waveform = self.waveform # update the waveform
+        def fdel(self):
+            pass
+        return property(**locals())
+    """
+
+
 # supporting functions
 #===============================================================================
 

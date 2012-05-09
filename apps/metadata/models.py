@@ -53,12 +53,16 @@ class Section(SafetyLevel, ObjectState):
         """ override save to set up default tree position. Default position for
         a section - the last in the list (on top or inside parent section) """
         if not self.tree_position:
+            self.tree_position = 0
+            # deprecated after versioning
+            """
             if not self.parent_section: # section on top of the hierarchy
                 sections = Section.objects.filter(owner=self.owner, parent_section=None)
             else:
                 sections = self.parent_section.section_set.all()
             last_pos = (sections.aggregate(Max('tree_position'))['tree_position__max'] or 0)
             self.tree_position = last_pos + 1
+            """
         """ one should write a validation that any self-loops are being created """
         # TODO
         super(Section, self).save(*args, **kwargs)
