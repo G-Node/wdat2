@@ -45,7 +45,7 @@ class BaseHandler(object):
         self.max_results = settings.REST_CONFIG['max_results'] # 1000
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
         self.update = True # create / update via POST
-        self.excluded_bulk_update = () # error when bulk update on these fields
+        #self.excluded_bulk_update = () # error when bulk update on these fields
 
 
     @auth_required

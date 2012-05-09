@@ -77,8 +77,6 @@ class BaseInfo(SafetyLevel, ObjectState):
     def get_absolute_url(self):
         return ('neo_object_details', [self.obj_type, str(self.id)])
 
-    def is_sliceable(self): return False
-
     class Meta:
         abstract = True
 
@@ -108,6 +106,40 @@ class BaseInfo(SafetyLevel, ObjectState):
         return 0 
 
 
+class DataObject(models.Model):
+    """ implements methods and attributes for objects containing array data """
+
+    # related data in bytes
+    data_size = models.IntegerField('data_size', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def has_data(self):
+        return True
+
+    @property
+    def size(self):
+        return self.data_size
+
+    def update_size(self):
+        """ retrieves data from file, updates size. hits the Database (1-2) """
+        s = 0
+        if hasattr(self, 'signal'):
+            s += ArrayInHDF5.objects.get( id = self.signal ).get_slice().nbytes
+        if hasattr(self, 'times'):
+            s += ArrayInHDF5.objects.get( id = self.times ).get_slice().nbytes
+        if hasattr(self, 'waveform'):
+            s += ArrayInHDF5.objects.get( id = self.waveform ).get_slice().nbytes
+        self.data_size = s
+
+    def save(self, *args, **kwargs):
+        """ need to update size """
+        self.update_size()
+        super(WaveForm, self).save(*args, **kwargs)
+
+
 # basic NEO classes
 #===============================================================================
 
@@ -127,7 +159,7 @@ class Block(BaseInfo):
         pass
 
     @property
-    def size(self):
+    def size(self): # FIXME select only current revision and state = 10
         return int(np.array([w.size for w in self.segment_set.all()]).sum())
 
 
@@ -144,7 +176,7 @@ class Segment(BaseInfo):
     block = models.ForeignKey(Block, blank=True, null=True)
 
     @property
-    def size(self):
+    def size(self): # FIXME select only current revision and state = 10
         return int(np.array([np.array([w.size for w in getattr(self, child + \
             "_set").all()]).sum() for child in meta_children["segment"]]).sum())
 
@@ -246,7 +278,7 @@ class Unit(BaseInfo):
 
 
 # 10 (of 15)
-class SpikeTrain(BaseInfo):
+class SpikeTrain(BaseInfo, DataObject):
     """
     NEO SpikeTrain @ G-Node.
     """
@@ -259,12 +291,10 @@ class SpikeTrain(BaseInfo):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
     # NEO data arrays
-    #times_data = models.TextField('times_data', blank=True) # use 'spike_times' property to get data
-    times_data = models.IntegerField('times_data', blank=True) # ID of the ArrayInHDF5
-    times__unit = fmodels.TimeUnitField('spike_data__unit', default=def_data_unit)
-    times_size = models.IntegerField('times_size', blank=True) # in bytes, for better performance
+    times = models.IntegerField('times', blank=True) # ID of the ArrayInHDF5
+    times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
 
-    def times(self, **kwargs):
+    def get_slice(self, **kwargs):
         """ implements dataslicing/downsampling. Floats/integers are expected.
         'downsample' parameter defines the new resampled resolution.  """
 
@@ -284,7 +314,7 @@ class SpikeTrain(BaseInfo):
                 s_index = e_index - samples_count
 
         # compute the boundaries if times are given
-        t = ArrayInHDF5.objects.get( id = self.times_data )
+        t = ArrayInHDF5.objects.get( id = self.times )
         times = t.get_slice() # need full array to compute the boundaries
 
         if kwargs.has_key('start_time'):
@@ -314,15 +344,14 @@ self.size ))
         if downsample and downsample < len(signal):
             times = spsignal.resample(times, downsample).tolist()
         return times, t_start
+    # overwrite the size property when waveforms are supported
 
-    @property
-    def has_data(self):
-        return True
-
+    """
     @property
     def size(self):
         return int(np.array([w.size for w in self.waveform_set.all()]).sum()) +\
             self.times_size
+    """
 
 # 11 (of 15)
 class AnalogSignalArray(BaseInfo):
@@ -343,12 +372,12 @@ class AnalogSignalArray(BaseInfo):
         pass
 
     @property
-    def size(self):
+    def size(self): # FIXME select only current revision and state = 10
         return int(np.array([w.size for w in self.analogsignal_set.all()]).sum())
 
 
 # 12 (of 15)
-class AnalogSignal(BaseInfo):
+class AnalogSignal(BaseInfo, DataObject):
     """
     NEO AnalogSignal @ G-Node.
     """
@@ -363,14 +392,14 @@ class AnalogSignal(BaseInfo):
     recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
     analogsignalarray = models.ForeignKey(AnalogSignalArray, blank=True, null=True)
     # NEO data arrays
-    #signal_data = models.TextField('signal_data') # use 'signal' property to get data
-    signal_data = models.IntegerField('signal_data') # ID of the ArrayInHDF5
+    signal = models.IntegerField('signal') # ID of the ArrayInHDF5
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     signal_size = models.IntegerField('signal_size', blank=True) # in bytes, for better performance
 
     def signal(self, **kwargs):
         """ implements dataslicing/downsampling. Floats/integers are expected.
-        'downsample' parameter defines the new resampled resolution.  """
+        'downsample' parameter defines the new resampled resolution. hits the 
+        Database """
 
         # calculate the factor to align time / sampling rate units
         factor = factor_options.get("%s%s" % (self.t_start__unit.lower(), \
@@ -399,7 +428,7 @@ class AnalogSignal(BaseInfo):
                 s_index = e_index - int(round(self.sampling_rate * duration * factor))
 
         if s_index >= 0 and s_index < e_index:
-            s = ArrayInHDF5.objects.get( id = self.signal_data )
+            s = ArrayInHDF5.objects.get( id = self.signal )
             signal = s.get_slice( s_index, e_index+1 )
             t_start += (s_index * 1.0 / self.sampling_rate * 1.0 / factor) # compute new t_start
         else:
@@ -416,14 +445,6 @@ self.sampling_rate__unit.lower(), self.t_start, self.t_start__unit.lower() ) )
         return dataslice, t_start, new_rate
 
     @property
-    def has_data(self):
-        return True
-
-    @property
-    def size(self):
-        return self.signal_size
-
-    @property
     def is_alone(self):
         """
         Indicates whether to show an object alone, even if it is organized in
@@ -433,7 +454,7 @@ self.sampling_rate__unit.lower(), self.t_start, self.t_start__unit.lower() ) )
 
 
 # 13 (of 15)
-class IrSaAnalogSignal(BaseInfo):
+class IrSaAnalogSignal(BaseInfo, DataObject):
     """
     NEO IrSaAnalogSignal @ G-Node.
     """
@@ -445,14 +466,13 @@ class IrSaAnalogSignal(BaseInfo):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
     # NEO data arrays
-    signal_data = models.IntegerField('signal_data') # ID of the ArrayInHDF5
+    signal = models.IntegerField('signal') # ID of the signal ArrayInHDF5
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
-    #times_data = models.TextField('times_data', blank=True) # use 'times' property to get data
-    times_data = models.IntegerField('signal_data')
+    times = models.IntegerField('times') # ID of the times ArrayInHDF5
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
     object_size = models.IntegerField('object_size', blank=True) # in bytes, for better performance
 
-    def signal(self, **kwargs):
+    def get_slice(self, **kwargs):
         """ implements dataslicing/downsampling. Floats/integers are expected.
         'downsample' parameter defines the new resampled resolution.  """
 
@@ -472,7 +492,7 @@ class IrSaAnalogSignal(BaseInfo):
                 s_index = e_index - samples_count
 
         # compute the boundaries if times are given
-        t = ArrayInHDF5.objects.get( id = self.times_data )
+        t = ArrayInHDF5.objects.get( id = self.times )
         times = t.get_slice() # need full array to compute the boundaries
 
         if kwargs.has_key('start_time'):
@@ -489,7 +509,7 @@ class IrSaAnalogSignal(BaseInfo):
 
         # load the signal, sliced
         if s_index >= 0 and s_index < e_index:
-            s = ArrayInHDF5.objects.get( id = self.signal_data )
+            s = ArrayInHDF5.objects.get( id = self.signal )
             signal = s.get_slice( s_index, e_index+1 )
             times = times[ s_index : e_index+1 ]
             t_start = times[0] # compute new t_start
@@ -507,19 +527,10 @@ self.size ))
 
         return signal, times, t_start
 
-    @property
-    def has_data(self):
-        return True
-
-    @property
-    def size(self):
-        return self.object_size
-
     def full_clean(self, *args, **kwargs):
-        """
-        Add some validation to keep 'signal' and 'times' dimensions consistent.
-        """
-        signal, times, t_start = self.signal()
+        """ Add some validation to keep 'signal' and 'times' dimensions 
+        consistent. """
+        signal, times, t_start = self.get_slice()
         if not len( signal ) == len( self.times ):
             raise ValidationError({"Data Inconsistent": \
                 meta_messages["data_inconsistency"]})
@@ -542,11 +553,11 @@ class Spike(BaseInfo):
     unit = models.ForeignKey(Unit, blank=True, null=True)
 
     @property
-    def size(self):
+    def size(self): # FIXME select only current revision and state = 10
         return int(np.array([w.size for w in self.waveform_set.all()]).sum())
 
 # 15 (of 15)
-class WaveForm(BaseInfo):
+class WaveForm(BaseInfo, DataObject):
     """
     Supporting class for Spikes and SpikeTrains.
     """
@@ -554,46 +565,20 @@ class WaveForm(BaseInfo):
     time_of_spike = models.FloatField('time_of_spike', default=0.0) # default used when WF is related to a Spike
     time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
     #waveform_data = models.TextField('waveform_data')
-    waveform_data = models.IntegerField('waveform_data') # ID of the ArrayInHDF5
+    waveform = models.IntegerField('waveform') # ID of the ArrayInHDF5
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
-    waveform_size = models.IntegerField('waveform_size', blank=True, null=True) # in bytes, for better performance
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
     spike = models.ForeignKey(Spike, blank=True, null=True)
     metadata = "Please look at the metadata of the parent object"
 
-    @apply
-    def waveform():
-        def fget(self, **kwargs):
-            """ only start_index, end_index are supported """
-            if not hasattr(self, '_waveform'): # could be a trick with new slices..
+    def get_slice(self, **kwargs):
+        """ only start_index, end_index are supported. hits the Database """
 
-                start_index = kwargs.get('start_index', 0)
-                end_index = kwargs.get('end_index', 10**9)
+        start_index = kwargs.get('start_index', 0)
+        end_index = kwargs.get('end_index', 10**9)
 
-                a = ArrayInHDF5.objects.get( id = self.waveform_data )
-                self._waveform = a.get_slice( start_index, end_index )
-
-            return self._waveform
-
-        def fset(self, ref):
-            self.waveform_data = ref
-        def fdel(self):
-            pass
-        return property(**locals())
-
-    @property
-    def has_data(self):
-        return True
-
-    @property
-    def size(self):
-        return self.waveform_size
-
-    def save(self, *args, **kwargs):
-        """ need to save data """
-        super(WaveForm, self).save(*args, **kwargs)
-        self.waveform_size = self.waveform.get_slice().nbytes # update size
-
+        a = ArrayInHDF5.objects.get( id = self.waveform )
+        return a.get_slice( start_index, end_index ) # returns array as list
 
 # supporting functions
 #===============================================================================

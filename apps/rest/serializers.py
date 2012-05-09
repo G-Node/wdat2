@@ -25,10 +25,6 @@ class Serializer(PythonSerializer):
     q = 'info'
 
     @property
-    def serialize_data(self):
-        return self.q == 'full' or self.q == 'data'
-
-    @property
     def serialize_attrs(self):
         return self.q == 'full' or self.q == 'info' or self.q == 'beard'
 
@@ -47,7 +43,6 @@ class Serializer(PythonSerializer):
             - 'link' - just permalink
             - 'info' - object with local attributes
             - 'beard' - object with local attributes AND foreign keys resolved
-            - 'data' - data-arrays or any high-volume data associated
             - 'full' - everything mentioned above """
             self.q = options.get("q", "info")
             self.host = options.get("permalink_host", "")
@@ -78,15 +73,20 @@ class Serializer(PythonSerializer):
                     if field.rel is None:
                         if self.selected_fields is None or field.attname in\
                             self.selected_fields:
+
                             if field.attname in self.special_for_serialization:
                                 self.serialize_special(obj, field)
+
                             elif self.is_data_field_django(obj, field):
-                                if self.serialize_data:
+                                if self.serialize_attrs:
                                     self.handle_data_field(obj, field)
+
                             elif field.attname.find("__unit") > 0:
-                                pass # ignore unit fields as they are processed above
+                                pass # ignore unit fields as already processed
+
                             elif self.serialize_attrs: # FIXME resolve choices
                                 self.handle_field(obj, field)
+
                     elif self.selected_fields is None or field.attname[:-3]\
                         in self.selected_fields:
                         self.handle_fk_field(obj, field)
