@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.models.fields import TextField
 from django.contrib.auth.models import User
 from datetime import datetime
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -394,9 +393,8 @@ class AnalogSignal(BaseInfo, DataObject):
     # NEO data arrays
     signal = models.IntegerField('signal') # ID of the ArrayInHDF5
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
-    signal_size = models.IntegerField('signal_size', blank=True) # in bytes, for better performance
 
-    def signal(self, **kwargs):
+    def get_slice(self, **kwargs):
         """ implements dataslicing/downsampling. Floats/integers are expected.
         'downsample' parameter defines the new resampled resolution. hits the 
         Database """
@@ -470,7 +468,6 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     times = models.IntegerField('times') # ID of the times ArrayInHDF5
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
-    object_size = models.IntegerField('object_size', blank=True) # in bytes, for better performance
 
     def get_slice(self, **kwargs):
         """ implements dataslicing/downsampling. Floats/integers are expected.

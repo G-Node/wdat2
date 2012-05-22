@@ -28,15 +28,29 @@ Still remaining:
 """
 
 from django.test import TestCase
-#from neo_api.models import *
-#from neo_api.tests.samples import sample_objects
-#from neo_api.json_builder import clean_attr
-#from neo_api.meta import meta_attributes
 try:
     import json
 except ImportError:
     import simplejson as json
 
 SERVER_NAME = "testserver"
+
+class TestEmpty(TestCase):
+    fixtures = ["users.json"]
+
+    def setUp(self):
+        logged_in = self.client.login(username="bob", password="pass")
+        self.assertTrue(logged_in)
+
+    def test_empty_returns_200(self):
+        """ no objects should give back 200 """
+        urls_to_test = [
+            "/metadata/section/",
+            "/metadata/property/",
+            "/metadata/value/",
+        ]
+        for url in urls_to_test:
+            response = self.client.get("/metadata/section/")
+            self.assertEqual(response.status_code, 200)
 
 

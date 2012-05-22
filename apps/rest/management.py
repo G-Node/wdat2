@@ -4,7 +4,6 @@ from django.views.decorators.http import condition
 from django.utils import simplejson as json
 from django.db import models
 from django.db.models.fields import FieldDoesNotExist
-from django.db.models.fields.related import ForeignKey
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_unicode
 
@@ -14,7 +13,7 @@ from datetime import datetime
 import settings
 import hashlib
 
-from state_machine.models import SafetyLevel, SingleAccess, CurrentRevision, Revision
+from state_machine.models import SafetyLevel, SingleAccess
 from rest.common import *
 from rest.meta import *
 
@@ -60,11 +59,12 @@ class BaseHandler(object):
         kwargs = {}
         if self.options.has_key('at_time'): # to fetch the particular version
             kwargs['at_time'] = self.options['at_time']
+
         if request.method in self.actions.keys():
 
             if obj_id: # single object case
                 objects = self.model.objects.select_related(*self.model._fkeys_list(), **kwargs)
-                objects = objects.filter(id=obj_id)
+                objects = objects.filter( local_id = obj_id )
                 if not objects: # object not exists?
                     return NotFound(message_type="does_not_exist", request=request)
                 if request.method == 'GET': # get single object
@@ -263,14 +263,17 @@ class BaseHandler(object):
                 obj.guid = obj.compute_hash() # recompute hash 
                 obj.full_clean()
 
+                now = datetime.datetime.now()
                 if not obj.local_id: # requested new object, not an update
-                    obj.local_id = obj._get_new_local_id()
+                    obj.local_id = self.model._get_new_local_id()
+                    obj.date_created = now
 
                 else: # update record with previous version, set ends_at to now()
-                    upd = obj.model.objects.filter(local_id=obj.local_id)
-                    upd.filter(ends_at__isnull=True).update( ends_at = datetime.now )
+                    upd = self.model.objects.filter( local_id = obj.local_id )
+                    upd.filter(ends_at__isnull=True).update( ends_at = now )
 
                 obj.id = None
+                obj.starts_at = now
                 obj.save() # creates new version with updated values
 
                 if m2m_dict: # process m2m only after acquiring id
@@ -279,28 +282,31 @@ class BaseHandler(object):
                             v = [x.id for x in getattr(obj, k).all()] + \
                                 [x.id for x in m2m_data]
                         setattr(obj, k, v) # update m2m
-                obj.save_m2m()
+                    obj.save_m2m()
 
                 # need to create new versions for all related FKs with the 
                 # reference to the new version of the parent
                 for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
                     rm = getattr(obj, rel_name) # parent / kid related manager
-
-                    # a reverse field should always exist
-                    reverse_field = [f for f in rm.model._meta.local_fields if \
-                        f.rel and isinstance(f.rel, models.ManyToOneRel) and \
-                        (f.rel.to.__name__.lower() == exobj.__class__.__name__.lower())][0]
-
-                    fk_kwargs = { reverse_field.name + '_id': obj.id }
-
-                    # metadata tagging propagates down the hierarchy by default
-                    if m2m_dict.has_key('metadata') and \
-                        self.options.has_key('cascade') and \
-                            not self.options['cascade']:
-                        tags = {'metadata': m2m_dict['metadata']}
-
                     update_fks = getattr(obj, rel_name).filter(current_state=10)
-                    create_version( objects, fk_kwargs, tags )
+
+                    if update_fks:
+                        # a reverse field should always exist
+                        reverse_field = [f for f in rm.model._meta.local_fields if \
+                            f.rel and isinstance(f.rel, models.ManyToOneRel) and \
+                            ( f.rel.to.__name__.lower() == obj.obj_type ) ][0]
+
+                        fk_kwargs = { reverse_field.name + '_id': obj.id }
+
+                        # metadata tagging propagates down the hierarchy by default
+                        tags = {}
+                        if m2m_dict.has_key('metadata') and \
+                            self.options.has_key('cascade') and \
+                                not self.options['cascade']:
+                            tags = {'metadata': m2m_dict['metadata']}
+
+                        # create new version for every FK child
+                        create_version( update_fks, fk_kwargs, tags )
 
         try:
             rdata = self.clean_post_data(request._get_raw_post_data())
@@ -322,13 +328,12 @@ class BaseHandler(object):
 
             # parse the request data
             update_kwargs, m2m_dict = self.serializer.deserialize(rdata, \
-                objects, user=request.user, encoding=encoding, m2m_append=self.m2m_append)
+                objects[0], user=request.user, encoding=encoding, m2m_append=self.m2m_append)
 
             # TODO insert here the transaction begin
 
             # recursively create updated versions of the objects
-            create_version( objects=objects, fk_kwargs=update_kwargs, \
-                m2m_dict=m2m_dict, m2m_append=self.m2m_append)
+            create_version( objects=objects, fk_kwargs=update_kwargs, m2m_dict=m2m_dict )
 
             # TODO insert here the transaction end
 
@@ -377,9 +382,9 @@ class BaseHandler(object):
         except FieldDoesNotExist, v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="post_data_invalid", request=request)
-        except (ValueError, TypeError), v:
-            return BadRequest(json_obj={"details": v.message}, \
-                message_type="bad_float_data", request=request)
+        #except (ValueError, TypeError), v:
+        #    return BadRequest(json_obj={"details": v.message}, \
+        #        message_type="bad_float_data", request=request)
         except ValidationError, VE:
             if hasattr(VE, 'message_dict'):
                 json_obj=VE.message_dict
@@ -387,9 +392,9 @@ class BaseHandler(object):
                 json_obj={"details": ", ".join(VE.messages)}
             return BadRequest(json_obj=json_obj, \
                 message_type="bad_parameter", request=request)
-        except (AssertionError, AttributeError), e:
-            return BadRequest(json_obj={"details": e.message}, \
-                message_type="post_data_invalid", request=request)
+        #except (AssertionError, AttributeError), e:
+        #    return BadRequest(json_obj={"details": e.message}, \
+        #        message_type="post_data_invalid", request=request)
         except (ReferenceError, ObjectDoesNotExist), e:
             return NotFound(json_obj={"details": e.message}, \
                 message_type="wrong_reference", request=request)
@@ -471,7 +476,7 @@ class ACLHandler(BaseHandler):
             return NotSupported(message_type="invalid_method", request=request)
 
         try:
-            obj = self.model.objects.get(id=id)
+            obj = self.model.objects.get(local_id=id)
         except ObjectDoesNotExist:
             return NotFound(message_type="does_not_exist", request=request)
 
@@ -508,26 +513,30 @@ class ACLHandler(BaseHandler):
 
 # REST wrapper -----------------------------------------------------------------
 
-def get_obj_etag(request, obj_id=None, handler=None, *args, **kwargs):
+def get_obj_attr(request, obj_id=None, handler=None, *args, **kwargs):
     """ computes etag for object: for the moment it is just the hash of 
     last modified """
     if not handler or not obj_id:
         return None
     try:
-        obj = handler.model.objects.get(id = obj_id)
-        return hashlib.md5(str(obj.last_modified)).hexdigest()
-    except ObjectDoesNotExist:
+        try:
+            obj_id = int( obj_id ) # local ID provided
+            obj = handler.model.objects.get( local_id = obj_id )
+            return getattr( obj, kwargs['param_name'] )
+        except ValueError: # GUID provided
+            obj = handler.model.objects.get_by_guid( obj_id )
+            return getattr( obj, kwargs['param_name'] )
+    except ObjectDoesNotExist: # do not raise error here, will be raised later
         return None
 
-def get_obj_lmodified(request, obj_id=None, handler=None, *args, **kwargs):
-    """ returns last modified """
-    if not handler or not obj_id:
-        return None
-    try:
-        obj = handler.model.objects.get(id = obj_id)
-        return obj.last_modified
-    except ObjectDoesNotExist:
-        return None
+def get_obj_lmodified(*args, **kwargs):
+    kwargs['param_name'] = 'starts_at'
+    return get_obj_attr(*args, **kwargs)
+
+def get_obj_etag(*args, **kwargs):
+    kwargs['param_name'] = 'guid'
+    return get_obj_attr(*args, **kwargs)
+
 
 @condition(etag_func=get_obj_etag, last_modified_func=get_obj_lmodified)
 def process_REST(request, obj_id=None, handler=None, *args, **kwargs):

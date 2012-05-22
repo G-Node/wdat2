@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.fields.related import ForeignKey
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
@@ -6,6 +7,7 @@ from friends.models import Friendship
 from datetime import datetime
 
 import pickle
+import hashlib
 
 
 #-------------------------------------------------------------------------------
@@ -19,29 +21,22 @@ class VersionManager(models.Manager):
 
         if kwargs.has_key('at_time'):
             at_time = kwargs['at_time']
-            qs.filter(starts_at__lte = at_time).filter(ends_at__gt = at_time)
+            qs = qs.filter(starts_at__lte = at_time).filter(ends_at__gt = at_time)
         else:
-            qs.filter(ends_at__isnull = True)
+            qs = qs.filter(ends_at__isnull = True)
 
         state = 10 # filter all 'active' objects by default
         if kwargs.has_key('current_state'): # change the filter if requested
             state = kwargs['current_state']
-        qs.filter(current_state = state)
+        qs = qs.filter(current_state = state)
 
         return qs
 
     def select_related(self, *args, **kwargs):
         return self.get_query_set( **kwargs ).select_related(*args, **kwargs)
 
-    def fetch_by_guid(self, guid):
-        """ fetches the object by it's hash """
-        qs = super(VersionManager, self).get_query_set().filter( guid = guid )
-        if qs:
-            return qs.order_by('-starts_at')[0]
-        else:
-            raise ObjectDoesNotExist('Object with with the following ID %s does\
-                not exist' % guid)
-
+    def get_by_guid(self, guid):
+        return super(VersionManager, self).get_query_set().get( guid = guid )
 
 class ObjectState(models.Model):
     """
@@ -73,8 +68,9 @@ class ObjectState(models.Model):
     #revision = models.IntegerField(editable=False) # switch on for rev-s support
     owner = models.ForeignKey(User, editable=False)
     current_state = models.IntegerField(_('state'), choices=STATES, default=10)
-    starts_at = models.DateTimeField(default=datetime.now, editable=False)
-    ends_at = models.DateTimeField(blank=True, null=True)
+    date_created = models.DateTimeField(editable=False)
+    starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
+    ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
     objects = VersionManager()
 
     class Meta:
@@ -87,9 +83,13 @@ class ObjectState(models.Model):
         FK fields with null=True. """
         return [f.name for f in self._meta.fields if isinstance(f, ForeignKey)]
 
+    @classmethod
     def _get_new_local_id(self):
         """ next local ID (unique between object versions) for a local type """
-        return self.objects.aggregate( Max('local_id') )['local_id__max'] + 1
+        max_id = self.objects.aggregate( models.Max('local_id') )['local_id__max']
+        if not max_id:
+            return 1
+        return max_id + 1
 
     def compute_hash(self):
         """ computes the hash of itself """
@@ -98,10 +98,6 @@ class ObjectState(models.Model):
     @property
     def obj_type(self):
         return self.__class__.__name__.lower()
-
-    @property
-    def date_created(self):
-        return self.starts_at
 
     def get_owner(self):
         """ required for filtering by owner in REST """

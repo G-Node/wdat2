@@ -7,6 +7,7 @@ except ImportError:
 
 from datetime import datetime
 from django.db import models
+from django.db.models.fields import TextField
 from django.contrib.auth.models import User
 from state_machine.models import SafetyLevel, ObjectState
 from django.core.files import storage
@@ -141,6 +142,7 @@ class ArrayInHDF5(Datafile):
     """
 
 
+#-------------------------------------------------------------------------------
 # EXPERIMENTAL - MySQl and PostgreSQL back-ends for array-type data
 
 class Data1DField(TextField):
