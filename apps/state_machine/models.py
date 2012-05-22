@@ -75,7 +75,7 @@ class ObjectState(models.Model):
     current_state = models.IntegerField(_('state'), choices=STATES, default=10)
     starts_at = models.DateTimeField(default=datetime.now, editable=False)
     ends_at = models.DateTimeField(blank=True, null=True)
-    objects = models.VersionManager()
+    objects = VersionManager()
 
     class Meta:
         abstract = True
