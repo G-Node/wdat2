@@ -7,50 +7,6 @@ from datetime import datetime
 
 import pickle
 
-#-------------------------------------------------------------------------------
-# Revision Management. A Draft implementation for a complex object versioning,
-# with the support of branching. Not Used at the moment. Remove abstractions
-# from the classes to move to the complex versioning.
-
-class Revision(models.Model):
-    """ Every user has a revision history of its objects. A new revision is
-    created with every transaction (object(s) are created or modified). Every
-    object has a revision number, to which it belongs. This allows to flexibly
-    query object from different revisions.
-    """
-    number = models.IntegerField(editable=False)
-    prev_revision = models.ForeignKey('self', editable=False)
-    # this field contains all previous revisions as list of CSVs
-    history = models.CommaSeparatedIntegerField(max_length=10000, blank=True, editable=False)
-    owner = models.ForeignKey(User, editable=False)
-    date_created = models.DateTimeField(default=datetime.now, editable=False)    
-
-    @classmethod
-    def generate_next(self, user):
-        """ creates a new revision number for a given user """
-        revs = self.objects.filter(owner=user)
-        number = revs.aggregate( Max('number') )['number__max'] + 1
-        curr_rev  = CurrentRevision.at_revision( user )
-        rev = self.objects.create( number, curr_rev, curr_rev.history + ', ' +\
-            str(number), user )
-        return rev.number
-
-    class Meta:
-        abstract = True
-
-
-class CurrentRevision(models.Model):
-    """ stores actual revision number for every user """
-    user = models.ForeignKey(User, unique=True)
-    revision = models.ForeignKey(Revision)
-
-    @classmethod
-    def at_revision(self, user):
-        return self.objects.get( user = user ).revision
-
-    class Meta:
-        abstract = True
-
 
 #-------------------------------------------------------------------------------
 # Base classes and their Manager. Version control is implemented on that level.
@@ -58,11 +14,12 @@ class CurrentRevision(models.Model):
 class VersionManager(models.Manager):
     """ filters objects as per provided time / active state """
 
-    def get_query_set(self, **kwargs={}):
+    def get_query_set(self, **kwargs):
         qs = super(VersionManager, self).get_query_set()
 
         if kwargs.has_key('at_time'):
-            qs.filter(starts_at__lt = kwargs('at_time').filter(ends_at__gte = kwargs('at_time'))
+            at_time = kwargs['at_time']
+            qs.filter(starts_at__lte = at_time).filter(ends_at__gt = at_time)
         else:
             qs.filter(ends_at__isnull = True)
 
