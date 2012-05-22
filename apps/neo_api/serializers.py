@@ -25,8 +25,9 @@ class NEOSerializer(Serializer):
                     attrs = {"signal": signal, "times": times, "t_start": t_start}
 
                 elif obj.obj_type == "analogsignal":
-                    signal, t_start = obj.get_slice(**self.options)
-                    attrs = {"signal": signal, "t_start": t_start}
+                    signal, t_start, new_rate = obj.get_slice(**self.options)
+                    attrs = {"signal": signal, "t_start": t_start, \
+                        "sampling_rate": new_rate}
 
                 elif obj.obj_type == "spiketrain":
                     times, t_start = obj.get_slice(**self.options)

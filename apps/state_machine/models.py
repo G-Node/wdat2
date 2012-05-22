@@ -1,10 +1,16 @@
 from django.db import models
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from friends.models import Friendship
 from datetime import datetime
 
 import pickle
+
+#-------------------------------------------------------------------------------
+# Revision Management. A Draft implementation for a complex object versioning,
+# with the support of branching. Not Used at the moment. Remove abstractions
+# from the classes to move to the complex versioning.
 
 class Revision(models.Model):
     """ Every user has a revision history of its objects. A new revision is
@@ -29,6 +35,9 @@ class Revision(models.Model):
             str(number), user )
         return rev.number
 
+    class Meta:
+        abstract = True
+
 
 class CurrentRevision(models.Model):
     """ stores actual revision number for every user """
@@ -38,6 +47,43 @@ class CurrentRevision(models.Model):
     @classmethod
     def at_revision(self, user):
         return self.objects.get( user = user ).revision
+
+    class Meta:
+        abstract = True
+
+
+#-------------------------------------------------------------------------------
+# Base classes and their Manager. Version control is implemented on that level.
+
+class VersionManager(models.Manager):
+    """ filters objects as per provided time / active state """
+
+    def get_query_set(self, **kwargs={}):
+        qs = super(VersionManager, self).get_query_set()
+
+        if kwargs.has_key('at_time'):
+            qs.filter(starts_at__lt = kwargs('at_time').filter(ends_at__gte = kwargs('at_time'))
+        else:
+            qs.filter(ends_at__isnull = True)
+
+        state = 10 # filter all 'active' objects by default
+        if kwargs.has_key('current_state'): # change the filter if requested
+            state = kwargs['current_state']
+        qs.filter(current_state = state)
+
+        return qs
+
+    def select_related(self, *args, **kwargs):
+        return self.get_query_set( **kwargs ).select_related(*args, **kwargs)
+
+    def fetch_by_guid(self, guid):
+        """ fetches the object by it's hash """
+        qs = super(VersionManager, self).get_query_set().filter( guid = guid )
+        if qs:
+            return qs.order_by('-starts_at')[0]
+        else:
+            raise ObjectDoesNotExist('Object with with the following ID %s does\
+                not exist' % guid)
 
 
 class ObjectState(models.Model):
@@ -51,6 +97,11 @@ class ObjectState(models.Model):
     Versioning is implemented as "full copy" mode. For every change, a new 
     revision is created and a new version of the object and it's related objects
     (FKs and M2Ms) are created.
+
+    There are three types of IDs:
+    - 'id' field - automatically created by Django and used for FKs and JOINs
+    - 'guid' - a hash of an object, used as unique global object identifier
+    - 'local_id' - object ID invariant across object versions
     """
     STATES = (
         (10, _('Active')),
@@ -60,41 +111,19 @@ class ObjectState(models.Model):
     # global ID, equivalent to an object hash
     guid = models.CharField(max_length=40, editable=False)
     # local ID, unique between object versions, distinct between objects
+    # local ID + starts_at basically making a PK
     local_id = models.IntegerField(editable=False)
-    revision = models.IntegerField(editable=False)
+    #revision = models.IntegerField(editable=False) # switch on for rev-s support
     owner = models.ForeignKey(User, editable=False)
     current_state = models.IntegerField(_('state'), choices=STATES, default=10)
-    date_created = models.DateTimeField(_('date created'), default=datetime.now, editable=False)
-    last_modified = models.DateTimeField(auto_now=True) # Resp. H: Last-modified
+    starts_at = models.DateTimeField(default=datetime.now, editable=False)
+    ends_at = models.DateTimeField(blank=True, null=True)
+    objects = models.VersionManager()
 
     class Meta:
         abstract = True
 
     @classmethod
-    def last_revision(self, local_id, revision):
-        """ fetching the last revision number for a given local ID """
-        ids = [int(x) for x in revision.history.split(', ')]
-        filtered = self.objects.filter(local_id = local_id).filter(revision__in = ids)
-        return filtered.aggregate( Max('revision') )['revision__max']
-
-    @classmethod
-    def select_related(self, curr_rev):
-        """ SHOULD NOT HIT THE DATABASE """
-        local_revs = None #??? # FIXME
-        return self.objects.select_related(*self._fkeys_list()).filter( revision = local_rev)
-
-    @classmethod
-    def fetch_by_lid(self, local_id, revision):
-        """ filtering by a given local id and all previous revisions, then 
-        taking the latest one. hits the Database. """
-        local_rev = self.last_revision(local_id, revision)
-        return self.objects.filter(local_id = local_id, revision = local_rev)
-
-    @classmethod
-    def fetch_by_guid(self, guid):
-        """ fetches the object by it's hash """
-        return self.objects.get( guid = guid )
-
     def _fkeys_list(self):
         """ list of foreign key fields of the associated model is required for
         select_related() function of the queryset, because it does not work with
@@ -113,6 +142,10 @@ class ObjectState(models.Model):
     def obj_type(self):
         return self.__class__.__name__.lower()
 
+    @property
+    def date_created(self):
+        return self.starts_at
+
     def get_owner(self):
         """ required for filtering by owner in REST """
         return self.owner
@@ -126,12 +159,8 @@ class ObjectState(models.Model):
         self.save()
 
     def move_to_archive(self):
-        try:
-            self.current_state = 30
-            self.save()
-        except BaseException:
-            raise KeyError("Object can't be moved to archive. Check \
-                dependencies or it's a developer issue.")
+        self.current_state = 30
+        self.save()
 
     def is_active(self):
         return self.current_state == 10

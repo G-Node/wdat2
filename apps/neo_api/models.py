@@ -137,7 +137,7 @@ class DataObject(models.Model):
     def save(self, *args, **kwargs):
         """ need to update size """
         self.update_size()
-        super(WaveForm, self).save(*args, **kwargs)
+        super(DataObject, self).save(*args, **kwargs)
 
 
 # basic NEO classes

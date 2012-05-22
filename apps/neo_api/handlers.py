@@ -7,6 +7,8 @@ from rest.common import Success
 
 import settings
 
+# FIXME reqrite all filters below to include versioning
+
 class NEOHandler(BaseHandler):
     """ add some specific filtering to the base Handler """
 
@@ -94,7 +96,7 @@ class MetadataHandler(BaseHandler):
 
 #-------------------------------------------------------------------------------
 # Here is an alternative of DataHandler, streaming files to a response in chunks
-#-------------------------------------------------------------------------------
+# currently not used due to the descision to have files containing data arrays.
 
 class DataHandler(BaseHandler):
     """ Handles binary Data responses for a single data-object, like 

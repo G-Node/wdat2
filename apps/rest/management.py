@@ -57,11 +57,14 @@ class BaseHandler(object):
         request: incoming HTTP request
         obj_id: ID of the object from request URL
         """
-        curr_rev  = CurrentRevision.at_revision( request.user )
+        kwargs = {}
+        if self.options.has_key('at_time'): # to fetch the particular version
+            kwargs['at_time'] = self.options['at_time']
         if request.method in self.actions.keys():
 
             if obj_id: # single object case
-                objects = self.model.fetch_by_lid( obj_id, curr_rev )
+                objects = self.model.objects.select_related(*self.model._fkeys_list(), **kwargs)
+                objects = objects.filter(id=obj_id)
                 if not objects: # object not exists?
                     return NotFound(message_type="does_not_exist", request=request)
                 if request.method == 'GET': # get single object
@@ -75,7 +78,7 @@ class BaseHandler(object):
                 update = self.options.has_key('bulk_update')
                 if request.method == 'GET' or (request.method == 'POST' and update):
                     # get or bulk update, important - select related
-                    objects = self.model.select_related( curr_rev )
+                    objects = self.model.objects.select_related(*self.model._fkeys_list(), **kwargs)
                     try:
                         objects = self.do_filter(request.user, objects, update)
                     except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
@@ -255,12 +258,19 @@ class BaseHandler(object):
             """ recursively create new versions of the given objects with 
             attributes given in fk_kwargs """
             for obj in objects:
-                for name, value in update_kwargs.items():
+                for name, value in fk_kwargs.items():
                     setattr(obj, name, value)
-                if not obj.local_id: # request for a new object, not a change
-                    obj.local_id = obj._get_new_local_id()
                 obj.guid = obj.compute_hash() # recompute hash 
                 obj.full_clean()
+
+                if not obj.local_id: # requested new object, not an update
+                    obj.local_id = obj._get_new_local_id()
+
+                else: # update record with previous version, set ends_at to now()
+                    upd = obj.model.objects.filter(local_id=obj.local_id)
+                    upd.filter(ends_at__isnull=True).update( ends_at = datetime.now )
+
+                obj.id = None
                 obj.save() # creates new version with updated values
 
                 if m2m_dict: # process m2m only after acquiring id
@@ -278,14 +288,10 @@ class BaseHandler(object):
 
                     # a reverse field should always exist
                     reverse_field = [f for f in rm.model._meta.local_fields if \
-                        f.rel and \
-                        isinstance(f.rel, models.ManyToOneRel) and \
+                        f.rel and isinstance(f.rel, models.ManyToOneRel) and \
                         (f.rel.to.__name__.lower() == exobj.__class__.__name__.lower())][0]
 
-                    fk_kwargs = { # only change parent and revision number
-                        'revision': rev, # all FKs should have the same revision
-                        'id': None } # clean ids so new objects are saved
-                    fk_kwargs[reverse_field.name + '_id'] = obj.id
+                    fk_kwargs = { reverse_field.name + '_id': obj.id }
 
                     # metadata tagging propagates down the hierarchy by default
                     if m2m_dict.has_key('metadata') and \
@@ -320,17 +326,14 @@ class BaseHandler(object):
 
             # TODO insert here the transaction begin
 
-            rev = Revision.generate_next(request.user) # get new revision
-            update_kwargs['revision'] = rev # all objects will assigned new rev
-
             # recursively create updated versions of the objects
             create_version( objects=objects, fk_kwargs=update_kwargs, \
                 m2m_dict=m2m_dict, m2m_append=self.m2m_append)
 
             # TODO insert here the transaction end
 
-            # here is an alternative how to make updates in bulk (faster but no
-            # versioning)
+            # here is an alternative how to make updates in bulk, which works 
+            # faster but does not support versioning.
             """
             if len(obj) > 1: # bulk update, obj is QuerySet
                 obj_ids = [int(x[0]) for x in obj.values_list('pk')] # ids of selected objects
@@ -569,5 +572,20 @@ def owner_filter(objects, value, user):
     return objects.filter(owner=u)
 
 
+#-------------------------------------------------------------------------------
+# Trigger could be also used for versions update (sets ends_at to now()) when
+# other than MySQL database is used
 
+"""
+DELIMITER $$
 
+CREATE TRIGGER update_ends_at BEFORE INSERT ON test
+FOR EACH ROW BEGIN
+    UPDATE test AS a
+    INNER JOIN (
+        SELECT id FROM test WHERE local_id = NEW.local_id AND ends_at IS NULL
+    ) b ON a.id = b.id SET a.ends_at = current_timestamp;
+END$$
+
+DELIMITER ;
+"""

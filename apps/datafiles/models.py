@@ -102,6 +102,9 @@ class Datafile(SafetyLevel, ObjectState):
     def convertible(self):
         return bool(self.file_type)
 
+    @property
+    def has_array(self):
+        return self.file_type == 5
 
 # data-storage models
 #===============================================================================
@@ -119,8 +122,6 @@ class ArrayInHDF5(Datafile):
             l = f.getNode( '/', str(self.id) )[ start : end ]
         return l
 
-    def has_array(self):
-        return self.file_type == 5
 
     """ # deprecated
     def save(self, *args, **kwargs):

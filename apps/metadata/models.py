@@ -79,28 +79,7 @@ class Section(SafetyLevel, ObjectState):
 
     @property
     def sections(self):
-        return self.section_set.filter(current_state=10).order_by("tree_position")
-
-    def get_tree(self, id_only=False):
-        """ returns section with its children as lists tree """
-        sec_tree = []
-        sec_tree.append(self.id)
-        if not id_only:
-            sec_tree.append(self.name)
-        for section in self.sections:
-            sec_tree.append(section.get_tree(id_only))
-        return sec_tree
-
-    def get_tree_JSON(self):
-        """ tree of sections as JSON """
-        sec_tree = '"' + str(self.id) + '": { "ids": "'
-        for section in self.sections:
-            sec_tree += str(section.id) + ', '
-        sec_tree += '", '
-        for section in self.sections:
-            sec_tree += section.get_tree_JSON()
-        sec_tree += '}, '
-        return sec_tree
+        return self.section_set.filter(current_state=10).order_by("-tree_position")
 
     def get_properties(self): # returns all active properties
         return self.property_set.filter(current_state=10)	    
@@ -165,10 +144,6 @@ class Section(SafetyLevel, ObjectState):
                     res_tree.append(new_section.copy_section(sec, sec.tree_position))
         return res_tree
 
-    def increase_tree_pos(self):
-        self.tree_position += 1
-        self.save()
-
     def _get_next_tree_pos(self):
         """ Returns the next free index "inside" self. """
         if self.sections:
@@ -198,12 +173,6 @@ class Property(SafetyLevel, ObjectState):
     @models.permalink
     def get_absolute_url(self):
         return ('property_details', [str(self.id)])
-
-    #def is_accessible(self, user):
-    #    return self.section.is_accessible(user)
-
-    #def is_editable(self, user):
-    #    return self.section.is_editable(user)
 
     def does_belong_to(self, user):
         """ Defines whether this property belongs to a certain user. """
@@ -245,11 +214,5 @@ class Value(SafetyLevel, ObjectState):
     @property
     def default_serializer(self):
         return ValueSerializer
-
-    #def is_accessible(self, user):
-    #    return self.parent_property.is_accessible(user)
-
-    #def is_editable(self, user):
-    #    return self.parent_property.is_editable(user)
 
 
