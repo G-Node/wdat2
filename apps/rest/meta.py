@@ -43,6 +43,7 @@ meta_messages = {
     "task_started": "The task has been started.",
     "x_progress_missing": "You must provide X-Progress-ID header or query param.",
     "wrong_index": "Some of the indexes provided are could not be evaluated.",
+    "no_hdf5_array": "This file has no hdf5 array in the root, use 'download' operation to download the file.",
 }
 
 meta_objects = ("block", "segment", "event", "eventarray", "epoch", "epocharray", \
@@ -130,16 +131,17 @@ request_params_cleaner = {
     'samples_count': lambda x: int(x), # may raise ValueError
     'downsample': lambda x: int(x), # may raise ValueError
 
-    # data (NEO) group
-    'section': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
-    'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
-    'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    # data (NEO) group - enable TODO
+    #'section': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    #'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
+    #'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'datafile': lambda x: int(x), # may raise UnicodeEncodeError?
 
     # functional group
     'm2m_append':  lambda x: bool(int(x)), # may raise ValueError
 
     # common
+    'fk_mode': lambda x: int(x), # may raise ValueError
     'bulk_update': lambda x: bool(int(x)), # may raise ValueError
     'visibility':  lambda x: visibility_options[x], # may raise IndexError
     'top':  lambda x: top_options[x], # may raise IndexError

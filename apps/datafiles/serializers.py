@@ -10,7 +10,7 @@ class FileSerializer(Serializer):
 
     def serialize_special(self, obj, field):
         """ do not serialize raw_file """
-        self._current[field.attname] = field.path
+        self._current['size'] = obj.hsize
 
     def deserialize_special(self, obj, field_name, field_value, user):
         """ do not process raw_file field """

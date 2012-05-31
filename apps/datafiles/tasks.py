@@ -4,6 +4,7 @@ from celery.decorators import task
 
 import neuroshare as ns
 import numpy as np
+import tables as tb
 from neuroshare.Library import ArgumentError, DLLTypeUnknown, DLLNotFound
 try:
     import json
@@ -16,7 +17,7 @@ def extract_file_info(file_id):
     extract information about a given file with neurophysiological data. Saves 
     a dict with the extracted information to the Datafile object and sets up a
     'file_type' if the file is readable."""
-    d = Datafile.objects.get(id=file_id) # may raise DoesNotExist
+    d = Datafile.objects.get( id=file_id ) # may raise DoesNotExist
 
     # 1. try python-neuroshare
     try:
@@ -49,6 +50,22 @@ def extract_file_info(file_id):
     # 4. try odML
     # TODO
         
+    # 5. try HDF5 with array at root[0]
+    try:
+        with tb.openFile(d.raw_file.path, 'r') as f:
+            l = np.array( f.listNodes( "/" )[0] )
+            accepted_dtypes = [
+                np.array([], dtype='float64').dtype, 
+                np.array([], dtype='float32').dtype ]
+            if l.dtype in accepted_dtypes:
+                d.file_type = 5
+                d.operations_log = (d.operations_log or "") + "hdf5-array: validation successful;\n\n"
+            else:
+                raise TypeError
+    except Exception, e: # file is not CSV float values
+        d.operations_log = (d.operations_log or "") + "hdf5-array: validation failure\n" +\
+            e.message + ";\n\n"
+
     # add other file validators here
 
     d.save()

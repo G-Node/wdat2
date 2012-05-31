@@ -43,7 +43,7 @@ class TestEmpty(TestCase):
         self.assertTrue(logged_in)
 
     def test_empty_returns_200(self):
-        """ no objects should give back 200 """
+        """ if no object exists - should give back 200 """
         urls_to_test = [
             "/metadata/section/",
             "/metadata/property/",

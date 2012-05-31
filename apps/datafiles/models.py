@@ -16,7 +16,13 @@ from friends.models import Friendship
 from tagging.fields import TagField
 from django.utils.translation import ugettext_lazy as _
 from metadata.models import Section
+from scipy import signal as spsignal
+
 import settings
+
+import os
+import tables as tb
+
 
 def make_upload_path(self, filename):
     """
@@ -57,33 +63,37 @@ class Datafile(SafetyLevel, ObjectState):
         (4, _('odml')),
         (5, _('hdf5_array')),
     )
-    title = models.CharField(_('name'), blank=True, max_length=200)
-    caption = models.TextField(_('description'), blank=True)
+    title = models.CharField( 'name', blank=True, max_length=200 )
+    caption = models.TextField( 'description', blank=True)
     section = models.ForeignKey(Section, blank=True, null=True)
-    raw_file = models.FileField(_('data file'), storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
-    tags = TagField(_('keywords'))
+    raw_file = models.FileField( 'raw_file', storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
+    tags = TagField( 'tags' )
     # here we put file info extracted using neuroshare, stored as JSON
-    extracted_info = models.TextField('extracted_info', blank=True, null=True, editable=False)
+    extracted_info = models.TextField( 'extracted_info', blank=True, null=True, editable=False )
     # indicate whether the file is convertible using NEO / Neuroshare
-    file_type = models.IntegerField(_('file_type'), choices=FORMAT_MAP, default=0, editable=False)
+    file_type = models.IntegerField( 'file_type', choices=FORMAT_MAP, default=0, editable=False )
     # store ID of the last Task Broker task
-    last_task_id = models.CharField('last_task_id', blank=True, max_length=255, editable=False)
+    last_task_id = models.CharField( 'last_task_id', blank=True, max_length=255, editable=False )
     # indicate whether some information was extracted from file (if archive)
-    operations_log = models.TextField('operations_log', blank=True, null=True, editable=False)
+    operations_log = models.TextField( 'operations_log', blank=True, null=True, editable=False )
 
     def __unicode__(self):
         return self.title
 
+    @models.permalink
     def get_absolute_url(self):
-        return ("datafile_details", [self.pk])
-    get_absolute_url = models.permalink(get_absolute_url)
+        return ("datafile_details", [self.local_id])
 
     def get_owner(self):
         return self.owner
 
     @property
     def size(self):
-        return filesizeformat(self.raw_file.size)
+        return self.raw_file.size
+
+    @property
+    def hsize(self):
+        return filesizeformat(self.size)
 
     @property
     def info(self):
@@ -101,30 +111,34 @@ class Datafile(SafetyLevel, ObjectState):
 
     @property
     def convertible(self):
-        return bool(self.file_type)
+        return not ( self.file_type == 0 or self.file_type == 5 )
 
     @property
     def has_array(self):
         return self.file_type == 5
 
-# data-storage models
-#===============================================================================
-
-import os
-import tables as tb
-
-class ArrayInHDF5(Datafile):
-
-    def get_slice(self, start=0, end=10**9):
+    def get_slice(self, start_index=0, end_index=10**9, downsample=None, **kwargs):
         """ returns a slice of the analog signal data.
         start, end - indexes as int """
+        if not self.has_array:
+            raise TypeError("This file cannot be opened for slicing.")
 
         with tb.openFile(self.raw_file.path, 'r') as f:
-            l = f.getNode( '/', str(self.id) )[ start : end ]
-        return l
+            l = f.listNodes( "/" )[0][ start_index : end_index ]
+
+        if downsample and downsample < len( l ):
+            dataslice = spsignal.resample(l, downsample)
+
+        return l # this is a [sliced] array
 
 
-    """ # deprecated
+#-------------------------------------------------------------------------------
+# EXPERIMENTAL - MySQl and PostgreSQL back-ends for array-type data
+
+
+"""
+class ArrayInHDF5(Datafile):
+
     def save(self, *args, **kwargs):
         data = kwargs.pop('data')
         super(ArrayInHDF5, self).save(*args, **kwargs) # first get an ID
@@ -139,11 +153,7 @@ class ArrayInHDF5(Datafile):
 
         with tb.openFile(self.path, 'w') as f:
             c = f.createArray('/', str(self.id), data)
-    """
-
-
-#-------------------------------------------------------------------------------
-# EXPERIMENTAL - MySQl and PostgreSQL back-ends for array-type data
+"""
 
 class Data1DField(TextField):
     description = "1D array stored as float[] in PostgreSQL"

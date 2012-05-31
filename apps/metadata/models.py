@@ -28,9 +28,9 @@ class Section(SafetyLevel, ObjectState):
     description = models.TextField(_('description'), blank=True)
     odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
     parent_section = models.ForeignKey('self', blank=True, null=True) # link to itself to create a tree.
-    tree_position = models.IntegerField(_('tree position'), blank=True) # position in the list
+    tree_position = models.IntegerField('tree_position', blank=True) # position in the list
     # field indicates whether it is a "template" section
-    is_template = models.BooleanField(_('is template'), default=False)
+    is_template = models.BooleanField('is_template', default=False)
     # the following implements "odML vocabulary". If the section is a "template"
     # (see field above) then this is a pointer to a user, who created this 
     # default template (thus it's a personal template), and if it is "NULL" - 
@@ -42,7 +42,7 @@ class Section(SafetyLevel, ObjectState):
 
     @models.permalink
     def get_absolute_url(self):
-        return ('section_details', [str(self.id)])
+        return ('section_details', [str(self.local_id)])
 
     def does_belong_to(self, user):
         if self.owner == user:
@@ -156,15 +156,15 @@ class Property(SafetyLevel, ObjectState):
     Class represents a metadata "Property". Defines any kind of metadata 
     property and may be linked to the Section. 
     """
-    name = models.CharField(_('name'), max_length=100)
-    definition = models.TextField(_('definition'), blank=True)
-    dependency = models.CharField(_('dependency'), blank=True, max_length=1000)
-    dependency_value = models.CharField(_('dependency_value'), blank=True, max_length=1000)
-    mapping = models.CharField(_('mapping'), blank=True, max_length=1000)
-    unit = models.CharField(_('unit'), blank=True, max_length=10)
-    dtype = models.CharField(_('dtype'), blank=True, max_length=10)
-    uncertainty = models.CharField(_('uncertainty'), blank=True, max_length=10)
-    comment = models.TextField(_('comment'), blank=True)
+    name = models.CharField('name', max_length=100)
+    definition = models.TextField('definition', blank=True)
+    dependency = models.CharField('dependency', blank=True, max_length=1000)
+    dependency_value = models.CharField('dependency_value', blank=True, max_length=1000)
+    mapping = models.CharField('mapping', blank=True, max_length=1000)
+    unit = models.CharField('unit', blank=True, max_length=10)
+    dtype = models.CharField('dtype', blank=True, max_length=10)
+    uncertainty = models.CharField('uncertainty', blank=True, max_length=10)
+    comment = models.TextField('comment', blank=True)
     section = models.ForeignKey(Section)
 
     def __unicode__(self):
@@ -172,7 +172,7 @@ class Property(SafetyLevel, ObjectState):
 
     @models.permalink
     def get_absolute_url(self):
-        return ('property_details', [str(self.id)])
+        return ('property_details', [str(self.local_id)])
 
     def does_belong_to(self, user):
         """ Defines whether this property belongs to a certain user. """
@@ -202,14 +202,14 @@ class Value(SafetyLevel, ObjectState):
     """
     #FIXME add more attributes to the value
     parent_property = models.ForeignKey(Property) # can't use just property((
-    data = models.TextField(_('value'), blank=True)
+    data = models.TextField('value', blank=True)
 
     def __unicode__(self):
         return self.data
 
     @models.permalink
     def get_absolute_url(self):
-        return ('value_details', [str(self.id)])
+        return ('value_details', [str(self.local_id)])
 
     @property
     def default_serializer(self):

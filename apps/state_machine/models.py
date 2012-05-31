@@ -38,6 +38,12 @@ class VersionManager(models.Manager):
     def get_by_guid(self, guid):
         return super(VersionManager, self).get_query_set().get( guid = guid )
 
+    # TODO implement this for more flexibility
+    #def get_by_natural_key(self, **kwargs ):
+    #    return self.get(first_name=first_name, last_name=last_name)
+
+
+
 class ObjectState(models.Model):
     """
     A Simple G-Node-State base representation for other classes (e.g. Sections,
@@ -64,10 +70,10 @@ class ObjectState(models.Model):
     guid = models.CharField(max_length=40, editable=False)
     # local ID, unique between object versions, distinct between objects
     # local ID + starts_at basically making a PK
-    local_id = models.IntegerField(editable=False)
+    local_id = models.IntegerField('LID', editable=False)
     #revision = models.IntegerField(editable=False) # switch on for rev-s support
     owner = models.ForeignKey(User, editable=False)
-    current_state = models.IntegerField(_('state'), choices=STATES, default=10)
+    current_state = models.IntegerField(choices=STATES, default=10)
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
     ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
@@ -98,6 +104,12 @@ class ObjectState(models.Model):
     @property
     def obj_type(self):
         return self.__class__.__name__.lower()
+
+    def natural_key(self):
+        return {
+            "local_id": self.local_id,
+            "last_modified": self.starts_at,
+            "guid": self.guid }
 
     def get_owner(self):
         """ required for filtering by owner in REST """
@@ -132,7 +144,7 @@ class SafetyLevel(models.Model):
         (2, _('Friendly')),
         (3, _('Private')),
     )
-    safety_level = models.IntegerField(_('privacy level'), choices=SAFETY_LEVELS, default=3)
+    safety_level = models.IntegerField('privacy_level', choices=SAFETY_LEVELS, default=3)
 
     class Meta:
         abstract = True
@@ -238,11 +250,11 @@ class SingleAccess(models.Model):
         (1, _('Read-only')),
         (2, _('Edit')),
     )
-    object_id = models.IntegerField(_('object ID')) # ID of the File/Section
-    object_type = models.CharField(_('object type'), max_length=30)
+    object_id = models.IntegerField() # ID of the File/Section
+    object_type = models.CharField( max_length=30 )
     # the pair above identifies a unique object for ACL record
     access_for = models.ForeignKey(User) # with whom it is shared
-    access_level = models.IntegerField(_('access level'), choices=ACCESS_LEVELS, default=1)
+    access_level = models.IntegerField( choices=ACCESS_LEVELS, default=1 )
 
     def resolve_access_level(self, value):
         """ convert from int to str and vice versa TODO """

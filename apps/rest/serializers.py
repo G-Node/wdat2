@@ -21,7 +21,7 @@ class Serializer(PythonSerializer):
     special_for_deserialization = () # list of field names
     cascade = False
     encoding = settings.DEFAULT_CHARSET
-    use_natural_keys = True
+    use_natural_keys = 0 # default is to show permalink for FKs
     q = 'info'
 
     @property
@@ -48,7 +48,11 @@ class Serializer(PythonSerializer):
             self.host = options.get("permalink_host", "")
             self.selected_fields = options.get("fields", None)
             self.show_kids = options.get("show_kids", self.show_kids)
-            self.use_natural_keys = options.get("use_natural_keys", self.use_natural_keys)
+            """ use natural keys defines the level of FKs serialization:
+            - 1: natural key / id for non-versioned
+            - 2: local_id or just id for non-versioned objects
+            - other: permalink or just id for objects without permalink """
+            self.use_natural_keys = options.get("fk_mode", self.use_natural_keys)
 
         if not len(queryset) > 0:
             return None
@@ -70,26 +74,26 @@ class Serializer(PythonSerializer):
 
             for field in obj._meta.local_fields: # local fields / FK fields
                 if field.serialize:
-                    if field.rel is None:
-                        if self.selected_fields is None or field.attname in\
-                            self.selected_fields:
+                    if field.name in self.special_for_serialization:
+                        self.serialize_special(obj, field)
+                    else:
+                        if field.rel is None:
+                            if self.selected_fields is None or field.attname in\
+                                self.selected_fields:
 
-                            if field.attname in self.special_for_serialization:
-                                self.serialize_special(obj, field)
+                                if self.is_data_field_django(obj, field):
+                                    if self.serialize_attrs:
+                                        self.handle_data_field(obj, field)
 
-                            elif self.is_data_field_django(obj, field):
-                                if self.serialize_attrs:
-                                    self.handle_data_field(obj, field)
+                                elif field.attname.find("__unit") > 0:
+                                    pass # ignore unit fields as already processed
 
-                            elif field.attname.find("__unit") > 0:
-                                pass # ignore unit fields as already processed
+                                elif self.serialize_attrs: # FIXME resolve choices
+                                    self.handle_field(obj, field)
 
-                            elif self.serialize_attrs: # FIXME resolve choices
-                                self.handle_field(obj, field)
-
-                    elif self.selected_fields is None or field.attname[:-3]\
-                        in self.selected_fields:
-                        self.handle_fk_field(obj, field)
+                        elif self.selected_fields is None or field.attname[:-3]\
+                            in self.selected_fields:
+                            self.handle_fk_field(obj, field)
 
             if self.serialize_rel: # m2m fields
                 for field in obj._meta.many_to_many:
@@ -177,11 +181,40 @@ class Serializer(PythonSerializer):
 
         return update_kwargs, m2m_dict
 
+#-------------------------------------------------------------------------------
+# Field handlers
 
-    def handle_m2m_field(self, obj, field):
-        if field.rel.through._meta.auto_created:
-            self._current[field.name] = [self.resolve_permalink(related)
-                               for related in getattr(obj, field.name).iterator()]
+    def handle_fk_field(self, obj, field):
+        related = getattr(obj, field.name)
+        if related is not None:
+
+            """ use natural keys defines the level of FKs serialization:
+            - 1: natural key / id for non-versioned
+            - 2: permalink or just id for objects without permalink
+            - other: local_id or just id for non-versioned objects """
+
+            if self.use_natural_keys == 1 and hasattr(related, 'natural_key'):
+                related = related.natural_key()
+
+            elif self.use_natural_keys not in [1, 2] and hasattr(related, 'get_absolute_url'):
+                related = self.resolve_permalink( related )
+
+            else:
+                if field.rel.field_name == related._meta.pk.name:
+                    # Related to remote object via primary key
+
+                    # if object is versioned, return local_id
+                    if hasattr(related, 'local_id'):
+                        related = related.local_id
+
+                    else: # else just an id
+                        related = related._get_pk_val()
+                else:
+                    # Related to remote object via other field
+                    related = smart_unicode(getattr(related, field.rel.field_name), \
+                        strings_only=True)
+        self._current[field.name] = related
+
 
     def handle_data_field(self, obj, field):
         """ serialize data field """
@@ -194,48 +227,10 @@ class Serializer(PythonSerializer):
             "units": units
         }
 
-    @classmethod
-    def is_permalink(self, link):
-        """ add more validation here? everything is a valid url.."""
-        return str(link).find("http://") > -1 
-
-    def _resolve_ref(self, model, ref, user):
-        """ resolves a reference - can be permalink, ID of the object or a hash.
-        validates permissions. returns back resolved object or error """
-        if self.is_permalink( ref ):
-            obj = self.get_by_permalink( model, ref )
-        else:
-            try: # ID is provided as local_id, int
-                ref = int(ref)
-                obj = model.fetch_by_lid( id=ref, revision=user.at_revision)
-            except ValueError:
-                obj = model.fetch_by_guid( guid=ref )
-
-        if not obj.is_editable(user):
-            raise ReferenceError("Name: %s; Value: %s" % (model.__name__, ref))
-        return obj
-
-    def resolve_permalink(self, obj):
-        if hasattr(obj, 'get_absolute_url'):
-            return ''.join([self.host, obj.get_absolute_url()])
-        return smart_unicode(obj._get_pk_val(), strings_only=True)
-
-    def get_by_permalink(self, model, plink):
-        path = urlparse.urlparse(plink).path
-        if path.rfind('/') + 1 == len(path): # remove trailing slash
-            path = path[:path.rfind('/')]
-        id = path[path.rfind('/') + 1:]
-        return model.objects.get(id=id)
-
-    def end_object(self, obj):
-        serialized = {
-            "model"     : smart_unicode(obj._meta),
-            "fields"    : self._current,
-            "permalink" : self.resolve_permalink(obj)
-        }
-        self.objects.append(serialized)
-        self._current = None
-
+    def handle_m2m_field(self, obj, field):
+        if field.rel.through._meta.auto_created:
+            self._current[field.name] = [self.resolve_permalink(related)
+                               for related in getattr(obj, field.name).iterator()]
 
     def is_data_field_json(self, attr_name, value):
         """ determines if a given field has units and requires special proc."""
@@ -257,5 +252,61 @@ class Serializer(PythonSerializer):
     def deserialize_special(self, update_kwargs, field_name, field_value, user):
         """ abstract method for special fields """
         raise NotImplementedError
+
+#-------------------------------------------------------------------------------
+# supporting functions
+
+    @classmethod
+    def is_permalink(self, link):
+        """ add more validation here? everything is a valid url.."""
+        return str(link).find("http://") > -1 
+
+    def _resolve_ref(self, model, ref, user):
+        """ resolves a reference - can be permalink, ID of the object or a hash.
+        validates permissions. returns back resolved object or error """
+        if self.is_permalink( ref ):
+            obj = self.get_by_permalink( model, ref )
+        else:
+            try: # ID is provided as local_id, int
+                ref = int(ref)
+                obj = model.objects.get( local_id=ref )
+            except (ValueError, TypeError):
+                if len( ref ) == 40: # hash is provided
+                    obj = model.objects.get_by_guid( guid=ref )
+                else:
+                    raise ReferenceError( "A reference to a data source is not \
+                        valid. It must be a permalink, ID or the hash of a valid \
+                        HDF5 datafile with array in the root of the file." )
+
+        if not obj.is_editable(user):
+            raise ReferenceError("Name: %s; Value: %s" % (model.__name__, ref))
+        return obj
+
+    def resolve_permalink(self, obj, add_str = None):
+        if hasattr(obj, 'get_absolute_url'):
+            pl = ''.join([self.host, obj.get_absolute_url()])
+            # this helps to add something to the end of the URL when needed
+            if add_str: # urlparse is crap :( just add
+                pl += add_str
+            return pl
+        return smart_unicode(obj._get_pk_val(), strings_only=True)
+
+    def get_by_permalink(self, model, plink):
+        path = urlparse.urlparse(plink).path
+        if path.rfind('/') + 1 == len(path): # remove trailing slash
+            path = path[:path.rfind('/')]
+        id = path[path.rfind('/') + 1:]
+        return model.objects.get(id=id)
+
+    def end_object(self, obj):
+        serialized = {
+            "model"     : smart_unicode(obj._meta),
+            "fields"    : self._current,
+            "permalink" : self.resolve_permalink(obj)
+        }
+        self.objects.append(serialized)
+        self._current = None
+
+
 
 
