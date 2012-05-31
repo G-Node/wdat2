@@ -13,14 +13,7 @@ class NEOSerializer(Serializer):
     deserialization (deserialize_special) which will be used by REST manager for
     processing GET/POST/PUT requests. """
     special_for_deserialization = ('times', 'signal', 'waveform')
-    special_for_serialization = (
-        'times', 
-        'signal', 
-        't_start', 
-        'waveform', 
-        'signal_length', # these 3 being just excluded if null
-        'times_length', 
-        'waveform_length' )
+    special_for_serialization = ('times', 'signal', 't_start', 'waveform')
 
     def serialize_special(self, obj, field):
         """ array- fields require special serialization due to the slicing """
@@ -33,11 +26,6 @@ class NEOSerializer(Serializer):
             if downsample:
                 params += "downsample=%s&" % downsample
             return params
-
-        if field.attname in ['signal_length', 'times_length', 'waveform_length']:
-            value = getattr(obj, field.attname)
-            if value:
-                self._current[field.attname] = value
 
         if self.serialize_attrs and field.attname == 't_start':
             # all have t_start attribute, use that as a trigger

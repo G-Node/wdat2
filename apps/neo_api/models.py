@@ -109,9 +109,7 @@ class DataObject(models.Model):
 
     # related data in bytes
     data_size = models.IntegerField('data_size', blank=True, null=True)
-    signal_length = models.IntegerField(blank=True, null=True)
-    times_length = models.IntegerField(blank=True, null=True)
-    waveform_length = models.IntegerField(blank=True, null=True)
+    data_length = models.IntegerField(blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -130,8 +128,7 @@ class DataObject(models.Model):
         for attrname in ['signal', 'times', 'waveform']:
             if hasattr(self, attrname):
                 df = getattr(self, attrname)
-                l = len( df.get_slice() )
-                setattr(self, attrname + '_length', l)
+                self.data_length = len( df.get_slice() )
                 s += df.size
         self.data_size = s
 
@@ -330,7 +327,7 @@ class SpikeTrain(BaseInfo, DataObject):
             else:
                 s_index = _find_nearest(times, times[end_index] + duration)
 
-        if (e_index - s_index) < self.times_length: # slicing needed
+        if s_index > 0 or (e_index - s_index) < self.data_length: # slicing needed
             if s_index >= 0 and s_index < e_index:
                 t_start += times[s_index] # compute new t_start
             else:
@@ -425,7 +422,7 @@ class AnalogSignal(BaseInfo, DataObject):
             else:
                 s_index = e_index - int(round(self.sampling_rate * duration * factor))
 
-        if (e_index - s_index) < self.signal_length: # slicing needed
+        if s_index > 0 or (e_index - s_index) < self.data_length: # slicing needed
             if s_index >= 0 and s_index < e_index:
                 t_start += (s_index * 1.0 / self.sampling_rate * 1.0 / factor) # compute new t_start
             else:
@@ -436,8 +433,8 @@ class AnalogSignal(BaseInfo, DataObject):
     self.sampling_rate__unit.lower(), self.t_start, self.t_start__unit.lower() ) )
 
         downsample = kwargs.get('downsample', None)
-        if downsample and downsample < self.signal_length:
-            new_rate = ( float(downsample) / float( self.signal_length ) ) * self.sampling_rate
+        if downsample and downsample < self.data_length:
+            new_rate = ( float(downsample) / float( self.data_length ) ) * self.sampling_rate
 
         return self.signal, s_index, e_index + 1, downsample, t_start, new_rate
 
@@ -504,7 +501,7 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
             else:
                 s_index = _find_nearest(times, times[end_index] + duration)
 
-        if (e_index - s_index) < self.signal_length: # slicing needed
+        if s_index > 0 or (e_index - s_index) < self.data_length: # slicing needed
             if s_index >= 0 and s_index < e_index:
                 t_start += times[s_index] # compute new t_start
             else:
@@ -519,7 +516,7 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
     def full_clean(self, *args, **kwargs):
         """ Add some validation to keep 'signal' and 'times' dimensions 
         consistent. """
-        if not len( self.signal.get_slice() ) == len( self.times.get_sclie() ):
+        if not len( self.signal.get_slice() ) == len( self.times.get_slice() ):
             raise ValidationError({"Data Inconsistent": \
                 meta_messages["data_inconsistency"]})
         super(IrSaAnalogSignal, self).full_clean(*args, **kwargs)
