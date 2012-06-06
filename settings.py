@@ -163,6 +163,7 @@ INSTALLED_APPS = (
     #'dfiles',
     #'evaluations',
     'djcelery',
+    'testapp',
 )
 
 ABSOLUTE_URL_OVERRIDES = {
