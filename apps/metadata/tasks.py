@@ -2,10 +2,10 @@
 from metadata.models import Section, Property, Value
 from celery.decorators import task
 
-from apps.ext.odml.tools.xmlparser import XMLWriter, XMLReader
-from apps.ext.odml.doc import Document as odml_document
-from apps.ext.odml.section import Section as odml_section
-from apps.ext.odml.property import Property as odml_property
+from ext.odml.tools.xmlparser import XMLWriter, XMLReader
+from ext.odml.doc import Document as odml_document
+from ext.odml.section import Section as odml_section
+from ext.odml.property import Property as odml_property
 
 @task
 def import_xml(xml_file, where=None):

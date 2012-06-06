@@ -19,7 +19,8 @@ to_pythonpath = (
 for path in to_pythonpath:
     #path = os.path.abspath(os.path.join(SYSTEM_ROOT, p))
     if path not in sys.path:
-        sys.path.append(path)
+        sys.path.insert(0, path)
+        #sys.path.append(path)
 
 #os.environ['DJANGO_SETTINGS_MODULE'] = '%s.settings' % PROJECT_NAME
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'

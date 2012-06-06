@@ -276,7 +276,7 @@ class Serializer(PythonSerializer):
                 else:
                     raise ReferenceError( "A reference to a data source is not \
                         valid. It must be a permalink, ID or the hash of a valid \
-                        HDF5 datafile with array in the root of the file." )
+                        object." )
 
         if not obj.is_editable(user):
             raise ReferenceError("Name: %s; Value: %s" % (model.__name__, ref))

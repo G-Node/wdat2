@@ -116,8 +116,8 @@ class BaseHandler(object):
                         other nice filters like parent__name__contains will not
                         work because of the versioning. """
                         field = self.model._meta.get_field( k )
-                        if field.rel and isinstance(field.rel, models.ManyToOneRel):
-                            k += '__local_id'
+                        #if field.rel and isinstance(field.rel, models.ManyToOneRel):
+                        #    k += '__local_id'
                     except FieldDoesNotExist:
                         pass
                     attr_filters[smart_unicode(k)] = smart_unicode(v)
@@ -175,7 +175,7 @@ class BaseHandler(object):
         # 3. All private direct shares
         dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
             object_type=self.model.acl_type())]
-        q3 = objects.filter(id__in=dir_acc)
+        q3 = objects.filter(local_id__in=dir_acc)
 
         perm_filtered = q1 | q2 | q3
 
@@ -376,6 +376,31 @@ class BaseHandler(object):
         """ recursively create new versions of the given objects with 
         attributes given in fk_kwargs """
         for obj in objects:
+
+            # first need to create new versions for all related FKs with the 
+            # reference to the new version of the parent
+            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
+                rm = getattr(obj, rel_name) # parent / kid related manager
+                update_fks = getattr(obj, rel_name).filter(current_state=10)
+
+                if update_fks:
+                    # a reverse field should always exist
+                    reverse_field = [f for f in rm.model._meta.local_fields if \
+                        f.rel and isinstance(f.rel, models.ManyToOneRel) and \
+                        ( f.rel.to.__name__.lower() == obj.obj_type ) ][0]
+
+                    fk_kwargs = { reverse_field.name + '_id': obj.id }
+
+                    # metadata tagging propagates down the hierarchy by default
+                    tags = {}
+                    if m2m_dict.has_key('metadata') and \
+                        self.options.has_key('cascade') and \
+                            not self.options['cascade']:
+                        tags = {'metadata': m2m_dict['metadata']}
+
+                    # create new version for every FK child
+                    self.create_version( update_fks, fk_kwargs, tags )
+
             for name, value in fk_kwargs.items():
                 setattr(obj, name, value)
             obj.guid = obj.compute_hash() # recompute hash 
@@ -402,29 +427,6 @@ class BaseHandler(object):
                     setattr(obj, k, v) # update m2m
                 obj.save_m2m()
 
-            # need to create new versions for all related FKs with the 
-            # reference to the new version of the parent
-            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
-                rm = getattr(obj, rel_name) # parent / kid related manager
-                update_fks = getattr(obj, rel_name).filter(current_state=10)
-
-                if update_fks:
-                    # a reverse field should always exist
-                    reverse_field = [f for f in rm.model._meta.local_fields if \
-                        f.rel and isinstance(f.rel, models.ManyToOneRel) and \
-                        ( f.rel.to.__name__.lower() == obj.obj_type ) ][0]
-
-                    fk_kwargs = { reverse_field.name + '_id': obj.id }
-
-                    # metadata tagging propagates down the hierarchy by default
-                    tags = {}
-                    if m2m_dict.has_key('metadata') and \
-                        self.options.has_key('cascade') and \
-                            not self.options['cascade']:
-                        tags = {'metadata': m2m_dict['metadata']}
-
-                    # create new version for every FK child
-                    create_version( update_fks, fk_kwargs, tags )
 
     def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
