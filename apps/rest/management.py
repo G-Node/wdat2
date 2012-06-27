@@ -63,7 +63,7 @@ class BaseHandler(object):
         if request.method in self.actions.keys():
 
             if obj_id: # single object case
-                objects = self.model.objects.select_related(*self.model._fkeys_list(), **kwargs)
+                objects = self.model.objects.filter( **kwargs )
                 objects = objects.filter( local_id = obj_id )
                 if not objects: # object not exists?
                     return NotFound(message_type="does_not_exist", request=request)
@@ -78,7 +78,7 @@ class BaseHandler(object):
                 update = self.options.has_key('bulk_update')
                 if request.method == 'GET' or (request.method == 'POST' and update):
                     # get or bulk update, important - select related
-                    objects = self.model.objects.select_related(*self.model._fkeys_list(), **kwargs)
+                    objects = self.model.objects.filter( **kwargs )
                     try:
                         objects = self.do_filter(request.user, objects, update)
                     except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
@@ -91,6 +91,10 @@ class BaseHandler(object):
 
                 else: # create case
                     objects = None
+
+            if objects: # preselect related
+                ids = objects.values_list( "local_id" ) # 1 SQL
+                objects = self.model.objects.get_related(local_id__in=ids)[ offset: offset + max_results ]
 
             return self.actions[request.method](request, objects)
         else:
@@ -207,7 +211,7 @@ class BaseHandler(object):
         # evaluate queryset here
         objects = objects.all()[ offset: offset + max_results ]
 
-        # temporary switched off
+        # groups_of - spacing filters temporary switched off
         """
         if self.options.has_key('spacing') and self.options.has_key('groups_of'):
             spacing = self.options['spacing']

@@ -83,7 +83,7 @@ class RelatedManager( VersionManager ):
 
     def select_related(self, *args, **kwargs):
         """ should be something like this """
-        objects = self.get_query_set( **kwargs ) # one SQL request
+        objects = self.filter( **kwargs ) # one SQL request
         local_ids = [ x.local_id for x in objects ]
 
         if objects:
