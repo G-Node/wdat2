@@ -13,6 +13,40 @@ import hashlib
 #-------------------------------------------------------------------------------
 # Base classes and their Manager. Version control is implemented on that level.
 
+class FakeFKField( models.IntegerField ):
+
+    def __init__(self, *args, **kwargs):
+        if not kwargs.has_key('fk_model'):
+            raise ValueError("You should provide a Model class to initialize fake foreign key")
+        self.fk_model = kwargs.pop('fk_model')
+        super(FakeFKField, self).__init__(*args, **kwargs)
+
+
+class FakeFKManager(models.Manager):
+
+    def __init__(self, *args, **kwargs):
+        super(FakeFKManager, self).__init__()
+        self.rel_model = kwargs.pop('rel_model')
+        self.core_filters = kwargs
+
+    def get_query_set(self, **kwargs):
+        qs = self.rel_model.objects.filter( **(self.core_filters) )
+
+        if kwargs.has_key('at_time'):
+            at_time = kwargs['at_time']
+            qs = qs.filter(starts_at__lte = at_time).filter(ends_at__gt = at_time)
+            # TODO check lte and gt - wirklich?
+        else:
+            qs = qs.filter(ends_at__isnull = True)
+
+        state = 10 # filter all 'active' objects by default
+        if kwargs.has_key('current_state'): # change the filter if requested
+            state = kwargs['current_state']
+        qs = qs.filter(current_state = state)
+
+        return qs
+
+
 class VersionManager(models.Manager):
     """ filters objects as per provided time / active state """
 
@@ -32,8 +66,8 @@ class VersionManager(models.Manager):
 
         return qs
 
-    def select_related(self, *args, **kwargs):
-        return self.get_query_set( **kwargs ).select_related(*args, **kwargs)
+    def filter(self, **kwargs):
+        return super(VersionManager, self).get_query_set( **kwargs ).filter( **kwargs )
 
     def get_by_guid(self, guid):
         return super(VersionManager, self).get_query_set().get( guid = guid )
@@ -42,6 +76,73 @@ class VersionManager(models.Manager):
     #def get_by_natural_key(self, **kwargs ):
     #    return self.get(first_name=first_name, last_name=last_name)
 
+
+class RelatedManager( VersionManager ):
+    """ implements selection of the related objects in *optimized* number of SQL
+    requests """
+
+    def select_related(self, *args, **kwargs):
+        """ should be something like this """
+        objects = self.get_query_set( **kwargs ) # one SQL request
+        local_ids = [ x.local_id for x in objects ]
+
+        if objects:
+
+            # FK relations - loop over related managers / models
+            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
+                # get all related objects for all requested objects as one SQL
+                rel_manager = getattr(obj, rel_name)
+                related = rel_manager.rel_model.objects.filter( local_id__in = local_ids, **kwargs )
+                for obj in objects: # parse children into attrs
+                    setattr( obj, rel_name, related.filter( local_id = obj.local_id ) )
+
+            # FK parents - if need to resolve (URL or ...) here is the option
+            if 1 == 0:
+                # loop over parent models
+                for par_field in [ f for f in objects.model._meta.fields if \
+                    type(f) == type(FakeFKField) ]:
+                    # select all related parents of a specific type
+                    par = par_field.fk_model.objects.filter( local_id__in = local_ids, **kwargs )
+                    for obj in objects: # parse parents into attrs
+                        try:
+                            setattr( obj, par_field.name, par.get( local_id = obj.local_id ) )
+                        except ObjectDoesNotExist:
+                            setattr( obj, par_field.name, None )
+ 
+            # resolve m2ms
+            m2ms = [ f for f in dir(objects.model) if type( getattr(objects.model, f) ) == type(VersionedM2M) ]
+            for m2m_name in m2ms: # loop over names of the versioned m2m fields
+                m2m_class = getattr(objects.model, m2m_name)
+
+                # select the reverse relation field of this m2m to filter - it
+                # should be opposite FakeFKField to m2m_name, and should be
+                # unique
+                rev_name = [ f for f in m2m_class._meta.fields if not (f.name == m2m_name) ][0]
+
+                filt = {}
+                filt[ rev_name + '__in' ] = local_ids
+                # select all related m2ms of a specific type, one SQL
+                rel_m2ms = m2m_class.objects.filter( dict(filt, **kwargs) )
+
+                for obj in objects:
+                    filt = {}
+                    filt[ rev_name ] = obj.local_id
+                    setattr( obj, rev_name, rel_m2ms.filter( **filt ) )
+
+        return objects
+
+
+class VersionedM2M( models.Model ):
+    """ the abstract model is used as a connection between two objects for many 
+    to many relationship, for versioned objects instead of ManyToMany field. """
+
+    date_created = models.DateTimeField(editable=False)
+    starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
+    ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
+    objects = VersionManager()
+
+    class Meta:
+        abstract = True
 
 
 class ObjectState(models.Model):
@@ -77,7 +178,7 @@ class ObjectState(models.Model):
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
     ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
-    objects = VersionManager()
+    objects = RelatedManager()
 
     class Meta:
         abstract = True
@@ -129,6 +230,24 @@ class ObjectState(models.Model):
 
     def is_active(self):
         return self.current_state == 10
+
+    def save(self, *args, **kwargs):
+        """ implements versioning by always saving new object """
+        self.guid = self.compute_hash() # recompute hash 
+
+        now = datetime.datetime.now()
+        if not self.local_id: # saving new object, not a new version
+            self.local_id = self._get_new_local_id()
+            self.date_created = now
+
+        else: # update previous version, set ends_at to now()
+            upd = self.objects.filter( local_id = self.local_id )
+            upd.filter(ends_at__isnull=True).update( ends_at = now )
+
+        # creates new version with updated values
+        self.id = None
+        self.starts_at = now
+        super(ObjectState, self).save()
 
 
 class SafetyLevel(models.Model):
@@ -250,7 +369,7 @@ class SingleAccess(models.Model):
         (1, _('Read-only')),
         (2, _('Edit')),
     )
-    object_id = models.IntegerField() # ID of the File/Section
+    object_id = models.IntegerField() # local ID of the File/Section
     object_type = models.CharField( max_length=30 )
     # the pair above identifies a unique object for ACL record
     access_for = models.ForeignKey(User) # with whom it is shared

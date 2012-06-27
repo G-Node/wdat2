@@ -57,7 +57,7 @@ class BaseHandler(object):
         obj_id: ID of the object from request URL
         """
         kwargs = {}
-        if self.options.has_key('at_time'): # to fetch the particular version
+        if self.options.has_key('at_time'): # to fetch a particular version
             kwargs['at_time'] = self.options['at_time']
 
         if request.method in self.actions.keys():
@@ -269,13 +269,6 @@ class BaseHandler(object):
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="data_parsing_error", request=request)
 
-        if objects:
-            return_code = 200
-        else:
-            objects = [self.model()] # new object skeleton
-            objects[0].owner = request.user
-            return_code = 201
-
         try:
             encoding = getattr(request, "encoding", None) or settings.DEFAULT_CHARSET
             if self.options.has_key('m2m_append'):
@@ -287,14 +280,63 @@ class BaseHandler(object):
 
             # TODO insert here the transaction begin
 
-            # recursively create updated versions of the objects
-            self.create_version( objects=objects, fk_kwargs=update_kwargs, \
-                m2m_dict=m2m_dict )
+            if objects: # update case
+                return_code = 200
+                # TODO implement efficient bulk update?
+                for obj in objects:
+                    for name, value in fk_kwargs.items():
+                        setattr(obj, name, value)
+                    obj.full_clean()
+                    obj.save()
+
+            else: # create case
+                return_code = 201
+                objects = [ self.model.objects.create( owner = request.user, **update_kwargs ) ]
+
+            # process m2m relations separately
+            if m2m_dict:
+                local_ids = [ x.local_id for x in objects ]
+
+                for m2m_name, v in m2m_dict.items(): # v - new m2m values
+                    # preselect all existing m2ms of type m2m_name for all objs
+                    m2m_class = getattr(self.model, m2m_name)
+
+                    # select the reverse relation field of this m2m to filter - 
+                    # should be opposite FakeFKField to m2m_name, and should be
+                    # unique
+                    rev_name = [ f for f in m2m_class._meta.fields if not (f.name == m2m_name) ][0]
+
+                    filt = {}
+                    filt[ rev_name + '__in' ] = local_ids
+                    rel_m2ms = m2m_class.objects.filter( dict(filt, **kwargs) )
+                    current_ids = rel_m2ms.objects.values_list( rev_name )
+
+                    now = datetime.datetime.now()
+
+                    # close old existing m2m
+                    if not self.m2m_append: 
+                        to_close = list( set(current_ids) - set(v) )
+                        filt = {}
+                        filt[ rev_name ] = obj.local_id
+                        filt[ k + "__in" ] = to_close
+                        m2m_class.objects.filter( **filt ).update( ends_at = now )
+
+                    # create new m2m connections
+                    to_create = list( set(v) - set(current_ids) )
+                    new_rels = []
+                    for nid in to_create:
+                        attrs = {}
+                        attrs[ rev_name ] = obj.local_id
+                        attrs[ k ] = nid
+                        attrs[ "date_created" ] = now
+                        attrs[ "starts_at" ] = now
+                        new_rels.append( m2m_class( **attrs ) )
+                    m2m_class.objects.bulk_create( new_rels )
 
             # TODO insert here the transaction end
 
             # here is an alternative how to make updates in bulk, which works 
-            # faster but does not support versioning.
+            # faster but does not support versioning yet.
             """
             if len(obj) > 1: # bulk update, obj is QuerySet
                 obj_ids = [int(x[0]) for x in obj.values_list('pk')] # ids of selected objects
@@ -374,7 +416,8 @@ class BaseHandler(object):
 
     def create_version(self, objects, fk_kwargs, m2m_dict):
         """ recursively create new versions of the given objects with 
-        attributes given in fk_kwargs """
+        attributes given in fk_kwargs  - DEPRECATED"""
+        if 1: return "this function is deprecated"
         for obj in objects:
 
             # first need to create new versions for all related FKs with the 
