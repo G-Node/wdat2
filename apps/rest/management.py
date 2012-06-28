@@ -93,8 +93,17 @@ class BaseHandler(object):
                     objects = None
 
             if objects: # preselect related
-                ids = objects.values_list( "local_id" ) # 1 SQL
-                objects = self.model.objects.get_related(local_id__in=ids)[ offset: offset + max_results ]
+                offset = self.offset
+                if self.options.has_key('offset'):
+                    offset = self.options["offset"]
+
+                max_results = self.max_results
+                if self.options.has_key('max_results'):
+                    max_results = self.options["max_results"]
+
+                # here we use real ids, objects are already version-filtered
+                kwargs["id__in"] = objects.values_list( "id", flat=True ) # 1 SQL
+                objects = self.model.objects.get_related( **kwargs )[ offset: offset + max_results ]
 
             return self.actions[request.method](request, objects)
         else:
@@ -199,20 +208,12 @@ class BaseHandler(object):
 
         # offset - max_results - groups_of - spacing filters
         # create list of indexes first, then evaluate the queryset
+        # these filters temporary switched off
 
-        offset = self.offset
-        if self.options.has_key('offset'):
-            offset = self.options["offset"]
-
-        max_results = self.max_results
-        if self.options.has_key('max_results'):
-            max_results = self.options["max_results"]
-
+        """
         # evaluate queryset here
         objects = objects.all()[ offset: offset + max_results ]
 
-        # groups_of - spacing filters temporary switched off
-        """
         if self.options.has_key('spacing') and self.options.has_key('groups_of'):
             spacing = self.options['spacing']
             groups_of = self.options['groups_of']
@@ -279,25 +280,32 @@ class BaseHandler(object):
                 self.m2m_append = False
 
             # parse the request data
-            update_kwargs, m2m_dict = self.serializer.deserialize(rdata, \
+            update_kwargs, m2m_dict, fk_dict = self.serializer.deserialize(rdata, \
                 objects[0], user=request.user, encoding=encoding, m2m_append=self.m2m_append)
 
             # TODO insert here the transaction begin
 
+            # TODO implement efficient bulk update?
+
             if objects: # update case
                 return_code = 200
-                # TODO implement efficient bulk update?
                 for obj in objects:
-                    for name, value in fk_kwargs.items():
+                    # update normal attrs
+                    for name, value in update_kwargs.items():
                         setattr(obj, name, value)
                     obj.full_clean()
-                    obj.save()
 
             else: # create case
                 return_code = 201
-                objects = [ self.model.objects.create( owner = request.user, **update_kwargs ) ]
+                objects = [ self.model( owner = request.user, **update_kwargs ) ]
 
-            # process m2m relations separately
+            # update FKs in that way so the FK validation doesn't fail
+            for name, value in fk_dict.items():
+                for obj in objects:
+                    setattr(obj, name + '_id', value)
+                obj.save()
+
+            # process versioned m2m relations separately
             if m2m_dict:
                 local_ids = [ x.local_id for x in objects ]
 
@@ -310,8 +318,7 @@ class BaseHandler(object):
                     # unique
                     rev_name = [ f for f in m2m_class._meta.fields if not (f.name == m2m_name) ][0]
 
-                    filt = {}
-                    filt[ rev_name + '__in' ] = local_ids
+                    filt = dict( (rev_name + '__in', local_ids) )
                     rel_m2ms = m2m_class.objects.filter( dict(filt, **kwargs) )
                     current_ids = rel_m2ms.objects.values_list( rev_name )
 
@@ -320,9 +327,7 @@ class BaseHandler(object):
                     # close old existing m2m
                     if not self.m2m_append: 
                         to_close = list( set(current_ids) - set(v) )
-                        filt = {}
-                        filt[ rev_name ] = obj.local_id
-                        filt[ k + "__in" ] = to_close
+                        filt = dict( (rev_name, obj.local_id), (k + "__in", to_close) )
                         m2m_class.objects.filter( **filt ).update( ends_at = now )
 
                     # create new m2m connections

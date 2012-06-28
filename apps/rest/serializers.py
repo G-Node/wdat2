@@ -3,6 +3,8 @@ from django.utils.encoding import smart_unicode, is_protected_type
 from django.db import models
 from django.db import connection, transaction
 
+from state_machine.models import FakeFKField
+
 import settings
 import urlparse
 import itertools
@@ -95,16 +97,25 @@ class Serializer(PythonSerializer):
                             in self.selected_fields:
                             self.handle_fk_field(obj, field)
 
-            if self.serialize_rel: # m2m fields
+            if self.serialize_rel: # normal m2m fields
                 for field in obj._meta.many_to_many:
                     if field.serialize:
                         if self.selected_fields is None or field.attname in \
                             self.selected_fields:
                             self.handle_m2m_field(obj, field)
 
+                # versioned m2m fields
+                if hasattr( obj._meta, "versioned_m2m_mgrs" ):
+                    for mgr in obj._meta.versioned_m2m_mgrs:
+                        if self.selected_fields is None or mgr.local_field in \
+                            self.selected_fields:
+                            self.handle_versioned_m2m_field(mgr)
+
             # process specially reverse relations, like properties for section
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
 
+                # cascade is switched off
+                """
                 if self.cascade and rel_name[:-4] not in self.excluded_cascade: # cascade related object load
                     kid_model = getattr(obj, rel_name).model # below is an alternative
                     #kid_model = filter(lambda x: x.get_accessor_name() == rel_name,\
@@ -114,19 +125,20 @@ class Serializer(PythonSerializer):
                     else: serializer = self.__class__
                     self._current[rel_name] = serializer().serialize(getattr(obj, \
                         rel_name).filter(current_state=10), options=options)
+                """
 
-                elif self.show_kids and self.serialize_rel and rel_name[:-4] not\
+                if self.show_kids and self.serialize_rel and rel_name[:-4] not\
                     in self.excluded_permalink:
                     """ this is used to include some short-relatives into the 
                     serialized object, e.g. permalinks of Properties and Values 
                     into the Section """
                     children = []
-                    for child in getattr(obj, rel_name).filter(current_state=10):
+                    for child in getattr(obj, rel_name + "_data"):
                         if hasattr(child, 'get_absolute_url'):
                             children.append(''.join([self.host, child.get_absolute_url()]))
                         else:
-                            children.append(smart_unicode(child._get_pk_val()) + \
-                                ": " + smart_unicode(child._meta))
+                            children.append( smart_unicode( child.local_id ) + \
+                                ": " + smart_unicode(child._meta) )
                     if not (not children and rel_name[:-4] in self.do_not_show_if_empty):
                         self._current[rel_name] = children
 
@@ -139,7 +151,9 @@ class Serializer(PythonSerializer):
         """ parse incoming JSON into a given dicts of attributes and m2m's """
         if not encoding: encoding = self.encoding
         update_kwargs = {} # dict to collect parsed values for update
+        fk_dict = {} # dict to collect parsed FK values
         m2m_dict = {} # temporary m2m values to assign them after full_clean
+        versioned_m2m_names = model()._meta.m2m_dict.keys()
 
         # parsing attributes
         for field_name, field_value in rdata.iteritems():
@@ -155,10 +169,19 @@ class Serializer(PythonSerializer):
                 if self.is_data_field_json(field_name, field_value):
                     update_kwargs[field_name] = field_value["data"]
                     update_kwargs[field_name + "__unit"] = field_value["units"]
+
+                # Handle versioned M2M relations
+                elif field_name in versioned_m2m_names:
+                    m2m_data = []
+                    mgr = getattr( model(), field_name )
+                    for m2m in field_value: # we support both ID and permalinks
+                        m2m_data.append( self._resolve_ref(mgr.rel_model, m2m, user) )
+                        m2m_dict[ field_name ] = [int(x.local_id) for x in m2m_data]
+
                 else:
                     field = model._meta.get_field(field_name)
 
-                    # Handle M2M relations
+                    # Handle normal M2M relations
                     if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
                         m2m_data = []
 
@@ -170,16 +193,16 @@ class Serializer(PythonSerializer):
                     elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
                         if field_value is not None:
                             related = self._resolve_ref(field.rel.to, field_value, user)
-                            update_kwargs[field.name] = related # establish rel
+                            fk_dict[field.name] = related # establish rel
                         else:
-                            update_kwargs[field.name] = None # remove relation
+                            fk_dict[field.name] = None # remove relation
 
                     # handle standard fields
                     elif field.editable and not field.attname == 'id': 
                         #TODO raise error when trying to change id or date_created etc?
                         update_kwargs[field_name] = field.to_python(field_value)
 
-        return update_kwargs, m2m_dict
+        return update_kwargs, m2m_dict, fk_dict
 
 #-------------------------------------------------------------------------------
 # Field handlers
@@ -232,6 +255,10 @@ class Serializer(PythonSerializer):
             self._current[field.name] = [self.resolve_permalink(related)
                                for related in getattr(obj, field.name).iterator()]
 
+    def handle_versioned_m2m_field(self, mgr):
+        self._current[ mgr.local_field ] = [ self.resolve_permalink(related) \
+            for related in getattr(obj, mgr.local_field).iterator() ]
+
     def is_data_field_json(self, attr_name, value):
         """ determines if a given field has units and requires special proc."""
         if type(value) == type({}) and value.has_key("data") and \
@@ -267,9 +294,12 @@ class Serializer(PythonSerializer):
         if self.is_permalink( ref ):
             obj = self.get_by_permalink( model, ref )
         else:
-            try: # ID is provided as local_id, int
+            try: # ID is provided as local_id / id, int
                 ref = int(ref)
-                obj = model.objects.get( local_id=ref )
+                if hasattr(model, 'local_id'):
+                    obj = model.objects.get( local_id=ref )
+                else:
+                    obj = model.objects.get( id=ref )
             except (ValueError, TypeError):
                 if len( ref ) == 40: # hash is provided
                     obj = model.objects.get_by_guid( guid=ref )
@@ -281,6 +311,7 @@ class Serializer(PythonSerializer):
         if not obj.is_editable(user):
             raise ReferenceError("Name: %s; Value: %s" % (model.__name__, ref))
         return obj
+
 
     def resolve_permalink(self, obj, add_str = None):
         if hasattr(obj, 'get_absolute_url'):

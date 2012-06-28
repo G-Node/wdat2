@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pickle
 import hashlib
+import settings
 
 
 #-------------------------------------------------------------------------------
@@ -22,7 +23,34 @@ class FakeFKField( models.IntegerField ):
         super(FakeFKField, self).__init__(*args, **kwargs)
 
 
-class FakeFKManager(models.Manager):
+class FakeM2MManager( object ):
+
+    def __init__(self, *args, **kwargs):
+        # m2m model, local field name, reverse field name, qs (related objs)
+        required_attrs = ['parent', 'm2m_model', 'local_field', 'reverse_field']
+        for attr in required_attrs:
+            setattr( self, attr, kwargs[attr] )
+
+    @property
+    def rel_model(self):
+        """ a model of the related m2m object """
+        return getattr( self.m2m_model, self.local_field ).fk_model
+
+    """
+    def related(self):
+        filt = {}
+        filt[ self.local_field ] = self.parent.local_id
+
+        if not self.parent.end_time == None:
+            # inlude time range from parent
+            filt[ "start_time" + "__gte" ] = self.parent.start_time
+            filt[ "end_time" + "__lte" ] = self.parent.end_time
+
+        return = self.m2m_model.objects.filter( filt ) # could be more than one!
+    """
+
+"""
+class FakeFKManager( models.Manager ):
 
     def __init__(self, *args, **kwargs):
         super(FakeFKManager, self).__init__()
@@ -45,7 +73,7 @@ class FakeFKManager(models.Manager):
         qs = qs.filter(current_state = state)
 
         return qs
-
+"""
 
 class VersionManager(models.Manager):
     """ filters objects as per provided time / active state """
@@ -67,7 +95,7 @@ class VersionManager(models.Manager):
         return qs
 
     def filter(self, **kwargs):
-        return super(VersionManager, self).get_query_set( **kwargs ).filter( **kwargs )
+        return self.get_query_set( **kwargs ).filter( **kwargs )
 
     def get_by_guid(self, guid):
         return super(VersionManager, self).get_query_set().get( guid = guid )
@@ -81,53 +109,75 @@ class RelatedManager( VersionManager ):
     """ implements selection of the related objects in *optimized* number of SQL
     requests """
 
-    def select_related(self, *args, **kwargs):
-        """ should be something like this """
+    def get_related(self, *args, **kwargs):
+        """ 
+        should be something like this
+        returns a list of objects with children, not a queryset
+         """
         objects = self.filter( **kwargs ) # one SQL request
-        local_ids = [ x.local_id for x in objects ]
+        
+        # these filters, if provided, should propagate to related objects
+        timeflt = {}
+        if kwargs.has_key('at_time'):
+            timeflt['at_time'] = kwargs['at_time']
+        if kwargs.has_key('current_state'):
+            timeflt['current_state'] = kwargs['current_state']
 
         if objects:
 
-            # FK relations - loop over related managers / models
-            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
+            # versioned FK relations - loop over related managers / models
+            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(objects.model)):
+
                 # get all related objects for all requested objects as one SQL
-                rel_manager = getattr(obj, rel_name)
-                related = rel_manager.rel_model.objects.filter( local_id__in = local_ids, **kwargs )
+                rel_manager = getattr(objects.model, rel_name)
+                rel_field_name = rel_manager.related.field.name
+                rel_model = rel_manager.related.model
+
+                if 'local_id' in rel_model._meta.get_all_field_names(): # object is versioned
+                    id_attr = 'local_id'
+                else: # normal FK to a django model
+                    id_attr = 'id'
+
+                ids = [ getattr(x, id_attr) for x in objects ]
+                filt = { rel_field_name + '__in': ids }
+                related = rel_model.objects.filter( **dict(filt, **timeflt) )[:]
                 for obj in objects: # parse children into attrs
-                    setattr( obj, rel_name, related.filter( local_id = obj.local_id ) )
+                    filt = { rel_field_name: getattr(obj, id_attr) }
+                    setattr( obj, rel_name + "_data", related.filter( **filt ) )
 
-            # FK parents - if need to resolve (URL or ...) here is the option
-            if 1 == 0:
-                # loop over parent models
-                for par_field in [ f for f in objects.model._meta.fields if \
-                    type(f) == type(FakeFKField) ]:
-                    # select all related parents of a specific type
-                    par = par_field.fk_model.objects.filter( local_id__in = local_ids, **kwargs )
-                    for obj in objects: # parse parents into attrs
-                        try:
-                            setattr( obj, par_field.name, par.get( local_id = obj.local_id ) )
-                        except ObjectDoesNotExist:
-                            setattr( obj, par_field.name, None )
+            # fake FK parents - if need to resolve (URL or ...)
+            fk_fields = [ f for f in objects.model._meta.local_fields if not f.rel is None ]
+            for par_field in fk_fields:
+
+                # select all related parents of a specific type, evaluate!
+                ids = set([ getattr(x, par_field.name + "_id") for x in objects ])
+                if 'local_id' in par_field.rel.to._meta.get_all_field_names():
+                    id_attr = 'local_id'
+                    par = par_field.rel.to.objects.filter( local_id__in = ids, **timeflt )[:]
+
+                else: # normal FK to a django model
+                    id_attr = 'id'
+                    par = par_field.rel.to.objects.filter( id__in = ids )[:]
+
+                for obj in objects: # parse parents into attrs
+                    filt = dict( [(id_attr, getattr(obj, par_field.name + "_id"))] )
+                    try:
+                        setattr( obj, par_field.name, par.get( **filt ) )
+                    except ObjectDoesNotExist:
+                        setattr( obj, par_field.name, None )
  
-            # resolve m2ms
-            m2ms = [ f for f in dir(objects.model) if type( getattr(objects.model, f) ) == type(VersionedM2M) ]
-            for m2m_name in m2ms: # loop over names of the versioned m2m fields
-                m2m_class = getattr(objects.model, m2m_name)
-
-                # select the reverse relation field of this m2m to filter - it
-                # should be opposite FakeFKField to m2m_name, and should be
-                # unique
-                rev_name = [ f for f in m2m_class._meta.fields if not (f.name == m2m_name) ][0]
-
-                filt = {}
-                filt[ rev_name + '__in' ] = local_ids
-                # select all related m2ms of a specific type, one SQL
-                rel_m2ms = m2m_class.objects.filter( dict(filt, **kwargs) )
-
-                for obj in objects:
+            # resolve versioned m2ms
+            if hasattr( objects.model()._meta, "versioned_m2m_mgrs" ):
+                for m2m_mgr in objects.model()._meta.versioned_m2m_mgrs:
                     filt = {}
-                    filt[ rev_name ] = obj.local_id
-                    setattr( obj, rev_name, rel_m2ms.filter( **filt ) )
+                    filt[ m2m_mgr.reverse_field + '__in' ] = local_ids
+                    # select all related m2ms of a specific type, one SQL
+                    rel_m2ms = m2m_mgr.m2m_model.objects.filter( dict(filt, **timeflt) )[:]
+
+                    for obj in objects: # parse into objects
+                        filt = {}
+                        filt[ m2m_mgr.reverse_field ] = obj.local_id
+                        setattr( obj, m2m_mgr.reverse_field, rel_m2ms.filter( **filt ) )
 
         return objects
 
@@ -161,6 +211,12 @@ class ObjectState(models.Model):
     - 'id' field - automatically created by Django and used for FKs and JOINs
     - 'guid' - a hash of an object, used as unique global object identifier
     - 'local_id' - object ID invariant across object versions
+
+    How to create a FK field:
+
+
+    How to create a M2M field:
+
     """
     STATES = (
         (10, _('Active')),
@@ -182,6 +238,32 @@ class ObjectState(models.Model):
 
     class Meta:
         abstract = True
+
+    def __init__(self, *args, **kwargs):
+        """ needed to initialize all m2m connections """
+        super(ObjectState, self).__init__(*args, **kwargs)
+
+        # overwrite all FKs for versioned objects
+        #for field in obj._meta.local_fields:
+        #    if not field.rel is None and not field.rel.to in settings.VERSIONING_EXCLUDE:
+        #        ffk = FakeFKField(fk_model = field.rel.to, null=field.null, blank=field.blank)
+        #        setattr(self, field.name, ffk)
+
+        fk_attrs = [ (f.name, f) for f in self._meta.fields \
+            if type(f) == type(FakeFKField) ]
+        self._meta.versioned_fk_fields = fk_attrs
+
+        if hasattr(self._meta, "m2m_dict"):
+            self._meta.versioned_m2m_mgrs = []
+            for m2m_name, m2m_class in self._meta.m2m_dict.items():
+                # select the reverse relation field of this m2m to filter - it
+                # should be opposite FakeFKField to m2m_name, and should be
+                # unique
+                rev_name = [ f for f in m2m_class._meta.fields if not (f.name == m2m_name) ][0]
+                m2m_mgr = FakeM2MManager( parent=self, m2m_model=m2m_class, \
+                    local_field=m2m_name, reverse_field=rev_name )
+                setattr( self, m2m_name, m2m_mgr) # set manager as a property
+                self._meta.versioned_m2m_mgrs.append( m2m_mgr )
 
     @classmethod
     def _fkeys_list(self):
@@ -235,13 +317,13 @@ class ObjectState(models.Model):
         """ implements versioning by always saving new object """
         self.guid = self.compute_hash() # recompute hash 
 
-        now = datetime.datetime.now()
+        now = datetime.now()
         if not self.local_id: # saving new object, not a new version
             self.local_id = self._get_new_local_id()
             self.date_created = now
 
         else: # update previous version, set ends_at to now()
-            upd = self.objects.filter( local_id = self.local_id )
+            upd = self.__class__.objects.filter( local_id = self.local_id )
             upd.filter(ends_at__isnull=True).update( ends_at = now )
 
         # creates new version with updated values
