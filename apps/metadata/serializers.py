@@ -10,8 +10,8 @@ class PropertySerializer(Serializer):
     HAVE TO define methods for serialization (serialize_special) and 
     deserialization (deserialize_special) which will be used by REST manager for
     processing GET/POST/PUT requests. """
-    special_for_deserialization = ('value_set',)
-    excluded_cascade = ("value",)
+    #special_for_deserialization = ('value_set',)
+    #excluded_cascade = ("value",)
 
     def deserialize_special(self, obj, field_name, field_value, user):
         """ process 'value_set' in POST/PUT requests so to update values for 
@@ -30,12 +30,12 @@ class PropertySerializer(Serializer):
 
 class SectionSerializer(Serializer):
     """ do not show properties within the list of sections """
-    excluded_cascade = ("block",)
+    #excluded_cascade = ("block",)
 
 
 class SectionListSerializer(SectionSerializer):
     """ do not show properties within the list of sections """
-    excluded_permalink = ("property",)
+    #excluded_permalink = ("property",)
 
 
 class ValueSerializer(Serializer):

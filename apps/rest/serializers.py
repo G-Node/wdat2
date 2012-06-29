@@ -153,7 +153,7 @@ class Serializer(PythonSerializer):
         update_kwargs = {} # dict to collect parsed values for update
         fk_dict = {} # dict to collect parsed FK values
         m2m_dict = {} # temporary m2m values to assign them after full_clean
-        versioned_m2m_names = model()._meta.m2m_dict.keys()
+        versioned_m2m_names = getattr( model()._meta, "m2m_dict", {} ).keys()
 
         # parsing attributes
         for field_name, field_value in rdata.iteritems():
@@ -209,7 +209,7 @@ class Serializer(PythonSerializer):
 
     def handle_fk_field(self, obj, field):
         related = getattr(obj, field.name)
-        if related is not None:
+        if related:
 
             """ use natural keys defines the level of FKs serialization:
             - 1: natural key / id for non-versioned
@@ -296,7 +296,7 @@ class Serializer(PythonSerializer):
         else:
             try: # ID is provided as local_id / id, int
                 ref = int(ref)
-                if hasattr(model, 'local_id'):
+                if 'local_id' in model._meta.get_all_field_names():
                     obj = model.objects.get( local_id=ref )
                 else:
                     obj = model.objects.get( id=ref )

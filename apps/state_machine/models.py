@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models.fields.related import ForeignKey
+from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
@@ -13,6 +14,15 @@ import settings
 
 #-------------------------------------------------------------------------------
 # Base classes and their Manager. Version control is implemented on that level.
+
+def _split_time( **kwargs ):
+    """ extracts 'at_time' and 'current_state' into separate dict """
+    timeflt = {}
+    if kwargs.has_key('at_time'):
+        timeflt['at_time'] = kwargs.pop('at_time')
+    if kwargs.has_key('current_state'):
+        timeflt['current_state'] = kwargs.pop('current_state')
+    return kwargs, timeflt
 
 class FakeFKField( models.IntegerField ):
 
@@ -83,7 +93,7 @@ class VersionManager(models.Manager):
 
         if kwargs.has_key('at_time'):
             at_time = kwargs['at_time']
-            qs = qs.filter(starts_at__lte = at_time).filter(ends_at__gt = at_time)
+            qs = qs.filter( Q(starts_at__lte = at_time), Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
         else:
             qs = qs.filter(ends_at__isnull = True)
 
@@ -95,10 +105,11 @@ class VersionManager(models.Manager):
         return qs
 
     def filter(self, **kwargs):
-        return self.get_query_set( **kwargs ).filter( **kwargs )
+        kwargs, timeflt = _split_time( **kwargs )
+        return self.get_query_set( **timeflt ).filter( **kwargs )
 
     def get_by_guid(self, guid):
-        return super(VersionManager, self).get_query_set().get( guid = guid )
+        return self.get_query_set().get( guid = guid )
 
     # TODO implement this for more flexibility
     #def get_by_natural_key(self, **kwargs ):
@@ -117,15 +128,11 @@ class RelatedManager( VersionManager ):
         objects = self.filter( **kwargs ) # one SQL request
         
         # these filters, if provided, should propagate to related objects
-        timeflt = {}
-        if kwargs.has_key('at_time'):
-            timeflt['at_time'] = kwargs['at_time']
-        if kwargs.has_key('current_state'):
-            timeflt['current_state'] = kwargs['current_state']
+        kwargs, timeflt = _split_time( **kwargs )
 
         if objects:
 
-            # versioned FK relations - loop over related managers / models
+            # FK relations - loop over related managers / models
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(objects.model)):
 
                 # get all related objects for all requested objects as one SQL
@@ -145,7 +152,7 @@ class RelatedManager( VersionManager ):
                     filt = { rel_field_name: getattr(obj, id_attr) }
                     setattr( obj, rel_name + "_data", related.filter( **filt ) )
 
-            # fake FK parents - if need to resolve (URL or ...)
+            # FK parents - if need to resolve (URL or ...)
             fk_fields = [ f for f in objects.model._meta.local_fields if not f.rel is None ]
             for par_field in fk_fields:
 
@@ -240,18 +247,8 @@ class ObjectState(models.Model):
         abstract = True
 
     def __init__(self, *args, **kwargs):
-        """ needed to initialize all m2m connections """
+        """ needed to initialize all versioned m2m connections """
         super(ObjectState, self).__init__(*args, **kwargs)
-
-        # overwrite all FKs for versioned objects
-        #for field in obj._meta.local_fields:
-        #    if not field.rel is None and not field.rel.to in settings.VERSIONING_EXCLUDE:
-        #        ffk = FakeFKField(fk_model = field.rel.to, null=field.null, blank=field.blank)
-        #        setattr(self, field.name, ffk)
-
-        fk_attrs = [ (f.name, f) for f in self._meta.fields \
-            if type(f) == type(FakeFKField) ]
-        self._meta.versioned_fk_fields = fk_attrs
 
         if hasattr(self._meta, "m2m_dict"):
             self._meta.versioned_m2m_mgrs = []

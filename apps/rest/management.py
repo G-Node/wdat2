@@ -281,7 +281,7 @@ class BaseHandler(object):
 
             # parse the request data
             update_kwargs, m2m_dict, fk_dict = self.serializer.deserialize(rdata, \
-                objects[0], user=request.user, encoding=encoding, m2m_append=self.m2m_append)
+                self.model, user=request.user, encoding=encoding, m2m_append=self.m2m_append)
 
             # TODO insert here the transaction begin
 
@@ -300,9 +300,10 @@ class BaseHandler(object):
                 objects = [ self.model( owner = request.user, **update_kwargs ) ]
 
             # update FKs in that way so the FK validation doesn't fail
-            for name, value in fk_dict.items():
+            for field_name, related_obj in fk_dict.items():
                 for obj in objects:
-                    setattr(obj, name + '_id', value)
+                    oid = getattr( related_obj, 'local_id', related_obj.id )
+                    setattr(obj, field_name + '_id', oid)
                 obj.save()
 
             # process versioned m2m relations separately
@@ -402,9 +403,9 @@ class BaseHandler(object):
         #except (AssertionError, AttributeError), e:
         #    return BadRequest(json_obj={"details": e.message}, \
         #        message_type="post_data_invalid", request=request)
-        except (ReferenceError, ObjectDoesNotExist), e:
-            return NotFound(json_obj={"details": e.message}, \
-                message_type="wrong_reference", request=request)
+        #except (ReferenceError, ObjectDoesNotExist), e:
+        #    return NotFound(json_obj={"details": e.message}, \
+        #        message_type="wrong_reference", request=request)
 
         self.run_post_processing(objects=objects, request=request, rdata=rdata)
 

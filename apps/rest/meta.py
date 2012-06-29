@@ -120,7 +120,7 @@ factor_options = {
   "mcskhz": 1.0/1000.0,
 }
 
-# allowed parameters for GET requests
+# special parameters for GET requests
 request_params_cleaner = {
     # signal / times group
     'start_time': lambda x: float(x), # may raise ValueError
@@ -141,6 +141,7 @@ request_params_cleaner = {
     'm2m_append':  lambda x: bool(int(x)), # may raise ValueError
 
     # common
+    'at_time': lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'fk_mode': lambda x: int(x), # may raise ValueError
     'bulk_update': lambda x: bool(int(x)), # may raise ValueError
     'visibility':  lambda x: visibility_options[x], # may raise IndexError
