@@ -5,7 +5,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 
 import numpy as np
 from fields import models as fmodels
-from state_machine.models import ObjectState, SafetyLevel
+from state_machine.models import ObjectState, SafetyLevel, FakeFKField, VersionedM2M
 from datafiles.models import Datafile
 from metadata.models import Section, Value
 from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options, meta_parents
@@ -614,5 +614,63 @@ def get_type_by_class(cls):
     for obj_type in meta_objects:
         if issubclass(cls, meta_classnames[obj_type]):
             return obj_type
+
+
+# m2m relationship classes
+#===============================================================================
+
+
+def create_model(name, fields=None, app_label='', module='', options=None, admin_opts=None):
+    """
+    Create specified model
+    """
+    class Meta:
+        # Using type('Meta', ...) gives a dictproxy error during model creation
+        pass
+
+    if app_label:
+        # app_label must be set using the Meta inner class
+        setattr(Meta, 'app_label', app_label)
+
+    # Update Meta with any options that were provided
+    if options is not None:
+        for key, value in options.iteritems():
+            setattr(Meta, key, value)
+
+    # Set up a dictionary to simulate declarations within a class
+    attrs = {'__module__': module, 'Meta': Meta}
+
+    # Add in any fields that were provided
+    if fields:
+        attrs.update(fields)
+
+    # Create the class, which automatically triggers ModelBase processing
+    model = type(name, (VersionedM2M,), attrs)
+
+    # Create an Admin class if admin options were provided
+    if admin_opts is not None:
+        class Admin(admin.ModelAdmin):
+            pass
+        for key, value in admin_opts:
+            setattr(Admin, key, value)
+        admin.site.register(model, Admin)
+
+    return model
+
+
+# create m2m for metadata
+for class_name, cls in meta_classnames.iteritems():
+    m2m_name = class_name + "Metadata"
+
+    fields = {}
+    fields[class_name] = FakeFKField( fk_model = cls )
+    fields['metadata'] = FakeFKField( fk_model = Value )
+
+    #import pdb
+    #pdb.set_trace()
+
+    # is that dangerous?
+    globals()['m2m_name'] = create_model(m2m_name, fields, 'neo_metadata')
+
 
 
