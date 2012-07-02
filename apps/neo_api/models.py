@@ -69,7 +69,7 @@ class BaseInfo(SafetyLevel, ObjectState):
         (30, 'Archived'),
     )
     file_origin = models.ForeignKey(Datafile, blank=True, null=True, editable=False)
-    metadata = models.ManyToManyField(Value, blank=True, null=True)
+    #metadata = models.ManyToManyField(Value, blank=True, null=True)
 
     @models.permalink
     def get_absolute_url(self):
@@ -151,6 +151,7 @@ class Block(BaseInfo):
     filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
     index = models.IntegerField('index', null=True, blank=True)
     section = models.ForeignKey(Section, blank=True, null=True)
+    mdata = models.ManyToManyField(Value, through="BlockMetadata", blank=True, null=True)
 
     @property
     def info(self):
@@ -616,61 +617,11 @@ def get_type_by_class(cls):
             return obj_type
 
 
-# m2m relationship classes
+# m2m relations
 #===============================================================================
 
-
-def create_model(name, fields=None, app_label='', module='', options=None, admin_opts=None):
-    """
-    Create specified model
-    """
-    class Meta:
-        # Using type('Meta', ...) gives a dictproxy error during model creation
-        pass
-
-    if app_label:
-        # app_label must be set using the Meta inner class
-        setattr(Meta, 'app_label', app_label)
-
-    # Update Meta with any options that were provided
-    if options is not None:
-        for key, value in options.iteritems():
-            setattr(Meta, key, value)
-
-    # Set up a dictionary to simulate declarations within a class
-    attrs = {'__module__': module, 'Meta': Meta}
-
-    # Add in any fields that were provided
-    if fields:
-        attrs.update(fields)
-
-    # Create the class, which automatically triggers ModelBase processing
-    model = type(name, (VersionedM2M,), attrs)
-
-    # Create an Admin class if admin options were provided
-    if admin_opts is not None:
-        class Admin(admin.ModelAdmin):
-            pass
-        for key, value in admin_opts:
-            setattr(Admin, key, value)
-        admin.site.register(model, Admin)
-
-    return model
-
-
-# create m2m for metadata
-for class_name, cls in meta_classnames.iteritems():
-    m2m_name = class_name + "Metadata"
-
-    fields = {}
-    fields[class_name] = FakeFKField( fk_model = cls )
-    fields['metadata'] = FakeFKField( fk_model = Value )
-
-    #import pdb
-    #pdb.set_trace()
-
-    # is that dangerous?
-    globals()['m2m_name'] = create_model(m2m_name, fields, 'neo_metadata')
-
+class BlockMetadata( VersionedM2M ):
+    block = models.ForeignKey( Block )
+    value = models.ForeignKey( Value )
 
 

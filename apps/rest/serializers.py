@@ -170,24 +170,27 @@ class Serializer(PythonSerializer):
                     update_kwargs[field_name] = field_value["data"]
                     update_kwargs[field_name + "__unit"] = field_value["units"]
 
-                # Handle versioned M2M relations
-                elif field_name in versioned_m2m_names:
-                    m2m_data = []
-                    mgr = getattr( model(), field_name )
-                    for m2m in field_value: # we support both ID and permalinks
-                        m2m_data.append( self._resolve_ref(mgr.rel_model, m2m, user) )
-                        m2m_dict[ field_name ] = [int(x.local_id) for x in m2m_data]
-
                 else:
                     field = model._meta.get_field(field_name)
 
-                    # Handle normal M2M relations
+                    # Handle versioned M2M relations
+                    #if field_name in versioned_m2m_names:
+                    #    m2m_data = []
+                    #    mgr = getattr( model(), field_name )
+                    #    for m2m in field_value: # we support both ID and permalinks
+                    #        m2m_data.append( self._resolve_ref(mgr.rel_model, m2m, user) )
+                    #        m2m_dict[ field_name ] = [int(x.local_id) for x in m2m_data]
+
+                    # Handle M2M relations
                     if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
                         m2m_data = []
 
                         for m2m in field_value: # we support both ID and permalinks
                             m2m_data.append( self._resolve_ref(field.rel.to, m2m, user) )
-                            m2m_dict[field.name] = [int(x.id) for x in m2m_data]
+                            if 'local_id' in field.rel.to._meta.get_all_field_names():
+                                m2m_dict[field.name] = [int(x.local_id) for x in m2m_data]
+                            else:
+                                m2m_dict[field.name] = [int(x.id) for x in m2m_data]
 
                     # Handle FK fields (taken from django.core.Deserializer)
                     elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:

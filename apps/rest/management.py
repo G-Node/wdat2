@@ -280,6 +280,10 @@ class BaseHandler(object):
                 self.m2m_append = False
 
             # parse the request data
+            # -update_kwargs - new values for attributes as a dict 'attr': value
+            # -fk_dict - new VERSIONED FKs (normal FKs are parsed as attrs), as 
+            #    a dict {'relname': new_fk, }
+            # -m2m_dict - new m2m rels, as a dict {'relname': [new ids], }
             update_kwargs, m2m_dict, fk_dict = self.serializer.deserialize(rdata, \
                 self.model, user=request.user, encoding=encoding, m2m_append=self.m2m_append)
 
@@ -299,7 +303,7 @@ class BaseHandler(object):
                 return_code = 201
                 objects = [ self.model( owner = request.user, **update_kwargs ) ]
 
-            # update FKs in that way so the FK validation doesn't fail
+            # update versioned FKs in that way so the FK validation doesn't fail
             for field_name, related_obj in fk_dict.items():
                 for obj in objects:
                     oid = getattr( related_obj, 'local_id', related_obj.id )
@@ -311,35 +315,41 @@ class BaseHandler(object):
                 local_ids = [ x.local_id for x in objects ]
 
                 for m2m_name, v in m2m_dict.items(): # v - new m2m values
+
                     # preselect all existing m2ms of type m2m_name for all objs
-                    m2m_class = getattr(self.model, m2m_name)
+                    field = model._meta.get_field(m2m_name)
+                    m2m_class = getattr(field.rel, 'through')
+                    is_versioned = issubclass(m2m_class, VersionedM2M)
+                    own_name = field.m2m_field_name()
+                    rev_name = field.m2m_reverse_field_name()
 
-                    # select the reverse relation field of this m2m to filter - 
-                    # should be opposite FakeFKField to m2m_name, and should be
-                    # unique
-                    rev_name = [ f for f in m2m_class._meta.fields if not (f.name == m2m_name) ][0]
-
-                    filt = dict( (rev_name + '__in', local_ids) )
+                    # retrieve current relations
+                    filt = dict( [(own_name + '__in', local_ids)] )
                     rel_m2ms = m2m_class.objects.filter( dict(filt, **kwargs) )
-                    current_ids = rel_m2ms.objects.values_list( rev_name )
+                    current_rev_ids = rel_m2ms.values_list( rev_name, flat=True )
 
                     now = datetime.datetime.now()
 
                     # close old existing m2m
                     if not self.m2m_append: 
-                        to_close = list( set(current_ids) - set(v) )
-                        filt = dict( (rev_name, obj.local_id), (k + "__in", to_close) )
-                        m2m_class.objects.filter( **filt ).update( ends_at = now )
+                        to_close = list( set(current_rev_ids) - set(v) )
+                        filt = dict( [(own_name + '__in', local_ids), \
+                            (rev_name + "__in", to_close)] )
+                        if is_versioned:
+                            m2m_class.objects.filter( **filt ).update( ends_at = now )
+                        else:
+                            m2m_class.objects.filter( **filt ).delete()
 
                     # create new m2m connections
-                    to_create = list( set(v) - set(current_ids) )
+                    to_create = list( set(v) - set(current_rev_ids) )
                     new_rels = []
                     for nid in to_create:
                         attrs = {}
-                        attrs[ rev_name ] = obj.local_id
-                        attrs[ k ] = nid
-                        attrs[ "date_created" ] = now
-                        attrs[ "starts_at" ] = now
+                        attrs[ own_name ] = obj.local_id
+                        attrs[ rev_name ] = nid
+                        if is_versioned:
+                            attrs[ "date_created" ] = now
+                            attrs[ "starts_at" ] = now
                         new_rels.append( m2m_class( **attrs ) )
                     m2m_class.objects.bulk_create( new_rels )
 

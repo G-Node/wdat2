@@ -189,6 +189,13 @@ class RelatedManager( VersionManager ):
         return objects
 
 
+class M2MFilterManager(models.Manager):
+    """ filters out old versions of relations """
+    def get_query_set(self, **kwargs):
+        qs = super(M2MFilterManager, self).get_query_set()
+        return qs.filter(ends_at__isnull = True)
+
+
 class VersionedM2M( models.Model ):
     """ the abstract model is used as a connection between two objects for many 
     to many relationship, for versioned objects instead of ManyToMany field. """
@@ -196,7 +203,7 @@ class VersionedM2M( models.Model ):
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
     ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
-    objects = VersionManager()
+    objects = M2MFilterManager()
 
     class Meta:
         abstract = True
