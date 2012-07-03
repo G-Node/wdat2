@@ -13,6 +13,7 @@ send_mail = get_send_mail()
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.contrib import messages
 
 from emailconfirmation.models import EmailAddress
 from account.models import Account
@@ -25,6 +26,7 @@ from account.models import OtherServiceInfo
 
 from captcha.fields import CaptchaField
 from ldap_backend.models import LDAPBackend
+
 
 alnum_re = re.compile(r'^\w+$')
 
@@ -54,7 +56,10 @@ class LoginForm(forms.Form):
     def login(self, request):
         if self.is_valid():
             login(request, self.user)
-            request.user.message_set.create(message=ugettext(u"Successfully logged in as %(username)s.") % {'username': self.user.username})
+
+            messages.success(request, _('Successfully logged in as %(username)s.') % {'username': request.user.username})
+            #request.user.message_set.create(message=ugettext(u"Successfully logged in as %(username)s.") % {'username': self.user.username})
+
             if self.cleaned_data['remember']:
                 request.session.set_expiry(60 * 60 * 24 * 7 * 3)
             else:
