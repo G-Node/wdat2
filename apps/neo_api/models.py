@@ -55,6 +55,27 @@ def _clean_csv(arr):
     return cleaned_data
 
 
+class NEOMetadataField( models.ManyToManyField ):
+    """ versioned version of the ManyToManyField """
+
+    description = "A versioned version of the ManyToManyField"
+
+    def __init__(self, *args, **kwargs):
+        from_model = models.get_model('neo_api', kwargs.pop('from_model'), False)
+        from_ = from_model.obj_type
+        to = to_model.obj_type
+        name = '%s_%s' % (from_, to)
+
+        through = type(name, ( VersionedM2M, ), {
+                '__module__': from_model.__module__,
+                from_: models.ForeignKey(from_model, related_name='%s+' % name),
+                to: models.ForeignKey(to_model, related_name='%s+' % name)
+            })
+        kwargs['through'] = through
+
+        super(NEOMetadataField, self).__init__(*args, **kwargs)
+
+
 class BaseInfo(SafetyLevel, ObjectState):
     """
     Basic info about any NEO object created at G-Node.
@@ -63,13 +84,15 @@ class BaseInfo(SafetyLevel, ObjectState):
     Active <--> Deleted -> Archived
 
     """
-    STATES = (
-        (10, 'Active'),
-        (20, 'Deleted'),
-        (30, 'Archived'),
-    )
     file_origin = models.ForeignKey(Datafile, blank=True, null=True, editable=False)
     #metadata = models.ManyToManyField(Value, blank=True, null=True)
+    #metadata = NEOMetadataField(Value, blank=True, null=True)
+
+    def __init__(self, *args, **kwargs):
+        md_classname = '%s_%s' % (self.obj_type, 'value')
+        self.metadata = models.ManyToManyField(Value, through=md_classname, \
+            blank=True, null=True)
+        super(BaseInfo, self).__init__(*args, **kwargs)
 
     @models.permalink
     def get_absolute_url(self):
@@ -151,7 +174,7 @@ class Block(BaseInfo):
     filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
     index = models.IntegerField('index', null=True, blank=True)
     section = models.ForeignKey(Section, blank=True, null=True)
-    mdata = models.ManyToManyField(Value, through="BlockMetadata", blank=True, null=True)
+    mdata = models.ManyToManyField(Value, through="block_value", blank=True, null=True)
 
     @property
     def info(self):
@@ -617,11 +640,33 @@ def get_type_by_class(cls):
             return obj_type
 
 
-# m2m relations
+# models for m2m relations
 #===============================================================================
 
-class BlockMetadata( VersionedM2M ):
-    block = models.ForeignKey( Block )
-    value = models.ForeignKey( Value )
+for class_name, cls in meta_classnames.iteritems():
+    from_model = cls
+    to_model = Value
+
+    from_ = from_model().obj_type
+    to = to_model().obj_type
+    name = '%s_%s' % (from_, to)
+
+    meta = type('Meta', (object,), {
+        #'db_table': field._get_m2m_db_table(klass._meta),
+        'managed': cls._meta.managed,
+        'auto_created': cls,
+        'app_label': cls._meta.app_label,
+        'unique_together': (from_, to),
+        'verbose_name': '%(from)s-%(to)s relationship' % {'from': from_, 'to': to},
+        'verbose_name_plural': '%(from)s-%(to)s relationships' % {'from': from_, 'to': to},
+    })
+
+    through = type(name, ( VersionedM2M, ), {
+            'Meta': meta,
+            '__module__': from_model.__module__,
+            from_: models.ForeignKey(from_model, related_name='%s+' % name),
+            to: models.ForeignKey(to_model, related_name='%s+' % name)
+        })
+    globals()[name] = through
 
 
