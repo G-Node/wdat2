@@ -13,7 +13,7 @@ from datetime import datetime
 import settings
 import hashlib
 
-from state_machine.models import SafetyLevel, SingleAccess
+from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M
 from rest.common import *
 from rest.meta import *
 
@@ -289,25 +289,26 @@ class BaseHandler(object):
 
             # TODO insert here the transaction begin
 
-            # TODO implement efficient bulk update?
-
             if objects: # update case
                 return_code = 200
-                for obj in objects:
-                    # update normal attrs
-                    for name, value in update_kwargs.items():
-                        setattr(obj, name, value)
-                    obj.full_clean()
-
             else: # create case
                 return_code = 201
                 objects = [ self.model( owner = request.user, **update_kwargs ) ]
+
+            # TODO implement efficient bulk update?
+            for obj in objects:
+                # update normal attrs
+                for name, value in update_kwargs.items():
+                    setattr(obj, name, value)
+                obj.full_clean()
 
             # update versioned FKs in that way so the FK validation doesn't fail
             for field_name, related_obj in fk_dict.items():
                 for obj in objects:
                     oid = getattr( related_obj, 'local_id', related_obj.id )
                     setattr(obj, field_name + '_id', oid)
+
+            for obj in objects:
                 obj.save()
 
             # process versioned m2m relations separately
@@ -317,7 +318,7 @@ class BaseHandler(object):
                 for m2m_name, v in m2m_dict.items(): # v - new m2m values
 
                     # preselect all existing m2ms of type m2m_name for all objs
-                    field = model._meta.get_field(m2m_name)
+                    field = self.model._meta.get_field(m2m_name)
                     m2m_class = getattr(field.rel, 'through')
                     is_versioned = issubclass(m2m_class, VersionedM2M)
                     own_name = field.m2m_field_name()
@@ -325,7 +326,7 @@ class BaseHandler(object):
 
                     # retrieve current relations
                     filt = dict( [(own_name + '__in', local_ids)] )
-                    rel_m2ms = m2m_class.objects.filter( dict(filt, **kwargs) )
+                    rel_m2ms = m2m_class.objects.filter( **filt )
                     current_rev_ids = rel_m2ms.values_list( rev_name, flat=True )
 
                     now = datetime.datetime.now()
@@ -345,8 +346,8 @@ class BaseHandler(object):
                     new_rels = []
                     for nid in to_create:
                         attrs = {}
-                        attrs[ own_name ] = obj.local_id
-                        attrs[ rev_name ] = nid
+                        attrs[ own_name + '_id' ] = obj.local_id
+                        attrs[ rev_name + '_id' ] = nid
                         if is_versioned:
                             attrs[ "date_created" ] = now
                             attrs[ "starts_at" ] = now
@@ -397,9 +398,9 @@ class BaseHandler(object):
                             transaction.commit_unless_managed()
             """
 
-        except FieldDoesNotExist, v:
-            return BadRequest(json_obj={"details": v.message}, \
-                message_type="post_data_invalid", request=request)
+        #except FieldDoesNotExist, v:
+        #    return BadRequest(json_obj={"details": v.message}, \
+        #        message_type="post_data_invalid", request=request)
         #except (ValueError, TypeError), v:
         #    return BadRequest(json_obj={"details": v.message}, \
         #        message_type="bad_float_data", request=request)

@@ -55,27 +55,6 @@ def _clean_csv(arr):
     return cleaned_data
 
 
-class NEOMetadataField( models.ManyToManyField ):
-    """ versioned version of the ManyToManyField """
-
-    description = "A versioned version of the ManyToManyField"
-
-    def __init__(self, *args, **kwargs):
-        from_model = models.get_model('neo_api', kwargs.pop('from_model'), False)
-        from_ = from_model.obj_type
-        to = to_model.obj_type
-        name = '%s_%s' % (from_, to)
-
-        through = type(name, ( VersionedM2M, ), {
-                '__module__': from_model.__module__,
-                from_: models.ForeignKey(from_model, related_name='%s+' % name),
-                to: models.ForeignKey(to_model, related_name='%s+' % name)
-            })
-        kwargs['through'] = through
-
-        super(NEOMetadataField, self).__init__(*args, **kwargs)
-
-
 class BaseInfo(SafetyLevel, ObjectState):
     """
     Basic info about any NEO object created at G-Node.
@@ -85,14 +64,13 @@ class BaseInfo(SafetyLevel, ObjectState):
 
     """
     file_origin = models.ForeignKey(Datafile, blank=True, null=True, editable=False)
-    #metadata = models.ManyToManyField(Value, blank=True, null=True)
-    #metadata = NEOMetadataField(Value, blank=True, null=True)
 
-    def __init__(self, *args, **kwargs):
-        md_classname = '%s_%s' % (self.obj_type, 'value')
-        self.metadata = models.ManyToManyField(Value, through=md_classname, \
-            blank=True, null=True)
-        super(BaseInfo, self).__init__(*args, **kwargs)
+    #def __init__(self, *args, **kwargs):
+    #    md_classname = '%s_%s' % (self.obj_type, 'metadata')
+    #    self.metadata = models.ManyToManyField(Value, through=md_classname, \
+    #        blank=True, null=True)
+    #    super(BaseInfo, self).__init__(*args, **kwargs)
+    #    self._meta.many_to_many.append( self.metadata )
 
     @models.permalink
     def get_absolute_url(self):
@@ -174,7 +152,8 @@ class Block(BaseInfo):
     filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
     index = models.IntegerField('index', null=True, blank=True)
     section = models.ForeignKey(Section, blank=True, null=True)
-    mdata = models.ManyToManyField(Value, through="block_value", blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='block_metadata', \
+        blank=True, null=True)
 
     @property
     def info(self):
@@ -196,6 +175,8 @@ class Segment(BaseInfo):
     index = models.IntegerField('index', null=True, blank=True)
     # NEO relationships
     block = models.ForeignKey(Block, blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='segment_metadata', \
+        blank=True, null=True)
 
     @property
     def size(self): # FIXME select only current revision and state = 10
@@ -211,6 +192,8 @@ class EventArray(BaseInfo):
     # no NEO attributes
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='eventarray_metadata', \
+        blank=True, null=True)
 
 # 4 (of 15)
 class Event(BaseInfo):
@@ -224,6 +207,8 @@ class Event(BaseInfo):
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     eventarray = models.ForeignKey(EventArray, blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='event_metadata', \
+        blank=True, null=True)
 
     @property
     def is_alone(self):
@@ -241,6 +226,8 @@ class EpochArray(BaseInfo):
     # no NEO attributes
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='epocharray_metadata', \
+        blank=True, null=True)
 
 # 6 (of 15)
 class Epoch(BaseInfo):
@@ -256,6 +243,8 @@ class Epoch(BaseInfo):
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     epocharray = models.ForeignKey(EpochArray, blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='epoch_metadata', \
+        blank=True, null=True)
 
     @property
     def is_alone(self):
@@ -274,7 +263,8 @@ class RecordingChannelGroup(BaseInfo):
     name = models.CharField('name', max_length=name_max_length)
     # NEO relationships
     block = models.ForeignKey(Block, blank=True, null=True)
-
+    metadata = models.ManyToManyField(Value, through='recordingchannelgroup_metadata', \
+        blank=True, null=True)
 
 # 8 (of 15)
 class RecordingChannel(BaseInfo):
@@ -286,7 +276,8 @@ class RecordingChannel(BaseInfo):
     index = models.IntegerField('index', null=True, blank=True)
     # NEO relationships
     recordingchannelgroup = models.ForeignKey(RecordingChannelGroup, blank=True, null=True)
-
+    metadata = models.ManyToManyField(Value, through='recordingchannel_metadata', \
+        blank=True, null=True)
 
 # 9 (of 15)
 class Unit(BaseInfo):
@@ -296,8 +287,10 @@ class Unit(BaseInfo):
     # NEO attributes
     name = models.CharField('name', max_length=name_max_length)
     # NEO relationships
-    recordingchannel = models.ManyToManyField(RecordingChannel, blank=True, null=True)
-
+    recordingchannel = models.ManyToManyField(RecordingChannel, \
+        through='unit_recordingchannel', blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='unit_metadata', \
+        blank=True, null=True)
 
 # 10 (of 15)
 class SpikeTrain(BaseInfo, DataObject):
@@ -315,6 +308,8 @@ class SpikeTrain(BaseInfo, DataObject):
     # NEO data arrays
     times = models.ForeignKey( Datafile, related_name='spiketrain_times' )
     times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
+    metadata = models.ManyToManyField(Value, through='spiketrain_metadata', \
+        blank=True, null=True)
 
     def get_slice(self, **kwargs):
         """ implements dataslicing/downsampling. Floats/integers are expected.
@@ -379,6 +374,8 @@ class AnalogSignalArray(BaseInfo):
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     recordingchannelgroup = models.ForeignKey(RecordingChannelGroup, blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='analogsignalarray_metadata', \
+        blank=True, null=True)
 
     # NEO attributes
     @property
@@ -412,6 +409,8 @@ class AnalogSignal(BaseInfo, DataObject):
     # NEO data arrays
     signal = models.ForeignKey( Datafile, related_name='as_signal' )
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
+    metadata = models.ManyToManyField(Value, through='analogsignal_metadata', \
+        blank=True, null=True)
 
     def get_slice(self, **kwargs):
         """ implements dataslicing/downsampling. Floats/integers are expected.
@@ -488,6 +487,8 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     times = models.ForeignKey( Datafile, related_name='irsa_times' )
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
+    metadata = models.ManyToManyField(Value, through='irsaanalogsignal_metadata', \
+        blank=True, null=True)
 
     def get_slice(self, **kwargs):
         """ implements dataslicing/downsampling. Floats/integers are expected.
@@ -560,6 +561,8 @@ class Spike(BaseInfo):
     # NEO relationships
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
+    metadata = models.ManyToManyField(Value, through='spike_metadata', \
+        blank=True, null=True)
 
     @property
     def size(self): # FIXME select only current revision and state = 10
@@ -578,6 +581,8 @@ class WaveForm(BaseInfo, DataObject):
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
     spike = models.ForeignKey(Spike, blank=True, null=True)
     metadata = "Please look at the metadata of the parent object"
+    metadata = models.ManyToManyField(Value, through='waveform_metadata', \
+        blank=True, null=True)
 
     def get_slice(self, **kwargs):
         """ only start_index, end_index are supported. hits the Database """
@@ -643,13 +648,18 @@ def get_type_by_class(cls):
 # models for m2m relations
 #===============================================================================
 
+class unit_recordingchannel( VersionedM2M ):
+    unit = models.ForeignKey( Unit )
+    recordingchannel = models.ForeignKey( RecordingChannel )
+
+
 for class_name, cls in meta_classnames.iteritems():
     from_model = cls
     to_model = Value
 
     from_ = from_model().obj_type
     to = to_model().obj_type
-    name = '%s_%s' % (from_, to)
+    name = '%s_%s' % (from_, 'metadata')
 
     meta = type('Meta', (object,), {
         #'db_table': field._get_m2m_db_table(klass._meta),
@@ -661,12 +671,12 @@ for class_name, cls in meta_classnames.iteritems():
         'verbose_name_plural': '%(from)s-%(to)s relationships' % {'from': from_, 'to': to},
     })
 
-    through = type(name, ( VersionedM2M, ), {
+    m2m_class = type(name, ( VersionedM2M, ), {
             'Meta': meta,
             '__module__': from_model.__module__,
             from_: models.ForeignKey(from_model, related_name='%s+' % name),
             to: models.ForeignKey(to_model, related_name='%s+' % name)
         })
-    globals()[name] = through
+    globals()[name] = m2m_class
 
 

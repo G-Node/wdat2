@@ -186,14 +186,14 @@ class Property(SafetyLevel, ObjectState):
 
     @property
     def values(self):
-        return self.value_set.filter(current_state=10)
+        return self.value_set.all()
 
     @property
     def values_as_str(self):
         return ", ".join([v.data for v in self.values])
 
-    def __len__(self):
-        return len(self.values)
+    #def __len__(self):
+    #    return len(self.values)
 
 
 class Value(SafetyLevel, ObjectState):
