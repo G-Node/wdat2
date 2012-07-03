@@ -269,7 +269,7 @@ class BaseHandler(object):
         update have very similar functionality thus implemented as one function.
         """
         try:
-            rdata = self.clean_post_data(request._get_raw_post_data())
+            rdata = self.clean_post_data(request.body)
         except (ValueError, TypeError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="data_parsing_error", request=request)
@@ -558,7 +558,7 @@ class ACLHandler(BaseHandler):
 
         if not request.method == 'GET':
             try:
-                rdata = self.clean_post_data(request._get_raw_post_data())
+                rdata = self.clean_post_data(request.body)
             except (ValueError, TypeError):
                 return BadRequest(message_type="data_parsing_error", request=request)
 

@@ -105,11 +105,11 @@ class Serializer(PythonSerializer):
                             self.handle_m2m_field(obj, field)
 
                 # versioned m2m fields
-                if hasattr( obj._meta, "versioned_m2m_mgrs" ):
-                    for mgr in obj._meta.versioned_m2m_mgrs:
-                        if self.selected_fields is None or mgr.local_field in \
-                            self.selected_fields:
-                            self.handle_versioned_m2m_field(mgr)
+                #if hasattr( obj._meta, "versioned_m2m_mgrs" ):
+                #    for mgr in obj._meta.versioned_m2m_mgrs:
+                #        if self.selected_fields is None or mgr.local_field in \
+                #            self.selected_fields:
+                #            self.handle_versioned_m2m_field(mgr)
 
             # process specially reverse relations, like properties for section
             for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
@@ -254,9 +254,13 @@ class Serializer(PythonSerializer):
         }
 
     def handle_m2m_field(self, obj, field):
-        if field.rel.through._meta.auto_created:
-            self._current[field.name] = [self.resolve_permalink(related)
-                               for related in getattr(obj, field.name).iterator()]
+        #if field.rel.through._meta.auto_created:
+        #    self._current[field.name] = [self.resolve_permalink(related)
+        #                       for related in getattr(obj, field.name).iterator()]
+        # prefetched m2m data
+        self._current[field.name] = [ self.resolve_permalink(related) 
+            for related in getattr(obj, field.name + '_buffer') ]
+
 
     def handle_versioned_m2m_field(self, mgr):
         self._current[ mgr.local_field ] = [ self.resolve_permalink(related) \

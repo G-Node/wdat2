@@ -172,19 +172,37 @@ class RelatedManager( VersionManager ):
                         setattr( obj, par_field.name, par.get( **filt ) )
                     except ObjectDoesNotExist:
                         setattr( obj, par_field.name, None )
- 
-            # resolve versioned m2ms
-            if hasattr( objects.model()._meta, "versioned_m2m_mgrs" ):
-                for m2m_mgr in objects.model()._meta.versioned_m2m_mgrs:
-                    filt = {}
-                    filt[ m2m_mgr.reverse_field + '__in' ] = local_ids
-                    # select all related m2ms of a specific type, one SQL
-                    rel_m2ms = m2m_mgr.m2m_model.objects.filter( dict(filt, **timeflt) )[:]
 
-                    for obj in objects: # parse into objects
-                        filt = {}
-                        filt[ m2m_mgr.reverse_field ] = obj.local_id
-                        setattr( obj, m2m_mgr.reverse_field, rel_m2ms.filter( **filt ) )
+            # processing M2Ms
+            if 'local_id' in objects.model._meta.get_all_field_names():
+                id_attr = 'local_id'
+            else:
+                id_attr = 'id'
+            ids = [ getattr(obj, id_attr) for obj in objects ]
+
+            for field in objects.model._meta.many_to_many:
+                m2m_class = field.rel.through
+                is_versioned = issubclass(m2m_class, VersionedM2M)
+                filt = { field.m2m_field_name() + '__in': ids }
+
+                # select all related m2m connections of a specific type, one SQL
+                if is_versioned:
+                    rel_m2ms = m2m_class.objects.filter( **dict(filt, **timeflt) )[:]
+                else:
+                    rel_m2ms = m2m_class.objects.filter( **filt )[:]
+
+                for obj in objects: # parse into objects
+                    filt = { field.m2m_field_name(): getattr(obj, id_attr) }
+                    reverse_ids = rel_m2ms.filter( **filt ).values_list( field.m2m_reverse_field_name(), flat=True )
+
+                    if is_versioned:
+                        filt = { 'local_id__in': reverse_ids }
+                        buf = field.rel.to.objects.filter( **dict(filt, **timeflt) )
+                    else:
+                        filt = { 'id__in': reverse_ids }
+                        buf = field.rel.to.objects.filter( **filt )
+
+                    setattr( obj, field.name + '_buffer', buf )
 
         return objects
 
