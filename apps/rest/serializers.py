@@ -185,10 +185,10 @@ class Serializer(PythonSerializer):
 
                         for m2m in field_value: # we support both ID and permalinks
                             m2m_data.append( self._resolve_ref(field.rel.to, m2m, user) )
-                            if 'local_id' in field.rel.to._meta.get_all_field_names():
-                                m2m_dict[field.name] = [int(x.local_id) for x in m2m_data]
-                            else:
-                                m2m_dict[field.name] = [int(x.id) for x in m2m_data]
+                        if 'local_id' in field.rel.to._meta.get_all_field_names():
+                            m2m_dict[field.name] = [int(x.local_id) for x in m2m_data]
+                        else:
+                            m2m_dict[field.name] = [int(x.id) for x in m2m_data]
 
                     # Handle FK fields (taken from django.core.Deserializer)
                     elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
