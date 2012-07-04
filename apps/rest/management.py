@@ -421,9 +421,14 @@ class BaseHandler(object):
         self.run_post_processing(objects=objects, request=request, rdata=rdata)
 
         request.method = "GET"
-        ids = [x.id for x in objects] 
+        if 'local_id' in self.model._meta.get_all_field_names():
+            id_attr = 'local_id'
+        else:
+            id_attr = 'id'
+        ids = [ getattr(obj, id_attr) for obj in objects ]
+        filt = { id_attr + '__in': ids }
         # need refresh the QuerySet, f.e. in case of a bulk update
-        return self.get(request, self.model.objects.filter(pk__in=ids), return_code)
+        return self.get(request, self.model.objects.get_related( **filt ), return_code)
 
 
     def delete(self, request, objects):
