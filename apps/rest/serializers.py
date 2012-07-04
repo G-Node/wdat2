@@ -3,8 +3,6 @@ from django.utils.encoding import smart_unicode, is_protected_type
 from django.db import models
 from django.db import connection, transaction
 
-from state_machine.models import FakeFKField
-
 import settings
 import urlparse
 import itertools

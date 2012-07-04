@@ -24,66 +24,6 @@ def _split_time( **kwargs ):
         timeflt['current_state'] = kwargs.pop('current_state')
     return kwargs, timeflt
 
-class FakeFKField( models.IntegerField ):
-
-    def __init__(self, *args, **kwargs):
-        if not kwargs.has_key('fk_model'):
-            raise ValueError("You should provide a Model class to initialize fake foreign key")
-        self.fk_model = kwargs.pop('fk_model')
-        super(FakeFKField, self).__init__(*args, **kwargs)
-
-
-class FakeM2MManager( object ):
-
-    def __init__(self, *args, **kwargs):
-        # m2m model, local field name, reverse field name, qs (related objs)
-        required_attrs = ['parent', 'm2m_model', 'local_field', 'reverse_field']
-        for attr in required_attrs:
-            setattr( self, attr, kwargs[attr] )
-
-    @property
-    def rel_model(self):
-        """ a model of the related m2m object """
-        return getattr( self.m2m_model, self.local_field ).fk_model
-
-    """
-    def related(self):
-        filt = {}
-        filt[ self.local_field ] = self.parent.local_id
-
-        if not self.parent.end_time == None:
-            # inlude time range from parent
-            filt[ "start_time" + "__gte" ] = self.parent.start_time
-            filt[ "end_time" + "__lte" ] = self.parent.end_time
-
-        return = self.m2m_model.objects.filter( filt ) # could be more than one!
-    """
-
-"""
-class FakeFKManager( models.Manager ):
-
-    def __init__(self, *args, **kwargs):
-        super(FakeFKManager, self).__init__()
-        self.rel_model = kwargs.pop('rel_model')
-        self.core_filters = kwargs
-
-    def get_query_set(self, **kwargs):
-        qs = self.rel_model.objects.filter( **(self.core_filters) )
-
-        if kwargs.has_key('at_time'):
-            at_time = kwargs['at_time']
-            qs = qs.filter(starts_at__lte = at_time).filter(ends_at__gt = at_time)
-            # TODO check lte and gt - wirklich?
-        else:
-            qs = qs.filter(ends_at__isnull = True)
-
-        state = 10 # filter all 'active' objects by default
-        if kwargs.has_key('current_state'): # change the filter if requested
-            state = kwargs['current_state']
-        qs = qs.filter(current_state = state)
-
-        return qs
-"""
 
 class VersionManager(models.Manager):
     """ filters objects as per provided time / active state """
@@ -270,22 +210,6 @@ class ObjectState(models.Model):
 
     class Meta:
         abstract = True
-
-    def __init__(self, *args, **kwargs):
-        """ needed to initialize all versioned m2m connections """
-        super(ObjectState, self).__init__(*args, **kwargs)
-
-        if hasattr(self._meta, "m2m_dict"):
-            self._meta.versioned_m2m_mgrs = []
-            for m2m_name, m2m_class in self._meta.m2m_dict.items():
-                # select the reverse relation field of this m2m to filter - it
-                # should be opposite FakeFKField to m2m_name, and should be
-                # unique
-                rev_name = [ f for f in m2m_class._meta.fields if not (f.name == m2m_name) ][0]
-                m2m_mgr = FakeM2MManager( parent=self, m2m_model=m2m_class, \
-                    local_field=m2m_name, reverse_field=rev_name )
-                setattr( self, m2m_name, m2m_mgr) # set manager as a property
-                self._meta.versioned_m2m_mgrs.append( m2m_mgr )
 
     @classmethod
     def _fkeys_list(self):

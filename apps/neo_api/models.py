@@ -5,7 +5,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 
 import numpy as np
 from fields import models as fmodels
-from state_machine.models import ObjectState, SafetyLevel, FakeFKField, VersionedM2M
+from state_machine.models import ObjectState, SafetyLevel, VersionedM2M
 from datafiles.models import Datafile
 from metadata.models import Section, Value
 from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options, meta_parents

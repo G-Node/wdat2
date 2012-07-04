@@ -279,8 +279,8 @@ class BaseHandler(object):
             if self.options.has_key('m2m_append'):
                 self.m2m_append = False
 
-            # parse the request data
-            # -update_kwargs - new values for attributes as a dict 'attr': value
+            # parse request data
+            # -update_kwargs - new attribute values as a {'attr': value}
             # -fk_dict - new VERSIONED FKs (normal FKs are parsed as attrs), as 
             #    a dict {'relname': new_fk, }
             # -m2m_dict - new m2m rels, as a dict {'relname': [new ids], }
@@ -296,26 +296,32 @@ class BaseHandler(object):
                 objects = [ self.model( owner = request.user, **update_kwargs ) ]
 
             # TODO implement efficient bulk update?
+
             for obj in objects:
                 # update normal attrs
                 for name, value in update_kwargs.items():
                     setattr(obj, name, value)
-                obj.full_clean()
 
             # update versioned FKs in that way so the FK validation doesn't fail
             for field_name, related_obj in fk_dict.items():
                 for obj in objects:
                     oid = getattr( related_obj, 'local_id', related_obj.id )
                     setattr(obj, field_name + '_id', oid)
+            # ..and exclude versioned FKs from total validation
+            exclude = [ f.name for f in self.model._meta.local_fields if \
+                ( f.rel and isinstance(f.rel, models.ManyToOneRel) ) \
+                    and ( 'local_id' in f.rel.to._meta.get_all_field_names() ) ]
 
-            for obj in objects:
-                obj.save()
+            if update_kwargs or fk_dict: # update only if something hb changed
+                for obj in objects:
+                    obj.full_clean( exclude = exclude )
+                    obj.save()
 
-            # process versioned m2m relations separately
+            # process versioned m2m relations separately, in bulk
             if m2m_dict:
                 local_ids = [ x.local_id for x in objects ]
 
-                for m2m_name, v in m2m_dict.items(): # v - new m2m values
+                for m2m_name, new_ids in m2m_dict.items():
 
                     # preselect all existing m2ms of type m2m_name for all objs
                     field = self.model._meta.get_field(m2m_name)
@@ -324,16 +330,16 @@ class BaseHandler(object):
                     own_name = field.m2m_field_name()
                     rev_name = field.m2m_reverse_field_name()
 
-                    # retrieve current relations
+                    # retrieve all current relations for all selected objects
                     filt = dict( [(own_name + '__in', local_ids)] )
                     rel_m2ms = m2m_class.objects.filter( **filt )
-                    current_rev_ids = rel_m2ms.values_list( rev_name, flat=True )
 
                     now = datetime.datetime.now()
 
                     # close old existing m2m
                     if not self.m2m_append: 
-                        to_close = list( set(current_rev_ids) - set(v) )
+                        # list of reverse object ids to close
+                        to_close = list( set(rel_m2ms.values_list( rev_name, flat=True )) - set(new_ids) )
                         filt = dict( [(own_name + '__in', local_ids), \
                             (rev_name + "__in", to_close)] )
                         if is_versioned:
@@ -342,16 +348,22 @@ class BaseHandler(object):
                             m2m_class.objects.filter( **filt ).delete()
 
                     # create new m2m connections
-                    to_create = list( set(v) - set(current_rev_ids) )
+                    to_create = {}
+                    for value in new_ids:
+                        filt = {rev_name: value} # exclude already created conn-s
+                        to_create[value] = list( set(local_ids) - \
+                            set(rel_m2ms.filter( **filt ).values_list( own_name, flat=True )) )
+
                     new_rels = []
-                    for nid in to_create:
-                        attrs = {}
-                        attrs[ own_name + '_id' ] = obj.local_id
-                        attrs[ rev_name + '_id' ] = nid
-                        if is_versioned:
-                            attrs[ "date_created" ] = now
-                            attrs[ "starts_at" ] = now
-                        new_rels.append( m2m_class( **attrs ) )
+                    for value, obj_ids in to_create.iteritems():
+                        for i in obj_ids:
+                            attrs = {}
+                            attrs[ own_name + '_id' ] = i
+                            attrs[ rev_name + '_id' ] = value
+                            if is_versioned:
+                                attrs[ "date_created" ] = now
+                                attrs[ "starts_at" ] = now
+                            new_rels.append( m2m_class( **attrs ) )
                     m2m_class.objects.bulk_create( new_rels )
 
             # TODO insert here the transaction end
