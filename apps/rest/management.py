@@ -299,48 +299,6 @@ class BaseHandler(object):
 
             # TODO insert here the transaction end
 
-            # here is an alternative how to make updates in bulk, which works 
-            # faster but does not support versioning yet.
-            """
-            if len(obj) > 1: # bulk update, obj is QuerySet
-                obj_ids = [int(x[0]) for x in obj.values_list('pk')] # ids of selected objects
-                # do not bulk-update fields like arrays etc.
-                if [k for k in update_kwargs.keys() if k in self.excluded_bulk_update]:
-                    raise ValueError("Bulk update for any of the fields %s is not allowed. And maybe doesn't make too much sense.")
-                # evaluated because SQL does not support update for sliced querysets
-                obj.model.objects.filter(pk__in=obj_ids).update(**update_kwargs)
-
-                if m2m_dict:  # work out m2m, so far I see no other way as raw SQL
-                    db_table = obj.model._meta.db_table
-                    cursor = connection.cursor()
-
-                    for rem_key, rem_ids in m2m_dict.items(): # rem_key = name of the m2m field
-                        remote_m_name = getattr(obj.model, rem_key).field.rel.to.__name__.lower()
-                        base_m_name = obj.model.__name__.lower()
-                        curr_m2m = [] # existing m2m relations
-
-                        if not m2m_append: # remove existing m2m if overwrite mode
-                            cursor.execute("DELETE FROM %s_%s WHERE %s_id IN %s" %\
-                                (db_table, rem_key, base_m_name, str(tuple(obj_ids))))
-                        else: # select the ones which are already 
-                            cursor.execute("SELECT %s_id, %s_id FROM %s_%s WHERE %s_id IN %s" %\
-                                (base_m_name, remote_m_name, db_table, rem_key, \
-                                    base_m_name, str(tuple(obj_ids))))
-                            curr_m2m = [x for x in cursor.fetchall()]
-
-                        # new combinations of base model and remote model ids
-                        to_insert = [x for x in itertools.product(obj_ids, rem_ids)]
-                        # exclude already existing relations from the insert
-                        for_update = list(set(to_insert) - set(curr_m2m))
-
-                        if for_update:
-                            query = "INSERT INTO %s_%s (%s_id, %s_id) VALUES " % \
-                                (db_table, rem_key, base_m_name, remote_m_name)
-                            query += ", ".join([str(u) for u in for_update])
-                            cursor.execute(query) # insert new m2m values
-                            transaction.commit_unless_managed()
-            """
-
         #except FieldDoesNotExist, v:
         #    return BadRequest(json_obj={"details": v.message}, \
         #        message_type="post_data_invalid", request=request)
