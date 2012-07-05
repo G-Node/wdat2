@@ -385,15 +385,14 @@ class BaseHandler(object):
         with these new attrs and FKs. As objects are homogenious, this kind of 
         validation should work ok.
         """
-
-        do_bulk = 0
-
         # .. exclude versioned FKs from total validation, needed later
         exclude = [ f.name for f in self.model._meta.local_fields if \
             ( f.rel and isinstance(f.rel, models.ManyToOneRel) ) \
                 and ( 'local_id' in f.rel.to._meta.get_all_field_names() ) ]
 
-        if do_bulk: # loop over objects, no bulk update
+        do_bulk = 1 # for the moment we always do bulk updates, it's faster
+
+        if not do_bulk: # loop over objects, no bulk update
             for obj in objects:
                 # update normal attrs
                 for name, value in update_kwargs.items():
@@ -421,13 +420,28 @@ class BaseHandler(object):
                 oid = getattr( related_obj, 'local_id', related_obj.id )
                 setattr(obj, field_name + '_id', oid)
 
-             if update_kwargs or fk_dict: # validate provided data
+            if update_kwargs or fk_dict: # validate provided data
                 obj.full_clean( exclude = exclude )
 
             # step 2: close old records
+            now = datetime.datetime.now()
+            old_ids = [x.id for x in objects] # id or local_id ??
+            self.model.objects.filter( id__in = old_ids ).update( ends_at = now )
 
             # step 3: create new objects
+            for obj in objects:
+                # update objects with new attrs and FKs
+                for name, value in update_kwargs.items():
+                    setattr(obj, name, value)
+                for field_name, related_obj in fk_dict.items():
+                    oid = getattr( related_obj, 'local_id', related_obj.id )
+                    setattr(obj, field_name + '_id', oid)
 
+                obj.guid = obj.compute_hash() # recompute hash 
+                obj.starts_at = now
+                obj.id = None
+
+            self.model.objects.bulk_create( objects )
 
         # process versioned m2m relations separately, in bulk
         if m2m_dict:
