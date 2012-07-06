@@ -20,6 +20,9 @@ from rest.meta import *
 # TODO
 # simple full-text search filter 
 # bulk objects creation
+# propagate metadata for NEO
+# check ACL
+# parent's e-tag should change when child has been changed
 
 
 class BaseHandler(object):

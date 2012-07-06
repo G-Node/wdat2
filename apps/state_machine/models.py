@@ -40,7 +40,8 @@ class VersionManager(models.Manager):
         state = 10 # filter all 'active' objects by default
         if kwargs.has_key('current_state'): # change the filter if requested
             state = kwargs['current_state']
-        qs = qs.filter(current_state = state)
+        if not issubclass(qs.model, VersionedM2M): # no 'state' for m2m managers
+            qs = qs.filter(current_state = state)
 
         return qs
 
@@ -147,13 +148,6 @@ class RelatedManager( VersionManager ):
         return objects
 
 
-class M2MFilterManager(models.Manager):
-    """ filters out old versions of relations """
-    def get_query_set(self, **kwargs):
-        qs = super(M2MFilterManager, self).get_query_set()
-        return qs.filter(ends_at__isnull = True)
-
-
 class VersionedM2M( models.Model ):
     """ the abstract model is used as a connection between two objects for many 
     to many relationship, for versioned objects instead of ManyToMany field. """
@@ -161,7 +155,7 @@ class VersionedM2M( models.Model ):
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
     ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
-    objects = M2MFilterManager()
+    objects = VersionManager()
 
     class Meta:
         abstract = True
