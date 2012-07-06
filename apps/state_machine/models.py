@@ -61,23 +61,26 @@ class RelatedManager( VersionManager ):
     """ implements selection of the related objects in *optimized* number of SQL
     requests """
 
-    def get_related(self, *args, **kwargs):
-        """ 
-        should be something like this
-        returns a list of objects with children, not a queryset
-         """
-        objects = self.filter( **kwargs ) # one SQL request
-        
+    def _prepare_objects(self, *args, **kwargs):
         # these filters, if provided, should propagate to related objects
         kwargs, timeflt = _split_time( **kwargs )
 
-        if objects:
+        if not kwargs.has_key('objects'):
+            objects = self.filter( **kwargs ) # one SQL request
+        else:
+            objects = kwargs['objects']
+        return objects, kwargs, timeflt
 
+
+    def fetch_fks(self, *args, **kwargs):
+        """ returns relatives for given objects using FKs """
+        objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
+        if objects:
             # FK relations - loop over related managers / models
-            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(objects.model)):
+            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(self.model)):
 
                 # get all related objects for all requested objects as one SQL
-                rel_manager = getattr(objects.model, rel_name)
+                rel_manager = getattr(self.model, rel_name)
                 rel_field_name = rel_manager.related.field.name
                 rel_model = rel_manager.related.model
 
@@ -89,12 +92,28 @@ class RelatedManager( VersionManager ):
                 ids = [ getattr(x, id_attr) for x in objects ]
                 filt = { rel_field_name + '__in': ids }
                 related = rel_model.objects.filter( **dict(filt, **timeflt) )[:]
+
                 for obj in objects: # parse children into attrs
                     filt = { rel_field_name: getattr(obj, id_attr) }
                     setattr( obj, rel_name + "_data", related.filter( **filt ) )
+            return objects
+        else:
+            return []
+
+
+    def get_related(self, *args, **kwargs):
+        """ 
+        should be something like this
+        returns a list of objects with children, not a queryset
+         """
+        objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
+        if objects:
+
+            # FK relations - loop over related managers / models
+            objects = self.fetch_fks( dict(timeflt, **kwargs), objects=objects )
 
             # FK parents - if need to resolve (URL or ...)
-            fk_fields = [ f for f in objects.model._meta.local_fields if not f.rel is None ]
+            fk_fields = [ f for f in self.model._meta.local_fields if not f.rel is None ]
             for par_field in fk_fields:
 
                 # select all related parents of a specific type, evaluate!
@@ -115,13 +134,13 @@ class RelatedManager( VersionManager ):
                         setattr( obj, par_field.name, None )
 
             # processing M2Ms
-            if 'local_id' in objects.model._meta.get_all_field_names():
+            if 'local_id' in self.model._meta.get_all_field_names():
                 id_attr = 'local_id'
             else:
                 id_attr = 'id'
             ids = [ getattr(obj, id_attr) for obj in objects ]
 
-            for field in objects.model._meta.many_to_many:
+            for field in self.model._meta.many_to_many:
                 m2m_class = field.rel.through
                 is_versioned = issubclass(m2m_class, VersionedM2M)
                 filt = { field.m2m_field_name() + '__in': ids }
@@ -270,6 +289,131 @@ class ObjectState(models.Model):
         self.id = None
         self.starts_at = now
         super(ObjectState, self).save()
+
+    @classmethod
+    def save_changes(self, objects, update_kwargs, m2m_dict, fk_dict, m2m_append):
+        """
+        the update is done in three steps. 1) we update one object with the new 
+        attrs and FKs, and run full_clean() on it to clean the new values from
+        the request. if no validation errors found, we do 2) close all old 
+        versions for versioned objects and then 3) create in bulk new objects 
+        with these new attrs and FKs. As objects are homogenious, this kind of 
+        validation should work ok.
+        """
+        if not objects: return None
+
+        # .. exclude versioned FKs from total validation, needed later
+        exclude = [ f.name for f in self._meta.local_fields if \
+            ( f.rel and isinstance(f.rel, models.ManyToOneRel) ) \
+                and ( 'local_id' in f.rel.to._meta.get_all_field_names() ) ]
+
+        do_bulk = 1 # for the moment we always do bulk updates, it's faster
+
+        if not do_bulk: # loop over objects, no bulk update
+            for obj in objects:
+                # update normal attrs
+                for name, value in update_kwargs.items():
+                    setattr(obj, name, value)
+
+            # update versioned FKs in that way so the FK validation doesn't fail
+            for field_name, related_obj in fk_dict.items():
+                for obj in objects:
+                    oid = getattr( related_obj, 'local_id', related_obj.id )
+                    setattr(obj, field_name + '_id', oid)
+
+            if update_kwargs or fk_dict: # update only if something hb changed
+                for obj in objects:
+                    obj.full_clean( exclude = exclude )
+                    obj.save()
+
+        else:
+            if update_kwargs or fk_dict:
+                # step 1: update and clean one object
+                obj = objects[0]
+                for name, value in update_kwargs.items():
+                    setattr(obj, name, value)
+
+                # update versioned FKs in that way so the FK validation doesn't fail
+                for field_name, related_obj in fk_dict.items():
+                    oid = getattr( related_obj, 'local_id', related_obj.id )
+                    setattr(obj, field_name + '_id', oid)
+
+                # validate provided data
+                obj.full_clean( exclude = exclude )
+
+                # step 2: close old records
+                now = datetime.datetime.now()
+                old_ids = [x.id for x in objects] # id or local_id ??
+                self.objects.filter( id__in = old_ids ).update( ends_at = now )
+
+                # step 3: create new objects
+                for obj in objects:
+                    if not obj.local_id: # saving new object, not a new version
+                        # requires to hit the database, so not scalable
+                        obj.local_id = self._get_new_local_id()
+                        obj.date_created = now
+
+                    # update objects with new attrs and FKs
+                    for name, value in update_kwargs.items():
+                        setattr(obj, name, value)
+                    for field_name, related_obj in fk_dict.items():
+                        oid = getattr( related_obj, 'local_id', related_obj.id )
+                        setattr(obj, field_name + '_id', oid)
+
+                    obj.guid = obj.compute_hash() # recompute hash 
+                    obj.starts_at = now
+                    obj.id = None
+
+                self.objects.bulk_create( objects )
+
+        # process versioned m2m relations separately, in bulk
+        if m2m_dict:
+            local_ids = [ x.local_id for x in objects ]
+
+            for m2m_name, new_ids in m2m_dict.items():
+
+                # preselect all existing m2ms of type m2m_name for all objs
+                field = self._meta.get_field(m2m_name)
+                m2m_class = getattr(field.rel, 'through')
+                is_versioned = issubclass(m2m_class, VersionedM2M)
+                own_name = field.m2m_field_name()
+                rev_name = field.m2m_reverse_field_name()
+
+                # retrieve all current relations for all selected objects
+                filt = dict( [(own_name + '__in', local_ids)] )
+                rel_m2ms = m2m_class.objects.filter( **filt )
+
+                now = datetime.now()
+
+                # close old existing m2m
+                if not m2m_append: 
+                    # list of reverse object ids to close
+                    to_close = list( set(rel_m2ms.values_list( rev_name, flat=True )) - set(new_ids) )
+                    filt = dict( [(own_name + '__in', local_ids), \
+                        (rev_name + "__in", to_close)] )
+                    if is_versioned:
+                        m2m_class.objects.filter( **filt ).update( ends_at = now )
+                    else:
+                        m2m_class.objects.filter( **filt ).delete()
+
+                # create new m2m connections
+                to_create = {}
+                for value in new_ids:
+                    filt = {rev_name: value} # exclude already created conn-s
+                    to_create[value] = list( set(local_ids) - \
+                        set(rel_m2ms.filter( **filt ).values_list( own_name, flat=True )) )
+
+                new_rels = []
+                for value, obj_ids in to_create.iteritems():
+                    for i in obj_ids:
+                        attrs = {}
+                        attrs[ own_name + '_id' ] = i
+                        attrs[ rev_name + '_id' ] = value
+                        if is_versioned:
+                            attrs[ "date_created" ] = now
+                            attrs[ "starts_at" ] = now
+                        new_rels.append( m2m_class( **attrs ) )
+                m2m_class.objects.bulk_create( new_rels )
 
 
 class SafetyLevel(models.Model):

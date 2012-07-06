@@ -124,7 +124,6 @@ class Serializer(PythonSerializer):
                     self._current[rel_name] = serializer().serialize(getattr(obj, \
                         rel_name).filter(current_state=10), options=options)
                 """
-
                 if self.show_kids and self.serialize_rel and rel_name[:-4] not\
                     in self.excluded_permalink:
                     """ this is used to include some short-relatives into the 

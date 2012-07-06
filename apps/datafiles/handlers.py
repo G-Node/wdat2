@@ -34,12 +34,13 @@ class FileHandler(BaseHandler):
                 datafile.owner = request.user
                 datafile.title = request.FILES['raw_file'].name
 
-                self.create_version( objects=[datafile], fk_kwargs={}, m2m_dict={} )
+                self.model.save_changes( objects=[datafile], update_kwargs={}, \
+                    m2m_dict={}, fk_dict={}, m2m_append=True )
                 self.run_post_processing( datafile = datafile )
 
                 return_code = 201
                 request.method = "GET"
-                return self.get( request, [datafile], return_code )
+                return self.get( request, self.model.objects.get_related( id=datafile.id ), return_code )
 
             else:
                 return BadRequest(json_obj=form.errors, \

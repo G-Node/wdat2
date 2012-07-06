@@ -107,7 +107,7 @@ class NEOSerializer(Serializer):
 class NEOCategorySerializer(NEOSerializer):
     """ do not show reverse relations when list is requested. do not perform
     bulk update for data-array fields (makes no sense anyway) """
-    show_kids = False
+    #show_kids = False
     #excluded_bulk_update = ('times', 'signal', 'waveform') # FIXME not used
 
 

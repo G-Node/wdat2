@@ -82,7 +82,7 @@ class Datafile(SafetyLevel, ObjectState):
 
     @models.permalink
     def get_absolute_url(self):
-        return ("datafile_details", [self.local_id])
+        return ("datafile_details", [str(self.local_id)])
 
     def get_owner(self):
         return self.owner

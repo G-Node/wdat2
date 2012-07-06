@@ -57,6 +57,30 @@ class NEOHandler(BaseHandler):
         filtered = [f.id for f in self.model.objects.raw(query)]
         return objects.filter(id__in=filtered)
 
+    def run_post_processing(self, *args, **kwargs):
+        """ metadata tagging propagates down the hierarchy by default """
+        objects = kwargs['objects']
+        m2m_dict = kwargs['m2m_dict']
+        if not objects: return None
+
+        tags = {}
+        model = type( objects[0] ) # TODO make this better
+        if m2m_dict.has_key('metadata') and not (self.options.has_key('cascade') and \
+                not self.options['cascade']):
+            tags = {'metadata': m2m_dict['metadata']}
+            obj_with_related = model.objects.fetch_fks( objects = objects )
+            rels = filter(lambda l: (l.find("_set") == len(l) - 4), dir(model))
+            # get all relatives
+            for rel_name in rels:
+                print rel_name
+                for_update = []
+                for obj in obj_with_related:
+                    for_update += getattr(obj, rel_name + "_data")
+                print for_update
+                if for_update:
+                    child_model = type( for_update[0] )
+                    # update metadata for them
+                    child_model.save_changes( for_update, {}, tags, {}, self.m2m_append)
 
 
 class MetadataHandler(BaseHandler):

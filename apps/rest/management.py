@@ -298,7 +298,8 @@ class BaseHandler(object):
                 return_code = 201
                 objects = [ self.model( owner = request.user, **update_kwargs ) ]
 
-            self.save_changes(objects, update_kwargs, m2m_dict, fk_dict)
+            self.model.save_changes(objects, update_kwargs, m2m_dict, fk_dict,\
+                self.m2m_append)
 
             # TODO insert here the transaction end
 
@@ -322,7 +323,8 @@ class BaseHandler(object):
         #    return NotFound(json_obj={"details": e.message}, \
         #        message_type="wrong_reference", request=request)
 
-        self.run_post_processing(objects=objects, request=request, rdata=rdata)
+        self.run_post_processing(objects=objects, request=request, rdata=rdata, \
+            update_kwargs=update_kwargs, m2m_dict=m2m_dict, fk_dict=fk_dict )
 
         request.method = "GET"
         if 'local_id' in self.model._meta.get_all_field_names():
@@ -334,124 +336,6 @@ class BaseHandler(object):
         # need refresh the QuerySet, f.e. in case of a bulk update
         return self.get(request, self.model.objects.get_related( **filt ), return_code)
 
-
-    def save_changes(self, objects, update_kwargs, m2m_dict, fk_dict):
-        # TODO implement efficient bulk update?
-
-        """
-        the update is done in three steps. 1) we update one object with the new 
-        attrs and FKs, and run full_clean() on it to clean the new values from
-        the request. if no validation errors found, we do 2) close all old 
-        versions for versioned objects and then 3) create in bulk new objects 
-        with these new attrs and FKs. As objects are homogenious, this kind of 
-        validation should work ok.
-        """
-        # .. exclude versioned FKs from total validation, needed later
-        exclude = [ f.name for f in self.model._meta.local_fields if \
-            ( f.rel and isinstance(f.rel, models.ManyToOneRel) ) \
-                and ( 'local_id' in f.rel.to._meta.get_all_field_names() ) ]
-
-        do_bulk = 1 # for the moment we always do bulk updates, it's faster
-
-        if not do_bulk: # loop over objects, no bulk update
-            for obj in objects:
-                # update normal attrs
-                for name, value in update_kwargs.items():
-                    setattr(obj, name, value)
-
-            # update versioned FKs in that way so the FK validation doesn't fail
-            for field_name, related_obj in fk_dict.items():
-                for obj in objects:
-                    oid = getattr( related_obj, 'local_id', related_obj.id )
-                    setattr(obj, field_name + '_id', oid)
-
-            if update_kwargs or fk_dict: # update only if something hb changed
-                for obj in objects:
-                    obj.full_clean( exclude = exclude )
-                    obj.save()
-
-        else:
-            # step 1: update and clean one object
-            obj = objects[0]
-            for name, value in update_kwargs.items():
-                setattr(obj, name, value)
-
-            # update versioned FKs in that way so the FK validation doesn't fail
-            for field_name, related_obj in fk_dict.items():
-                oid = getattr( related_obj, 'local_id', related_obj.id )
-                setattr(obj, field_name + '_id', oid)
-
-            if update_kwargs or fk_dict: # validate provided data
-                obj.full_clean( exclude = exclude )
-
-            # step 2: close old records
-            now = datetime.datetime.now()
-            old_ids = [x.id for x in objects] # id or local_id ??
-            self.model.objects.filter( id__in = old_ids ).update( ends_at = now )
-
-            # step 3: create new objects
-            for obj in objects:
-                # update objects with new attrs and FKs
-                for name, value in update_kwargs.items():
-                    setattr(obj, name, value)
-                for field_name, related_obj in fk_dict.items():
-                    oid = getattr( related_obj, 'local_id', related_obj.id )
-                    setattr(obj, field_name + '_id', oid)
-
-                obj.guid = obj.compute_hash() # recompute hash 
-                obj.starts_at = now
-                obj.id = None
-
-            self.model.objects.bulk_create( objects )
-
-        # process versioned m2m relations separately, in bulk
-        if m2m_dict:
-            local_ids = [ x.local_id for x in objects ]
-
-            for m2m_name, new_ids in m2m_dict.items():
-
-                # preselect all existing m2ms of type m2m_name for all objs
-                field = self.model._meta.get_field(m2m_name)
-                m2m_class = getattr(field.rel, 'through')
-                is_versioned = issubclass(m2m_class, VersionedM2M)
-                own_name = field.m2m_field_name()
-                rev_name = field.m2m_reverse_field_name()
-
-                # retrieve all current relations for all selected objects
-                filt = dict( [(own_name + '__in', local_ids)] )
-                rel_m2ms = m2m_class.objects.filter( **filt )
-
-                now = datetime.datetime.now()
-
-                # close old existing m2m
-                if not self.m2m_append: 
-                    # list of reverse object ids to close
-                    to_close = list( set(rel_m2ms.values_list( rev_name, flat=True )) - set(new_ids) )
-                    filt = dict( [(own_name + '__in', local_ids), \
-                        (rev_name + "__in", to_close)] )
-                    if is_versioned:
-                        m2m_class.objects.filter( **filt ).update( ends_at = now )
-                    else:
-                        m2m_class.objects.filter( **filt ).delete()
-
-                # create new m2m connections
-                to_create = {}
-                for value in new_ids:
-                    filt = {rev_name: value} # exclude already created conn-s
-                    to_create[value] = list( set(local_ids) - \
-                        set(rel_m2ms.filter( **filt ).values_list( own_name, flat=True )) )
-
-                new_rels = []
-                for value, obj_ids in to_create.iteritems():
-                    for i in obj_ids:
-                        attrs = {}
-                        attrs[ own_name + '_id' ] = i
-                        attrs[ rev_name + '_id' ] = value
-                        if is_versioned:
-                            attrs[ "date_created" ] = now
-                            attrs[ "starts_at" ] = now
-                        new_rels.append( m2m_class( **attrs ) )
-                m2m_class.objects.bulk_create( new_rels )
 
     def delete(self, request, objects):
         """ delete (archive) provided object """
