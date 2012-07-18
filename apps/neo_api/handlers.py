@@ -96,7 +96,8 @@ class MetadataHandler(BaseHandler):
         self.actions = { 'GET': self.get }
 
     def get(self, request, objects, code=200):
-        """ returns object(s) data as binary file """
+        """ returns metadata for an object as a dict of property - value pairs """
+
         assert hasattr(self.model, 'metadata'), "Object cannot have metadata"
         assert self.model.metadata.field.rel.to.__name__.lower() == 'value', "Object cannot have metadata"
         assert len(objects) < 2, "Requested metadata for more than one object"
@@ -105,15 +106,24 @@ class MetadataHandler(BaseHandler):
         resp_data = {}
 
         if objects:
-            values = objects[0].metadata.select_related() # resolves properties in one SQL
-            if values:
-                pairs = []
-                for v in values:
-                    pairs.append([self.serializer.serialize([v.parent_property], \
-                        options=self.options)[0], self.serializer.serialize([v], \
-                            options=self.options)[0]])
-                resp_data["metadata"] = pairs
-                message_type = "metadata_found"
+            value_model = self.model.metadata.field.rel.to
+            prop_model = value_model.parent_property.field.rel.to
+
+            values = objects[0].metadata_buffer # m2m should be loaded by default
+            full_values = value_model.objects.get_related( objects = values )
+
+            props = [v.parent_property for v in full_values]
+            full_props = prop_model.objects.get_related( objects = props )
+
+            pairs = []
+            for v in full_values:
+                for_ser = [p for p in full_props if p.id == v.parent_property.id]
+                ser_prop = self.serializer.serialize(for_ser, options=self.options)[0]
+                ser_val = self.serializer.serialize([v], options=self.options)[0]
+
+                pairs.append([ser_prop, ser_val])
+            resp_data["metadata"] = pairs
+            message_type = "metadata_found"
 
         return Success(resp_data, message_type, request)
 

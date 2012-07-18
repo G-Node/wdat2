@@ -448,9 +448,9 @@ class ACLHandler(BaseHandler):
             except ValidationError, VE:
                 return BadRequest(json_obj=VE.message_dict, \
                     message_type="bad_parameter", request=request)
-            #except (ObjectDoesNotExist, AssertionError, AttributeError, ValueError), e:
-            #    return BadRequest(json_obj={"details": e.message}, \
-            #        message_type="post_data_invalid", request=request)
+            except (ObjectDoesNotExist, AssertionError, AttributeError, ValueError), e:
+                return BadRequest(json_obj={"details": e.message}, \
+                    message_type="post_data_invalid", request=request)
 
         resp_data = {}
         resp_data['safety_level'] = obj.safety_level
