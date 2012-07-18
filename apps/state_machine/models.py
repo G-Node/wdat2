@@ -73,7 +73,9 @@ class RelatedManager( VersionManager ):
 
 
     def fetch_fks(self, *args, **kwargs):
-        """ returns relatives for given objects using FKs """
+        """ returns relatives for given list of objects using FKs. Returns list 
+        of objects, each having FKs WITH postfix _data instead of _set, 
+        containing list of reversly related FK objects. """
         objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
         if objects:
             # FK relations - loop over related managers / models
@@ -165,6 +167,15 @@ class RelatedManager( VersionManager ):
                     setattr( obj, field.name + '_buffer', buf )
 
         return objects
+
+    def get(self, *args, **kwargs):
+        """ same as get_related but always returns one object or throws an error
+        if there is no object. takes the first one if there are many """
+        try:
+            obj = self.get_related( *args, **kwargs )[0]
+        except IndexError:
+            raise ObjectDoesNotExist()
+        return obj
 
 
 class VersionedM2M( models.Model ):
@@ -437,23 +448,23 @@ class SafetyLevel(models.Model):
     def share(self, users):
         """ performs an update of all personal accesses to an object;
         users is a dict of the form {'user_id': 'access level', } """
-        current_users = [x.access_for for x in self.shared_with]
+        current_users = [ x.access_for for x in self.shared_with ]
         users_to_remove = list(set([x.id for x in current_users]) - set(users.keys()))
         for user_id, level in users.items(): # create new accesses and update old ones
             try:
-                u = User.objects.get(id=int(user_id))
+                u = User.objects.get( id=int(user_id) )
             except:
                 raise ValueError("Provided user ID is not valid: %s" % user_id)
             if level not in dict(SingleAccess.ACCESS_LEVELS).keys():
                 raise ValueError("Provided access level for the user ID %s \
                     is not valid: %s" % (user_id, level))
             if u in current_users: # update access level
-                p = self.shared_with.get(access_for=u)
+                p = self.shared_with.get( access_for=u )
                 p.access_level = level
                 p.save()
             else: # create new access
-                p = SingleAccess(object_id=self.id, object_type=self.acl_type(), \
-                    access_for=u, access_level=level)
+                p = SingleAccess( object_id=self.local_id, \
+                    object_type=self.acl_type(), access_for=u, access_level=level)
                 p.save()
         for u in users_to_remove: # delete legacy accesses
             self.shared_with.get(access_for=u).delete()
@@ -462,7 +473,8 @@ class SafetyLevel(models.Model):
     def shared_with(self):
         """ returns a QuerySet of all specific accesses. Method relies on 
         'parent' object's ID and type (this is an abstract class anyway) """
-        return SingleAccess.objects.filter(object_id=self.id, object_type=self.acl_type())
+        return SingleAccess.objects.filter( object_id=self.local_id, \
+            object_type=self.acl_type() )
 
     def access_list(self):
         """ returns list of users having personal access to the object """

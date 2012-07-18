@@ -30,59 +30,59 @@ class NEOSerializer(Serializer):
         if self.serialize_attrs and field.attname == 't_start':
             # all have t_start attribute, use that as a trigger
 
-                if obj.obj_type == "irsaanalogsignal":
-                    signal, times, s_index, e_index, downsample, t_start = \
-                        obj.get_slice(**self.options)
-                    signallink = self.resolve_permalink( signal, add_str='/data' )
-                    timeslink = self.resolve_permalink( times, add_str='/data' )
+            if obj.obj_type == "irsaanalogsignal":
+                signal, times, s_index, e_index, downsample, t_start = \
+                    obj.get_slice(**self.options)
+                signallink = self.resolve_permalink( signal, add_str='/data' )
+                timeslink = self.resolve_permalink( times, add_str='/data' )
 
-                    params = param_clean(s_index, e_index, downsample)
-                    if params:
-                        signallink = urlparse.urljoin( signallink, "?" + params )
-                        timeslink = urlparse.urljoin( timeslink, "?" + params )
+                params = param_clean(s_index, e_index, downsample)
+                if params:
+                    signallink = urlparse.urljoin( signallink, "?" + params )
+                    timeslink = urlparse.urljoin( timeslink, "?" + params )
 
-                    attrs = {"signal": signallink, "times": timeslink, \
-                        "t_start": t_start}
+                attrs = {"signal": signallink, "times": timeslink, \
+                    "t_start": t_start}
 
-                elif obj.obj_type == "analogsignal":
-                    signal, s_index, e_index, downsample, t_start, new_rate = \
-                        obj.get_slice(**self.options)
-                    datalink = self.resolve_permalink( signal, add_str='/data' )
+            elif obj.obj_type == "analogsignal":
+                signal, s_index, e_index, downsample, t_start, new_rate = \
+                    obj.get_slice(**self.options)
+                datalink = self.resolve_permalink( signal, add_str='/data' )
 
-                    params = param_clean(s_index, e_index, downsample)
-                    if params:
-                        datalink = urlparse.urljoin( datalink, "?" + params )
+                params = param_clean(s_index, e_index, downsample)
+                if params:
+                    datalink = urlparse.urljoin( datalink, "?" + params )
 
-                    attrs = {"signal": datalink, "t_start": t_start, \
-                        "sampling_rate": new_rate}
+                attrs = {"signal": datalink, "t_start": t_start, \
+                    "sampling_rate": new_rate}
 
-                elif obj.obj_type == "spiketrain":
-                    times, s_index, e_index, t_start = obj.get_slice(**self.options)
-                    datalink = self.resolve_permalink( times, add_str='/data' )
+            elif obj.obj_type == "spiketrain":
+                times, s_index, e_index, t_start = obj.get_slice(**self.options)
+                datalink = self.resolve_permalink( times, add_str='/data' )
 
-                    params = param_clean(s_index, e_index)
-                    if params:
-                        datalink = urlparse.urljoin( datalink, "?" + params )
+                params = param_clean(s_index, e_index)
+                if params:
+                    datalink = urlparse.urljoin( datalink, "?" + params )
 
-                    attrs = {"times": datalink, "t_start": t_start}
+                attrs = {"times": datalink, "t_start": t_start}
 
-                elif obj.obj_type == "waveform":
-                    waveform, s_index, e_index = obj.get_slice(**self.options)
-                    datalink = self.resolve_permalink( waveform, add_str='/data' )
+            elif obj.obj_type == "waveform":
+                waveform, s_index, e_index = obj.get_slice(**self.options)
+                datalink = self.resolve_permalink( waveform, add_str='/data' )
 
-                    params = param_clean(s_index, e_index)
-                    if params:
-                        datalink = urlparse.urljoin( datalink, "?" + params )
+                params = param_clean(s_index, e_index)
+                if params:
+                    datalink = urlparse.urljoin( datalink, "?" + params )
 
-                    attrs = {"waveform": datalink, "t_start": t_start}
+                attrs = {"waveform": datalink, "t_start": t_start}
 
-                for key, attr in attrs.items():
-                    units = smart_unicode(getattr(obj, key + "__unit"), \
-                        self.encoding, strings_only=True)
-                    self._current[key] = {
-                        'data': attr,
-                        'units': units
-                    }
+            for key, attr in attrs.items():
+                units = smart_unicode(getattr(obj, key + "__unit"), \
+                    self.encoding, strings_only=True)
+                self._current[key] = {
+                    'data': attr,
+                    'units': units
+                }
 
     def deserialize_special(self, update_kwargs, field_name, field_value, user):
         """ this validates that the reference points to an accessible datasource

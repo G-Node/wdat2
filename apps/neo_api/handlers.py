@@ -70,13 +70,14 @@ class NEOHandler(BaseHandler):
             tags = {'metadata': m2m_dict['metadata']}
             obj_with_related = model.objects.fetch_fks( objects = objects )
             rels = filter(lambda l: (l.find("_set") == len(l) - 4), dir(model))
+
             # get all relatives
             for rel_name in rels:
-                print rel_name
+
                 for_update = []
                 for obj in obj_with_related:
                     for_update += getattr(obj, rel_name + "_data")
-                print for_update
+
                 if for_update:
                     child_model = type( for_update[0] )
                     # update metadata for them

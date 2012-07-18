@@ -364,19 +364,37 @@ class ACLHandler(BaseHandler):
 
         request: incoming HTTP request
         """
-        def acl_update(obj, safety_level, users, cascade=False):
+        def acl_update(objects, safety_level, users, cascade=False):
             """ recursively update permissions """
+            model = type( objects[0] ) # TODO make this better
+
+            # first update safety level
             if safety_level:
-                obj.safety_level = safety_level
-                obj.full_clean()
-                obj.save()
+                for_update = []
+                for obj in objects:
+                    if not (obj.safety_level == safety_level):
+                        for_update.append( obj )
+                model.save_changes(for_update, {'safety_level': safety_level}, \
+                    {}, {}, False)
+
+            # update single user shares
             if not users == None:
-                obj.share(users)
+                for obj in objects:
+                    obj.share( users )
+
+            # propagate down the hierarchy if cascade
             if cascade:
-                for related in obj._meta.get_all_related_objects():
+                for_update = []
+                obj_with_related = model.objects.fetch_fks( objects = objects )
+                for related in model._meta.get_all_related_objects():
                     if issubclass(related.model, SafetyLevel): # reversed child can be shared
-                        for c in getattr(obj, related.get_accessor_name()).all():
-                            acl_update(c, safety_level, users, cascade)
+
+                        for obj in obj_with_related:
+                            for_update += getattr(obj, related.get_accessor_name() + '_data')
+
+                if for_update:
+                    acl_update(for_update, safety_level, users, cascade)
+
 
         def clean_users(users):
             """ if users contain usernames they should be resolved """
@@ -406,7 +424,7 @@ class ACLHandler(BaseHandler):
             return NotSupported(message_type="invalid_method", request=request)
 
         try:
-            obj = self.model.objects.get(local_id=id)
+            obj = self.model.objects.get( local_id=id )
         except ObjectDoesNotExist:
             return NotFound(message_type="does_not_exist", request=request)
 
@@ -426,13 +444,13 @@ class ACLHandler(BaseHandler):
                     assert type(rdata['shared_with']) == type({}), "Wrong user data."
                     users = clean_users(rdata['shared_with'])
 
-                acl_update(obj, safety_level, users, self.options.has_key('cascade'))
+                acl_update([obj], safety_level, users, self.options.has_key('cascade'))
             except ValidationError, VE:
                 return BadRequest(json_obj=VE.message_dict, \
                     message_type="bad_parameter", request=request)
-            except (ObjectDoesNotExist, AssertionError, AttributeError, ValueError), e:
-                return BadRequest(json_obj={"details": e.message}, \
-                    message_type="post_data_invalid", request=request)
+            #except (ObjectDoesNotExist, AssertionError, AttributeError, ValueError), e:
+            #    return BadRequest(json_obj={"details": e.message}, \
+            #        message_type="post_data_invalid", request=request)
 
         resp_data = {}
         resp_data['safety_level'] = obj.safety_level
