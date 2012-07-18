@@ -346,63 +346,6 @@ class BaseHandler(object):
                 return Forbidden(message_type="not_authorized", request=request)
         return Success(message_type="deleted", request=request)
 
-    def create_version(self, objects, fk_kwargs, m2m_dict):
-        """ recursively create new versions of the given objects with 
-        attributes given in fk_kwargs  - DEPRECATED"""
-        if 1: return "this function is deprecated"
-        for obj in objects:
-
-            # first need to create new versions for all related FKs with the 
-            # reference to the new version of the parent
-            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
-                rm = getattr(obj, rel_name) # parent / kid related manager
-                update_fks = getattr(obj, rel_name).filter(current_state=10)
-
-                if update_fks:
-                    # a reverse field should always exist
-                    reverse_field = [f for f in rm.model._meta.local_fields if \
-                        f.rel and isinstance(f.rel, models.ManyToOneRel) and \
-                        ( f.rel.to.__name__.lower() == obj.obj_type ) ][0]
-
-                    fk_kwargs = { reverse_field.name + '_id': obj.id }
-
-                    # metadata tagging propagates down the hierarchy by default
-                    tags = {}
-                    if m2m_dict.has_key('metadata') and \
-                        self.options.has_key('cascade') and \
-                            not self.options['cascade']:
-                        tags = {'metadata': m2m_dict['metadata']}
-
-                    # create new version for every FK child
-                    self.create_version( update_fks, fk_kwargs, tags )
-
-            for name, value in fk_kwargs.items():
-                setattr(obj, name, value)
-            obj.guid = obj.compute_hash() # recompute hash 
-            obj.full_clean()
-
-            now = datetime.datetime.now()
-            if not obj.local_id: # requested new object, not an update
-                obj.local_id = self.model._get_new_local_id()
-                obj.date_created = now
-
-            else: # update record with previous version, set ends_at to now()
-                upd = self.model.objects.filter( local_id = obj.local_id )
-                upd.filter(ends_at__isnull=True).update( ends_at = now )
-
-            obj.id = None
-            obj.starts_at = now
-            obj.save() # creates new version with updated values
-
-            if m2m_dict: # process m2m only after acquiring id
-                for k, v in m2m_dict.items():
-                    if self.m2m_append: # append to existing m2m
-                        v = [x.id for x in getattr(obj, k).all()] + \
-                            [x.id for x in m2m_data]
-                    setattr(obj, k, v) # update m2m
-                obj.save_m2m()
-
-
     def get_filter_by_name(self, filter_name):
         return self.list_filters[filter_name]
 
