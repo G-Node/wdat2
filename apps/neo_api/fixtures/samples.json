@@ -1,13 +1,29 @@
 [
     {
         "pk": 1,
+        "model": "datafiles.Datafile",
+        "fields": {
+            "title": "some data array",
+            "raw_file": "data/array.h5",
+            "owner": 1,
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "e003e26a7273867bad4c3d0260f476c5762130ab",
+            "starts_at": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
         "model": "neo_api.Block",
         "fields": {
             "name": "Block of recordings from May, 10",
             "filedatetime": "2011-10-05 19:11:56",
             "index": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "e003e26a7273867bad4c3d0260f476c5762130ab",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -19,7 +35,10 @@
             "index": 1,
             "block": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "b2d53a169b2049d550bfd3dd01957049b4562b85",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -28,7 +47,10 @@
         "fields": {
             "segment": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -41,7 +63,10 @@
             "segment": 1,
             "eventarray": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -50,7 +75,10 @@
         "fields": {
             "segment": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -65,7 +93,10 @@
             "segment": 1,
             "epocharray": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -74,7 +105,10 @@
         "fields": {
             "block": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -85,7 +119,10 @@
             "index": 1,
             "recordingchannelgroup": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -93,9 +130,21 @@
         "model": "neo_api.Unit",
         "fields": {
             "name": "V1 Left Simple Neuron, +/-2",
-            "recordingchannel": [1],
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "neo_api.unit_recordingchannel",
+        "fields": {
+            "unit": 1,
+            "recordingchannel": 1,
+            "date_created": "2011-10-05 19:11:56",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -108,11 +157,14 @@
             "t_stop__unit": "ms",
             "segment": 1,
             "unit": 1,
-            "times_data": "0.270807049069,0.886031975034,0.752855254815,0.627842219243,0.72594719485,0.115917131311,0.438538107766,0.843409372998,0.712181201801,0.550852603097",
+            "times": 1,
             "times__unit": "ms",
-            "times_size": 30,
+            "data_size": 1000,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -126,11 +178,14 @@
             "sampling_rate__unit": "hz",
             "segment": 1,
             "recordingchannel": 1,
-            "signal_data": "0.270807049069,0.886031975034,0.752855254815,0.627842219243,0.72594719485,0.115917131311,0.438538107766,0.843409372998,0.712181201801,0.550852603097",
+            "signal": 1,
             "signal__unit": "mv",
-            "signal_size": 30,
+            "data_size": 1000,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -142,13 +197,16 @@
             "t_start__unit": "ms",
             "segment": 1,
             "recordingchannel": 1,
-            "signal_data": "0.270807049069,0.886031975034,0.752855254815,0.627842219243,0.72594719485,0.115917131311,0.438538107766,0.843409372998,0.712181201801,0.550852603097",
+            "signal": 1,
             "signal__unit": "mv",
-            "times_data": "0.270807049069,0.886031975034,0.752855254815,0.627842219243,0.72594719485,0.115917131311,0.438538107766,0.843409372998,0.712181201801,0.550852603097",
+            "times": 1,
             "times__unit": "ms",
-            "object_size": 30,
+            "data_size": 1000,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -157,7 +215,10 @@
         "fields": {
             "segment": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -173,7 +234,10 @@
             "segment": 1,
             "unit": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     },
     {
@@ -183,13 +247,16 @@
             "channel_index": 1,
             "time_of_spike": 0.0,
             "time_of_spike__unit": "ms",
-            "waveform_data": "0.270807049069,0.886031975034,0.752855254815,0.627842219243,0.72594719485,0.115917131311,0.438538107766,0.843409372998,0.712181201801,0.550852603097",
+            "waveform": 1,
             "waveform__unit": "mv",
-            "waveform_size": 30,
+            "data_size": 1000,
             "spiketrain": 1,
             "spike": 1,
             "owner": 1,
-            "date_created": "2011-10-05 19:11:56"
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 1,
+            "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
+            "starts_at": "2011-10-05 19:11:56"
         }
     }
 ]

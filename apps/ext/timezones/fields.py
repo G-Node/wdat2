@@ -30,11 +30,11 @@ class TimeZoneField(models.CharField):
             return None # null=True
         return pytz.timezone(value)
         
-    def get_db_prep_save(self, value):
+    def get_db_prep_save(self, value, connection=None):
         # Casts timezone into string format for entry into database.
         if value is not None:
             value = smart_unicode(value)
-        return super(TimeZoneField, self).get_db_prep_save(value)
+        return super(TimeZoneField, self).get_db_prep_save(value, connection)
 
     def flatten_data(self, follow, obj=None):
         value = self._get_val_from_obj(obj)

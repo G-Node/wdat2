@@ -79,7 +79,11 @@ class RelatedManager( VersionManager ):
         objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
         if objects:
             # FK relations - loop over related managers / models
-            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(self.model)):
+
+            for rel_name in [f.model().obj_type + "_set" for f in self.model._meta.get_all_related_objects() \
+                if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
+
+            #for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(self.model)):
 
                 # get all related objects for all requested objects as one SQL
                 rel_manager = getattr(self.model, rel_name)
@@ -353,7 +357,7 @@ class ObjectState(models.Model):
                 obj.full_clean( exclude = exclude )
 
                 # step 2: close old records
-                now = datetime.datetime.now()
+                now = datetime.now()
                 old_ids = [x.id for x in objects] # id or local_id ??
                 self.objects.filter( id__in = old_ids ).update( ends_at = now )
 

@@ -23,6 +23,7 @@ from django.test import TestCase
 from neo_api.models import *
 from neo_api.tests.samples import sample_objects
 from rest.meta import meta_attributes
+from rest.serializers import Serializer
 from datetime import datetime
 from django.utils import simplejson as json
 from django.core.serializers.json import DjangoJSONEncoder
@@ -32,6 +33,24 @@ SERVER_NAME = "testserver"
 
 TEST_VALUES = [1, 0, 1.5, "this is a test", None]
 # TODO make the test with ALL django field types!!
+
+
+# load sample objects from fixtures
+#sample_objects = {}
+#with open("../fixtures/samples.json") as f:
+#    j = json.load(f) # it's a list
+
+# extract NEO objects into sample_objects
+#for obj in j:
+#    offset = obj['model'].find('neo_api')
+#    if not ( offset == -1 ):
+#        key = obj['model'][ obj['model'].rfind('.') + 1 : ].lower()
+#        sample_objects[ key ] = 
+
+
+
+
+
 
 class TestUnauthorized(TestCase):
     # TODO update that to test all the objects
@@ -64,8 +83,23 @@ class TestGeneric(TestCase):
     fixtures = ["users.json", "samples.json"]
 
     def setUp(self):
-        logged_in = self.client.login(username="bob", password="pass")
+        logged_in = self.client.login(username="nick", password="pass")
         self.assertTrue(logged_in)
+
+        s = Serializer()
+        sample_objects = {}
+        for cls in meta_classnames.values():
+            obj = cls.objects.get( local_id=1 )
+            sobj = s.serialize( [obj] )[0]['fields']
+
+            names = [ fi.name for fi in obj._meta.local_fields if not fi.editable ]
+            names += [ 'current_state', 'safety_level', 'id' ]
+            for i in names:
+                if sobj.has_key(i):
+                    sobj.pop( i ) # remove reserved fields
+            sample_objects[ obj.obj_type ] = sobj
+        globals()[ 'sample_objects' ] = sample_objects
+
 
     def test_create_objects(self):
         """
@@ -149,7 +183,7 @@ class TestFilters:
 class TestSecurity(TestCase):
     """
     Here we test that a fake user 'joe' can't access objects, created (with
-    fixtures) by another fake user 'bob'. More tests here, when object sharing 
+    fixtures) by another fake user 'nick'. More tests here, when object sharing 
     is implemented.
     """
 

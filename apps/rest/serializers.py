@@ -2,6 +2,7 @@ from django.core.serializers.python import Serializer as PythonSerializer
 from django.utils.encoding import smart_unicode, is_protected_type
 from django.db import models
 from django.db import connection, transaction
+from state_machine.models import VersionedM2M, ObjectState
 
 import settings
 import urlparse
@@ -110,7 +111,10 @@ class Serializer(PythonSerializer):
                 #            self.handle_versioned_m2m_field(mgr)
 
             # process specially reverse relations, like properties for section
-            for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
+            for rel_name in [f.model().obj_type + "_set" for f in obj._meta.get_all_related_objects() \
+                if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
+
+            #for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
 
                 # cascade is switched off
                 """
@@ -130,6 +134,11 @@ class Serializer(PythonSerializer):
                     serialized object, e.g. permalinks of Properties and Values 
                     into the Section """
                     children = []
+
+                    if obj.obj_type == 'unit':
+                        import pdb
+                        pdb.set_trace()
+
                     for child in getattr(obj, rel_name + "_data"):
                         if hasattr(child, 'get_absolute_url'):
                             children.append(''.join([self.host, child.get_absolute_url()]))
