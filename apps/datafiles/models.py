@@ -21,7 +21,7 @@ from scipy import signal as spsignal
 import settings
 
 import os
-#import tables as tb
+import tables as tb
 
 
 def make_upload_path(self, filename):

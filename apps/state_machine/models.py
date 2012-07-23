@@ -350,7 +350,9 @@ class ObjectState(models.Model):
 
                 # update versioned FKs in that way so the FK validation doesn't fail
                 for field_name, related_obj in fk_dict.items():
-                    oid = getattr( related_obj, 'local_id', related_obj.id )
+                    oid = None
+                    if related_obj:
+                        oid = getattr( related_obj, 'local_id', related_obj.id )
                     setattr(obj, field_name + '_id', oid)
 
                 # validate provided data
@@ -372,7 +374,9 @@ class ObjectState(models.Model):
                     for name, value in update_kwargs.items():
                         setattr(obj, name, value)
                     for field_name, related_obj in fk_dict.items():
-                        oid = getattr( related_obj, 'local_id', related_obj.id )
+                        oid = None
+                        if related_obj:
+                            oid = getattr( related_obj, 'local_id', related_obj.id )
                         setattr(obj, field_name + '_id', oid)
 
                     obj.guid = obj.compute_hash() # recompute hash 

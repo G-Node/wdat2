@@ -1,6 +1,7 @@
 # common imports
 from datafiles.models import Datafile
-from celery.decorators import task
+#from celery.decorators import task
+from celery.task import task
 
 import neuroshare as ns
 import numpy as np

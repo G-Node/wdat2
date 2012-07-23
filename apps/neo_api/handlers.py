@@ -5,6 +5,8 @@ from django.db import models
 from rest.management import BaseHandler
 from rest.common import Success
 
+from state_machine.models import VersionedM2M, ObjectState
+
 import settings
 
 # FIXME reqrite all filters below to include versioning
@@ -69,7 +71,8 @@ class NEOHandler(BaseHandler):
                 not self.options['cascade']):
             tags = {'metadata': m2m_dict['metadata']}
             obj_with_related = model.objects.fetch_fks( objects = objects )
-            rels = filter(lambda l: (l.find("_set") == len(l) - 4), dir(model))
+            rels = [f.model().obj_type + "_set" for f in model._meta.get_all_related_objects() \
+                if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
 
             # get all relatives
             for rel_name in rels:

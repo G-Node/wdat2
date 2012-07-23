@@ -5,6 +5,7 @@
         "fields": {
             "title": "some data array",
             "raw_file": "data/array.h5",
+            "file_type": 5,
             "owner": 1,
             "date_created": "2011-10-05 19:11:56",
             "local_id": 1,
@@ -103,6 +104,7 @@
         "pk": 1,
         "model": "neo_api.RecordingChannelGroup",
         "fields": {
+            "name": "RCG 15",
             "block": 1,
             "owner": 1,
             "date_created": "2011-10-05 19:11:56",

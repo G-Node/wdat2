@@ -27,8 +27,9 @@ class NEOSerializer(Serializer):
                 params += "downsample=%s&" % downsample
             return params
 
-        if self.serialize_attrs and field.attname == 't_start':
-            # all have t_start attribute, use that as a trigger
+        if self.serialize_attrs and field.attname == 't_start' or \
+            obj.obj_type == "waveform":
+            # almoal all have t_start attribute, use that as a trigger
 
             if obj.obj_type == "irsaanalogsignal":
                 signal, times, s_index, e_index, downsample, t_start = \
@@ -74,7 +75,7 @@ class NEOSerializer(Serializer):
                 if params:
                     datalink = urlparse.urljoin( datalink, "?" + params )
 
-                attrs = {"waveform": datalink, "t_start": t_start}
+                attrs = {"waveform": datalink}
 
             for key, attr in attrs.items():
                 units = smart_unicode(getattr(obj, key + "__unit"), \

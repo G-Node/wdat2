@@ -1,6 +1,7 @@
 # common imports
 from metadata.models import Section, Property, Value
-from celery.decorators import task
+#from celery.decorators import task
+from celery.task import task
 
 from ext.odml.tools.xmlparser import XMLWriter, XMLReader
 from ext.odml.doc import Document as odml_document

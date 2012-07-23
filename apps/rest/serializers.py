@@ -7,6 +7,7 @@ from state_machine.models import VersionedM2M, ObjectState
 import settings
 import urlparse
 import itertools
+import re
 
 class Serializer(PythonSerializer):
     """ 
@@ -24,6 +25,7 @@ class Serializer(PythonSerializer):
     encoding = settings.DEFAULT_CHARSET
     use_natural_keys = 0 # default is to show permalink for FKs
     q = 'full'
+    host = ""
 
     @property
     def serialize_attrs(self):
@@ -46,7 +48,7 @@ class Serializer(PythonSerializer):
             - 'beard' - object with local attributes AND foreign keys resolved
             - 'full' - everything mentioned above """
             self.q = options.get("q", "full")
-            self.host = options.get("permalink_host", "")
+            self.host = options.get("permalink_host", self.host)
             self.selected_fields = options.get("fields", None)
             self.show_kids = options.get("show_kids", self.show_kids)
             """ use natural keys defines the level of FKs serialization:
@@ -134,11 +136,6 @@ class Serializer(PythonSerializer):
                     serialized object, e.g. permalinks of Properties and Values 
                     into the Section """
                     children = []
-
-                    if obj.obj_type == 'unit':
-                        import pdb
-                        pdb.set_trace()
-
                     for child in getattr(obj, rel_name + "_data"):
                         if hasattr(child, 'get_absolute_url'):
                             children.append(''.join([self.host, child.get_absolute_url()]))
@@ -325,7 +322,6 @@ class Serializer(PythonSerializer):
             raise ReferenceError("Name: %s; Value: %s" % (model.__name__, ref))
         return obj
 
-
     def resolve_permalink(self, obj, add_str = None):
         if hasattr(obj, 'get_absolute_url'):
             pl = ''.join([self.host, obj.get_absolute_url()])
@@ -337,10 +333,11 @@ class Serializer(PythonSerializer):
 
     def get_by_permalink(self, model, plink):
         path = urlparse.urlparse(plink).path
-        if path.rfind('/') + 1 == len(path): # remove trailing slash
-            path = path[:path.rfind('/')]
-        id = path[path.rfind('/') + 1:]
-        return model.objects.get(id=id)
+        id = re.search("(?P<id>[\d]+)", path).group()
+
+        if hasattr(model(), 'local_id'): # versioned model
+            return model.objects.get( local_id=id )
+        return model.objects.get( id=id )
 
     def end_object(self, obj):
         serialized = {

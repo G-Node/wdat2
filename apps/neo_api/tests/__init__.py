@@ -11,6 +11,7 @@ Tests Roadmap
 - security tests: try to access objects created by another person
 
 Still remaining:
+- versioning
 - size, slicing, downsampling, unicode etc.
 - data consistency tests: post/get data values do not differ significantly
 - wrong URLs
@@ -23,33 +24,19 @@ from django.test import TestCase
 from neo_api.models import *
 from neo_api.tests.samples import sample_objects
 from rest.meta import meta_attributes
-from rest.serializers import Serializer
+from neo_api.serializers import NEOSerializer
 from datetime import datetime
 from django.utils import simplejson as json
 from django.core.serializers.json import DjangoJSONEncoder
 
+import tables as tb
+import numpy as np
+import settings
 
 SERVER_NAME = "testserver"
 
 TEST_VALUES = [1, 0, 1.5, "this is a test", None]
 # TODO make the test with ALL django field types!!
-
-
-# load sample objects from fixtures
-#sample_objects = {}
-#with open("../fixtures/samples.json") as f:
-#    j = json.load(f) # it's a list
-
-# extract NEO objects into sample_objects
-#for obj in j:
-#    offset = obj['model'].find('neo_api')
-#    if not ( offset == -1 ):
-#        key = obj['model'][ obj['model'].rfind('.') + 1 : ].lower()
-#        sample_objects[ key ] = 
-
-
-
-
 
 
 class TestUnauthorized(TestCase):
@@ -82,18 +69,39 @@ class TestUnauthorized(TestCase):
 class TestGeneric(TestCase):
     fixtures = ["users.json", "samples.json"]
 
+    def create_file_with_array( self, size ):
+        """ create test file with array data. can be further used to create any
+        data-related objects, like signals, spiketrains etc. size - int """
+        path = settings.FILE_MEDIA_ROOT + "data/"
+        a = np.random.rand( size )
+        with tb.openFile(path + "array.h5", "a") as f:
+            f.createArray("/", "Random array, size: %d" % a.size, a)
+
     def setUp(self):
+        # create test HDF5 file with array data
+        import os
+        path = settings.FILE_MEDIA_ROOT + "data/"
+        if not "array.h5" in os.listdir( path ):
+            create_file_with_array( 1000 )
+
+        # login
         logged_in = self.client.login(username="nick", password="pass")
         self.assertTrue(logged_in)
 
-        s = Serializer()
+        # populate test JSON NEO object bodies, save in globals
+        ser = NEOSerializer()
+        ser.host = "http://testhost.org"
         sample_objects = {}
         for cls in meta_classnames.values():
             obj = cls.objects.get( local_id=1 )
-            sobj = s.serialize( [obj] )[0]['fields']
+            sobj = ser.serialize( [obj] )[0]['fields']
 
+            # non-editable fields
             names = [ fi.name for fi in obj._meta.local_fields if not fi.editable ]
+            # reserved fields
             names += [ 'current_state', 'safety_level', 'id' ]
+            # reversed relations
+            names += [l for l in sobj.keys() if (l.find("_set") == len(l) - 4)]
             for i in names:
                 if sobj.has_key(i):
                     sobj.pop( i ) # remove reserved fields
@@ -109,7 +117,7 @@ class TestGeneric(TestCase):
         for obj_type, obj in sample_objects.items():
             for i in range(5): # create a few objects
                 response = self.client.post("/neo/%s/" % obj_type, \
-                    json.dumps(obj), content_type="application/json")
+                    json.dumps(obj, cls=DjangoJSONEncoder), content_type="application/json")
                 self.assertEqual(response.status_code, 201, \
                     "Obj type %s; response: %s" % (obj_type, response.content))
 
@@ -207,4 +215,17 @@ class TestSecurity(TestCase):
             self.assertEqual(response.status_code, 403)
 
 
+# alternative option how to load sample objects from fixtures.
+# not the best way because it doesn't resolve data fields etc.
+"""
+sample_objects = {}
+with open("../fixtures/samples.json") as f:
+    j = json.load(f) # it's a list
 
+# extract NEO objects into sample_objects
+for obj in j:
+    offset = obj['model'].find('neo_api')
+    if not ( offset == -1 ):
+        key = obj['model'][ obj['model'].rfind('.') + 1 : ].lower()
+        sample_objects[ key ] = obj[ 'fields' ]
+"""
