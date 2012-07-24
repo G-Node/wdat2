@@ -12,6 +12,7 @@ to_pythonpath = (
     PROJECT_PATH,
     os.path.join(PROJECT_PATH, 'apps/'),
     os.path.join(PROJECT_PATH, 'apps/ext/'),
+    os.path.join(PROJECT_PATH, 'apps/local/'),
     os.path.join(PROJECT_PATH, 'apps/ext/pinax/'),
     os.path.join(PROJECT_PATH, 'apps/ext/pinax/apps/'),
 )

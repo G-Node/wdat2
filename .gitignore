@@ -1,6 +1,7 @@
 apache/
 apps/neo_api/fixtures/testdata/
 apps/metadata/fixtures/testdata/
+apps/local/
 cron/
 deploy/
 logs/
