@@ -32,11 +32,32 @@ from django.core.serializers.json import DjangoJSONEncoder
 import tables as tb
 import numpy as np
 import settings
+import time
 
 SERVER_NAME = "testserver"
 
 TEST_VALUES = [1, 0, 1.5, "this is a test", None]
 # TODO make the test with ALL django field types!!
+
+
+def reserved_field_names( model ):
+    """ returns names of the 'system' non-editable fields """
+    # non-editable fields
+    names = [ fi.name for fi in model._meta.local_fields if not fi.editable ]
+    # reserved fields
+    names += [ 'current_state', 'safety_level', 'id' ]
+    return names
+
+def available_simple_fields( model ):
+    """ returns non-'system' editable simple (non-relational) fields """
+    reserved = reserved_field_names( model )
+    return [ f for f in model._meta.local_fields if not f.name in reserved and not f.rel ]
+
+def available_fk_fields( model ):
+    """ returns non-'system' editable FK fields """
+    reserved = reserved_field_names( model )
+    return [ f for f in model._meta.local_fields if not f.name in reserved and f.rel ]
+
 
 
 class TestUnauthorized(TestCase):
@@ -97,9 +118,7 @@ class TestGeneric(TestCase):
             sobj = ser.serialize( [obj] )[0]['fields']
 
             # non-editable fields
-            names = [ fi.name for fi in obj._meta.local_fields if not fi.editable ]
-            # reserved fields
-            names += [ 'current_state', 'safety_level', 'id' ]
+            names = reserved_field_names( obj )
             # reversed relations
             names += [l for l in sobj.keys() if (l.find("_set") == len(l) - 4)]
             for i in names:
@@ -109,7 +128,7 @@ class TestGeneric(TestCase):
         globals()[ 'sample_objects' ] = sample_objects
 
 
-    def test_create_objects(self):
+    def zz_test_create_objects(self):
         """
         Test of successful creation of all types of NEO objects.
         expected: 201 created
@@ -121,7 +140,7 @@ class TestGeneric(TestCase):
                 self.assertEqual(response.status_code, 201, \
                     "Obj type %s; response: %s" % (obj_type, response.content))
 
-    def test_get_object(self):
+    def zz_test_get_object(self):
         """
         Test the GET single object URLs.
         expected: 200 successful
@@ -132,28 +151,69 @@ class TestGeneric(TestCase):
                 "Obj type %s; response: %s" % (key, str(response)))
             self.assertContains(response, key) # TODO add full check
 
-    def test_update_objects(self):
-        """
-        Test of successful update of all attributes.
-        expected: no 500 errors; GET has updated attribute
-        """
-        if None: # test is switched off TODO make it with ALL django types!!
-            for obj_type, model in meta_classnames.items():
-                for field in filter(lambda x: x.editable, model._meta.local_fields):
-                    post = {}
-                    for v in TEST_VALUES:
-                        post[field.attname] = v
-                        response = self.client.post("/neo/%s/1" % obj_type,\
-                            DjangoJSONEncoder().encode(post), content_type="application/json")
-                        # DjangoJSONEncoder can encode datetime
-                        self.assertNotEqual(response.status_code, 500, \
-                            "Obj type %s; response: %s" % (obj_type, response.content))
-                        if response.status_code == 200 and not field.attname == 'id':
-                            response = self.client.get("/neo/%s/1/" % obj_type)
-                            rdata = json.loads(response.content)
-                            self.assertEqual(str(rdata['selected'][0]['fields'][field.attname]),\
-                                str(v))
-        # test that editable fileds has not been changed
+
+    def test_crud_and_versioning(self):
+        """ basically test that you can go back in time to a system state, when 
+        objects and relations were different. """
+
+        # step 1. Create original objects ( test CREATE )
+        ids = {}
+        for obj_type, obj in sample_objects.items():
+            ids[obj_type] = []
+            for i in range(3): # create a few objects
+                response = self.client.post("/neo/%s/" % obj_type, \
+                    json.dumps(obj, cls=DjangoJSONEncoder), content_type="application/json")
+                self.assertEqual(response.status_code, 201, \
+                    "Obj type %s; response: %s" % (obj_type, response.content))
+                # save object ids for later
+                rdata = json.loads(response.content)
+                ids[obj_type].append( int(rdata['selected'][0]['fields']['local_id']) )
+                time.sleep(2) # objects should be created at different time
+
+        stamp1 = datetime.now() # a point in time to go back and validate
+        print "test objects created.. ( test CREATE ) OK"
+
+        # step 2. change objects ( test UPDATE and GET )
+        ser = NEOSerializer()
+        for obj_type, model in meta_classnames.items():
+            for field in available_simple_fields(model):
+                post = {}
+                for v in TEST_VALUES:
+
+                    if ser.is_data_field_django(model, field):
+                        post[field.name] = {
+                            "data": v,
+                            "units": "ms"
+                        }
+                    else:
+                        post[field.name] = v
+
+                    new_value = post[field.name]
+                    id = ids[obj_type][0] # just test one object
+                    response = self.client.post("/neo/%s/%d" % (obj_type, id),\
+                        DjangoJSONEncoder().encode(post), content_type="application/json")
+                    # DjangoJSONEncoder can encode datetime
+                    self.assertNotEqual(response.status_code, 500, \
+                        "Obj type %s; response: %s" % (obj_type, response.content))
+                    if response.status_code == 200:
+                        response = self.client.get("/neo/%s/%d/" % (obj_type, id))
+                        rdata = json.loads(response.content)
+                        self.assertEqual(str(rdata['selected'][0]['fields'][field.name]),\
+                            str( field.to_python(new_value) ), "Object: %s, field: %s" % (obj_type, field.name) )
+
+        stamp2 = datetime.now() # a point in time to go back and validate
+        print "changes made.. ( test UPDATE and GET ) OK"
+
+        # step 3. do bulk update ( test BULK_UPDATE )
+
+        stamp3 = datetime.now() # a point in time to go back and validate
+
+        # step 4. change relations ( test FKs and M2Ms )
+
+        stamp4 = datetime.now() # a point in time to go back and validate
+
+        # step 5. go back in time and check ( test VERSIONING )
+
 
 
 
@@ -184,6 +244,9 @@ class TestFilters:
 
 
 # Add test recursive metadata propagation
+
+
+# Add test recursive eTag / last modified change
 
 
 # DELETE - does not appear in queries - test

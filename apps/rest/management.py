@@ -303,12 +303,12 @@ class BaseHandler(object):
 
             # TODO insert here the transaction end
 
-        #except FieldDoesNotExist, v:
-        #    return BadRequest(json_obj={"details": v.message}, \
-        #        message_type="post_data_invalid", request=request)
-        #except (ValueError, TypeError), v:
-        #    return BadRequest(json_obj={"details": v.message}, \
-        #        message_type="bad_float_data", request=request)
+        except FieldDoesNotExist, v:
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="post_data_invalid", request=request)
+        except (ValueError, TypeError), v:
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="bad_float_data", request=request)
         except ValidationError, VE:
             if hasattr(VE, 'message_dict'):
                 json_obj=VE.message_dict
@@ -316,12 +316,12 @@ class BaseHandler(object):
                 json_obj={"details": ", ".join(VE.messages)}
             return BadRequest(json_obj=json_obj, \
                 message_type="bad_parameter", request=request)
-        #except (AssertionError, AttributeError), e:
-        #    return BadRequest(json_obj={"details": e.message}, \
-        #        message_type="post_data_invalid", request=request)
-        #except (ReferenceError, ObjectDoesNotExist), e:
-        #    return NotFound(json_obj={"details": e.message}, \
-        #        message_type="wrong_reference", request=request)
+        except (AssertionError, AttributeError), e:
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="post_data_invalid", request=request)
+        except (ReferenceError, ObjectDoesNotExist), e:
+            return NotFound(json_obj={"details": e.message}, \
+                message_type="wrong_reference", request=request)
 
         self.run_post_processing(objects=objects, request=request, rdata=rdata, \
             update_kwargs=update_kwargs, m2m_dict=m2m_dict, fk_dict=fk_dict )
