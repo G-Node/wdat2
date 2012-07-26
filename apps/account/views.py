@@ -3,6 +3,7 @@ from django.conf import settings
 from django.shortcuts import render_to_response
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.db.models import Q
+from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login
@@ -104,10 +105,7 @@ def signup(request, form_class=SignupForm,
                 user = authenticate(username=username, password=password)
                 update_other_services(user, ip_address=ip_addr)
                 auth_login(request, user)
-                request.user.message_set.create(
-                    message=_("Successfully logged in as %(username)s.") % {
-                    'username': user.username
-                })
+                messages.success(request, _('Successfully logged in as %(username)s.') % {'username': request.user.username})
                 return HttpResponseRedirect(success_url)
     else:
         form = form_class()
@@ -133,9 +131,9 @@ def email(request, form_class=AddEmailForm,
                         user=request.user,
                         email=email,
                     )
-                    request.user.message_set.create(
-                        message=_("Confirmation email sent to %(email)s") % {
-                            'email': email,
+                    messages.success(
+                        request, _('Confirmation email sent to %(email)s') % {
+                            'email': email
                         })
                     EmailConfirmation.objects.send_confirmation(email_address)
                 except EmailAddress.DoesNotExist:
@@ -148,9 +146,9 @@ def email(request, form_class=AddEmailForm,
                         email=email
                     )
                     email_address.delete()
-                    request.user.message_set.create(
-                        message=_("Removed email address %(email)s") % {
-                            'email': email,
+                    messages.success(
+                        request, _('Removed email address %(email)s') % {
+                            'email': email
                         })
                 except EmailAddress.DoesNotExist:
                     pass
@@ -288,8 +286,7 @@ def other_services(request, template_name="account/other_services.html"):
                 twitter_authorized = twitter_verify_credentials(
                     twitter_account)
                 if not twitter_authorized:
-                    request.user.message_set.create(
-                        message=ugettext("Twitter authentication failed"))
+                    messages.success(request, _('Twitter authentication failed'))
                 else:
                     twitter_form.save()
     else:
@@ -308,5 +305,7 @@ def other_services_remove(request):
     OtherServiceInfo.objects.filter(user=request.user).filter(
         Q(key="twitter_user") | Q(key="twitter_password")
     ).delete()
-    request.user.message_set.create(message=ugettext("Removed twitter account information successfully."))
+    messages.success(request, _('Removed twitter account information successfully.'))
     return HttpResponseRedirect(reverse("acct_other_services"))
+
+
