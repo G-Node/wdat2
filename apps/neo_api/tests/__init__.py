@@ -155,6 +155,25 @@ class TestGeneric(TestCase):
     def test_crud_and_versioning(self):
         """ basically test that you can go back in time to a system state, when 
         objects and relations were different. """
+        def _set_post():
+            import pdb
+            pdb.set_trace()
+            go = True
+            try:
+                new_value = field.to_python( v )
+                if ser.is_data_field_django(model, field):
+                    post[field.name] = {
+                        "data": new_value,
+                        "units": "ms"
+                    }
+                else:
+                    post[field.name] = new_value
+            except ValidationError:
+                go = False
+
+        go = True
+        new_value = ""
+        stamp0 = datetime.now() # a point in time to go back and validate
 
         # step 1. Create original objects ( test CREATE )
         ids = {}
@@ -168,7 +187,7 @@ class TestGeneric(TestCase):
                 # save object ids for later
                 rdata = json.loads(response.content)
                 ids[obj_type].append( int(rdata['selected'][0]['fields']['local_id']) )
-                time.sleep(2) # objects should be created at different time
+                #time.sleep(2) # objects should be created at different time
 
         stamp1 = datetime.now() # a point in time to go back and validate
         print "test objects created.. ( test CREATE ) OK"
@@ -179,41 +198,54 @@ class TestGeneric(TestCase):
             for field in available_simple_fields(model):
                 post = {}
                 for v in TEST_VALUES:
+                    _set_post()
 
-                    if ser.is_data_field_django(model, field):
-                        post[field.name] = {
-                            "data": v,
-                            "units": "ms"
-                        }
-                    else:
-                        post[field.name] = v
+                    #if obj_type == 'segment' and field.name == 'name':
+                    #    import pdb
+                    #    pdb.set_trace()
 
-                    new_value = post[field.name]
                     id = ids[obj_type][0] # just test one object
                     response = self.client.post("/neo/%s/%d" % (obj_type, id),\
                         DjangoJSONEncoder().encode(post), content_type="application/json")
                     # DjangoJSONEncoder can encode datetime
                     self.assertNotEqual(response.status_code, 500, \
                         "Obj type %s; response: %s" % (obj_type, response.content))
-                    if response.status_code == 200:
+                    if response.status_code == 200 and go:
                         response = self.client.get("/neo/%s/%d/" % (obj_type, id))
                         rdata = json.loads(response.content)
                         self.assertEqual(str(rdata['selected'][0]['fields'][field.name]),\
-                            str( field.to_python(new_value) ), "Object: %s, field: %s" % (obj_type, field.name) )
+                            str( new_value ), "Object: %s, field: %s" % (obj_type, field.name) )
 
         stamp2 = datetime.now() # a point in time to go back and validate
         print "changes made.. ( test UPDATE and GET ) OK"
 
         # step 3. do bulk update ( test BULK_UPDATE )
+        for obj_type, model in meta_classnames.items():
+            for field in available_simple_fields(model):
+                post = {}
+                for v in TEST_VALUES:
+                    _set_post()
+                    response = self.client.post("/neo/%s/?bulk_update=1" % obj_type,\
+                        DjangoJSONEncoder().encode(post), content_type="application/json")
+                    self.assertNotEqual(response.status_code, 500, \
+                        "Obj type %s; response: %s" % (obj_type, response.content))
+                    if response.status_code == 200 and go:
+                        response = self.client.get("/neo/%s/" % obj_type)
+                        rdata = json.loads(response.content)
+                        self.assertEqual(str(rdata['selected'][0]['fields'][field.name]),\
+                            str( new_value ), "Object: %s, field: %s" % (obj_type, field.name) )
 
         stamp3 = datetime.now() # a point in time to go back and validate
+        print "bulk updates made.. ( test BULK UPDATE ) OK"
 
         # step 4. change relations ( test FKs and M2Ms )
+
 
         stamp4 = datetime.now() # a point in time to go back and validate
 
         # step 5. go back in time and check ( test VERSIONING )
-
+        for obj_type, model in meta_classnames.items():
+            pass
 
 
 
