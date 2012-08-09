@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models.fields.related import ForeignKey
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
@@ -80,10 +81,11 @@ class RelatedManager( VersionManager ):
         if objects:
             # FK relations - loop over related managers / models
 
+            # old way:
+            #for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(self.model)):
+
             for rel_name in [f.model().obj_type + "_set" for f in self.model._meta.get_all_related_objects() \
                 if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
-
-            #for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(self.model)):
 
                 # get all related objects for all requested objects as one SQL
                 rel_manager = getattr(self.model, rel_name)
@@ -97,11 +99,15 @@ class RelatedManager( VersionManager ):
 
                 ids = [ getattr(x, id_attr) for x in objects ]
                 filt = { rel_field_name + '__in': ids }
-                related = rel_model.objects.filter( **dict(filt, **timeflt) )[:]
+                related = rel_model.objects.filter( **dict(filt, **timeflt) )
+
+                # make a mapping between objects ids and related
+                relmap = [ ( getattr(r, rel_field_name + '_id'), r ) for r in related ]
 
                 for obj in objects: # parse children into attrs
-                    filt = { rel_field_name: getattr(obj, id_attr) }
-                    setattr( obj, rel_name + "_data", related.filter( **filt ) )
+                    fltred = filter(lambda l: l[0] == getattr(obj, id_attr), relmap)
+                    setattr( obj, rel_name + "_data", [x[1] for x in fltred] )
+
             return objects
         else:
             return []
@@ -111,12 +117,16 @@ class RelatedManager( VersionManager ):
         """ 
         should be something like this
         returns a list of objects with children, not a queryset
-         """
+        """
         objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
-        if objects:
+
+        if objects: # evaluates queryset, executes 1 SQL
 
             # FK relations - loop over related managers / models
             objects = self.fetch_fks( dict(timeflt, **kwargs), objects=objects )
+
+            import pdb
+            pdb.set_trace()
 
             # FK parents - if need to resolve (URL or ...)
             fk_fields = [ f for f in self.model._meta.local_fields if not f.rel is None ]
@@ -138,6 +148,8 @@ class RelatedManager( VersionManager ):
                         setattr( obj, par_field.name, par.get( **filt ) )
                     except ObjectDoesNotExist:
                         setattr( obj, par_field.name, None )
+
+            pdb.set_trace()
 
             # processing M2Ms
             if 'local_id' in self.model._meta.get_all_field_names():
@@ -179,6 +191,27 @@ class RelatedManager( VersionManager ):
             obj = self.get_related( *args, **kwargs )[0]
         except IndexError:
             raise ObjectDoesNotExist()
+        return obj
+
+    def create(self, **kwargs):
+        if not "owner" in kwargs.keys():
+            raise ValidationError("Please provide object owner.")
+        else:
+            owner = kwargs.pop("owner")
+        update_kwargs, m2m_dict, fk_dict = {}, {}, {}
+        reserved = [ fi.name for fi in self.model._meta.local_fields if not fi.editable ]
+        simple = [ f for f in self.model._meta.local_fields if not f.name in reserved and not f.rel ]
+        fks = [ f for f in self.model._meta.local_fields if not f.name in reserved and f.rel ]
+        m2ms = [ f for f in self.model._meta.many_to_many ]
+        for key, value in kwargs.items():
+            if key in [ f.name for f in m2ms ]:
+                m2m_dict[ key ] = value
+            elif key in [ f.name for f in fks ]:
+                fk_dict[ key ] = value
+            elif key in [ f.name for f in simple ]:
+                update_kwargs[ key ] = value
+        obj = self.model( owner = owner )
+        self.model.save_changes( [obj], update_kwargs, m2m_dict, fk_dict, True)
         return obj
 
 
