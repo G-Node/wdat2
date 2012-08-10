@@ -1,10 +1,12 @@
 from django.db import models
 from django.db.models.fields.related import ForeignKey
+from django.db import connection, transaction
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from django.core.urlresolvers import reverse
 from friends.models import Friendship
 from datetime import datetime
 
@@ -87,6 +89,9 @@ class RelatedManager( VersionManager ):
             for rel_name in [f.model().obj_type + "_set" for f in self.model._meta.get_all_related_objects() \
                 if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
 
+                print datetime.now()
+                print "start with child %s.." % rel_name
+
                 # get all related objects for all requested objects as one SQL
                 rel_manager = getattr(self.model, rel_name)
                 rel_field_name = rel_manager.related.field.name
@@ -96,17 +101,61 @@ class RelatedManager( VersionManager ):
                     id_attr = 'local_id'
                 else: # normal FK to a django model
                     id_attr = 'id'
-
                 ids = [ getattr(x, id_attr) for x in objects ]
-                filt = { rel_field_name + '__in': ids }
-                related = rel_model.objects.filter( **dict(filt, **timeflt) )
 
-                # make a mapping between objects ids and related
-                relmap = [ ( getattr(r, rel_field_name + '_id'), r ) for r in related ]
+                """
+
+                # 1. option with TEMP table for performance
+                now = datetime.now()
+                temp_table = "stage1_" + hashlib.sha1(str(now)).hexdigest()
+
+                cursor = connection.cursor()
+                cursor.execute('CREATE TEMPORARY TABLE ' + temp_table + ' (n INT)')
+                cursor.execute('INSERT INTO ' + temp_table + ' (n) VALUES (' +\
+                    '), ('.join( [str(x) for x in ids] ) + ')' )
+                transaction.commit_unless_managed()
+
+                print datetime.now()
+                print "created temp table %s.." % rel_name
+
+
+                db_table = rel_model._meta.db_table
+                cls = rel_model.__name__.lower()
+                query = 'SELECT \
+                    model.' + id_attr + ', ' + rel_field_name + '_id FROM '\
+                     + db_table + ' model LEFT JOIN ' + temp_table + \
+                    ' temp ON model.' + id_attr + ' = temp.n'
+
+                cursor.execute( query )
+                relmap = cursor.fetchall()
+                """
+
+                # full object
+                #query = 'SELECT model.* FROM ' + db_table + ' model LEFT JOIN ' + \
+                #    temp_table + ' temp ON model.' + id_attr + ' = temp.n'
+
+                #related = rel_model.objects.raw(query)
+                #related = related.filter( **timeflt ) FIXME
+
+                #print datetime.now()
+                #print "fetched with SQL for %s.." % rel_name
+
+                #print datetime.now()
+                #print "map created for %s.." % rel_name
+                #if rel_name == "analogsignal_set":
+                #    import pdb
+                #    pdb.set_trace()
+
+                # 2. slow alternative without temp table
+                filt = { rel_field_name + '__in': ids }
+                relmap = rel_model.objects.filter( **dict(filt, **timeflt) ).values_list(id_attr, rel_field_name)
 
                 for obj in objects: # parse children into attrs
                     fltred = filter(lambda l: l[0] == getattr(obj, id_attr), relmap)
                     setattr( obj, rel_name + "_data", [x[1] for x in fltred] )
+
+                print datetime.now()
+                print "parsed into objects for %s.." % rel_name
 
             return objects
         else:
@@ -122,34 +171,51 @@ class RelatedManager( VersionManager ):
 
         if objects: # evaluates queryset, executes 1 SQL
 
+            print datetime.now()
+            print "start profiling.."
+
             # FK relations - loop over related managers / models
             objects = self.fetch_fks( dict(timeflt, **kwargs), objects=objects )
 
-            import pdb
-            pdb.set_trace()
+            print datetime.now()
+            print "initial ID fetch done.."
 
             # FK parents - if need to resolve (URL or ...)
             fk_fields = [ f for f in self.model._meta.local_fields if not f.rel is None ]
+
+            print datetime.now()
+            print "start children.."
+
             for par_field in fk_fields:
 
                 # select all related parents of a specific type, evaluate!
                 ids = set([ getattr(x, par_field.name + "_id") for x in objects ])
                 if 'local_id' in par_field.rel.to._meta.get_all_field_names():
                     id_attr = 'local_id'
-                    par = par_field.rel.to.objects.filter( local_id__in = ids, **timeflt )[:]
+                    par = par_field.rel.to.objects.filter( local_id__in = ids, **timeflt )
 
                 else: # normal FK to a django model
                     id_attr = 'id'
-                    par = par_field.rel.to.objects.filter( id__in = ids )[:]
+                    par = par_field.rel.to.objects.filter( id__in = ids )
 
+                print "fetched child %s.." % par_field
+                print datetime.now()
+
+                # make a mapping between parent ids and objects
+                relmap = dict( [ ( getattr(r, id_attr), r ) for r in par ] )
                 for obj in objects: # parse parents into attrs
-                    filt = dict( [(id_attr, getattr(obj, par_field.name + "_id"))] )
                     try:
-                        setattr( obj, par_field.name, par.get( **filt ) )
-                    except ObjectDoesNotExist:
+                        setattr( obj, par_field.name, \
+                            relmap[ getattr(obj, par_field.name + "_id") ] )
+                    except KeyError:
                         setattr( obj, par_field.name, None )
 
-            pdb.set_trace()
+                print datetime.now()
+                print "child %s parsed.." % par_field
+
+
+            print datetime.now()
+            print "start with parents.."
 
             # processing M2Ms
             if 'local_id' in self.model._meta.get_all_field_names():
@@ -158,17 +224,46 @@ class RelatedManager( VersionManager ):
                 id_attr = 'id'
             ids = [ getattr(obj, id_attr) for obj in objects ]
 
+            print datetime.now()
+            print "start with m2ms.."
+
             for field in self.model._meta.many_to_many:
                 m2m_class = field.rel.through
                 is_versioned = issubclass(m2m_class, VersionedM2M)
-                filt = { field.m2m_field_name() + '__in': ids }
+                own_name = field.m2m_field_name()
+                rev_name = field.m2m_reverse_field_name()
+                filt = dict( [(own_name + '__in', ids)] )
 
-                # select all related m2m connections of a specific type, one SQL
+                # select all related m2m connections (not reversed objects!) of 
+                # a specific type, one SQL
                 if is_versioned:
-                    rel_m2ms = m2m_class.objects.filter( **dict(filt, **timeflt) )[:]
+                    rel_m2ms = m2m_class.objects.filter( **dict(filt, **timeflt) )
                 else:
-                    rel_m2ms = m2m_class.objects.filter( **filt )[:]
+                    rel_m2ms = m2m_class.objects.filter( **filt )
 
+                # get evaluated m2m conn queryset:
+                rel_m2m_map = [ ( getattr(r, own_name), getattr(r, rev_name) ) for r in rel_m2ms ]
+
+                rev_ids = set( [ getattr(r, rev_name) for r in rel_m2ms ] )
+                # select all reversed objects, one SQL
+                if is_versioned:
+                    filt = dict( [('local_id__in', rev_ids)] )
+                    rev_objs = field.rel.to.objects.filter( **dict(filt, **timeflt) )
+                    rev_objs_map = dict( [ ( getattr(r, 'local_id'), r) for r in rev_objs ] )
+                else:
+                    filt = dict( [('id__in', rev_ids)] )
+                    rev_objs = field.rel.to.objects.filter( **filt )
+                    rev_objs_map = dict( [ ( getattr(r, 'id'), r) for r in rev_objs ] )
+
+                for obj in objects: # parse into objects
+                    # filter ids of the reversed objects for a particular object
+                    fltred = filter(lambda l: l[0] == getattr(obj, id_attr), rel_m2m_map)
+                    revsed = filter(lambda l: l[0] in fltred, rev_objs_map)
+                    buf = [ r[1] for r in revsed ]
+
+                    setattr( obj, field.name + '_buffer', buf )
+
+                """
                 for obj in objects: # parse into objects
                     filt = { field.m2m_field_name(): getattr(obj, id_attr) }
                     reverse_ids = rel_m2ms.filter( **filt ).values_list( field.m2m_reverse_field_name(), flat=True )
@@ -179,8 +274,8 @@ class RelatedManager( VersionManager ):
                     else:
                         filt = { 'id__in': reverse_ids }
                         buf = field.rel.to.objects.filter( **filt )
-
-                    setattr( obj, field.name + '_buffer', buf )
+                """
+            print datetime.now()
 
         return objects
 

@@ -139,6 +139,8 @@ class Serializer(PythonSerializer):
                     for child in getattr(obj, rel_name + "_data"):
                         if hasattr(child, 'get_absolute_url'):
                             children.append(''.join([self.host, child.get_absolute_url()]))
+                        elif type(child) == type( long(0) ):
+                            children.append(''.join([self.host, "here_goes_the_class_base/", str(child) ]))
                         else:
                             children.append( smart_unicode( child.local_id ) + \
                                 ": " + smart_unicode(child._meta) )
