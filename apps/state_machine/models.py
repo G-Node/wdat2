@@ -81,16 +81,13 @@ class RelatedManager( VersionManager ):
         containing list of reversly related FK objects. """
         objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
         if objects:
+
             # FK relations - loop over related managers / models
-
-            # old way:
-            #for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(self.model)):
-
             for rel_name in [f.model().obj_type + "_set" for f in self.model._meta.get_all_related_objects() \
                 if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
 
-                print datetime.now()
-                print "start with child %s.." % rel_name
+                #print datetime.now()
+                #print "start with child %s.." % rel_name
 
                 # get all related objects for all requested objects as one SQL
                 rel_manager = getattr(self.model, rel_name)
@@ -105,7 +102,7 @@ class RelatedManager( VersionManager ):
 
                 """
 
-                # 1. option with TEMP table for performance
+                # 1. option with TEMP table for higher performance
                 now = datetime.now()
                 temp_table = "stage1_" + hashlib.sha1(str(now)).hexdigest()
 
@@ -115,12 +112,10 @@ class RelatedManager( VersionManager ):
                     '), ('.join( [str(x) for x in ids] ) + ')' )
                 transaction.commit_unless_managed()
 
-                print datetime.now()
-                print "created temp table %s.." % rel_name
-
-
                 db_table = rel_model._meta.db_table
                 cls = rel_model.__name__.lower()
+
+                # select only ids (faster)
                 query = 'SELECT \
                     model.' + id_attr + ', ' + rel_field_name + '_id FROM '\
                      + db_table + ' model LEFT JOIN ' + temp_table + \
@@ -128,34 +123,34 @@ class RelatedManager( VersionManager ):
 
                 cursor.execute( query )
                 relmap = cursor.fetchall()
-                """
 
-                # full object
+                # or full objects
                 #query = 'SELECT model.* FROM ' + db_table + ' model LEFT JOIN ' + \
                 #    temp_table + ' temp ON model.' + id_attr + ' = temp.n'
 
-                #related = rel_model.objects.raw(query)
-                #related = related.filter( **timeflt ) FIXME
+                #relmap = rel_model.objects.raw(query)
+                #relmap = relmap.filter( **timeflt ) FIXME
 
-                #print datetime.now()
-                #print "fetched with SQL for %s.." % rel_name
+                """
 
-                #print datetime.now()
-                #print "map created for %s.." % rel_name
-                #if rel_name == "analogsignal_set":
-                #    import pdb
-                #    pdb.set_trace()
+                # 2. option with IN clause, should be slower
+
+                if rel_name == "analogsignal_set":
+                    print str(datetime.now()), "requesting signals %s.." % rel_name
 
                 # 2. slow alternative without temp table
                 filt = { rel_field_name + '__in': ids }
                 relmap = rel_model.objects.filter( **dict(filt, **timeflt) ).values_list(id_attr, rel_field_name)
 
-                for obj in objects: # parse children into attrs
-                    fltred = filter(lambda l: l[0] == getattr(obj, id_attr), relmap)
-                    setattr( obj, rel_name + "_data", [x[1] for x in fltred] )
+                if rel_name == "analogsignal_set":
+                    print str(datetime.now()), "signals fetched %s.." % rel_name
 
-                print datetime.now()
-                print "parsed into objects for %s.." % rel_name
+                for obj in objects: # parse children into attrs
+                    lid = getattr(obj, id_attr)
+                    setattr( obj, rel_name + "_data", [x[0] for x in relmap if x[1] == lid] )
+
+                if rel_name == "analogsignal_set":
+                    print str(datetime.now()), "signals parsed %s.." % rel_name
 
             return objects
         else:
@@ -174,17 +169,14 @@ class RelatedManager( VersionManager ):
             print datetime.now()
             print "start profiling.."
 
-            # FK relations - loop over related managers / models
+            # fetch reversed FKs (children)
             objects = self.fetch_fks( dict(timeflt, **kwargs), objects=objects )
 
             print datetime.now()
             print "initial ID fetch done.."
 
-            # FK parents - if need to resolve (URL or ...)
+            # fetch direct FKs (parents)
             fk_fields = [ f for f in self.model._meta.local_fields if not f.rel is None ]
-
-            print datetime.now()
-            print "start children.."
 
             for par_field in fk_fields:
 
