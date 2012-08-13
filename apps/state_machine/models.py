@@ -407,18 +407,6 @@ class ObjectState(models.Model):
         """ required for filtering by owner in REST """
         return self.owner
 
-    def restore_object(self):
-        self.current_state = 10
-        self.save()
-
-    def delete_object(self):
-        self.current_state = 20
-        self.save()
-
-    def move_to_archive(self):
-        self.current_state = 30
-        self.save()
-
     def is_active(self):
         return self.current_state == 10
 
