@@ -77,10 +77,13 @@ class RelatedManager( VersionManager ):
 
 
     def fetch_fks(self, *args, **kwargs):
-        """ returns relatives for given list of objects using FKs. Returns list 
-        of objects, each having FKs WITH postfix _data instead of _set, 
-        containing list of reversly related FK object ids. """
+        """ assigns permalinks of the reversed-related children to the list of 
+        objects given. Expects list of objects, uses reversed FKs to fetch 
+        children and their ids. Returns same list of objects, each having new  
+        field WITH postfix _data after default django <fk_name>_set field, 
+        containing list of reversly related FK object permalinks. """
         objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
+
         if objects:
 
             # FK relations - loop over related managers / models
@@ -103,8 +106,10 @@ class RelatedManager( VersionManager ):
                 url_base = (temp.get_absolute_url()).replace('1000000000', '')
                 # TODO find better way to get base URL string
 
+                # fetching reverse relatives of type rel_name:
                 """
-                # 1. option with TEMP table for higher performance
+                # 1. option with TEMP table for higher performance. Should be
+                # faster but requires some SQL..
                 now = datetime.now()
                 temp_table = "stage1_" + hashlib.sha1(str(now)).hexdigest()
 
@@ -135,18 +140,11 @@ class RelatedManager( VersionManager ):
                 """
 
                 # 2. option with IN clause, should be a bit slower
-                if rel_name == "analogsignal_set":
-                    print str(datetime.now()), "requesting signals %s.." % rel_name
-
-                # 2. slow alternative without temp table
                 filt = { rel_field_name + '__in': ids }
                 # relmap is a list of pairs (<child_id>, <parent_ref_id>)
                 relmap = rel_model.objects.filter( **dict(filt, **timeflt) ).values_list(id_attr, rel_field_name)
 
                 if relmap:
-                    if rel_name == "analogsignal_set":
-                        print str(datetime.now()), "signals fetched %s.." % rel_name
-
                     # preparing fk map: preparing a dict with keys as parent 
                     # object ids, and lists with related children as values.
                     fk_map = {}
@@ -154,9 +152,6 @@ class RelatedManager( VersionManager ):
                     fks = set( mp[:, 1] )
                     for i in fks:
                         fk_map[i] = [ url_base + str(x) for x in mp[ mp[:,1]==i ][:,0] ]
-
-                    if rel_name == "analogsignal_set":
-                        print str(datetime.now()), "fk map done.."
 
                     for obj in objects: # parse children into attrs
                         try:
@@ -168,10 +163,6 @@ class RelatedManager( VersionManager ):
                 else:
                     for obj in objects: # parse children into attrs
                         setattr( obj, rel_name + "_data", [] )
-
-                if rel_name == "analogsignal_set":
-                    print str(datetime.now()), "signals parsed %s.." % rel_name
-
             return objects
         else:
             return []
@@ -186,20 +177,12 @@ class RelatedManager( VersionManager ):
 
         if objects: # evaluates queryset, executes 1 SQL
 
-            print datetime.now()
-            print "start profiling.."
-
             # fetch reversed FKs (children)
             objects = self.fetch_fks( dict(timeflt, **kwargs), objects=objects )
 
-            print datetime.now()
-            print "initial ID fetch done.."
-
             # fetch direct FKs (parents)
             fk_fields = [ f for f in self.model._meta.local_fields if not f.rel is None ]
-
             for par_field in fk_fields:
-
                 # select all related parents of a specific type, evaluate!
                 ids = set([ getattr(x, par_field.name + "_id") for x in objects ])
                 if 'local_id' in par_field.rel.to._meta.get_all_field_names():
@@ -210,9 +193,6 @@ class RelatedManager( VersionManager ):
                     id_attr = 'id'
                     par = par_field.rel.to.objects.filter( id__in = ids )
 
-                print "fetched child %s.." % par_field
-                print datetime.now()
-
                 # make a mapping between parent ids and objects
                 relmap = dict( [ ( getattr(r, id_attr), r ) for r in par ] )
                 for obj in objects: # parse parents into attrs
@@ -222,22 +202,12 @@ class RelatedManager( VersionManager ):
                     except KeyError:
                         setattr( obj, par_field.name, None )
 
-                print datetime.now()
-                print "child %s parsed.." % par_field
-
-
-            print datetime.now()
-            print "start with parents.."
-
             # processing M2Ms
             if 'local_id' in self.model._meta.get_all_field_names():
                 id_attr = 'local_id'
             else:
                 id_attr = 'id'
             ids = [ getattr(obj, id_attr) for obj in objects ]
-
-            print datetime.now()
-            print "start with m2ms.."
 
             for field in self.model._meta.many_to_many:
                 m2m_class = field.rel.through
