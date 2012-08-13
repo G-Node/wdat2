@@ -8,6 +8,7 @@ import settings
 import urlparse
 import itertools
 import re
+import numpy as np
 
 class Serializer(PythonSerializer):
     """ 
@@ -139,11 +140,8 @@ class Serializer(PythonSerializer):
                     for child in getattr(obj, rel_name + "_data"):
                         if hasattr(child, 'get_absolute_url'):
                             children.append(''.join([self.host, child.get_absolute_url()]))
-                        elif type(child) == type( long(0) ):
-                            children.append(''.join([self.host, "here_goes_the_class_base/", str(child) ]))
                         else:
-                            children.append( smart_unicode( child.local_id ) + \
-                                ": " + smart_unicode(child._meta) )
+                            children.append(''.join([self.host, child ]))
                     if not (not children and rel_name[:-4] in self.do_not_show_if_empty):
                         self._current[rel_name] = children
 

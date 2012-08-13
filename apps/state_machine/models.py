@@ -13,6 +13,7 @@ from datetime import datetime
 import pickle
 import hashlib
 import settings
+import numpy as np
 
 
 #-------------------------------------------------------------------------------
@@ -78,7 +79,7 @@ class RelatedManager( VersionManager ):
     def fetch_fks(self, *args, **kwargs):
         """ returns relatives for given list of objects using FKs. Returns list 
         of objects, each having FKs WITH postfix _data instead of _set, 
-        containing list of reversly related FK objects. """
+        containing list of reversly related FK object ids. """
         objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
         if objects:
 
@@ -86,22 +87,23 @@ class RelatedManager( VersionManager ):
             for rel_name in [f.model().obj_type + "_set" for f in self.model._meta.get_all_related_objects() \
                 if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
 
-                #print datetime.now()
-                #print "start with child %s.." % rel_name
-
                 # get all related objects for all requested objects as one SQL
                 rel_manager = getattr(self.model, rel_name)
                 rel_field_name = rel_manager.related.field.name
                 rel_model = rel_manager.related.model
+                temp = rel_model()
 
                 if 'local_id' in rel_model._meta.get_all_field_names(): # object is versioned
                     id_attr = 'local_id'
+                    temp.local_id = 10**9
                 else: # normal FK to a django model
                     id_attr = 'id'
+                    temp.id = 10**9
                 ids = [ getattr(x, id_attr) for x in objects ]
+                url_base = (temp.get_absolute_url()).replace('1000000000', '')
+                # TODO find better way to get base URL string
 
                 """
-
                 # 1. option with TEMP table for higher performance
                 now = datetime.now()
                 temp_table = "stage1_" + hashlib.sha1(str(now)).hexdigest()
@@ -130,24 +132,42 @@ class RelatedManager( VersionManager ):
 
                 #relmap = rel_model.objects.raw(query)
                 #relmap = relmap.filter( **timeflt ) FIXME
-
                 """
 
-                # 2. option with IN clause, should be slower
-
+                # 2. option with IN clause, should be a bit slower
                 if rel_name == "analogsignal_set":
                     print str(datetime.now()), "requesting signals %s.." % rel_name
 
                 # 2. slow alternative without temp table
                 filt = { rel_field_name + '__in': ids }
+                # relmap is a list of pairs (<child_id>, <parent_ref_id>)
                 relmap = rel_model.objects.filter( **dict(filt, **timeflt) ).values_list(id_attr, rel_field_name)
 
-                if rel_name == "analogsignal_set":
-                    print str(datetime.now()), "signals fetched %s.." % rel_name
+                if relmap:
+                    if rel_name == "analogsignal_set":
+                        print str(datetime.now()), "signals fetched %s.." % rel_name
 
-                for obj in objects: # parse children into attrs
-                    lid = getattr(obj, id_attr)
-                    setattr( obj, rel_name + "_data", [x[0] for x in relmap if x[1] == lid] )
+                    # preparing fk map: preparing a dict with keys as parent 
+                    # object ids, and lists with related children as values.
+                    fk_map = {}
+                    mp = np.array( relmap )
+                    fks = set( mp[:, 1] )
+                    for i in fks:
+                        fk_map[i] = [ url_base + str(x) for x in mp[ mp[:,1]==i ][:,0] ]
+
+                    if rel_name == "analogsignal_set":
+                        print str(datetime.now()), "fk map done.."
+
+                    for obj in objects: # parse children into attrs
+                        try:
+                            lid = getattr(obj, id_attr)
+                            setattr( obj, rel_name + "_data", fk_map[lid] )
+                        except KeyError: # no children, but that's ok
+                            setattr( obj, rel_name + "_data", [] )
+                        #setattr( obj, rel_name + "_data", [x[0] for x in relmap if x[1] == lid] )
+                else:
+                    for obj in objects: # parse children into attrs
+                        setattr( obj, rel_name + "_data", [] )
 
                 if rel_name == "analogsignal_set":
                     print str(datetime.now()), "signals parsed %s.." % rel_name
