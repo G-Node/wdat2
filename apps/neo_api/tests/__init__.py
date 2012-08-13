@@ -155,24 +155,23 @@ class TestGeneric(TestCase):
     def test_crud_and_versioning(self):
         """ basically test that you can go back in time to a system state, when 
         objects and relations were different. """
-        def _set_post():
-            import pdb
-            pdb.set_trace()
+        def _set_post(field, model, v):
             go = True
+            post = {}
             try:
-                new_value = field.to_python( v )
-                if ser.is_data_field_django(model, field):
-                    post[field.name] = {
-                        "data": new_value,
+                self.new_value = field.to_python( v )
+                if self.ser.is_data_field_django(model, field):
+                    self.new_value = {
+                        "data": self.new_value,
                         "units": "ms"
                     }
-                else:
-                    post[field.name] = new_value
+                post[field.name] = self.new_value
             except ValidationError:
                 go = False
+            return post, go
 
-        go = True
-        new_value = ""
+        self.go = True
+        self.new_value = ""
         stamp0 = datetime.now() # a point in time to go back and validate
 
         # step 1. Create original objects ( test CREATE )
@@ -193,17 +192,11 @@ class TestGeneric(TestCase):
         print "test objects created.. ( test CREATE ) OK"
 
         # step 2. change objects ( test UPDATE and GET )
-        ser = NEOSerializer()
+        self.ser = NEOSerializer()
         for obj_type, model in meta_classnames.items():
             for field in available_simple_fields(model):
-                post = {}
                 for v in TEST_VALUES:
-                    _set_post()
-
-                    #if obj_type == 'segment' and field.name == 'name':
-                    #    import pdb
-                    #    pdb.set_trace()
-
+                    post, go = _set_post(field, model, v)
                     id = ids[obj_type][0] # just test one object
                     response = self.client.post("/neo/%s/%d" % (obj_type, id),\
                         DjangoJSONEncoder().encode(post), content_type="application/json")
@@ -214,7 +207,7 @@ class TestGeneric(TestCase):
                         response = self.client.get("/neo/%s/%d/" % (obj_type, id))
                         rdata = json.loads(response.content)
                         self.assertEqual(str(rdata['selected'][0]['fields'][field.name]),\
-                            str( new_value ), "Object: %s, field: %s" % (obj_type, field.name) )
+                            str( self.new_value ), "Object: %s, field: %s" % (obj_type, field.name) )
 
         stamp2 = datetime.now() # a point in time to go back and validate
         print "changes made.. ( test UPDATE and GET ) OK"
@@ -222,9 +215,8 @@ class TestGeneric(TestCase):
         # step 3. do bulk update ( test BULK_UPDATE )
         for obj_type, model in meta_classnames.items():
             for field in available_simple_fields(model):
-                post = {}
                 for v in TEST_VALUES:
-                    _set_post()
+                    post, go = _set_post(field, model, v)
                     response = self.client.post("/neo/%s/?bulk_update=1" % obj_type,\
                         DjangoJSONEncoder().encode(post), content_type="application/json")
                     self.assertNotEqual(response.status_code, 500, \
@@ -233,7 +225,7 @@ class TestGeneric(TestCase):
                         response = self.client.get("/neo/%s/" % obj_type)
                         rdata = json.loads(response.content)
                         self.assertEqual(str(rdata['selected'][0]['fields'][field.name]),\
-                            str( new_value ), "Object: %s, field: %s" % (obj_type, field.name) )
+                            str( self.new_value ), "Object: %s, field: %s" % (obj_type, field.name) )
 
         stamp3 = datetime.now() # a point in time to go back and validate
         print "bulk updates made.. ( test BULK UPDATE ) OK"
@@ -268,7 +260,35 @@ class TestGeneric(TestCase):
             
 
     def test_delete(self):
-        pass
+        """ delete object, ensure it's not available anymore, ensure it's 
+        available at the moment after creation. expects samples from fixtures"""
+        for obj_type, model in meta_classnames.items():
+            # get objects of a certain type
+            response = self.client.get("/neo/%s/" % obj_type)
+            self.assertEqual(response.status_code, 200, \
+                "Obj type %s; response: %s" % (obj_type, str(response)))
+
+            dt = datetime.now()
+            rdata = json.loads(response.content)
+            lid = rdata['selected'][0]['fields']['local_id']
+            # delete object
+            response = self.client.delete("/neo/%s/%d" % ( obj_type, lid ))
+            self.assertEqual(response.status_code, 200, \
+                "Obj type %s; response: %s" % (obj_type, str(response)))
+
+            # try to get deleted object
+            response = self.client.get("/neo/%s/%d" % ( obj_type, lid ))
+            self.assertEqual(response.status_code, 404, \
+                "Obj type %s; response: %s" % (obj_type, str(response)))
+
+            # try to get object back in time
+            response = self.client.get("/neo/%s/%d/?at_time=%s" % \
+                ( obj_type, lid, str( dt ) ))
+            self.assertEqual(response.status_code, 404, \
+                "Obj type %s; response: %s" % (obj_type, str(response)))
+
+
+
 
 
 class TestFilters:

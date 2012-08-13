@@ -247,7 +247,8 @@ class BaseHandler(object):
             "selected_range": None,
             "selected": None
         }
-
+        import pdb
+        pdb.set_trace()
         if objects:
             try:
                 srlzd = self.serializer.serialize(objects, options=self.options)
@@ -338,12 +339,8 @@ class BaseHandler(object):
 
 
     def delete(self, request, objects):
-        """ delete (archive) provided object """
-        for obj in objects:
-            if obj.is_editable(request.user): # method should exist, ensure
-                obj.delete_object()
-            else:
-                return Forbidden(message_type="not_authorized", request=request)
+        """ delete (archive) provided objects """
+        self.model.save_changes(objects, {'current_state': 20}, {}, {}, True)
         return Success(message_type="deleted", request=request)
 
     def get_filter_by_name(self, filter_name):

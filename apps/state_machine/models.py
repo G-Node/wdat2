@@ -75,7 +75,6 @@ class RelatedManager( VersionManager ):
             objects = kwargs['objects']
         return objects, kwargs, timeflt
 
-
     def fetch_fks(self, *args, **kwargs):
         """ assigns permalinks of the reversed-related children to the list of 
         objects given. Expects list of objects, uses reversed FKs to fetch 
@@ -161,7 +160,8 @@ class RelatedManager( VersionManager ):
                             setattr( obj, rel_name + "_data", [] )
                         #setattr( obj, rel_name + "_data", [x[0] for x in relmap if x[1] == lid] )
                 else:
-                    for obj in objects: # parse children into attrs
+                    # objects do not have any children of that type
+                    for obj in objects: 
                         setattr( obj, rel_name + "_data", [] )
             return objects
         else:
@@ -215,50 +215,75 @@ class RelatedManager( VersionManager ):
                 own_name = field.m2m_field_name()
                 rev_name = field.m2m_reverse_field_name()
                 filt = dict( [(own_name + '__in', ids)] )
+                temp = field.rel.to()
 
                 # select all related m2m connections (not reversed objects!) of 
                 # a specific type, one SQL
                 if is_versioned:
                     rel_m2ms = m2m_class.objects.filter( **dict(filt, **timeflt) )
+                    temp.local_id = 10**9
                 else:
                     rel_m2ms = m2m_class.objects.filter( **filt )
+                    temp.id = 10**9
+                url_base = (temp.get_absolute_url()).replace('1000000000', '')
 
                 # get evaluated m2m conn queryset:
-                rel_m2m_map = [ ( getattr(r, own_name), getattr(r, rev_name) ) for r in rel_m2ms ]
+                rel_m2m_map = [ ( getattr(r, own_name + "_id"), \
+                    getattr(r, rev_name + "_id") ) for r in rel_m2ms ]
+                if rel_m2m_map:
+                    # preparing m2m map: preparing a dict with keys as parent 
+                    # object ids, and lists with m2m related children as values.
+                    m2m_map = {}
+                    mp = np.array( rel_m2m_map )
+                    fks = set( mp[:, 0] )
+                    for i in fks:
+                        m2m_map[i] = [ url_base + str(x) for x in mp[ mp[:,0]==i ][:,1] ]
 
-                rev_ids = set( [ getattr(r, rev_name) for r in rel_m2ms ] )
-                # select all reversed objects, one SQL
-                if is_versioned:
-                    filt = dict( [('local_id__in', rev_ids)] )
-                    rev_objs = field.rel.to.objects.filter( **dict(filt, **timeflt) )
-                    rev_objs_map = dict( [ ( getattr(r, 'local_id'), r) for r in rev_objs ] )
+                    for obj in objects: # parse children into attrs
+                        try:
+                            lid = getattr(obj, id_attr)
+                            setattr( obj, field.name + '_buffer', m2m_map[lid] )
+                        except KeyError: # no children, but that's ok
+                            setattr( obj, field.name + '_buffer', [] )
                 else:
-                    filt = dict( [('id__in', rev_ids)] )
-                    rev_objs = field.rel.to.objects.filter( **filt )
-                    rev_objs_map = dict( [ ( getattr(r, 'id'), r) for r in rev_objs ] )
+                    # objects do not have any m2ms of that type
+                    for obj in objects: 
+                        setattr( obj, field.name + '_buffer', [] )
 
-                for obj in objects: # parse into objects
-                    # filter ids of the reversed objects for a particular object
-                    fltred = filter(lambda l: l[0] == getattr(obj, id_attr), rel_m2m_map)
-                    revsed = filter(lambda l: l[0] in fltred, rev_objs_map)
-                    buf = [ r[1] for r in revsed ]
 
-                    setattr( obj, field.name + '_buffer', buf )
-
-                """
-                for obj in objects: # parse into objects
-                    filt = { field.m2m_field_name(): getattr(obj, id_attr) }
-                    reverse_ids = rel_m2ms.filter( **filt ).values_list( field.m2m_reverse_field_name(), flat=True )
-
+                    """
+                    rev_ids = list(set( [ getattr(r, rev_name + "_id") for r in rel_m2ms ] ))
+                    # select all reversed objects, one SQL
                     if is_versioned:
-                        filt = { 'local_id__in': reverse_ids }
-                        buf = field.rel.to.objects.filter( **dict(filt, **timeflt) )
+                        import pdb
+                        pdb.set_trace()
+                        filt = dict( [('local_id__in', rev_ids)] )
+                        rev_objs = field.rel.to.objects.filter( **dict(filt, **timeflt) ).values_list('local_id', )
+                        rev_objs_map = dict( [ ( getattr(r, 'local_id'), r) for r in rev_objs ] )
                     else:
-                        filt = { 'id__in': reverse_ids }
-                        buf = field.rel.to.objects.filter( **filt )
-                """
-            print datetime.now()
+                        filt = dict( [('id__in', rev_ids)] )
+                        rev_objs = field.rel.to.objects.filter( **filt ).values_list('id')
+                        rev_objs_map = dict( [ ( getattr(r, 'id'), r) for r in rev_objs ] )
 
+                    for obj in objects: # parse into objects
+                        # filter ids of the reversed objects for a particular object
+                        fltred = filter(lambda l: l[0] == getattr(obj, id_attr), rel_m2m_map)
+                        revsed = filter(lambda l: l[0] in fltred, rev_objs_map)
+                        buf = [ r[1] for r in revsed ]
+
+                        setattr( obj, field.name + '_buffer', buf )
+
+                    for obj in objects: # parse into objects
+                        filt = { field.m2m_field_name(): getattr(obj, id_attr) }
+                        reverse_ids = rel_m2ms.filter( **filt ).values_list( field.m2m_reverse_field_name(), flat=True )
+
+                        if is_versioned:
+                            filt = { 'local_id__in': reverse_ids }
+                            buf = field.rel.to.objects.filter( **dict(filt, **timeflt) )
+                        else:
+                            filt = { 'id__in': reverse_ids }
+                            buf = field.rel.to.objects.filter( **filt )
+                    """
         return objects
 
     def get(self, *args, **kwargs):
@@ -492,7 +517,6 @@ class ObjectState(models.Model):
                     obj.guid = obj.compute_hash() # recompute hash 
                     obj.starts_at = now
                     obj.id = None
-
                 self.objects.bulk_create( objects )
 
         # process versioned m2m relations separately, in bulk

@@ -99,25 +99,25 @@ class Serializer(PythonSerializer):
                             in self.selected_fields:
                             self.handle_fk_field(obj, field)
 
-            if self.serialize_rel: # normal m2m fields
+            if self.serialize_rel: # m2m fields
                 for field in obj._meta.many_to_many:
                     if field.serialize:
                         if self.selected_fields is None or field.attname in \
                             self.selected_fields:
-                            self.handle_m2m_field(obj, field)
-
-                # versioned m2m fields
-                #if hasattr( obj._meta, "versioned_m2m_mgrs" ):
-                #    for mgr in obj._meta.versioned_m2m_mgrs:
-                #        if self.selected_fields is None or mgr.local_field in \
-                #            self.selected_fields:
-                #            self.handle_versioned_m2m_field(mgr)
+                            if hasattr(obj, field.name + "_buffer"):
+                                children = []
+                                for child in getattr(obj, field.name + "_buffer"):
+                                    if hasattr(child, 'get_absolute_url'):
+                                        children.append(''.join([self.host, child.get_absolute_url()]))
+                                    else:
+                                        children.append(''.join([ self.host, child ]))
+                                self._current[field.name] = children
+                            else:
+                                self.handle_m2m_field(obj, field)
 
             # process specially reverse relations, like properties for section
             for rel_name in [f.model().obj_type + "_set" for f in obj._meta.get_all_related_objects() \
                 if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
-
-            #for rel_name in filter(lambda l: (l.find("_set") == len(l) - 4), dir(obj)):
 
                 # cascade is switched off
                 """
@@ -131,6 +131,7 @@ class Serializer(PythonSerializer):
                     self._current[rel_name] = serializer().serialize(getattr(obj, \
                         rel_name).filter(current_state=10), options=options)
                 """
+
                 if self.show_kids and self.serialize_rel and rel_name[:-4] not\
                     in self.excluded_permalink:
                     """ this is used to include some short-relatives into the 
@@ -260,7 +261,7 @@ class Serializer(PythonSerializer):
         #if field.rel.through._meta.auto_created:
         #    self._current[field.name] = [self.resolve_permalink(related)
         #                       for related in getattr(obj, field.name).iterator()]
-        # prefetched m2m data
+        # prefetched m2m data in _buffer
         self._current[field.name] = [ self.resolve_permalink(related) 
             for related in getattr(obj, field.name + '_buffer') ]
 
