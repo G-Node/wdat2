@@ -132,43 +132,6 @@ class TestGeneric(TestCase):
             self.sample_objects = sample_objects
 
 
-    def zz_test_select_objects(self):
-        """
-        Test to retreive list of objects.
-        expected: 200 successful, number of objects is correct
-        """
-        for key in sample_objects.keys():
-            response = self.client.get("/neo/%s/" % key)
-            self.assertEqual(response.status_code, 200, \
-                "Obj type %s; response: %s" % (key, str(response)))
-            r = json.loads(response.content)
-            self.assertEqual(len(r["selected"]), 1) # from fixtures
-            # TODO more convenient checks?
-
-    def zz_test_create_objects(self):
-        """
-        Test of successful creation of all types of NEO objects.
-        expected: 201 created
-        """
-        for obj_type, obj in sample_objects.items():
-            for i in range(5): # create a few objects
-                response = self.client.post("/neo/%s/" % obj_type, \
-                    json.dumps(obj, cls=DjangoJSONEncoder), content_type="application/json")
-                self.assertEqual(response.status_code, 201, \
-                    "Obj type %s; response: %s" % (obj_type, response.content))
-
-    def zz_test_get_object(self):
-        """
-        Test the GET single object URLs.
-        expected: 200 successful
-        """
-        for key in sample_objects.keys():
-            response = self.client.get("/neo/%s/1/" % key)
-            self.assertEqual(response.status_code, 200, \
-                "Obj type %s; response: %s" % (key, str(response)))
-            self.assertContains(response, key) # TODO add full check
-
-
     def test_crud_and_versioning(self):
         """ basically test that you can go back in time to a system state, when 
         objects and relations were different. """
