@@ -216,7 +216,7 @@ class TestGeneric(TestCase):
             anymore ;
         - test the parent object that it has this particular object if requested
             back in time . """
-        dt = stamp3
+        dt = stamp1
         for obj_type, model in meta_classnames.items():
             for field in available_fk_fields(model):
 
@@ -225,7 +225,8 @@ class TestGeneric(TestCase):
                 response = self.client.post("/neo/%s/1" % obj_type,\
                     DjangoJSONEncoder().encode(post), content_type="application/json")
                 self.assertEqual(response.status_code, 200, \
-                    "Obj type %s; response: %s" % (obj_type, response.content))
+                    "Obj type %s; field: %s, response: %s" % \
+                    (obj_type, field.name, response.content))
 
                 # get full object with reversed relations AFTER the change
                 response = self.client.get("/neo/%s/1/?q=full" % field.rel.to().obj_type)
@@ -233,16 +234,18 @@ class TestGeneric(TestCase):
                 rev_set = rdata['selected'][0]['fields'][obj_type + "_set"]
                 rev_set = [a[ a.rfind('/') + 1: ] for a in rev_set] # ids
 
-                self.assertNotIn( 1, rev_set, "Object: %s, field: %s" % (obj_type, field.name) )
+                self.assertNotIn( 1, rev_set, "Object: %s, field: %s, rev_set: %s" % \
+                    (obj_type, field.name, str(rev_set) ) )
 
                 # get full object with reversed relations BEFORE the change
                 response = self.client.get("/neo/%s/1/?q=full&at_time=%s" % \
                     (field.rel.to().obj_type, dt.strftime("%Y-%m-%d %H:%M:%S")))
                 rdata = json.loads(response.content)
                 rev_set = rdata['selected'][0]['fields'][obj_type + "_set"]
-                rev_set = [a[ a.rfind('/') + 1: ] for a in rev_set] # ids
+                rev_set = [ int(a[ a.rfind('/') + 1: ]) for a in rev_set] # ids
 
-                self.assertIn( 1, rev_set, "Object: %s, field: %s" % (obj_type, field.name) )
+                self.assertIn( 1, rev_set, "Object: %s, field: %s, rev_set: %s" % \
+                    (obj_type, field.name, str(rev_set) ) )
 
 
 
