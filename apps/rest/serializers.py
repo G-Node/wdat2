@@ -138,7 +138,7 @@ class Serializer(PythonSerializer):
                     serialized object, e.g. permalinks of Properties and Values 
                     into the Section """
                     children = []
-                    for child in getattr(obj, rel_name + "_data"):
+                    for child in getattr(obj, rel_name + "_buffer"):
                         if hasattr(child, 'get_absolute_url'):
                             children.append(''.join([self.host, child.get_absolute_url()]))
                         else:
