@@ -25,7 +25,7 @@ class Serializer(PythonSerializer):
     cascade = False
     encoding = settings.DEFAULT_CHARSET
     use_natural_keys = 0 # default is to show permalink for FKs
-    q = 'full'
+    q = 'info'
     host = ""
 
     @property
@@ -48,7 +48,7 @@ class Serializer(PythonSerializer):
             - 'info' - object with local attributes
             - 'beard' - object with local attributes AND foreign keys resolved
             - 'full' - everything mentioned above """
-            self.q = options.get("q", "full")
+            self.q = options.get("q", "info")
             self.host = options.get("permalink_host", self.host)
             self.selected_fields = options.get("fields", None)
             self.show_kids = options.get("show_kids", self.show_kids)

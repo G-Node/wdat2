@@ -30,7 +30,11 @@ def _split_time( **kwargs ):
 
 
 class VersionManager(models.Manager):
-    """ filters objects as per provided time / active state """
+    """ A special manager for versioned objects. By default it filters objects 
+    with 'ends_at' attribute = NULL (last version of an object) and 
+    'current_state' = 10 (active object, not deleted). If 'at_time' and/or 
+    'current_state' are provided, means the special version of an object is 
+    requested, this manager filters objects accordingly. """
 
     def get_query_set(self, **kwargs):
         qs = super(VersionManager, self).get_query_set()
@@ -54,7 +58,10 @@ class VersionManager(models.Manager):
         return self.get_query_set( **timeflt ).filter( **kwargs )
 
     def get_by_guid(self, guid):
-        return self.get_query_set().get( guid = guid )
+        """ every object has a global ID (basically it's a hash of it's JSON 
+        representation). As this ID is unique, one can request an object by it's
+        GUID directly."""
+        return super(VersionManager, self).get_query_set().get( guid = guid )
 
     # TODO implement this for more flexibility
     #def get_by_natural_key(self, **kwargs ):
@@ -65,14 +72,17 @@ class RelatedManager( VersionManager ):
     """ implements selection of the related objects in *optimized* number of SQL
     requests """
 
-    def _prepare_objects(self, *args, **kwargs):
-        # these filters, if provided, should propagate to related objects
-        kwargs, timeflt = _split_time( **kwargs )
-
+    def _prefetch_objects(self, *args, **kwargs):
+        """ prefetch objects based on filters provided in **kwargs, split kwargs
+        into 'versioning' part (at_time, current_state) and normal filter part
+        (all other filters). This is useful when fetching object relatives. 
+        Returns objects as QuerySet, filters as kwargs and version-related 
+        filters as timeflt. """
         if not kwargs.has_key('objects'):
-            objects = self.filter( **kwargs ) # one SQL request
+            objects = self.filter( **kwargs )
         else:
             objects = kwargs['objects']
+        kwargs, timeflt = _split_time( **kwargs )
         return objects, kwargs, timeflt
 
     def fetch_fks(self, *args, **kwargs):
@@ -81,7 +91,7 @@ class RelatedManager( VersionManager ):
         children and their ids. Returns same list of objects, each having new  
         field WITH postfix _data after default django <fk_name>_set field, 
         containing list of reversly related FK object permalinks. """
-        objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
+        objects, kwargs, timeflt = self._prefetch_objects(*args, **kwargs)
 
         if objects:
 
@@ -173,12 +183,10 @@ class RelatedManager( VersionManager ):
         should be something like this
         returns a list of objects with children, not a queryset
         """
-        objects, kwargs, timeflt = self._prepare_objects(*args, **kwargs)
+        objects, kwargs, timeflt = self._prefetch_objects(*args, **kwargs)
+        fetch_children = kwargs.pop('fetch_children', False)
 
         if objects: # evaluates queryset, executes 1 SQL
-
-            # fetch reversed FKs (children)
-            objects = self.fetch_fks( dict(timeflt, **kwargs), objects=objects )
 
             # fetch direct FKs (parents)
             fk_fields = [ f for f in self.model._meta.local_fields if not f.rel is None ]
@@ -201,6 +209,12 @@ class RelatedManager( VersionManager ):
                             relmap[ getattr(obj, par_field.name + "_id") ] )
                     except KeyError:
                         setattr( obj, par_field.name, None )
+
+            if not fetch_children:
+                return objects
+
+            # fetch reversed FKs (children)
+            objects = self.fetch_fks( dict(timeflt, **kwargs), objects=objects )
 
             # processing M2Ms
             if 'local_id' in self.model._meta.get_all_field_names():

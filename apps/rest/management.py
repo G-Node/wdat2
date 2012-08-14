@@ -95,7 +95,8 @@ class BaseHandler(object):
                 else: # create case
                     objects = None
 
-            if objects: # preselect related
+            if objects: # preselect related, if needed + limit the number
+                # FIXME OFFSET doesnt work here!!
                 offset = self.offset
                 if self.options.has_key('offset'):
                     offset = self.options["offset"]
@@ -106,6 +107,10 @@ class BaseHandler(object):
 
                 # here we use real ids, objects are already version-filtered
                 kwargs["id__in"] = objects.values_list( "id", flat=True ) # 1 SQL
+
+                q = self.options.get("q", "info")
+                if q == 'full' or q == 'beard':
+                    kwargs["fetch_children"] = True
                 objects = self.model.objects.get_related( **kwargs )[ offset: offset + max_results ]
 
             return self.actions[request.method](request, objects)
@@ -247,8 +252,6 @@ class BaseHandler(object):
             "selected_range": None,
             "selected": None
         }
-        import pdb
-        pdb.set_trace()
         if objects:
             try:
                 srlzd = self.serializer.serialize(objects, options=self.options)
@@ -459,28 +462,34 @@ class ACLHandler(BaseHandler):
 # REST wrapper -----------------------------------------------------------------
 
 def get_obj_attr(request, obj_id=None, handler=None, *args, **kwargs):
-    """ computes etag for object: for the moment it is just the hash of 
-    last modified """
+    """ computes etag / last_modified for a single object """
     if not handler or not obj_id:
         return None
     try:
-        try:
-            obj_id = int( obj_id ) # local ID provided
-            obj = handler.model.objects.get( local_id = obj_id )
+        try: # try to get object by local ID (+ at_time)
+            obj_id = int( obj_id )
+            filt = {}
+            filt['local_id'] = obj_id
+            at_time = request.GET.get('at_time')
+            if at_time:
+                filt['at_time'] = datetime.datetime.strptime(at_time, "%Y-%m-%d %H:%M:%S")
+            obj = handler.model.objects.get( **filt )
             return getattr( obj, kwargs['param_name'] )
+
         except ValueError: # GUID provided
             obj = handler.model.objects.get_by_guid( obj_id )
             return getattr( obj, kwargs['param_name'] )
+
     except ObjectDoesNotExist: # do not raise error here, will be raised later
         return None
 
-def get_obj_lmodified(*args, **kwargs):
+def get_obj_lmodified(request, obj_id=None, handler=None, *args, **kwargs):
     kwargs['param_name'] = 'starts_at'
-    return get_obj_attr(*args, **kwargs)
+    return get_obj_attr(request, obj_id, handler, **kwargs)
 
-def get_obj_etag(*args, **kwargs):
+def get_obj_etag(request, obj_id=None, handler=None, *args, **kwargs):
     kwargs['param_name'] = 'guid'
-    return get_obj_attr(*args, **kwargs)
+    return get_obj_attr(request, obj_id, handler, **kwargs)
 
 
 @condition(etag_func=get_obj_etag, last_modified_func=get_obj_lmodified)
