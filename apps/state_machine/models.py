@@ -263,41 +263,6 @@ class RelatedManager( VersionManager ):
                     # objects do not have any m2ms of that type
                     for obj in objects: 
                         setattr( obj, field.name + '_buffer', [] )
-
-
-                    """
-                    rev_ids = list(set( [ getattr(r, rev_name + "_id") for r in rel_m2ms ] ))
-                    # select all reversed objects, one SQL
-                    if is_versioned:
-                        import pdb
-                        pdb.set_trace()
-                        filt = dict( [('local_id__in', rev_ids)] )
-                        rev_objs = field.rel.to.objects.filter( **dict(filt, **timeflt) ).values_list('local_id', )
-                        rev_objs_map = dict( [ ( getattr(r, 'local_id'), r) for r in rev_objs ] )
-                    else:
-                        filt = dict( [('id__in', rev_ids)] )
-                        rev_objs = field.rel.to.objects.filter( **filt ).values_list('id')
-                        rev_objs_map = dict( [ ( getattr(r, 'id'), r) for r in rev_objs ] )
-
-                    for obj in objects: # parse into objects
-                        # filter ids of the reversed objects for a particular object
-                        fltred = filter(lambda l: l[0] == getattr(obj, id_attr), rel_m2m_map)
-                        revsed = filter(lambda l: l[0] in fltred, rev_objs_map)
-                        buf = [ r[1] for r in revsed ]
-
-                        setattr( obj, field.name + '_buffer', buf )
-
-                    for obj in objects: # parse into objects
-                        filt = { field.m2m_field_name(): getattr(obj, id_attr) }
-                        reverse_ids = rel_m2ms.filter( **filt ).values_list( field.m2m_reverse_field_name(), flat=True )
-
-                        if is_versioned:
-                            filt = { 'local_id__in': reverse_ids }
-                            buf = field.rel.to.objects.filter( **dict(filt, **timeflt) )
-                        else:
-                            filt = { 'id__in': reverse_ids }
-                            buf = field.rel.to.objects.filter( **filt )
-                    """
         return objects
 
     def get(self, *args, **kwargs):
@@ -333,7 +298,7 @@ class RelatedManager( VersionManager ):
 
 class VersionedM2M( models.Model ):
     """ the abstract model is used as a connection between two objects for many 
-    to many relationship, for versioned objects instead of ManyToMany field. """
+    to many relationship for versioned objects instead of ManyToMany field. """
 
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
