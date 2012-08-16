@@ -76,6 +76,8 @@ class Datafile(SafetyLevel, ObjectState):
     last_task_id = models.CharField( 'last_task_id', blank=True, max_length=255, editable=False )
     # indicate whether some information was extracted from file (if archive)
     operations_log = models.TextField( 'operations_log', blank=True, null=True, editable=False )
+    # size is stored in DB for SQL query performance
+    size = models.IntegerField('size', blank=True, null=True)
 
     def __unicode__(self):
         return self.title
@@ -86,10 +88,6 @@ class Datafile(SafetyLevel, ObjectState):
 
     def get_owner(self):
         return self.owner
-
-    @property
-    def size(self):
-        return self.raw_file.size
 
     @property
     def hsize(self):
@@ -130,6 +128,12 @@ class Datafile(SafetyLevel, ObjectState):
             dataslice = spsignal.resample(l, downsample)
 
         return l # this is a [sliced] array
+
+    def save(self, *args, **kwargs):
+        """ need to update size """
+        self.size = self.raw_file.size
+        super(Datafile, self).save(*args, **kwargs)
+
 
 
 #-------------------------------------------------------------------------------

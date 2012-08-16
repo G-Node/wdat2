@@ -58,6 +58,13 @@ class BaseHandler(object):
 
         request: incoming HTTP request
         obj_id: ID of the object from request URL
+
+        With respect to the overall performance, the algorithm is the following:
+        - first it constructs a QuerySet with all user-provided filters from the 
+        request, security filters etc.
+        - then it evaluates the QuerySet getting object ids from the database
+        - then another QuerySet is being built, requesting objects with the
+        relatives, m2m (if needed) but only for the ids, filtered in steps 1-2.
         """
         kwargs = {}
         if self.options.has_key('at_time'): # to fetch a particular version
@@ -95,23 +102,16 @@ class BaseHandler(object):
                 else: # create case
                     objects = None
 
-            if objects: # preselect related, if needed + limit the number
-                # FIXME OFFSET doesnt work here!!
-                offset = self.offset
-                if self.options.has_key('offset'):
-                    offset = self.options["offset"]
+            q = self.options.get("q", "info")
+            if q == 'full' or q == 'beard':
+                kwargs["fetch_children"] = True
 
-                max_results = self.max_results
-                if self.options.has_key('max_results'):
-                    max_results = self.options["max_results"]
-
-                # here we use real ids, objects are already version-filtered
-                kwargs["id__in"] = objects.values_list( "id", flat=True ) # 1 SQL
-
-                q = self.options.get("q", "info")
-                if q == 'full' or q == 'beard':
-                    kwargs["fetch_children"] = True
-                objects = self.model.objects.get_related( **kwargs )[ offset: offset + max_results ]
+            all_ids = objects.values_list( "id", flat=True )
+            if len(all_ids) > 0: # evaluate pre-QuerySet here, 1st SQL
+                kwargs["id__in"] = self.do_sift(all_ids)
+                objects = self.model.objects.get_related( **kwargs )
+            else:
+                objects = []
 
             return self.actions[request.method](request, objects)
         else:
@@ -163,8 +163,45 @@ class BaseHandler(object):
         return rdata
 
 
+    def do_sift(self, ids):
+        """ simply sifts the given list with the following parameters:
+        - offset
+        - max_results
+        - spacing
+        - groups_of """
+
+        offset = self.offset
+        if self.options.has_key('offset'):
+            offset = self.options["offset"]
+
+        max_results = self.max_results
+        if self.options.has_key('max_results'):
+            max_results = self.options["max_results"]
+
+        """
+        # TODO
+        if self.options.has_key('spacing') and self.options.has_key('groups_of'):
+            spacing = self.options['spacing']
+            groups_of = self.options['groups_of']
+            objs = objects.all() # be careful, work with a diff queryset
+            length = objs.count()
+            if spacing > 0 and groups_of > 0 and groups_of < length:
+                fg = int( length / (spacing + groups_of) ) # number of full groups
+                for i in range(fg):
+                    st_ind = (i * (spacing + groups_of))
+                    end_ind = st_ind + groups_of
+                    objs = objs | objects.all()[st_ind:end_ind]
+
+                # don't forget there could some objects left as non-full group
+                ind = fg * (spacing + groups_of) # index of the 1st object in the 'orphaned' group
+                if ((length - 1) - ind) > -1: # some objects left
+                    objs = objs | objects.all()[ind:]
+            objects = objs
+        """
+        return ids[ offset: offset + max_results ]
+
     def do_filter(self, user, objects, update=False):
-        """ filter objects as per request params """
+        """ filter objects as per request params + security filtering """
 
         # GET params filters
         for key, value in self.options.items():
@@ -214,33 +251,6 @@ class BaseHandler(object):
 
         objects = perm_filtered | objects.filter(owner=user)
 
-        # offset - max_results - groups_of - spacing filters
-        # create list of indexes first, then evaluate the queryset
-        # these filters temporary switched off
-
-        """
-        # evaluate queryset here
-        objects = objects.all()[ offset: offset + max_results ]
-
-        if self.options.has_key('spacing') and self.options.has_key('groups_of'):
-            spacing = self.options['spacing']
-            groups_of = self.options['groups_of']
-            objs = objects.all() # be careful, work with a diff queryset
-            length = objs.count()
-            if spacing > 0 and groups_of > 0 and groups_of < length:
-                fg = int( length / (spacing + groups_of) ) # number of full groups
-                for i in range(fg):
-                    st_ind = (i * (spacing + groups_of))
-                    end_ind = st_ind + groups_of
-                    objs = objs | objects.all()[st_ind:end_ind]
-
-                # don't forget there could some objects left as non-full group
-                ind = fg * (spacing + groups_of) # index of the 1st object in the 'orphaned' group
-                if ((length - 1) - ind) > -1: # some objects left
-                    objs = objs | objects.all()[ind:]
-            objects = objs
-        """
-
         return objects
 
 
@@ -253,17 +263,20 @@ class BaseHandler(object):
             "selected": None
         }
         if objects:
+            print str(datetime.datetime.now()), "start serialization.."
             try:
                 srlzd = self.serializer.serialize(objects, options=self.options)
             except IndexError, e: # wrong index requested while signal slicing
                 return BadRequest(json_obj={"details": e.message}, \
                     message_type="wrong_index", request=request)
 
+            print str(datetime.datetime.now()), "serialized.."
+
             resp_data["selected"] = srlzd
             resp_data["selected_range"] = [self.offset, self.offset + len(objects) - 1]
             message_type = "object_selected"
 
-        if code == 201:
+        if code == 201: # when a new object created, a GET of it is returned
             return Created(resp_data, message_type="object_created", request=request)
 
         return Success(resp_data, message_type, request)

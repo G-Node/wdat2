@@ -10,11 +10,11 @@ PROJECT_NAME = PROJECT_PATH[PROJECT_PATH.rfind("/")+1:] # just in case
 to_pythonpath = ( 
     './',
     PROJECT_PATH,
+    os.path.join(PROJECT_PATH, 'apps/ext/pinax/'),
+    os.path.join(PROJECT_PATH, 'apps/ext/pinax/apps/'),
     os.path.join(PROJECT_PATH, 'apps/'),
     os.path.join(PROJECT_PATH, 'apps/ext/'),
     os.path.join(PROJECT_PATH, 'apps/local/'),
-    os.path.join(PROJECT_PATH, 'apps/ext/pinax/'),
-    os.path.join(PROJECT_PATH, 'apps/ext/pinax/apps/'),
 )
 
 for path in to_pythonpath:
