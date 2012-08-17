@@ -4,6 +4,8 @@ from django.db import models
 from django.db import connection, transaction
 from state_machine.models import VersionedM2M, ObjectState
 
+from datetime import datetime
+
 import settings
 import urlparse
 import itertools
@@ -62,6 +64,13 @@ class Serializer(PythonSerializer):
             return None
 
         parse_options(self, options)
+
+        # list of names of reverse relations
+        rev_rel_list = [f.model().obj_type + "_set" for f in \
+            queryset.model._meta.get_all_related_objects() if not \
+                issubclass(f.model, VersionedM2M) and \
+                    issubclass(f.model, ObjectState)]
+
         self.start_serialization()
 
         # calulate the size of the response, if data is requested
@@ -99,7 +108,9 @@ class Serializer(PythonSerializer):
                             in self.selected_fields:
                             self.handle_fk_field(obj, field)
 
-            if self.serialize_rel: # m2m fields
+            if self.serialize_rel: 
+
+                # m2m fields
                 for field in obj._meta.many_to_many:
                     if field.serialize:
                         if self.selected_fields is None or field.attname in \
@@ -115,36 +126,32 @@ class Serializer(PythonSerializer):
                             else:
                                 self.handle_m2m_field(obj, field)
 
-            # process specially reverse relations, like properties for section
-            for rel_name in [f.model().obj_type + "_set" for f in obj._meta.get_all_related_objects() \
-                if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
+                # process reverse relations (like properties for section)
+                for rel_name in rev_rel_list:
 
-                # cascade is switched off
-                """
-                if self.cascade and rel_name[:-4] not in self.excluded_cascade: # cascade related object load
-                    kid_model = getattr(obj, rel_name).model # below is an alternative
-                    #kid_model = filter(lambda x: x.get_accessor_name() == rel_name,\
-                    #    obj._meta.get_all_related_objects())[0].model # FIXME add many to many?
-                    if hasattr(kid_model, 'default_serializer'):
-                        serializer = kid_model().default_serializer
-                    else: serializer = self.__class__
-                    self._current[rel_name] = serializer().serialize(getattr(obj, \
-                        rel_name).filter(current_state=10), options=options)
-                """
+                    # cascade is switched off
+                    """
+                    if self.cascade and rel_name[:-4] not in self.excluded_cascade: # cascade related object load
+                        kid_model = getattr(obj, rel_name).model # below is an alternative
+                        #kid_model = filter(lambda x: x.get_accessor_name() == rel_name,\
+                        #    obj._meta.get_all_related_objects())[0].model # FIXME add many to many?
+                        if hasattr(kid_model, 'default_serializer'):
+                            serializer = kid_model().default_serializer
+                        else: serializer = self.__class__
+                        self._current[rel_name] = serializer().serialize(getattr(obj, \
+                            rel_name).filter(current_state=10), options=options)
+                    """
 
-                if self.show_kids and self.serialize_rel and rel_name[:-4] not\
-                    in self.excluded_permalink:
-                    """ this is used to include some short-relatives into the 
-                    serialized object, e.g. permalinks of Properties and Values 
-                    into the Section """
-                    children = []
-                    for child in getattr(obj, rel_name + "_buffer"):
-                        if hasattr(child, 'get_absolute_url'):
-                            children.append(''.join([self.host, child.get_absolute_url()]))
-                        else:
-                            children.append(''.join([self.host, child ]))
-                    if not (not children and rel_name[:-4] in self.do_not_show_if_empty):
-                        self._current[rel_name] = children
+                    if self.show_kids and self.serialize_rel and rel_name[:-4] not\
+                        in self.excluded_permalink:
+                        children = []
+                        for child in getattr(obj, rel_name + "_buffer"):
+                            if hasattr(child, 'get_absolute_url'):
+                                children.append(''.join([self.host, child.get_absolute_url()]))
+                            else:
+                                children.append(''.join([self.host, child ]))
+                        if not (not children and rel_name[:-4] in self.do_not_show_if_empty):
+                            self._current[rel_name] = children
 
             self.end_object(obj)
         self.end_serialization()

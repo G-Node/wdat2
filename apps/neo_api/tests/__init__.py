@@ -298,7 +298,12 @@ class TestGeneric(TestCase):
 
 
 class TestFilters:
-    pass
+
+    def test_fetch_mode(self):
+        """ test that all modes (info, link, full, beard) give appropriate 
+        results """
+        pass
+
 
 
 # Add test recursive metadata propagation
