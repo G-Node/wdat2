@@ -28,6 +28,23 @@ def _split_time( **kwargs ):
         timeflt['current_state'] = kwargs.pop('current_state')
     return kwargs, timeflt
 
+def _get_id_attr_name(model):
+    """ if the given model is VERSIONED, the 'local_id' should be used. If
+    this is the normal Django non-versioned model (e.g. a user), an 'id'
+    attribute name should be used as object main identifier."""
+    if 'local_id' in model._meta.get_all_field_names(): # object is versioned
+        return 'local_id'
+    else: # normal django model
+        return 'id'
+
+def _get_url_base(model):
+    """ returns a base part of the URL for a model, e.g. /metadata/section/
+    for Section model. TODO: find a cleaner way to do that. """
+    id_attr = _get_id_attr_name( model )
+    temp = model()
+    setattr(temp, id_attr, 10**9)
+    return temp.get_absolute_url().replace('1000000000', '')
+
 
 class VersionManager(models.Manager):
     """ A special manager for versioned objects. By default it filters objects 
@@ -73,23 +90,6 @@ class RelatedManager( VersionManager ):
     method, which is able to fetch objects together with permalinks to the 
     direct, reversed and m2m relatives. """
 
-    def _get_id_attr_name(self, model):
-        """ if the given model is VERSIONED, the 'local_id' should be used. If
-        this is the normal Django non-versioned model (e.g. a user), an 'id'
-        attribute name should be used as object main identifier."""
-        if 'local_id' in model._meta.get_all_field_names(): # object is versioned
-            return 'local_id'
-        else: # normal django model
-            return 'id'
-
-    def _get_url_base(self, model):
-        """ returns a base part of the URL for a model, e.g. /metadata/section/
-        for Section model. TODO: find a cleaner way to do that. """
-        id_attr = self._get_id_attr_name( model )
-        temp = model()
-        setattr(temp, id_attr, 10**9)
-        return temp.get_absolute_url().replace('1000000000', '')
-
     def _prefetch_objects(self, *args, **kwargs):
         """ prefetch objects based on filters provided in **kwargs, split kwargs
         into 'versioning' part (at_time, current_state) and normal filter part
@@ -111,19 +111,22 @@ class RelatedManager( VersionManager ):
         containing list of reversly related FK object permalinks. """
         if not objects: return []
 
-        id_attr = self._get_id_attr_name( self.model )
+        id_attr = _get_id_attr_name( self.model )
         ids = [ getattr(x, id_attr) for x in objects ]
 
+        flds = [f for f in self.model._meta.get_all_related_objects() if not \
+            issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
+        related_names = [f.field.rel.related_name or f.model().obj_type + "_set" for f in flds]
+
         # FK relations - loop over related managers / models
-        for rel_name in [f.model().obj_type + "_set" for f in self.model._meta.get_all_related_objects() \
-            if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]:
+        for rel_name in related_names:
 
             # get all related objects for all requested objects as one SQL
             rel_manager = getattr(self.model, rel_name)
             rel_field_name = rel_manager.related.field.name
             rel_model = rel_manager.related.model
-            id_attr = self._get_id_attr_name( rel_model )
-            url_base = self._get_url_base( rel_model )
+            id_attr = _get_id_attr_name( rel_model )
+            url_base = _get_url_base( rel_model )
 
             # fetching reverse relatives of type rel_name:
             """
@@ -193,7 +196,7 @@ class RelatedManager( VersionManager ):
         of m2m related object permalinks. """
         if not objects: return []
 
-        id_attr = self._get_id_attr_name( self.model )
+        id_attr = _get_id_attr_name( self.model )
         ids = [ getattr(obj, id_attr) for obj in objects ]
 
         for field in self.model._meta.many_to_many:
@@ -202,7 +205,7 @@ class RelatedManager( VersionManager ):
             own_name = field.m2m_field_name()
             rev_name = field.m2m_reverse_field_name()
             filt = dict( [(own_name + '__in', ids)] )
-            url_base = self._get_url_base( field.rel.to )
+            url_base = _get_url_base( field.rel.to )
 
             # select all related m2m connections (not reversed objects!) of 
             # a specific type, one SQL
@@ -245,18 +248,24 @@ class RelatedManager( VersionManager ):
 
         if objects: # evaluates queryset, executes 1 SQL
 
+            """
+            if self.model().obj_type == 'analogsignalarray':
+                import pdb
+                pdb.set_trace()
+
             # fetch direct FKs (parents)
             fk_fields = [ f for f in self.model._meta.local_fields if not f.rel is None ]
             for par_field in fk_fields:
                 # select all related parents of a specific type, evaluate!
                 ids = set([ getattr(x, par_field.name + "_id") for x in objects ])
-                if 'local_id' in par_field.rel.to._meta.get_all_field_names():
-                    id_attr = 'local_id'
-                    par = par_field.rel.to.objects.filter( local_id__in = ids, **timeflt )
+
+
+                id_attr = _get_id_attr_name( par_field.rel.to )
+                if id_attr == 'local_id'
+                    par = par_field.rel.to.objects.filter( local_id__in = ids, **timeflt ).values_list( id_attr )
 
                 else: # normal FK to a django model
-                    id_attr = 'id'
-                    par = par_field.rel.to.objects.filter( id__in = ids )
+                    par = par_field.rel.to.objects.filter( id__in = ids ).values_list( id_attr )
 
                 # make a mapping between parent ids and objects
                 relmap = dict( [ ( getattr(r, id_attr), r ) for r in par ] )
@@ -266,6 +275,11 @@ class RelatedManager( VersionManager ):
                             relmap[ getattr(obj, par_field.name + "_id") ] )
                     except KeyError:
                         setattr( obj, par_field.name, None )
+
+            if self.model().obj_type == 'analogsignalarray':
+                import pdb
+                pdb.set_trace()
+            """
 
             if not fetch_children:
                 return objects

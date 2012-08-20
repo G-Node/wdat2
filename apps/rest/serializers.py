@@ -2,7 +2,7 @@ from django.core.serializers.python import Serializer as PythonSerializer
 from django.utils.encoding import smart_unicode, is_protected_type
 from django.db import models
 from django.db import connection, transaction
-from state_machine.models import VersionedM2M, ObjectState
+from state_machine.models import VersionedM2M, ObjectState, _get_url_base
 
 from datetime import datetime
 
@@ -17,6 +17,8 @@ class Serializer(PythonSerializer):
     Serialises/Deserial. G-Node models into JSON objects for HTTP REST responses
     """
 
+    RESPONSE_MODES = ['link', 'info', 'beard', 'full']
+
     """ configure whether to show FK-relations in the response """
     show_kids = True # on/off - show permalinks of kids by default when cascade=False
     excluded_permalink = () # kid's permalinks are not shown even if show_kids=True
@@ -27,7 +29,7 @@ class Serializer(PythonSerializer):
     cascade = False
     encoding = settings.DEFAULT_CHARSET
     use_natural_keys = 0 # default is to show permalink for FKs
-    q = 'info'
+    q = 'info' # current response mode
     host = ""
 
     @property
@@ -66,8 +68,8 @@ class Serializer(PythonSerializer):
         parse_options(self, options)
 
         # list of names of reverse relations
-        rev_rel_list = [f.model().obj_type + "_set" for f in \
-            queryset.model._meta.get_all_related_objects() if not \
+        rev_rel_list = [f.field.rel.related_name or f.model().obj_type + "_set" \
+            for f in queryset.model._meta.get_all_related_objects() if not \
                 issubclass(f.model, VersionedM2M) and \
                     issubclass(f.model, ObjectState)]
 
@@ -106,7 +108,14 @@ class Serializer(PythonSerializer):
 
                         elif self.selected_fields is None or field.attname[:-3]\
                             in self.selected_fields:
-                            self.handle_fk_field(obj, field)
+                            #self.handle_fk_field(obj, field)
+                            rid = getattr(obj, field.name + "_id")
+                            if rid:
+                                url_base = _get_url_base( queryset.model )
+                                self._current[field.name] = ''.join([ self.host, \
+                                    url_base, str( rid ) ])
+                            else:
+                                self._current[field.name] = None
 
             if self.serialize_rel: 
 
@@ -286,7 +295,7 @@ class Serializer(PythonSerializer):
 
     def is_data_field_django(self, obj, field):
         """ if a field has units, stored in another field - it's a data field """
-        if (field.attname + "__unit") in [f.attname for f in obj._meta.local_fields]:
+        if (field.name + "__unit") in [f.name for f in obj._meta.local_fields]:
             return True
         return False
 

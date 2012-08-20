@@ -31,6 +31,7 @@
         "pk": 1,
         "model": "neo_api.Block",
         "fields": {
+            "file_origin": 1,
             "name": "Block of recordings from May, 10",
             "filedatetime": "2011-10-05 19:11:56",
             "index": 1,
@@ -45,6 +46,7 @@
         "pk": 1,
         "model": "neo_api.Segment",
         "fields": {
+            "file_origin": 1,
             "name": "Attention effects, Trial 34 recordings, monkey V1 January.",
             "filedatetime": "2011-11-01 19:11:56",
             "index": 1,
@@ -60,6 +62,7 @@
         "pk": 1,
         "model": "neo_api.EventArray",
         "fields": {
+            "file_origin": 1,
             "segment": 1,
             "owner": 1,
             "date_created": "2011-10-05 19:11:56",
@@ -72,6 +75,7 @@
         "pk": 1,
         "model": "neo_api.Event",
         "fields": {
+            "file_origin": 1,
             "label": "Fixation start time",
             "time": 35.0,
             "time__unit": "ms",
@@ -88,6 +92,7 @@
         "pk": 1,
         "model": "neo_api.EpochArray",
         "fields": {
+            "file_origin": 1,
             "segment": 1,
             "owner": 1,
             "date_created": "2011-10-05 19:11:56",
@@ -100,6 +105,7 @@
         "pk": 1,
         "model": "neo_api.Epoch",
         "fields": {
+            "file_origin": 1,
             "label": "Drug application period",
             "time": 35.0,
             "time__unit": "ms",
@@ -118,6 +124,7 @@
         "pk": 1,
         "model": "neo_api.RecordingChannelGroup",
         "fields": {
+            "file_origin": 1,
             "name": "RCG 15",
             "block": 1,
             "owner": 1,
@@ -131,6 +138,7 @@
         "pk": 1,
         "model": "neo_api.RecordingChannel",
         "fields": {
+            "file_origin": 1,
             "name": "Channel 1",
             "index": 1,
             "recordingchannelgroup": 1,
@@ -145,6 +153,7 @@
         "pk": 1,
         "model": "neo_api.Unit",
         "fields": {
+            "file_origin": 1,
             "name": "V1 Left Simple Neuron, +/-2",
             "owner": 1,
             "date_created": "2011-10-05 19:11:56",
@@ -167,6 +176,7 @@
         "pk": 1,
         "model": "neo_api.SpikeTrain",
         "fields": {
+            "file_origin": 1,
             "t_start": 0.0,
             "t_start__unit": "ms",
             "t_stop": 270.0,
@@ -187,6 +197,8 @@
         "pk": 1,
         "model": "neo_api.AnalogSignal",
         "fields": {
+            "file_origin": 1,
+            "analogsignalarray": 1,
             "name": "AS-1",
             "t_start": 0.0,
             "t_start__unit": "ms",
@@ -208,6 +220,7 @@
         "pk": 1,
         "model": "neo_api.IrSaAnalogSignal",
         "fields": {
+            "file_origin": 1,
             "name": "AS-1",
             "t_start": 0.0,
             "t_start__unit": "ms",
@@ -229,8 +242,10 @@
         "pk": 1,
         "model": "neo_api.AnalogSignalArray",
         "fields": {
+            "file_origin": 1,
             "segment": 1,
             "owner": 1,
+            "recordingchannelgroup": 1,
             "date_created": "2011-10-05 19:11:56",
             "local_id": 1,
             "guid": "1633320aabff073f4b09174f99d92b9cb46497d1",
@@ -241,6 +256,7 @@
         "pk": 1,
         "model": "neo_api.Spike",
         "fields": {
+            "file_origin": 1,
             "time": 0.0,
             "time__unit": "ms",
             "sampling_rate": 20000,
@@ -260,6 +276,7 @@
         "pk": 1,
         "model": "neo_api.WaveForm",
         "fields": {
+            "file_origin": 1,
             "channel_index": 1,
             "time_of_spike": 0.0,
             "time_of_spike__unit": "ms",

@@ -28,6 +28,7 @@ from neo_api.serializers import NEOSerializer
 from datetime import datetime
 from django.utils import simplejson as json
 from django.core.serializers.json import DjangoJSONEncoder
+from state_machine.models import _get_url_base
 
 import tables as tb
 import numpy as np
@@ -45,7 +46,8 @@ def reserved_field_names( model ):
     # non-editable fields
     names = [ fi.name for fi in model._meta.local_fields if not fi.editable ]
     # reserved fields
-    names += [ 'current_state', 'safety_level', 'id' ]
+    names += [ 'current_state', 'safety_level', 'id', 'section' ]
+    # 'section' is excluded because it's a different module, not tested here
     return names
 
 def available_simple_fields( model ):
@@ -57,7 +59,6 @@ def available_fk_fields( model ):
     """ returns non-'system' editable FK fields """
     reserved = reserved_field_names( model )
     return [ f for f in model._meta.local_fields if not f.name in reserved and f.rel ]
-
 
 
 class TestUnauthorized(TestCase):
@@ -89,11 +90,31 @@ class TestUnauthorized(TestCase):
 
 class TestGeneric(TestCase):
     fixtures = ["users.json", "samples.json"]
+    ser = NEOSerializer()
     sample_objects = None
+    ids = {}
     go = True
     new_value = ""
 
-    def create_file_with_array( self, size ):
+    def _set_post(self, field, model, v):
+        go = True
+        post = {}
+        units="ms"
+        if not field.name == 'times':
+            units = 'mv'
+        try:
+            self.new_value = field.to_python( v )
+            if self.ser.is_data_field_django(model, field):
+                self.new_value = {
+                    "data": self.new_value,
+                    "units": units
+                }
+            post[field.name] = self.new_value
+        except ValidationError:
+            go = False
+        return post, go
+
+    def _create_file_with_array( self, size ):
         """ create test file with array data. can be further used to create any
         data-related objects, like signals, spiketrains etc. size - int """
         path = settings.FILE_MEDIA_ROOT + "data/"
@@ -106,75 +127,53 @@ class TestGeneric(TestCase):
         import os
         path = settings.FILE_MEDIA_ROOT + "data/"
         if not "array.h5" in os.listdir( path ):
-            create_file_with_array( 1000 )
+            _create_file_with_array( 1000 )
 
         # login
         logged_in = self.client.login(username="nick", password="pass")
         self.assertTrue(logged_in)
 
-        # populate test JSON NEO object bodies if not done yet
+        # populate test JSON NEO object bodies if not done yet, create objects
         if self.sample_objects is None:
             ser = NEOSerializer()
             ser.host = "http://testhost.org"
             sample_objects = {}
             for cls in meta_classnames.values():
-                obj = cls.objects.get( local_id=1 )
-                sobj = ser.serialize( [obj] )[0]['fields']
+                objs = cls.objects.get_related( local_id=1 )
+                sobj = ser.serialize( objs )[0]['fields']
 
                 # non-editable fields
-                names = reserved_field_names( obj )
+                names = reserved_field_names( objs[0] )
                 # reversed relations
                 names += [l for l in sobj.keys() if (l.find("_set") == len(l) - 4)]
                 for i in names:
                     if sobj.has_key(i):
                         sobj.pop( i ) # remove reserved fields
-                sample_objects[ obj.obj_type ] = sobj
+                sample_objects[ objs[0].obj_type ] = sobj
             self.sample_objects = sample_objects
 
+            # step 1. Create original objects ( test CREATE )
+            # must be here to create objects for other tests
+            ids = {}
+            for obj_type, obj in self.sample_objects.items():
+                ids[obj_type] = []
+                for i in range(3): # create a few objects
+                    response = self.client.post("/neo/%s/" % obj_type, \
+                        json.dumps(obj, cls=DjangoJSONEncoder), content_type="application/json")
+                    self.assertEqual(response.status_code, 201, \
+                        "Obj type %s; response: %s" % (obj_type, response.content))
+                    # save object ids for later
+                    rdata = json.loads(response.content)
+                    ids[obj_type].append( int(rdata['selected'][0]['fields']['local_id']) )
+            self.ids = ids
 
-    def test_crud_and_versioning(self):
-        """ basically test that you can go back in time to a system state, when 
-        objects and relations were different. """
-        def _set_post(field, model, v):
-            go = True
-            post = {}
-            try:
-                self.new_value = field.to_python( v )
-                if self.ser.is_data_field_django(model, field):
-                    self.new_value = {
-                        "data": self.new_value,
-                        "units": "ms"
-                    }
-                post[field.name] = self.new_value
-            except ValidationError:
-                go = False
-            return post, go
-
-        stamp0 = datetime.now() # a point in time to go back and validate
-
-        # step 1. Create original objects ( test CREATE )
-        ids = {}
-        for obj_type, obj in self.sample_objects.items():
-            ids[obj_type] = []
-            for i in range(3): # create a few objects
-                response = self.client.post("/neo/%s/" % obj_type, \
-                    json.dumps(obj, cls=DjangoJSONEncoder), content_type="application/json")
-                self.assertEqual(response.status_code, 201, \
-                    "Obj type %s; response: %s" % (obj_type, response.content))
-                # save object ids for later
-                rdata = json.loads(response.content)
-                ids[obj_type].append( int(rdata['selected'][0]['fields']['local_id']) )
-
-        stamp1 = datetime.now() # a point in time to go back and validate
-        print "test objects created.. ( test CREATE ) OK"
-
-        # step 2. change objects ( test UPDATE and GET )
-        self.ser = NEOSerializer()
+    def test_change(self):
+        """ test UPDATE and GET """
         for obj_type, model in meta_classnames.items():
             for field in available_simple_fields(model):
                 for v in TEST_VALUES:
-                    post, go = _set_post(field, model, v)
-                    id = ids[obj_type][0] # just test one object
+                    post, go = self._set_post(field, model, v)
+                    id = self.ids[obj_type][0] # just test one object
                     response = self.client.post("/neo/%s/%d" % (obj_type, id),\
                         DjangoJSONEncoder().encode(post), content_type="application/json")
                     # DjangoJSONEncoder can encode datetime
@@ -186,14 +185,12 @@ class TestGeneric(TestCase):
                         self.assertEqual(str(rdata['selected'][0]['fields'][field.name]),\
                             str( self.new_value ), "Object: %s, field: %s" % (obj_type, field.name) )
 
-        stamp2 = datetime.now() # a point in time to go back and validate
-        print "changes made.. ( test UPDATE and GET ) OK"
-
-        # step 3. do bulk update ( test BULK_UPDATE )
+    def test_bulk_update(self):
+        """ test BULK UPDATE """
         for obj_type, model in meta_classnames.items():
             for field in available_simple_fields(model):
                 for v in TEST_VALUES:
-                    post, go = _set_post(field, model, v)
+                    post, go = self._set_post(field, model, v)
                     response = self.client.post("/neo/%s/?bulk_update=1" % obj_type,\
                         DjangoJSONEncoder().encode(post), content_type="application/json")
                     self.assertNotEqual(response.status_code, 500, \
@@ -204,24 +201,42 @@ class TestGeneric(TestCase):
                         self.assertEqual(str(rdata['selected'][0]['fields'][field.name]),\
                             str( self.new_value ), "Object: %s, field: %s" % (obj_type, field.name) )
 
-        stamp3 = datetime.now() # a point in time to go back and validate
-        print "bulk updates made.. ( test BULK UPDATE ) OK"
-
-        # step 4. change relations ( test FKs and M2Ms )
-        """ so far the structure created is a biased tree from the relational 
-        point of view (all FKs are set to 1). At the same time several objects
-        of every type exists. So the relations test could be done as:
+    def test_relations(self):
+        """ test FKs and M2Ms. The structure created in the setup is a biased 
+        tree from the relational point of view (all FKs are set to 1). At the 
+        same time several objects of every type exists. So the relations test 
+        could be done as:
         - changing the FK from 1 to, say, 2 for a particular object;
         - test the parent object that it does not have this particular object 
-            anymore ;
+            anymore;
         - test the parent object that it has this particular object if requested
-            back in time . """
-        dt = stamp1
+            back in time. """
+        def _parse_ids( obj_type, name, content ):
+            rdata = json.loads( content )
+            rev_set = rdata['selected'][0]['fields'][name]
+            return [int(a[ a.rfind('/') + 1: ]) for a in rev_set] # ids
+
+        dt = datetime.now() # a point in time to go back and validate
+        time.sleep(2)
         for obj_type, model in meta_classnames.items():
             for field in available_fk_fields(model):
 
+                # name of the reversed field in the response
+                fname = field.rel.related_name or obj_type + "_set"
+
+                # get full object with reversed relations BEFORE the change
+                response = self.client.get("%s1/?q=full" % _get_url_base( field.rel.to ))
+                self.assertEqual(response.status_code, 200, \
+                    "Obj type %s; field: %s, response: %s" % \
+                    (obj_type, field.name, response.content))
+                rev_set = _parse_ids( obj_type, fname, response.content ) # ids
+
+
+                self.assertIn( 1, rev_set, "Object: %s, field: %s, rev_set: %s" % \
+                    (obj_type, field.name, str(rev_set) ) )
+
                 # change some relationship
-                post, go = _set_post(field, model, 2)
+                post, go = self._set_post(field, model, 2)
                 response = self.client.post("/neo/%s/1" % obj_type,\
                     DjangoJSONEncoder().encode(post), content_type="application/json")
                 self.assertEqual(response.status_code, 200, \
@@ -229,38 +244,20 @@ class TestGeneric(TestCase):
                     (obj_type, field.name, response.content))
 
                 # get full object with reversed relations AFTER the change
-                response = self.client.get("/neo/%s/1/?q=full" % field.rel.to().obj_type)
-                rdata = json.loads(response.content)
-                rev_set = rdata['selected'][0]['fields'][obj_type + "_set"]
-                rev_set = [a[ a.rfind('/') + 1: ] for a in rev_set] # ids
-
+                response = self.client.get("%s1/?q=full" % _get_url_base( field.rel.to ))
+                self.assertEqual(response.status_code, 200, \
+                    "Obj type %s; field: %s, response: %s" % \
+                    (obj_type, field.name, response.content))
+                rev_set = _parse_ids( obj_type, fname, response.content ) # ids
                 self.assertNotIn( 1, rev_set, "Object: %s, field: %s, rev_set: %s" % \
                     (obj_type, field.name, str(rev_set) ) )
 
-                # get full object with reversed relations BEFORE the change
-                response = self.client.get("/neo/%s/1/?q=full&at_time=%s" % \
-                    (field.rel.to().obj_type, dt.strftime("%Y-%m-%d %H:%M:%S")))
-                rdata = json.loads(response.content)
-                rev_set = rdata['selected'][0]['fields'][obj_type + "_set"]
-                rev_set = [ int(a[ a.rfind('/') + 1: ]) for a in rev_set] # ids
-
+                # check previous version has NO changes
+                response = self.client.get("%s1/?q=full&at_time=%s" % \
+                    (_get_url_base( field.rel.to ), dt.strftime("%Y-%m-%d %H:%M:%S")))
+                rev_set = _parse_ids( obj_type, fname, response.content ) # ids
                 self.assertIn( 1, rev_set, "Object: %s, field: %s, rev_set: %s" % \
                     (obj_type, field.name, str(rev_set) ) )
-
-
-
-
-        stamp4 = datetime.now() # a point in time to go back and validate
-
-        # step 5. go back in time and check ( test VERSIONING )
-        for obj_type, model in meta_classnames.items():
-            pass
-
-
-
-    def test_update_relations(self):
-        pass
-
 
 
     def test_delete(self):
@@ -279,7 +276,7 @@ class TestGeneric(TestCase):
             lid = rdata['selected'][0]['fields']['local_id']
 
             # objects should be deleted with a delay to check versioning
-            time.sleep(2)
+            time.sleep(1)
             response = self.client.delete("/neo/%s/%d" % ( obj_type, lid ))
             self.assertEqual(response.status_code, 200, \
                 "Obj type %s; response: %s" % (obj_type, str(response)))
@@ -296,23 +293,25 @@ class TestGeneric(TestCase):
                 "Obj type %s; response: %s" % (obj_type, str(response)))
 
 
+    def test_response_mode(self):
+        """ test that allresponse modes (info, link, full, beard) give 
+        appropriate results. for the moment it juat tests that there is no 
+        error. TODO: write the real validation for every mode. """
+        for obj_type, model in meta_classnames.items():
+            modes = NEOSerializer().RESPONSE_MODES
+            for m in modes:
+                response = self.client.get("/neo/%s/?q=%s" % (obj_type, m))
+                self.assertEqual(response.status_code, 200, \
+                    "Obj type %s; response: %s" % (obj_type, str(response)))
+
 
 class TestFilters:
-
-    def test_fetch_mode(self):
-        """ test that all modes (info, link, full, beard) give appropriate 
-        results """
-        pass
-
-
-
+    pass
 # Add test recursive metadata propagation
 
 
 # Add test recursive eTag / last modified change
 
-
-# DELETE - does not appear in queries - test
 
 class TestSecurity(TestCase):
     """

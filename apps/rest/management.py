@@ -67,15 +67,16 @@ class BaseHandler(object):
         relatives, m2m (if needed) but only for the ids, filtered in steps 1-2.
         """
         kwargs = {}
+        create = False
         if self.options.has_key('at_time'): # to fetch a particular version
             kwargs['at_time'] = self.options['at_time']
 
         if request.method in self.actions.keys():
 
-            if obj_id: # single object case
+            if obj_id: # single object case, GET, UPDATE or DELETE
                 objects = self.model.objects.filter( **kwargs )
                 objects = objects.filter( local_id = obj_id )
-                if not objects: # object not exists?
+                if not objects: # object does not exist?
                     return NotFound(message_type="does_not_exist", request=request)
                 if request.method == 'GET': # get single object
                     if not objects[0].is_accessible(request.user):
@@ -84,10 +85,10 @@ class BaseHandler(object):
                 elif not objects[0].is_editable(request.user): # modify single
                     return Forbidden(message_type="not_authorized", request=request)
 
-            else: # a category case
+            else: # a category case, GET, CREATE, DELETE or BULK UPDATE
                 update = self.options.has_key('bulk_update')
                 if request.method == 'GET' or (request.method == 'POST' and update):
-                    # get or bulk update, important - select related
+                    # GET, DELETE or BULK UPDATE
                     objects = self.model.objects.filter( **kwargs )
                     try:
                         objects = self.do_filter(request.user, objects, update)
@@ -99,19 +100,21 @@ class BaseHandler(object):
                         return Forbidden(json_obj={"details": e.message}, \
                             message_type="not_authorized", request=request)
 
-                else: # create case
+                else: # CREATE
+                    create = True
                     objects = None
 
-            q = self.options.get("q", "info")
-            if q == 'full' or q == 'beard':
-                kwargs["fetch_children"] = True
+            if not create:
+                q = self.options.get("q", "info")
+                if q == 'full' or q == 'beard':
+                    kwargs["fetch_children"] = True
 
-            all_ids = objects.values_list( "id", flat=True )
-            if len(all_ids) > 0: # evaluate pre-QuerySet here, 1st SQL
-                kwargs["id__in"] = self.do_sift(all_ids)
-                objects = self.model.objects.get_related( **kwargs )
-            else:
-                objects = []
+                all_ids = objects.values_list( "id", flat=True )
+                if len(all_ids) > 0: # evaluate pre-QuerySet here, 1st SQL!
+                    kwargs["id__in"] = self.do_sift(all_ids)
+                    objects = self.model.objects.get_related( **kwargs )
+                else:
+                    objects = []
 
             return self.actions[request.method](request, objects)
         else:
@@ -263,14 +266,11 @@ class BaseHandler(object):
             "selected": None
         }
         if objects:
-            print str(datetime.datetime.now()), "start serialization.."
             try:
                 srlzd = self.serializer.serialize(objects, options=self.options)
             except IndexError, e: # wrong index requested while signal slicing
                 return BadRequest(json_obj={"details": e.message}, \
                     message_type="wrong_index", request=request)
-
-            print str(datetime.datetime.now()), "serialized.."
 
             resp_data["selected"] = srlzd
             resp_data["selected_range"] = [self.offset, self.offset + len(objects) - 1]
@@ -333,7 +333,7 @@ class BaseHandler(object):
                 json_obj={"details": ", ".join(VE.messages)}
             return BadRequest(json_obj=json_obj, \
                 message_type="bad_parameter", request=request)
-        except (AssertionError, AttributeError), e:
+        except (AssertionError, AttributeError, KeyError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="post_data_invalid", request=request)
         except (ReferenceError, ObjectDoesNotExist), e:

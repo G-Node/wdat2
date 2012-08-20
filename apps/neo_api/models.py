@@ -306,7 +306,7 @@ class SpikeTrain(BaseInfo, DataObject):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     unit = models.ForeignKey(Unit, blank=True, null=True)
     # NEO data arrays
-    times = models.ForeignKey( Datafile, related_name='spiketrain_times' )
+    times = models.ForeignKey( Datafile, related_name='spiketrains' )
     times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
     metadata = models.ManyToManyField(Value, through='spiketrain_metadata', \
         blank=True, null=True)
@@ -407,7 +407,7 @@ class AnalogSignal(BaseInfo, DataObject):
     recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
     analogsignalarray = models.ForeignKey(AnalogSignalArray, blank=True, null=True)
     # NEO data arrays
-    signal = models.ForeignKey( Datafile, related_name='as_signal' )
+    signal = models.ForeignKey( Datafile, related_name='analogsignals' )
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     metadata = models.ManyToManyField(Value, through='analogsignal_metadata', \
         blank=True, null=True)
@@ -483,7 +483,7 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
     segment = models.ForeignKey(Segment, blank=True, null=True)
     recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
     # NEO data arrays
-    signal = models.ForeignKey( Datafile, related_name='irsa_signal' )
+    signal = models.ForeignKey( Datafile, related_name='irsa_signals' )
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     times = models.ForeignKey( Datafile, related_name='irsa_times' )
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
@@ -576,11 +576,10 @@ class WaveForm(BaseInfo, DataObject):
     channel_index = models.IntegerField('channel_index', null=True, blank=True)
     time_of_spike = models.FloatField('time_of_spike', default=0.0) # default used when WF is related to a Spike
     time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
-    waveform = models.ForeignKey( Datafile, related_name='waveform_derivative' )
+    waveform = models.ForeignKey( Datafile, related_name='waveforms' )
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
     spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
     spike = models.ForeignKey(Spike, blank=True, null=True)
-    metadata = "Please look at the metadata of the parent object"
     metadata = models.ManyToManyField(Value, through='waveform_metadata', \
         blank=True, null=True)
 
