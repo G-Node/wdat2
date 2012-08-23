@@ -1,83 +1,137 @@
-"""
-requirements for the g-node
+1. Packages
+apache2.2 + mod-wsgi + mod-xsendfile, python2.6 +
+python-imaging python-ldap python-lxml python-memcache
+python-mysqldb python-numpy python-scipy python-setuptools
+mysql-server git memcached rabbitmq-server clang python-dev
+python-jsonpickle python-tables python-matplotlib
 
-1. Progress bar and upload solution
-- you need mod_wsgi + apache (configuration as daemon - check multithread is true)
-- python-memcached lib has to be installed
-- memcached - should be started (memcached -d -m 2048 -M -p 11211, telnet localhost 11211 to check)
+sudo easy_install bson
 
-2. 
-a) Changes in Notification (pinax-source/lib/python2.6/site-packages/notification)
-??? Not yet done.. to be completed, Phase II?
+for spike website:
+          install_requires=[
+              'matplotlib',
+              'mdp',
+              'PIL>=1.1.6',
+              'scipy>=0.6.0',
+              'spikeplot>=0.1.0',
+              'tables>=2.0',
+              'texttable>=0.8']
 
-b) GRAPELLI: USE THE VERSION WITH CHANGES!
-http://code.google.com/p/django-grappelli/source/detail?r=692
-(MOVE TO THE MAIN FOLDER)
+easy_install Celery django-celery
 
-c) Changes in pinax-source/lib/python2.6/site-packages/wiki:
-../lib/python2.6/site-packages/wiki/forms.py
-../lib/python2.6/site-packages/wiki/views.py
+install django (1.3.1+)
+https://www.djangoproject.com/download/
+(as usual, untar it and run python setup.py install)
 
-3. Before going live check whether project files do not contain empty # links!!
+recommended:
+ipython (package) or latest stable from tarball
+http://ipython.org/download.html#
+(as usual, untar it and run python setup.py install)
+
+2. Memcached configuration
+after installation, configure memcached in /etc/memcached.conf. Set:
+-m 2048
+-p 11211
+-l 127.0.0.1
+-M # do we really need it that way?
+and restart it
+/etc/init.d/memcached restart
+and check that iit is listening with
+telnet localhost 11211
+
+3. Create DB
+Please create a database <gnodeportal> and a user <gnodeportal>. Grant an ownership for the user (should be able to create / alter tables etc.) to the <gnodeportal>. You will use this settings further while configuring settings of the G-Node Portal.
+
+4. Install the portal source
+4.1
+select a folder for the protal source installation. Further we'll call it <PROJECT_HOME> in this text. CD to the <PROJECT_HOME> folder and clone a master (stable) branch of the portal git repository:
+cd <PROJECT_HOME>
+git clone ssh://<USER>@gate.g-node.org/groups/g-node-core/git/portal.git
+
+4.2
+create folders to hold files/public media. For example, run from the FS root:
+mkdir /data
+mkdir /data/public_media
+mkdir /data/private_media
+cd /data/
+chmod 775 p*
+chgrp www-data p*
+
+4.3
+create a local_settings.py file. Configure it appropriately:
+DEBUG = True # false for production 
+PRODUCTION_MODE = False # true for production 
+
+DATABASE_NAME = '<gnodeportal>'
+DATABASE_USER = '<gnodeportal>'
+DATABASE_PASSWORD = 'pass'
+
+MEDIA_ROOT = "/data/media/media_root/"
+FILE_MEDIA_ROOT = "/data/media/"
+
+ROOT_URLCONF = '<portal>.urls' # <portal> is the name of the folder of the <PROJECT_HOME>
+
+and other configurations.
+
+5. Install python-neuroshare by
+cd /tmp
+sudo git clone git://github.com/G-Node/python-neuroshare.git
+cd python-neuroshare/
+sudo python setup.py install
+
+Just in case:
+https://github.com/G-Node/python-neuroshare
+
+6. Configure Celery
+rabbitmqctl add_user <myuser> <mypassword>
+rabbitmqctl add_vhost <myvhost>
+rabbitmqctl set_permissions -p myvhost myuser ".*" ".*" ".*"
+
+The configuration is trivial and can be found here:  http://django-celery.readthedocs.org/en/latest/getting-started/first-steps-with-django.html
+
+Celery should work as daemon. To configure the daemon: create /etc/init.d/celeryd and /etc/default/celeryd (examples on hal10). 
+start as /etc/init.d/celeryd start. should work. If /etc/init.d/celeryd status can't find the celeryconfig module, put the celeryconfig.py file with celery settings (HOST, PORT etc.) to the /etc/init.d/ folder or make it available to the Python (PYTHONPATH).
+
+Hints:
+ - celeryconfig is a python file where broker settings are located, usually it's 'local_settings.py'
+ - give permissions to celery user (usually www-data) to write logs: sudo chown www-data /var/log/celery
+
+7. Apache configuration
+cd <PROJECT_ROOT>
+mkdir apache
+
+copy the apache configuration files to the apache folder (apache.conf and django.wsgi, examples on predata).
+
+Add to (/etc/apache2/) httpd.conf:
+
+LoadModule wsgi_module /usr/lib/apache2/modules/mod_wsgi.so
+Include "/opt/portal/apache/apache.conf"
+
+In case you use non-default port (not 80) add port configuration to (/etc/apache2/) ports.conf, for example:
+# G-Node Portal, master
+NameVirtualHost *:8000
+Listen 8000
+
+Change path to the project root in django.wsgi.
+
+Add 
+export LANG='en_US.UTF-8'
+export LC_ALL='en_US.UTF-8'
+to the /etc/apache2/envvars
+
+restart (hard!!) apache:
+apache2ctl stop
+apache2ctl start
+
+8. Additional DATABASE config
+remove indexes for versioned m2ms!
+
+MISSING
+
+cron jobs??
+
+Please now go to the database and change the table "django-site" - set the correct domain and the name of your site: HOW TO DO IT?
 
 
-"""
---find-links=http://pypi.pinaxproject.com
---find-links=http://pypi2.pinaxproject.com
 
-# Get all requirements formerly known as "external_libs" explicitly
-# hashlib
-python-dateutil==1.4.1
-docutils==0.5
-elementtree==1.2.7-20070827-preview
 
-gdata==1.3.3
-Pygments==1.0
-python-openid==2.2.4
-python-twitter==0.5
-python-yadis==1.1.0
-simplejson==2.0.9
-textile==2.1.3
-vobject==0.8.1c
-BeautifulSoup==3.0.7a
-ybrowserauth==1.2
-Markdown==2.0.1
-diff-match-patch==20090804
-geopy==0.93dev-r0
-pytz==2009l
-creole==1.0.1
-
-django-ajax-validation==0.1.3
-django-announcements==0.1.0
-django-atomformat==0.1.0dev
-django-avatar==1.0.2
-django-bookmarks==0.1.0
-django-db-log==1.0.1
-django-debug-toolbar==0.7.0
-django-email-confirmation==0.1.3
-django-extensions==0.4.1
-django-flag==0.1.1
-django-friends==0.1.4
-django-gravatar==0.1.0
-django-locations==0.1.1
-django-mailer==0.1.0
-django-messages==0.4.2
-django-microblogging==0.1.2
-django-notification==0.1.4
-django-oembed==0.1.0
-django-openid==0.2.0
-django-pagination==1.0.5.1
-django-robots==0.6.1
-django-swaps==0.5.3
-django-sorting>=0.1
-django-tagging==0.3
-django-threadedcomments==0.5.1
-django-timezones==0.1.4
-django-uni-form==0.6.0
-django-voting==0.1_pre
-django-wikiapp==0.2.0
-django-photologue==2.3
-django-attachments==0.3
-django-markup==0.3
-template_utils==0.4p2
-django-staticfiles==0.1.2

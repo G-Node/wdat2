@@ -13,10 +13,8 @@ Tests Roadmap
 Still remaining:
 - versioning
 - size, slicing, downsampling, unicode etc.
-- data consistency tests: post/get data values do not differ significantly
 - wrong URLs
 - performance tests!!
-- cascade
 - Etag + last-modified
 """
 
@@ -230,7 +228,6 @@ class TestGeneric(TestCase):
                     "Obj type %s; field: %s, response: %s" % \
                     (obj_type, field.name, response.content))
                 rev_set = _parse_ids( obj_type, fname, response.content ) # ids
-
 
                 self.assertIn( 1, rev_set, "Object: %s, field: %s, rev_set: %s" % \
                     (obj_type, field.name, str(rev_set) ) )

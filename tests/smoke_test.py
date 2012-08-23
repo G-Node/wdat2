@@ -11,16 +11,10 @@ def run():
         '/',
         '/about/',
         '/profiles/',
-        '/blog/',
         '/invitations/',
         '/notices/',
         '/messages/',
-        '/announcements/',
-        '/tweets/',
-        '/tribes/',
-        '/robots.txt',
-        '/photos/',
-        '/bookmarks/',
+        '/announcements/'
     ]
     
     for page in pages:
