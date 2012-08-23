@@ -57,6 +57,19 @@ urlpatterns = patterns('',
     (r'^avatar/', include('avatar.urls')),
 )
 
+urlpatterns += patterns('',
+    url(r'^captcha/', include('captcha.urls')),
+    url(r'^datafiles/', include('datafiles.urls')),
+    url(r'^metadata/', include('metadata.urls')),
+    url(r'^neo/', include('neo_api.urls')),
+    url(r'^electrophysiology/', include('neo_api.urls')),
+    url(r'^system_dashboard/', include('system_dashboard.urls')),
+    # - that's a jerky workaround for POST without trailing slash. If there are
+    # more POST-type URL, better change to middleware:
+    # http://djangosnippets.org/snippets/601/
+    url(r'^task_broker/', include('djcelery.urls')),
+)
+
 ## @@@ for now, we'll use friends_app to glue this stuff together
 
 from photos.models import Image
@@ -89,19 +102,6 @@ friends_bookmarks_kwargs = {
         "user_bookmarks": lambda request: Bookmark.objects.filter(saved_instances__user=request.user),
     },
 }
-
-urlpatterns += patterns('',
-    url(r'^datafiles/', include('datafiles.urls')),
-    url(r'^captcha/', include('captcha.urls')),
-    url(r'^system_dashboard/', include('system_dashboard.urls')),
-    url(r'^metadata/', include('metadata.urls')),
-    url(r'^neo/', include('neo_api.urls')),
-    url(r'^electrophysiology/', include('neo_api.urls')),
-    # - that's a jerky workaround for POST without trailing slash. If there are
-    # more POST-type URL, better change to middleware:
-    # http://djangosnippets.org/snippets/601/
-    url(r'^task_broker/', include('djcelery.urls')),
-)
 
 if settings.SERVE_MEDIA:
     urlpatterns += patterns('',
