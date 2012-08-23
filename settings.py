@@ -141,7 +141,6 @@ INSTALLED_APPS = (
     'metadata',
     'neo_api',
     'djcelery',
-    'testapp',
 )
 
 ABSOLUTE_URL_OVERRIDES = {
