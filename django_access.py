@@ -1,7 +1,26 @@
+"""
+This module is basically used to include some more paths to the PYTHONPATH and
+set up some additional environment variables. It is used in two cases:
+- by the django.wsgi script, if the Apache + mod_wsgi is configued as a web 
+server;
+- could be used for development purposes to quickly initialize all paths 
+required to directly access all apps / models from local python interpreter.
+
+Here is an example of accessing django models directly from the python 
+environment. For example we want to reset a password:
+
+import django_access
+from django.contrib.auth.models import User
+
+u = User.objects.get(username="andrey")
+u.set_password("pass")
+u.save()
+
+"""
+
 import os
 import sys
 
-# just import this module and you may play with G-Node Django classes
 PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
 #SYSTEM_ROOT = os.path.normpath(os.path.join(os.getcwd(), ".."))
 PROJECT_NAME = PROJECT_PATH[PROJECT_PATH.rfind("/")+1:] # just in case
@@ -14,6 +33,7 @@ to_pythonpath = (
     os.path.join(PROJECT_PATH, 'apps/ext/pinax/apps/'),
     os.path.join(PROJECT_PATH, 'apps/'),
     os.path.join(PROJECT_PATH, 'apps/ext/'),
+    os.path.join(PROJECT_PATH, 'apps/local/'),
 )
 
 for path in to_pythonpath:
@@ -25,30 +45,3 @@ for path in to_pythonpath:
 #os.environ['DJANGO_SETTINGS_MODULE'] = '%s.settings' % PROJECT_NAME
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
-"""
-Examples
-
-1. Password reset
-import django_access
-from django.contrib.auth.models import User
-menz = User.objects.get(username="andrey")
-menz.set_password("pass")
-menz.save()
-
-
-2. Http Request56
-import django_access
-from django.http import HttpRequest
-from django.contrib.auth.models import User
-from neo_api.views import create
-
-r = HttpRequest()
-menz = User.objects.get(username="andrey")
-r.user = menz
-r.method = "POST"
-r._read_started = False
-
-# eh.. does not work
-
-
-"""

@@ -1,0 +1,5 @@
+This folder contains packages required for the normal functioning of the G-Node
+portal solution. These packages are not the property of the G-Node Portal 
+development team and were developed by a 3rd party. To save the time on 
+installations, these packages are tracked by git so they come together with 
+the current distribution.
