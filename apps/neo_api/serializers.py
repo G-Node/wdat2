@@ -2,6 +2,7 @@ from django.utils.encoding import smart_unicode
 from rest.serializers import Serializer
 from django.core.exceptions import ValidationError
 from datafiles.models import Datafile
+from state_machine.models import _get_url_base
 import urlparse
 
 
@@ -46,9 +47,12 @@ class NEOSerializer(Serializer):
                     "t_start": t_start}
 
             elif obj.obj_type == "analogsignal":
-                signal, s_index, e_index, downsample, t_start, new_rate = \
+                s_index, e_index, downsample, t_start, new_rate = \
                     obj.get_slice(**self.options)
-                datalink = self.resolve_permalink( signal, add_str='/data' )
+                #datalink = self.resolve_permalink( signal, add_str='/data' )
+
+                url_base = ''.join([ self.host, _get_url_base( Datafile ) ])
+                datalink = urlparse.urljoin( url_base, str( obj.signal_id ) )
 
                 params = param_clean(s_index, e_index, downsample)
                 if params:

@@ -461,10 +461,11 @@ class AnalogSignal(BaseInfo, DataObject):
         if downsample and downsample < self.data_length:
             new_rate = ( float(downsample) / float( self.data_length ) ) * self.sampling_rate
 
-        opts, timeflt = _split_time( **kwargs )
-        signal = Datafile.objects.filter( **timeflt ).filter( local_id = self.signal_id )[0]
+        #opts, timeflt = _split_time( **kwargs )
+        #signal = Datafile.objects.filter( **timeflt ).filter( local_id = self.signal_id )[0]
 
-        return signal, s_index, e_index + 1, downsample, t_start, new_rate
+        #return signal, s_index, e_index + 1, downsample, t_start, new_rate
+        return s_index, e_index + 1, downsample, t_start, new_rate
 
     @property
     def is_alone(self):
