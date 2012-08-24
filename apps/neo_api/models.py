@@ -5,7 +5,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 
 import numpy as np
 from fields import models as fmodels
-from state_machine.models import ObjectState, SafetyLevel, VersionedM2M
+from state_machine.models import ObjectState, SafetyLevel, VersionedM2M, _split_time
 from datafiles.models import Datafile
 from metadata.models import Section, Value
 from rest.meta import meta_unit_types, meta_objects, meta_messages, meta_children, factor_options, meta_parents
@@ -332,7 +332,9 @@ class SpikeTrain(BaseInfo, DataObject):
             else:
                 s_index = e_index - samples_count
 
-        times = self.times.get_slice() # need full array to compute the boundaries
+        # need full array to compute the boundaries
+        opts, timeflt = _split_time( **kwargs )
+        times = Datafile.objects.filter( **timeflt ).filter( local_id = self.times_id )[0]
 
         if kwargs.has_key('start_time'):
             s_index = _find_nearest(times, kwargs['start_time'])
@@ -459,7 +461,10 @@ class AnalogSignal(BaseInfo, DataObject):
         if downsample and downsample < self.data_length:
             new_rate = ( float(downsample) / float( self.data_length ) ) * self.sampling_rate
 
-        return self.signal, s_index, e_index + 1, downsample, t_start, new_rate
+        opts, timeflt = _split_time( **kwargs )
+        signal = Datafile.objects.filter( **timeflt ).filter( local_id = self.signal_id )[0]
+
+        return signal, s_index, e_index + 1, downsample, t_start, new_rate
 
     @property
     def is_alone(self):
@@ -512,7 +517,8 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
                 s_index = e_index - samples_count
 
         # compute the boundaries if times are given
-        times = self.times.get_slice() # need full array to compute the boundaries
+        opts, timeflt = _split_time( **kwargs )
+        times = Datafile.objects.filter( **timeflt ).filter( local_id = self.times_id )[0]
 
         if kwargs.has_key('start_time'):
             s_index = _find_nearest(times, kwargs['start_time'])
@@ -534,6 +540,9 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
     we can't get the slice of the signal. We calculated the start index as %d and \
     end index as %d. The size of the signal is %d bytes." % (s_index, e_index, \
     self.size ))
+
+        opts, timeflt = _split_time( **kwargs )
+        signal = Datafile.objects.filter( **timeflt ).filter( local_id = self.signal_id )[0]
 
         downsample = kwargs.get('downsample', None)
         return self.signal, self.times, s_index, e_index + 1, downsample, t_start

@@ -29,7 +29,7 @@ class NEOSerializer(Serializer):
 
         if self.serialize_attrs and field.attname == 't_start' or \
             obj.obj_type == "waveform":
-            # almoal all have t_start attribute, use that as a trigger
+            # almosl all have t_start attribute, use that as a trigger
 
             if obj.obj_type == "irsaanalogsignal":
                 signal, times, s_index, e_index, downsample, t_start = \
