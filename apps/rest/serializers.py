@@ -111,9 +111,8 @@ class Serializer(PythonSerializer):
                             #self.handle_fk_field(obj, field)
                             rid = getattr(obj, field.name + "_id")
                             if rid:
-                                url_base = _get_url_base( field.rel.to )
-                                self._current[field.name] = ''.join([ self.host, \
-                                    url_base, str( rid ) ])
+                                url_base = ''.join([ self.host, _get_url_base( field.rel.to ) ])
+                                self._current[field.name] = urlparse.urljoin( url_base, str( rid ) )
                             else:
                                 self._current[field.name] = None
 

@@ -43,7 +43,11 @@ def _get_url_base(model):
     id_attr = _get_id_attr_name( model )
     temp = model()
     setattr(temp, id_attr, 10**9)
-    return temp.get_absolute_url().replace('1000000000', '')
+    url = temp.get_absolute_url()
+    # removing the trailing slash if there
+    if url.rfind('/') == len(url) - 1:
+        url = url[:url.rfind('/')]
+    return url.replace('1000000000', '')
 
 
 class VersionManager(models.Manager):
