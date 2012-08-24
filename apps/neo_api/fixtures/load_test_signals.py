@@ -1,16 +1,22 @@
+"""
+This script creates a simple test NEO structure: a block, a segment (if there 
+aren't any) and several random analogsignals. Use it if you need some test 
+signal data for any purposes.
+"""
+
 import sys
-sys.path.append( "/opt/versioned" )
-import django_access
-
+from settings_to_load import *
 import os
-import settings
-import numpy as np
-import tables as tb
 
+path = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(path[:path.find("apps/neo_api/fixtures")])
+
+import settings
+
+import django_access
 from neo_api.models import *
 from datafiles.models import Datafile
-from settings_to_load import *
-from common import init_block
+from common import *
 from settings import FILE_MEDIA_ROOT
 print "imports completed.."
 
@@ -26,23 +32,13 @@ b = init_block( u )
 segs = Segment.objects.filter( owner = u, block=b )
 s = Segment.objects.create( owner=u, name="Random signals, trial %d" % len(segs), block=b )
 
-
-def create_file_with_array( path, size ):
-    """ create test file with array data. can be further used to create any
-    data-related objects, like signals, spiketrains etc. size - int """
-    fullpath = os.path.join(FILE_MEDIA_ROOT, path)
-    a = np.random.rand( size )
-    if not os.path.exists(fullpath):
-        with tb.openFile(fullpath, "a") as f:
-            f.createArray("/", "Random array, size: %d" % a.size, a)
-
 # create 10 AnalogSignals
 for i in range(10):
     size = 5 * 10**5
 
     # step 1. create file with array data
     path = "data/%d_array.h5" % i
-    create_file_with_array( path, 5 * 10**5 )
+    create_file_with_array( path, random=True )
 
     # step 2. create Datafile
     d = Datafile.objects.create( title = path, owner = u, file_type=5, \
