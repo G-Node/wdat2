@@ -1,4 +1,10 @@
-# add performance testing!!
+"""
+This script creates test analogsignal data, based on the real experimental data 
+(Macaque monkey, V1) by T.Wachtler, 2009. This dataset is more like a real 
+example; here we use blocks, segments, recordingchannels and analogsignals.
+
+the data is located in the ascii files (paths must be configured in settings).
+"""
 
 import os
 import sys
@@ -10,8 +16,6 @@ import django_access
 import unittest
 import datetime as dte
 import math
-import numpy as np
-import tables as tb
 from neo_api.models import *
 from django.contrib.auth.models import User
 from common import init_block
@@ -74,7 +78,7 @@ def create_thomas():
     # processing LFP SAC
     ids = []
     flag = math.floor(368*12/10)
-    f = open(path + '/lfp_sac080707.dat', 'r')
+    f = open(path_to_wachtler + '/lfp_sac080707.dat', 'r')
     for i, l in enumerate(f):
         if i < 368:
             # create new segment
@@ -96,14 +100,6 @@ def create_thomas():
 
 
 def new_signal(i, typ, s, r, ts, u):
-    def create_file_with_array( lpath, data_as_list ):
-        fullpath = os.path.join(FILE_MEDIA_ROOT, lpath)
-        a = np.array( data_as_list )
-        if os.path.exists(fullpath):
-            os.remove( fullpath )
-        with tb.openFile(fullpath, "a") as f:
-            f.createArray("/", "LFP V1, size: %d" % a.size, a)
-
     # step 1. create file with array data
     lpath = "data/%d_array.h5" % i
     create_file_with_array( lpath, ts )

@@ -1,11 +1,5 @@
 apache/
-apps/neo_api/fixtures/testdata/*.dat
-apps/metadata/fixtures/testdata/*.dat
 apps/local/
-cron/
-deploy/
-logs/
-patches/
 local_settings.py
 celeryconfig.py
 *~
