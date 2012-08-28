@@ -1,0 +1,42 @@
+/* ---------- file: list.css -----------*/
+
+table.list {
+  margin: 6px;
+  overflow-y: auto;
+  font-size: 0.95em;
+  border-spacing: 0px;
+  width: 100%;
+}
+
+table.list td.list-buttons {
+	text-align: right;
+}
+
+table.list td,th {
+  border: none;
+}
+
+table.list tr {
+	border: 1px solid #000000;
+	border-radius: 3px;
+}
+
+table.list tr:hover {
+  background: #b7d194 !important;
+}
+table.list tr.selected {
+  background: #dddddd;
+}
+table.list tr img {
+  height: 15px;
+  width: 15px;
+}
+table.list td {
+  padding: 6px;
+}
+table.list td.icon {
+  width: 15px;
+}
+table.list td.actions {
+  text-align: right;
+}

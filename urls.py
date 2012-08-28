@@ -68,6 +68,7 @@ urlpatterns += patterns('',
     # more POST-type URL, better change to middleware:
     # http://djangosnippets.org/snippets/601/
     url(r'^task_broker/', include('djcelery.urls')),
+    url(r'^wdat/', include('wdat.urls'))
 )
 
 ## @@@ for now, we'll use friends_app to glue this stuff together

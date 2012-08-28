@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>List Test</title>
+<link rel="stylesheet" type="text/css" href="button.css">
+<link rel="stylesheet" type="text/css" href="list.css">
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.0.min.js"></script>
+<script type="text/javascript" src="event_bus.js"></script>
+<script type="text/javascript" src="button.js"></script>
+<script type="text/javascript" src="list.js"></script>
+<script type="text/javascript">
+   var init = function() {
+	   var bus = new wdat.api.EventBus();   
+	   var list = new wdat.api.VList('list-1', bus, 'list-1-remove', 'list-1-edit', 'list-1-select');
+	   
+	   $('.list-container').first().append(list.toJQ());
+	   list.add(null, 'Test list content No. 1');
+	   list.add(null, 'Something else');
+	   list.add(null, 'Bla');
+	   
+	   var rem = function(event, id) {
+		   $(".event-log").first().append("<p>remove = " + id + "</p>");
+	      list.remove(id);
+	   };
+	   bus.subscribe('list-1-remove', rem);
+	   
+	   var edit = function(event, id) {
+         $(".event-log").first().append("<p>edit = " + id + "</p>");
+         list.edit(id);
+      };
+      bus.subscribe('list-1-edit', edit);
+      
+      var sel = function(event, id) {
+         $(".event-log").first().append("<p>sel = " + id + "</p>");
+         list.toggleSelect(id);
+      };
+      bus.subscribe('list-1-select', sel);
+   };
+   $(window).load(init);
+</script>
+</head>
+<body>
+   <h1>List Test</h1>
+   <div class="list-container">
+   </div>
+   <div class="event-log"></div>
+</body>
+</html>

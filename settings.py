@@ -31,7 +31,7 @@ MANAGERS = ADMINS
 # although not all variations may be possible on all operating systems.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
-TIME_ZONE = 'Europe/Berlin'
+TIME_ZONE = 'Europe/Berlin' 
 
 # Language code for this installation. All choices can be found here:
 # http://www.w3.org/TR/REC-html40/struct/dirlang.html#langcodes
@@ -51,6 +51,36 @@ TEMPLATE_LOADERS = (
     #'django.template.loaders.app_directories.load_template_source',
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
+)
+
+# Absolute path to the directory that holds static files like app media.
+# Example: "/home/media/media.lawrence.com/apps/"
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'site_media', 'root')
+
+# URL that handles the static files like app media.
+# Example: "http://media.lawrence.com"
+STATIC_URL = '/site_media/static/'
+
+# put here an URL that is added to the core path of your site.
+# Example: "/data/"
+ADDED_URL = ''
+
+# Additional directories which hold static files
+STATICFILES_DIRS = (
+    os.path.join(PROJECT_ROOT, 'site_media', 'extra'),
+    #('g-node-portal', os.path.join(PROJECT_ROOT, 'media')),
+    #('pinax', os.path.join(PINAX_ROOT, 'media', PINAX_THEME)),
+)
+
+# Finders for development installations
+#
+# IMPORTANT!!
+# For production systems call 'python manage.py collectstatic'
+# this will copy all files to STATIC_ROOT. Configure apache to
+# deliver STATIC_ROOT on STATIC_URL.
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -75,6 +105,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.debug",
     "django.core.context_processors.i18n",
     "django.core.context_processors.media",
+    "django.core.context_processors.static",
     "django.core.context_processors.request",
     "context_processors.pinax_settings",
     "notification.context_processors.notification",
@@ -103,7 +134,7 @@ INSTALLED_APPS = (
     'django.contrib.markup',
     'django.contrib.admin',
     'pinax.templatetags',
-    
+    'django.contrib.staticfiles',
     # external
     'notification', # must be first
     'django_openid',
@@ -123,9 +154,8 @@ INSTALLED_APPS = (
     'avatar',
     'uni_form',
     'django_sorting',
-    'staticfiles',
+    #'staticfiles',
     'captcha',
-    
     'datafiles',
     'analytics',
     'profiles',
@@ -139,6 +169,7 @@ INSTALLED_APPS = (
     'metadata',
     'neo_api',
     'djcelery',
+    'wdat',
 )
 
 ABSOLUTE_URL_OVERRIDES = {
@@ -174,17 +205,17 @@ LANGUAGES = (
 
 YAHOO_MAPS_API_KEY = "..."
 
-class NullStream(object):
-    def write(*args, **kwargs):
-        pass
-    writeline = write
-    writelines = write
+#class NullStream(object):
+#    def write(*args, **kwargs):
+#        pass
+#    writeline = write
+#    writelines = write
 
 RESTRUCTUREDTEXT_FILTER_SETTINGS = {
     'cloak_email_addresses': True,
     'file_insertion_enabled': False,
     'raw_enabled': False,
-    'warning_stream': NullStream(),
+    #'warning_stream': NullStream(),
     'strip_comments': True,
 }
 

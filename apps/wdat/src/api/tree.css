@@ -1,0 +1,35 @@
+
+div.tree-node {
+	/*border: 1px solid black;*/
+	padding: 5px;
+	padding-left: 20px;
+}
+
+div.collapsed div.tree-node {
+	display: none;
+}
+
+div.tree-node span {
+	padding: 1px;
+	cursor: pointer;
+}
+
+div.selected span {
+   background: #dddddd !important;
+}
+
+div.tree-node span:HOVER {
+   background: #b7d194;
+}
+
+div.tree-node span:BEFORE {
+   content: url(tni-open.gif);
+}
+
+div.collapsed span:BEFORE {
+	content: url(tni-closed.gif);
+}
+
+div.tree-leaf span:BEFORE {
+   content: url(tni-leaf.gif);
+}

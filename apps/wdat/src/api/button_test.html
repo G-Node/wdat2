@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Button Test</title>
+<link rel="stylesheet" type="text/css" href="button.css">
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.0.min.js"></script>
+<script type="text/javascript" src="event_bus.js"></script>
+<script type="text/javascript" src="button.js"></script>
+<script type="text/javascript">
+	var init = function() {
+		var bus = new wdat.api.EventBus();
+		var log = function(event, args) {
+			$(".event-log").first().append("<p>event fired: " + args + "</p>");
+		};
+		bus.subscribe('foo', log);
+
+		var b = new wdat.api.Button("Foo Button", bus, 'foo');
+		$(".button-container").append(b.toJQ()).append('&nbsp;');
+		b = new wdat.api.Button('add', bus, 'foo');
+		$(".button-container").append(b.toJQ()).append('&nbsp;');
+		b = new wdat.api.Button('delete', bus, 'foo');
+		$(".button-container").append(b.toJQ()).append('&nbsp;');
+		b = new wdat.api.Button('select', bus, 'foo');
+	   $(".button-container").append(b.toJQ()).append('&nbsp;');
+		b = new wdat.api.Button('remove', bus, 'foo');
+		$(".button-container").append(b.toJQ());
+	};
+	$(window).load(init);
+</script>
+</head>
+<body>
+	<h1>Button Test</h1>
+	<div class="button-container"></div>
+	<div class="event-log"></div>
+	<h1>Button CSS</h1>
+	<p>
+	  <button>Class None</button>&nbsp;<button class="button">Class Button</button><br>
+	  
+	  <button class="button-red">Class Red</button>&nbsp;
+	  <button class="button button-red">Class Red + Button</button><br>
+	  
+	  <button class="button-green">Class Green</button>&nbsp;
+     <button class="button button-green">Class Green + Button</button><br>
+	</p>
+</body>
+</html>
