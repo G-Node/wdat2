@@ -1,8 +1,8 @@
 // ---------- file: button.js ---------- //
 
-// Initialize the module wdat.widgets if it doesn't exist.
-if (!window.wdat) {	window.wdat = {}; }
-if (!window.wdat.api) { window.wdat.api = {}; }
+// Initialize the module WDAT.widgets if it doesn't exist.
+if (!window.WDAT) {	window.WDAT = {}; }
+if (!window.WDAT.api) { window.WDAT.api = {}; }
 
 /* A button class. 
  * 
@@ -14,9 +14,9 @@ if (!window.wdat.api) { window.wdat.api = {}; }
  *  - event: String		The event to fire if the button is pressed.
  * 
  * Depends On:
- *  - jQuery, wdat.api.EventBus
+ *  - jQuery, WDAT.api.EventBus
  */
-wdat.api.Button = function(type, bus, event, eventData) {
+WDAT.api.Button = function(type, bus, event, eventData) {
 	
 	this.button = $('<button></button>');
 	this.button.addClass("button");
@@ -54,7 +54,7 @@ wdat.api.Button = function(type, bus, event, eventData) {
 // Implementing buttons methods in their own scope. 
 (function(){
 	// Just a shortcut for the prototype
-	var _proto = wdat.api.Button.prototype;
+	var _proto = WDAT.api.Button.prototype;
 	
 	/* Returns the button as a jQuery object.
 	 * 

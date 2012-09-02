@@ -1,21 +1,21 @@
 // ---------- file: bus.js ---------- //
 
-// Initialize the module wdat.widgets if it doesn't exist.
-if (!window.wdat) {	window.wdat = {}; }
-if (!window.wdat.api) { window.wdat.api = {}; }
+// Initialize the module WDAT.widgets if it doesn't exist.
+if (!window.WDAT) {	window.WDAT = {}; }
+if (!window.WDAT.api) { window.WDAT.api = {}; }
 
 /*
  * Constructor for the class EventBus. The event bus can be used to register and
  * fire events.
  */
-wdat.api.EventBus = function() {
+WDAT.api.EventBus = function() {
 	// used by the uid generator
 	this._counter = 1;
 };
 
 (function() {
 	// Just a shortcut for the prototype
-	var _proto = wdat.api.EventBus.prototype;
+	var _proto = WDAT.api.EventBus.prototype;
 
 	// method definition
 

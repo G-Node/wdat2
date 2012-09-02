@@ -1,8 +1,8 @@
 // ---------- file: list.js ---------- //
 
-// Initialize the module wdat.widgets if it doesn't exist.
-if (!window.wdat) { window.wdat = {}; }
-if (!window.wdat.api) { window.wdat.api = {}; }
+// Initialize the module WDAT.widgets if it doesn't exist.
+if (!window.WDAT) { window.WDAT = {}; }
+if (!window.WDAT.api) { window.WDAT.api = {}; }
 
 /* Constructor for the class VList. VList implements view to a dynamic list. Elements can 
  * be added, removed, edited and selected.  
@@ -29,9 +29,9 @@ if (!window.wdat.api) { window.wdat.api = {}; }
  *  					a falsy value, the list doesn't provide selection.
  * 
  * Depends on: 
- *  - jQuery, wdat.util.EventBus, wdat.api.Button
+ *  - jQuery, WDAT.util.EventBus, WDAT.api.Button
  */
-wdat.api.VList = function(name, bus, remove, edit, select) {
+WDAT.api.VList = function(name, bus, remove, edit, select) {
 
 	this._bus = bus;
 	
@@ -65,7 +65,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 	 * Return value:
 	 *  - The id of the added element.
 	 */
-	wdat.api.VList.prototype.add = function(id, data) {
+	WDAT.api.VList.prototype.add = function(id, data) {
 		// crate an id if necessary
 		if (!id) {
 			id = this.name + '-id-' + this._bus.uid();
@@ -75,14 +75,14 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 		var da = $('<td />').addClass('list-data').text(data);
 		var bt = $('<td />').addClass('list-buttons');
 		if (this._edit) {
-			bt.append((new wdat.api.Button('edit', this._bus, this._edit, id)).toJQ()).append('&nbsp;');
+			bt.append((new WDAT.api.Button('edit', this._bus, this._edit, id)).toJQ()).append('&nbsp;');
 		}
 		if (this._select) {
 			var that = this; // because of funny js scoping
 			tr.click( function() {that._bus.publish(that._select, id); } );
 		}
 		if (this._remove) {
-			bt.append((new wdat.api.Button('rem', this._bus, this._remove, id)).toJQ()).append('&nbsp;');
+			bt.append((new WDAT.api.Button('rem', this._bus, this._remove, id)).toJQ()).append('&nbsp;');
 		}
 		// put it all together
 		tr.append(da);
@@ -102,7 +102,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 	 * Return value:
 	 *  - None
 	 */
-	wdat.api.VList.prototype.update = function(id, data) {
+	WDAT.api.VList.prototype.update = function(id, data) {
 		var elem = $('#' + id);
 		elem.find('td').fist().text(data);
 	};
@@ -115,7 +115,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 	 * Return value:
 	 *  - None
 	 */
-	wdat.api.VList.prototype.edit = function(id) {
+	WDAT.api.VList.prototype.edit = function(id) {
 		// find element by id
 		var elem = $('#' + id);
 		// save old name
@@ -150,7 +150,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 	 * Return value:
 	 *  - None
 	 */
-	wdat.api.VList.prototype.remove = function(id) {
+	WDAT.api.VList.prototype.remove = function(id) {
 		var elem = $('#' + id);
 		elem.remove();
 		return elem;
@@ -167,7 +167,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 	 * Return value:
 	 *  - None
 	 */
-	wdat.api.VList.prototype.select = function(id, single) {
+	WDAT.api.VList.prototype.select = function(id, single) {
 		var elem = $('#' + id);
 		if (single) {
 			this.list.find('tr').each(function() {
@@ -185,7 +185,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 	 * Return value:
 	 *  - The selection state of the specified element.
 	 */
-	wdat.api.VList.prototype.toggleSelect = function(id) {
+	WDAT.api.VList.prototype.toggleSelect = function(id) {
 		var elem = $('#' + id);
 		elem.toggleClass('selected');
 		return elem.hasClass('selected');
@@ -193,7 +193,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 
 	/* Remove all elements from the list.
 	 */
-	wdat.api.VList.prototype.clear = function() {
+	WDAT.api.VList.prototype.clear = function() {
 		this.list.find('tr').each(function() {
 			$(this).remove();
 		});
@@ -204,7 +204,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 	 * 
 	 * Return value: - The list (jQuery)
 	 */
-	wdat.api.VList.prototype.toJQ = function() {
+	WDAT.api.VList.prototype.toJQ = function() {
 		return this.list;
 	};
 
@@ -212,7 +212,7 @@ wdat.api.VList = function(name, bus, remove, edit, select) {
 	 * 
 	 * Return value: - The list as a string.
 	 */
-	wdat.api.VList.prototype.toString = function() {
+	WDAT.api.VList.prototype.toString = function() {
 		return this.list.html();
 	};
 

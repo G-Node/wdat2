@@ -1,8 +1,8 @@
 // ---------- file: tree.js ---------- //
 
-// Initialize the module wdat.widgets if it doesn't exist.
-if (!window.wdat) { window.wdat = {}; }
-if (!window.wdat.api) { window.wdat.api = {}; }
+// Initialize the module WDAT.widgets if it doesn't exist.
+if (!window.WDAT) { window.WDAT = {}; }
+if (!window.WDAT.api) { window.WDAT.api = {}; }
 
 /* Constructor for the class VTree. VTree implements view to a dynamic tree. Each node of 
  * the tree can be expanded and collapsed. Further nodes can be appended and removed from
@@ -26,9 +26,9 @@ if (!window.wdat.api) { window.wdat.api = {}; }
  *  					a falsy value, the list doesn't provide selection.
  * 
  * Depends on: 
- *  - jQuery, wdat.util.EventBus
+ *  - jQuery, WDAT.util.EventBus
  */
-wdat.api.VTree = function(name, bus, select) {
+WDAT.api.VTree = function(name, bus, select) {
 	
 	this._bus = bus;
 	this._select = select;
@@ -69,7 +69,7 @@ wdat.api.VTree = function(name, bus, select) {
 	 *  - isleaf: Bool			Is the new node a leaf or a node (optional default true)?		
 	 * 
 	 */
-	wdat.api.VTree.prototype.add = function(parent_id, id, data, isleaf) {
+	WDAT.api.VTree.prototype.add = function(parent_id, id, data, isleaf) {
 		if (!id) {
 			id = this.name + '-' + this._bus.uid();
 		}
@@ -103,7 +103,7 @@ wdat.api.VTree = function(name, bus, select) {
 	 * Return value:
 	 *  - None
 	 */
-	wdat.api.VTree.prototype.update = function(id, data) {
+	WDAT.api.VTree.prototype.update = function(id, data) {
 		var elem = this.tree.find('#' + id).children('span');
 		elem.text(data);
 	};
@@ -119,7 +119,7 @@ wdat.api.VTree = function(name, bus, select) {
 	 * Return value:
 	 *  - None
 	 */
-	wdat.api.VTree.prototype.remove = function(id, setleaf) {
+	WDAT.api.VTree.prototype.remove = function(id, setleaf) {
 		var elem = this.tree.find('#' + id);
 		var parent = elem.parent();
 		elem.remove();
@@ -140,7 +140,7 @@ wdat.api.VTree = function(name, bus, select) {
 	 * Return value:
 	 *  - None
 	 */
-	wdat.api.VTree.prototype.select = function(id, single) {
+	WDAT.api.VTree.prototype.select = function(id, single) {
 		if (single) {
 			this.tree.find('div.tree-leaf').each(function() { $(this).removeClass('selected'); });
 		}
@@ -159,14 +159,14 @@ wdat.api.VTree = function(name, bus, select) {
 	 * Return value:
 	 *  - None
 	 */
-	wdat.api.VTree.prototype.deselect = function(id) {
+	WDAT.api.VTree.prototype.deselect = function(id) {
 		this.tree.find('#' + id).removeClass('selected');
 	};
 
 	/*
 	 * 
 	 */
-	wdat.api.VTree.prototype.toggleSelect = function(id, single) {
+	WDAT.api.VTree.prototype.toggleSelect = function(id, single) {
 		if (single) {
 			this.tree.find('div.tree-leaf').each(function() { $(this).removeClass('selected'); });
 		}
@@ -180,7 +180,7 @@ wdat.api.VTree = function(name, bus, select) {
 	/*
 	 * 
 	 */
-	wdat.api.VTree.prototype.expand = function(id, single) {
+	WDAT.api.VTree.prototype.expand = function(id, single) {
 		if (single) {
 			this.tree.find('div.tree-node').each(function() { $(this).addClass('collapsed'); });
 		}
@@ -190,14 +190,14 @@ wdat.api.VTree = function(name, bus, select) {
 	/*
 	 * 
 	 */
-	wdat.api.VTree.prototype.collapse = function(id) {
+	WDAT.api.VTree.prototype.collapse = function(id) {
 		this.tree.find('#' + id).addClass('collapsed');
 	};
 	
 	/*
 	 * 
 	 */
-	wdat.api.VTree.prototype.toggleCollapse = function(id) {
+	WDAT.api.VTree.prototype.toggleCollapse = function(id) {
 		var elem = this.tree.find('#' + id);
 		elem.toggleClass('collapsed');
 		return elem.hasClass('collapsed');
@@ -206,14 +206,14 @@ wdat.api.VTree = function(name, bus, select) {
 	/*
 	 * 
 	 */
-	wdat.api.VTree.prototype.toJQ = function() {
+	WDAT.api.VTree.prototype.toJQ = function() {
 		return this.tree;
 	};
 
 	/*
 	 * 
 	 */
-	wdat.api.VTree.prototype.toString = function() {
+	WDAT.api.VTree.prototype.toString = function() {
 		return this.tree.html();
 	};
 
