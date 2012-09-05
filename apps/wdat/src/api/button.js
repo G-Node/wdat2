@@ -33,7 +33,7 @@ WDAT.api.Button = function(type, bus, event, eventData) {
 		this.button.addClass('red').text('Delete');
 	} else if (typecmp === 'sel' || typecmp === 'select') {
 		type = 'sel';
-		this.button.text('Select');
+		this.button.addClass('blue').text('Select');
 	} else if (typecmp === 'edit') {
 		type = 'edit';
 		this.button.text('Edit');
