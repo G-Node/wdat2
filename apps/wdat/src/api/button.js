@@ -22,19 +22,19 @@ WDAT.api.Button = function(type, bus, event, eventData) {
 
 	// determine the type
 	var typecmp = type.toLowerCase();
-	if (typecmp == 'add') {
+	if (typecmp === 'add') {
 		type = 'add';
 		this.button.addClass('green').text('Add');
-	} else if (typecmp == 'rem' || typecmp == 'remove') {
+	} else if (typecmp === 'rem' || typecmp === 'remove') {
 		type = 'rem';
 		this.button.addClass('red').text('Remove');
-	} else if (typecmp == 'del' || typecmp == 'delete') {
+	} else if (typecmp === 'del' || typecmp === 'delete') {
 		type = 'del';
 		this.button.addClass('red').text('Delete');
-	} else if (typecmp == 'sel' || typecmp == 'select') {
+	} else if (typecmp === 'sel' || typecmp === 'select') {
 		type = 'sel';
 		this.button.text('Select');
-	} else if (typecmp == 'edit') {
+	} else if (typecmp === 'edit') {
 		type = 'edit';
 		this.button.text('Edit');
 	} else {
