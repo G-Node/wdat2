@@ -19,18 +19,18 @@ if (!window.WDAT.api) { window.WDAT.api = {}; }
 WDAT.api.Button = function(type, bus, event, eventData) {
 	
 	this.button = $('<button></button>');
-	this.button.addClass("button");
+
 	// determine the type
 	var typecmp = type.toLowerCase();
 	if (typecmp == 'add') {
 		type = 'add';
-		this.button.addClass('button-green').text('Add');
+		this.button.addClass('green').text('Add');
 	} else if (typecmp == 'rem' || typecmp == 'remove') {
 		type = 'rem';
-		this.button.addClass('button-red').text('Remove');
+		this.button.addClass('red').text('Remove');
 	} else if (typecmp == 'del' || typecmp == 'delete') {
 		type = 'del';
-		this.button.addClass('button-red').text('Delete');
+		this.button.addClass('red').text('Delete');
 	} else if (typecmp == 'sel' || typecmp == 'select') {
 		type = 'sel';
 		this.button.text('Select');
