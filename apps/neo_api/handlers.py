@@ -97,6 +97,7 @@ class MetadataHandler(BaseHandler):
     def __init__(self, *args, **kwargs):
         super(MetadataHandler, self).__init__(*args, **kwargs)
         self.actions = { 'GET': self.get }
+        self.mode = settings.RESPONSE_MODES[3] # full load
 
     def get(self, request, objects, code=200):
         """ returns metadata for an object as a dict of property - value pairs """
@@ -108,7 +109,7 @@ class MetadataHandler(BaseHandler):
         message_type = "no_metadata_found"
         resp_data = {}
 
-        if objects:
+        if objects and hasattr(objects[0], 'metadata_buffer'):
             value_model = self.model.metadata.field.rel.to
             prop_model = value_model.parent_property.field.rel.to
 

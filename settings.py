@@ -223,3 +223,10 @@ DEFAULT_CHARSET = 'utf-8'
 # file system instead of into memory.
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 # i.e. 1 KB
 
+RESPONSE_MODES = ['link', 'info', 'beard', 'full']
+# 'link' - just object permalink
+# 'info' - object with attributes
+# 'beard' - object with relations
+# 'full' - all above
+DEFAULT_RESPONSE_MODE = RESPONSE_MODES[1] # fast response
+

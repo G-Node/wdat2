@@ -46,7 +46,8 @@ class BaseHandler(object):
         self.offset = 0
         self.max_results = settings.REST_CONFIG['max_results'] # 1000
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
-        self.update = True # create / update via POST
+        self.update = True # create / update via POST by default
+        self.mode = settings.DEFAULT_RESPONSE_MODE
         #self.excluded_bulk_update = () # error when bulk update on these fields
 
 
@@ -105,7 +106,7 @@ class BaseHandler(object):
                     objects = None
 
             if not create:
-                q = self.options.get("q", "info")
+                q = self.options.get("q", self.mode)
                 if q == 'full' or q == 'beard':
                     kwargs["fetch_children"] = True
 

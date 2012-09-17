@@ -29,7 +29,7 @@ class Serializer(PythonSerializer):
     cascade = False
     encoding = settings.DEFAULT_CHARSET
     use_natural_keys = 0 # default is to show permalink for FKs
-    q = 'info' # current response mode
+    q = settings.DEFAULT_RESPONSE_MODE
     host = ""
 
     @property
