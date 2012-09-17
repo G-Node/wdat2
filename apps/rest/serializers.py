@@ -124,8 +124,9 @@ class Serializer(PythonSerializer):
                         if self.selected_fields is None or field.attname in \
                             self.selected_fields:
                             if hasattr(obj, field.name + "_buffer"):
+                                # this relation is versioned and was lazy loaded
                                 children = []
-                                for child in getattr(obj, field.name + "_buffer"):
+                                for child in getattr(obj, field.name + "_buffer", []):
                                     if hasattr(child, 'get_absolute_url'):
                                         children.append(''.join([self.host, child.get_absolute_url()]))
                                     else:
@@ -153,7 +154,7 @@ class Serializer(PythonSerializer):
                     if self.show_kids and self.serialize_rel and rel_name[:-4] not\
                         in self.excluded_permalink:
                         children = []
-                        for child in getattr(obj, rel_name + "_buffer"):
+                        for child in getattr(obj, rel_name + "_buffer", []):
                             if hasattr(child, 'get_absolute_url'):
                                 children.append(''.join([self.host, child.get_absolute_url()]))
                             else:
@@ -278,7 +279,7 @@ class Serializer(PythonSerializer):
         #                       for related in getattr(obj, field.name).iterator()]
         # prefetched m2m data in _buffer
         self._current[field.name] = [ self.resolve_permalink(related) 
-            for related in getattr(obj, field.name + '_buffer') ]
+            for related in getattr(obj, field.name + '_buffer', []) ]
 
 
     def handle_versioned_m2m_field(self, mgr):
