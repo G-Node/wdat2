@@ -1,6 +1,16 @@
+# exclude virtualenv directories 
+bin/
+include/
+lib/
+
+# Deployment files
 apache/
 apps/local/
 local_settings.py
 celeryconfig.py
+
+# Backup files
 *~
+
+# Precompiled python
 *.pyc
