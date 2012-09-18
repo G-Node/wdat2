@@ -30,6 +30,14 @@
 	  $(".button-container").append(b.toJQ());
 		b = new WDAT.api.Button('remove', bus, 'foo');
 		$(".button-container").append(b.toJQ());
+
+    $('.button-container').append($('<p>'));
+    
+    b = new WDAT.api.Button('add', bus, 'foo', null, 'blue');
+    $('.button-container').append(b.toJQ());
+
+    b = new WDAT.api.Button('select', bus, 'foo', "Selection with data", 'default');
+    $('.button-container').append(b.toJQ());
 	};
 	$(window).load(init);
 </script>
