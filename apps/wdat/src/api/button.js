@@ -7,39 +7,67 @@ if (!window.WDAT.api) { window.WDAT.api = {}; }
 /* A button class. 
  * 
  * Parameter:
- *  - type: String		The button type. If the type is add, del, remove or select
- *  					a button with a suitable theme and label will be created. Otherwise
- *  					the constructor creates a default button with type as label.
- *  - bus: EventBus		The bus to publish and subscribe events on.
- *  - event: String		The event to fire if the button is pressed.
+ *  - type: String		
+ *      The button type. If the type is add, del, remove or select
+ *      a button with a suitable theme and label will be created. Otherwise
+ *  	  the constructor creates a default button with type as label.
+ *
+ *  - bus: EventBus		
+ *      The bus to publish and subscribe events on.
+ *
+ *  - event: String		
+ *      The event to fire if the button is pressed.
+ *
+ *  - eventData: 
+ *      Any  Additional Data to be passed to the event bus when the
+ *      event is fired
+ *
+ *  - className: ['blue', 'green', 'red', 'default']
+ *      If type is used as a label, you can theme it using this
+ *      optional attribute.  It also overrides any defaults for
+ *      the 'add', 'del' or similar types.  
  * 
  * Depends On:
  *  - jQuery, WDAT.api.EventBus
  */
-WDAT.api.Button = function(type, bus, event, eventData) {
+WDAT.api.Button = function(type, bus, event, eventData, className) {
 	
 	this.button = $('<button></button>');
-	this.button.addClass("button");
+
 	// determine the type
 	var typecmp = type.toLowerCase();
-	if (typecmp == 'add') {
+	if (typecmp === 'add') {
 		type = 'add';
-		this.button.addClass('button-green').text('Add');
-	} else if (typecmp == 'rem' || typecmp == 'remove') {
+		this.button.addClass('green').text('Add');
+	} else if (typecmp === 'rem' || typecmp === 'remove') {
 		type = 'rem';
-		this.button.addClass('button-red').text('Remove');
-	} else if (typecmp == 'del' || typecmp == 'delete') {
+		this.button.addClass('red').text('Remove');
+	} else if (typecmp === 'del' || typecmp === 'delete') {
 		type = 'del';
-		this.button.addClass('button-red').text('Delete');
-	} else if (typecmp == 'sel' || typecmp == 'select') {
+		this.button.addClass('red').text('Delete');
+	} else if (typecmp === 'sel' || typecmp === 'select') {
 		type = 'sel';
-		this.button.text('Select');
-	} else if (typecmp == 'edit') {
+		this.button.addClass('blue').text('Select');
+	} else if (typecmp === 'edit') {
 		type = 'edit';
 		this.button.text('Edit');
 	} else {
 		this.button.text(type);
 	}
+
+  // If class specified, use it instead of anything else
+  if (className) {
+    var validation_re = /(red|blue|green|default)/;
+
+    if (validation_re.test(className)) {
+      this.button.removeClass();
+      this.button.addClass(className);
+      // Note, this may add a 'button-default' classname, but that
+      // still doesn't hurt because this will make the button fallback
+      // to the button style definition.
+    }
+  }
+
 	// register events
 	this._bus = bus;
 	this._event = event;

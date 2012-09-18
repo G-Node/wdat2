@@ -1,0 +1,59 @@
+/* ---------- file: button.less -----------*/
+/* Mozilla specific to remove browser inconsistencies */ 
+button::-moz-focus-inner {
+  padding: 0;
+  border: 0;
+}
+
+button {
+  margin-left: @cushioning/4;
+  margin-right: @cushioning/4;
+
+  border-radius: @borderradius;
+  border-width: 0px; 
+
+  font-family: @baseFontFamily;
+  font-size: @baseFontSize;
+
+  color: @white;
+  background-color: @mid-grey;
+  .light-text-shadow;
+  .vertical-gradient(@light-grey, @mid-grey);
+  .horizontal-padding(@cushioning);
+  .vertical-padding(@smallcushion);
+}
+
+button:hover {
+  background-color: @light-grey;
+  background-image: none;
+}
+
+button.red {
+  background-color: @red;
+  .vertical-gradient(@light-red, @red);
+}
+
+button.red:hover {
+  background-color: @light-red;
+  background-image: none;
+}
+
+button.green {
+  background-color: @green;
+  .vertical-gradient(@light-green, @green);
+}
+
+button.green:hover {
+  background-color: @light-green;
+  background-image: none;
+}
+
+button.blue {
+  background-color: @blue;
+  .vertical-gradient(@light-blue, @blue);
+}
+
+button.blue:hover {
+  background-color: @light-blue;
+  background-image: none;
+}
