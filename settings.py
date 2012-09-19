@@ -228,5 +228,5 @@ RESPONSE_MODES = ['link', 'info', 'beard', 'full']
 # 'info' - object with attributes
 # 'beard' - object with relations
 # 'full' - all above
-DEFAULT_RESPONSE_MODE = RESPONSE_MODES[1] # fast response
+DEFAULT_RESPONSE_MODE = RESPONSE_MODES[3] # fast response
 

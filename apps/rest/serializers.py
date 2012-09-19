@@ -52,7 +52,7 @@ class Serializer(PythonSerializer):
             - 'info' - object with local attributes
             - 'beard' - object with local attributes AND foreign keys resolved
             - 'full' - everything mentioned above """
-            self.q = options.get("q", "info")
+            self.q = options.get("q", self.q)
             self.host = options.get("permalink_host", self.host)
             self.selected_fields = options.get("fields", None)
             self.show_kids = options.get("show_kids", self.show_kids)
@@ -76,7 +76,6 @@ class Serializer(PythonSerializer):
         self.start_serialization()
 
         # calulate the size of the response, if data is requested
-
         # if objects have data, start to retrieve it first
         #exobj = queryset[0] # example object
         #if exobj.has_data:
