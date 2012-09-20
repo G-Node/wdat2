@@ -13,53 +13,47 @@
 <script type="text/javascript" src="../event_bus.js"></script>
 <script type="text/javascript" src="../button.js"></script>
 <script type="text/javascript">
-	var init = function() {
-		var bus = new WDAT.api.EventBus();
-		var log = function(event, args) {
-			$(".event-log").first().append("<p>event fired: " + args + "</p>");
-		};
-		bus.subscribe('foo', log);
+  var init = function() {
+    var bus = new WDAT.api.EventBus();
+    var log = function(event, args) {
+      $(".event-log").first().append("<p>event fired: " + args + "</p>");
+    };
+    bus.subscribe('foo', log);
 
-		var b = new WDAT.api.Button("Foo Button", bus, 'foo');
-		$(".button-container").append(b.toJQ());
-		b = new WDAT.api.Button('add', bus, 'foo');
-		$(".button-container").append(b.toJQ());
-		b = new WDAT.api.Button('delete', bus, 'foo');
-		$(".button-container").append(b.toJQ());
-		b = new WDAT.api.Button('select', bus, 'foo');
-	  $(".button-container").append(b.toJQ());
-		b = new WDAT.api.Button('remove', bus, 'foo');
-		$(".button-container").append(b.toJQ());
+    var h = $('<h3></h3>').text('Predefined buttons');
+    $(".button-container").append(h);
 
-    $('.button-container').append($('<p>'));
-    
-    b = new WDAT.api.Button('add', bus, 'foo', null, 'blue');
-    $('.button-container').append(b.toJQ());
+    var b = new WDAT.api.Button('add', bus, 'foo');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('del', bus, 'foo');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('sel', bus, 'foo');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('edit', bus, 'foo');
+    $(".button-container").append(b.toJQ());
 
-    b = new WDAT.api.Button('select', bus, 'foo', "Selection with data", 'default');
-    $('.button-container').append(b.toJQ());
-	};
-	$(window).load(init);
+
+    h = $('<h3></h3>').text('Predefined small buttons');
+    $(".button-container").append(h);
+
+    var b = new WDAT.api.Button('add-small', bus, 'foo');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('del-small', bus, 'foo');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('sel-small', bus, 'foo');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('edit-small', bus, 'foo');
+    $(".button-container").append(b.toJQ());
+  };
+  $(window).load(init);
 </script>
 </head>
 <body>
-	<h1>Button Test</h1>
-	<div class="button-container"></div>
-	<div class="event-log"></div>
-	<h1>Button CSS</h1>
-    <p>
-	  <button>Class None</button>
-    </p>
-	  
-    <p>
-	  <button class="red">Class Red</button>&nbsp;
-    </p>
-	  
-    <p>
-	  <button class="green">Class Green</button>&nbsp;
-    </p>
-    <p>
-	  <button class="blue">Class Blue</button>&nbsp;
-    </p>
+  <h1>Button Test</h1>
+  <div style="padding-left: 20px">
+    <div class="button-container"></div>
+    <h3>Events Logger</div>
+    <div class="event-log"></div>
+  </div>
 </body>
 </html>

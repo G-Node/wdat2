@@ -4,55 +4,107 @@
 if (!window.WDAT) {  window.WDAT = {}; }
 if (!window.WDAT.api) { window.WDAT.api = {}; }
 
+var IMAGE_ROOT = "/static/images/";
+
 /* A button class. 
+ *
+ * Signature:
+ *   var button = WDAT.api.Button(label, bus, click [, className, eventData]); 
  * 
- * Parameter:
- *  - type: String
- *      The button type. If the type is add, del, remove or select
- *      a button with a suitable theme and label will be created. Otherwise
- *      the constructor creates a default button with type as label.
+ * Parameters:
+ *  - label: String  (required)
+ *      The label for the button element.  If this label matches criteria
+ *      outlined below, a pre-defined button is created and you only need
+ *      provide the bus, and the click parameter.
  *
- *  - bus: EventBus
- *      The bus to publish and subscribe events on.
+ *  - bus: WDAT.api.EventBus  (required)
+ *      The bus to publish and subscribe events on.  Can also be null.
  *
- *  - event: String
- *      The event to fire if the button is pressed.
+ *  - click: Function/String/null    (required)
+ *      Function : A callback for the click event on this button.
+ *        Signature of callback: function(){}
  *
- *  - eventData: 
- *      Any  Additional Data to be passed to the event bus when the
- *      event is fired
+ *      String : Name of the event to publish when clicked. 
  *
- *  - className: ['blue', 'green', 'red', 'default']
- *      If type is used as a label, you can theme it using this
- *      optional attribute.  It also overrides any defaults for
- *      the 'add', 'del' or similar types.  
+ *      null:  Do nothing when clicked.
+ *
+ *  - className: String  (optional)
+ *      red/blue/green/default
+ *      CSS class name to use.  Overrides any values interpreted through the
+ *      label criterion.
+ *
+ *  - eventData: Object  (optional)
+ *      Additional data to be passed when the events are fired.
  * 
  * Depends On:
  *  - jQuery, WDAT.api.EventBus
  */
-WDAT.api.Button = function(type, bus, event, eventData, className) {
-  
+WDAT.api.Button = function(label, bus, click, className, eventData) {
   this.button = $('<button></button>');
 
   // determine the type
-  var typecmp = type.toLowerCase();
+  var typecmp = label.toLowerCase();
+
+  // Add labels and classes based solely on the type
   if (typecmp === 'add') {
-    type = 'add';
-    this.button.addClass('green').text('Add');
-  } else if (typecmp === 'rem' || typecmp === 'remove') {
-    type = 'rem';
-    this.button.addClass('red').text('Remove');
-  } else if (typecmp === 'del' || typecmp === 'delete') {
-    type = 'del';
-    this.button.addClass('red').text('Delete');
-  } else if (typecmp === 'sel' || typecmp === 'select') {
-    type = 'sel';
-    this.button.addClass('blue').text('Select');
-  } else if (typecmp === 'edit') {
-    type = 'edit';
-    this.button.text('Edit');
-  } else {
-    this.button.text(type);
+    this._type = 'add';
+    this.button.addClass('button-add')
+      .text('New');
+  }
+  else if (typecmp === 'add-small') {
+    this._type = 'add-small';
+    this.button.addClass('button-add-small')
+      .html('<img src="' + IMAGE_ROOT + 'button-add.png">');
+  }
+  else if (typecmp === 'del') {
+    this._type = 'del';
+    this.button.addClass('button-del')
+      .text('Delete');
+  }
+  else if (typecmp === 'del-small') {
+    this._type = 'del-small';
+    this.button.addClass('button-del-small')
+      .html('<img src="' + IMAGE_ROOT + 'button-del.png">');
+  }
+  else if (typecmp === 'sel') {
+    this._type = 'sel';
+    this.button.addClass('button-sel')
+      .text('Select');
+  }
+  else if (typecmp === 'sel-small') {
+    this._type = 'sel-small';
+    this.button.addClass('button-sel-small')
+      .html('<img src="' + IMAGE_ROOT + 'button-star.png">');
+  }
+  else if (typecmp === 'edit') {
+    this._type = 'edit';
+    this.button.addClass('button-edit')
+      .text('Edit');
+  }
+  else if (typecmp === 'edit-small') {
+    this._type = 'edit-small';
+    this.button.addClass('button-edit-small')
+      .html('<img src="' + IMAGE_ROOT + 'button-edit.png">');
+  }
+  else if (typecmp === 'more-small') {
+    // TODO implement toggle button
+    this._type = 'more-small';
+    this.button.addClass('button-more-small')
+      .html('<img src="' + IMAGE_ROOT + 'button-more.png">');
+  }
+  else if (typecmp === 'ok') {
+    this._type = 'ok';
+    this.button.addClass('button-ok')
+      .text('Edit');
+  }
+  else if (typecmp === 'quit') {
+    this._type = 'quit';
+    this.button.addClass('button-quit')
+      .text('Cancel');
+  }
+  else {
+    // Default case
+    this.button.text(label);
   }
 
   // If class specified, use it instead of anything else
@@ -70,12 +122,12 @@ WDAT.api.Button = function(type, bus, event, eventData, className) {
 
   // register events
   this._bus = bus;
-  this._event = event;
+  this._event = click;
   if (!eventData) {
-    eventData = type;
+    eventData = label;
   }
-  if (bus && event) {
-    this.button.click(function() { bus.publish(event, eventData); });
+  if (bus && click) {
+    this.button.click(function() { bus.publish(click, eventData); });
   }
 };
 
