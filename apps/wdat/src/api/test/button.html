@@ -23,26 +23,26 @@
     var h = $('<h3></h3>').text('Predefined buttons');
     $(".button-container").append(h);
 
-    var b = new WDAT.api.Button('add', bus, 'foo');
+    var b = new WDAT.api.Button('add', bus, 'foo', null, 'Adding');
     $(".button-container").append(b.toJQ());
-    b = new WDAT.api.Button('del', bus, 'foo');
+    b = new WDAT.api.Button('del', bus, 'foo', null, 'Deleting');
     $(".button-container").append(b.toJQ());
-    b = new WDAT.api.Button('sel', bus, 'foo');
+    b = new WDAT.api.Button('sel', bus, 'foo', null, 'Selecting');
     $(".button-container").append(b.toJQ());
-    b = new WDAT.api.Button('edit', bus, 'foo');
+    b = new WDAT.api.Button('edit', bus, 'foo', null, 'Editing');
     $(".button-container").append(b.toJQ());
 
 
     h = $('<h3></h3>').text('Predefined small buttons');
     $(".button-container").append(h);
 
-    var b = new WDAT.api.Button('add-small', bus, 'foo');
+    var b = new WDAT.api.Button('add-small', bus, 'foo', null, 'Small adding');
     $(".button-container").append(b.toJQ());
-    b = new WDAT.api.Button('del-small', bus, 'foo');
+    b = new WDAT.api.Button('del-small', bus, 'foo', null, 'Small deleting');
     $(".button-container").append(b.toJQ());
-    b = new WDAT.api.Button('sel-small', bus, 'foo');
+    b = new WDAT.api.Button('sel-small', bus, 'foo', null, 'Small selecting');
     $(".button-container").append(b.toJQ());
-    b = new WDAT.api.Button('edit-small', bus, 'foo');
+    b = new WDAT.api.Button('edit-small', bus, 'foo', null, 'Small editing');
     $(".button-container").append(b.toJQ());
   };
   $(window).load(init);
