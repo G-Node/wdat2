@@ -44,6 +44,23 @@
     $(".button-container").append(b.toJQ());
     b = new WDAT.api.Button('edit-small', bus, 'foo', null, 'Small editing');
     $(".button-container").append(b.toJQ());
+
+    h = $('<h3></h3>').text('Event system checks');
+    $(".button-container").append(h);
+
+    b = new WDAT.api.Button('Should create an alert', bus, function() {
+        alert('And, it does!');
+      }, 'blue');
+    $('.button-container').append(b.toJQ());
+
+    b = new WDAT.api.Button('Should publish an event', bus, 'foo', 'green', 
+        'And it does!');
+    $('.button-container').append(b.toJQ());
+
+    b = new WDAT.api.Button('Should do nothing', bus, null);
+    $('.button-container').append(b.toJQ());
+
+
   };
   $(window).load(init);
 </script>

@@ -21,7 +21,10 @@ var IMAGE_ROOT = "/static/images/";
  *      The bus to publish and subscribe events on.  Can also be null.
  *
  *  - click: Function/String/null    (required)
- *      Function : A callback for the click event on this button.
+ *      Function : A callback for the click event on this button.  No events
+ *      are published if this callback is defined.  You can however easily
+ *      circumvent that by publishing an event in your callback function.
+ *        
  *        Signature of callback: function(){}
  *
  *      String : Name of the event to publish when clicked. 
@@ -34,7 +37,8 @@ var IMAGE_ROOT = "/static/images/";
  *      label criterion.
  *
  *  - eventData: Object  (optional)
- *      Additional data to be passed when the events are fired.
+ *      Additional data to be passed when the events are fired.  If not
+ *      specified, no additional data is passed.
  * 
  * Depends On:
  *  - jQuery, WDAT.api.EventBus
@@ -122,12 +126,21 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
 
   // register events
   this._bus = bus;
-  this._event = click;
-  if (!eventData) {
-    eventData = label;
-  }
-  if (bus && click) {
-    this.button.click(function() { bus.publish(click, eventData); });
+  this._click = click;
+
+  if (bus) {
+    if ( typeof this._click === "function" ) {
+      // This is a callback
+      this.button.click(this._click);
+    }
+    else if ( typeof click === "string" ) {
+      evbus = this._bus;
+
+      // Publish an event 
+      this.button.click(function() {
+          evbus.publish(click, eventData);
+      });
+    }
   }
 };
 
