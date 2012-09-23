@@ -4,7 +4,7 @@
 if (!window.WDAT) {  window.WDAT = {}; }
 if (!window.WDAT.api) { window.WDAT.api = {}; }
 
-var IMAGE_ROOT = "/static/images/";
+var IMAGE_ROOT = "/static/";
 
 /* A button class. 
  *
@@ -30,6 +30,9 @@ var IMAGE_ROOT = "/static/images/";
  *      String : Name of the event to publish when clicked. 
  *
  *      null:  Do nothing when clicked.
+ *
+ *      Additional notes:  A toggle button (label = 'more-small' or
+ *      'less-small') should always have a string *click* value.
  *
  *  - className: String  (optional)
  *      red/blue/green/default
@@ -90,11 +93,37 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
     this.button.addClass('button-edit-small')
       .html('<img src="' + IMAGE_ROOT + 'button-edit.png">');
   }
-  else if (typecmp === 'more-small') {
-    // TODO implement toggle button
-    this._type = 'more-small';
-    this.button.addClass('button-more-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-more.png">');
+  else if (typecmp === 'more-small' || typecmp === 'less-small') {
+    this._type = typecmp;
+    this.toggle_state = this._type.split('-')[0];
+    var that = this;
+
+    this.button.addClass('button-' + this.toggle_state + '-small')
+      //.html( this.toggle_state === 'more' ? '+' : '-');
+      .html('<img src="' + IMAGE_ROOT + 'button-' + this.toggle_state 
+         + '.png">');
+
+    this.button.click(function() {
+        if (that.toggle_state === 'more') {
+          that.toggle_state = 'less';
+
+          that.button.removeClass('button-more-small');
+          that.button.addClass('button-less-small');
+
+          //that.button.html( that.toggle_state === 'more' ? '+' : '-');
+          that.button.html('<img src="' + IMAGE_ROOT + 'button-less.png">');
+        } 
+        
+        else if (that.toggle_state === 'less') {
+          that.toggle_state = 'more';
+
+          that.button.removeClass('button-less-small');
+          that.button.addClass('button-more-small');
+
+          //that.button.html( that.toggle_state === 'more' ? '+' : '-');
+          that.button.html('<img src="' + IMAGE_ROOT + 'button-more.png">');
+        }
+      });
   }
   else if (typecmp === 'ok') {
     this._type = 'ok';
@@ -136,10 +165,20 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
     else if ( typeof click === "string" ) {
       evbus = this._bus;
 
-      // Publish an event 
-      this.button.click(function() {
-          evbus.publish(click, eventData);
-      });
+      if (this.toggle_state) {
+        var that = this;
+
+        this.button.click(function() {
+            evbus.publish(that.toggle_state + '_' + click, eventData);
+        });
+      }
+
+      else {
+        // Publish an event 
+        this.button.click(function() {
+            evbus.publish(click, eventData);
+        });
+      }
     }
   }
 };
