@@ -3,46 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <title>List Test</title>
-<link rel="stylesheet" type="text/css" href="../button.css">
-<link rel="stylesheet" type="text/css" href="../list.css">
+<style type="text/less">
+  @import "../utils.less";
+  @import "../base.less";
+  @import "../list.less";
+  @import "../button.less";
+</style>
+<script type="text/javascript" src="http://lesscss.googlecode.com/files/less-1.3.0.min.js"></script>
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.8.0.min.js"></script>
 <script type="text/javascript" src="../event_bus.js"></script>
 <script type="text/javascript" src="../button.js"></script>
 <script type="text/javascript" src="../list.js"></script>
 <script type="text/javascript">
    var init = function() {
-	   var bus = new WDAT.api.EventBus();   
-	   var list = new WDAT.api.VList('list-1', bus, 'list-1-remove', 'list-1-edit', 'list-1-select');
-	   
-	   $('.list-container').first().append(list.toJQ());
-	   list.add(null, 'Test list content No. 1');
-	   list.add(null, 'Something else');
-	   list.add(null, 'Bla');
-	   
-	   var rem = function(event, id) {
-		   $(".event-log").first().append("<p>remove = " + id + "</p>");
-	      list.remove(id);
-	   };
-	   bus.subscribe('list-1-remove', rem);
-	   
-	   var edit = function(event, id) {
-         $(".event-log").first().append("<p>edit = " + id + "</p>");
-         list.edit(id);
-      };
-      bus.subscribe('list-1-edit', edit);
-      
-      var sel = function(event, id) {
-         $(".event-log").first().append("<p>sel = " + id + "</p>");
-         list.toggleSelect(id);
-      };
-      bus.subscribe('list-1-select', sel);
+	   var bus = new WDAT.api.EventBus(); 
+	   var list = new WDAT.api.VList($('#list-1'), bus, ['add', 'del', 'sel', 'edit', 'more'], ['Foo', 'Bar']);
+	   bus.subscribe(list.events.sel, list.selectHandler());
+	   bus.subscribe(list.events.more, list.expandHandler());
+	   bus.subscribe(list.events.del, list.removeHandler());
+	   bus.subscribe(list.events.edit, list.editHandler());
+	   list.add({name: 'Test1', info: 'Some information 1', data: 'Some data 1'}, 'Foo');
+	   list.add({name: 'Test2', info: 'Some information 2', data: 'Some data 2'}, 'Foo');
+	   list.add({name: 'Test3', info: 'Some information 3', data: 'Some data 3'}, 'Bar');
+	   list.add({name: 'Test4', info: 'Some information 4', data: 'Some data 4'}, 'Bar');
+	   list.add({name: 'Test5', info: 'Some information 5', data: 'Some data 5'});
+	   bus.subscribe(list.events.add, function(event, data) {
+	     var elements = [{name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'},
+	                     {name: 'Test', info: 'Info', data: 'Data'}];
+	     list.addAll(elements, data.id);
+	   });
    };
    $(window).load(init);
 </script>
 </head>
 <body>
    <h1>List Test</h1>
-   <div class="list-container">
+   <div id="list-1">
    </div>
    <div class="event-log"></div>
 </body>

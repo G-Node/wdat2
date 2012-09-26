@@ -1,0 +1,39 @@
+/* ---------- file: list.css -----------*/
+
+.hidden {
+	display: none;
+}
+
+.list table {
+  margin: 6px;
+  overflow-y: auto;
+}
+
+.list table {
+	width: 100%;
+	border-spacing: 0px;
+}
+
+.list td, th {
+	padding: 4px;
+	vertical-align: top;
+	text-align: left;
+}
+
+.list .list-elem-info {
+	font-size: @baseFontSize - 2px;
+	font-style: italic;
+	color: @dark-grey;
+	padding-left: 4px;
+}
+
+.list .list-elem-btn, .list-cat-btn {
+  text-align: right;
+}
+
+.list tr.list-elem:hover {
+  background: @light-blue !important;
+}
+.list tr.selected {
+  background: @light-grey;
+}
