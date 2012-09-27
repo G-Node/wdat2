@@ -1,8 +1,8 @@
 // ---------- file: button.js ---------- //
 
 // Initialize the module WDAT.widgets if it doesn't exist.
-if (!window.WDAT) {  window.WDAT = {}; }
-if (!window.WDAT.api) { window.WDAT.api = {}; }
+if (!window.WDAT) window.WDAT = {};
+if (!window.WDAT.api) window.WDAT.api = {};
 
 var IMAGE_ROOT = "/static/";
 
@@ -55,87 +55,47 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   // Add labels and classes based solely on the type
   if (typecmp === 'add') {
     this._type = 'add';
-    this.button.addClass('button-add')
-      .text('New');
-  }
-  else if (typecmp === 'add-small') {
+    this.button.addClass('button-add').text('New');
+  } else if (typecmp === 'add-small') {
     this._type = 'add-small';
-    this.button.addClass('button-add-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-add.png">');
-  }
-  else if (typecmp === 'del') {
+    this.button.addClass('button-add-small');
+  } else if (typecmp === 'del') {
     this._type = 'del';
-    this.button.addClass('button-del')
-      .text('Delete');
-  }
-  else if (typecmp === 'del-small') {
+    this.button.addClass('button-del').text('Delete');
+  } else if (typecmp === 'del-small') {
     this._type = 'del-small';
-    this.button.addClass('button-del-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-del.png">');
-  }
-  else if (typecmp === 'sel') {
+    this.button.addClass('button-del-small');
+  } else if (typecmp === 'sel') {
     this._type = 'sel';
-    this.button.addClass('button-sel')
-      .text('Select');
-  }
-  else if (typecmp === 'sel-small') {
+    this.button.addClass('button-sel').text('Select');
+  } else if (typecmp === 'sel-small') {
     this._type = 'sel-small';
-    this.button.addClass('button-sel-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-star.png">');
-  }
-  else if (typecmp === 'edit') {
+    this.button.addClass('button-sel-small');
+  } else if (typecmp === 'edit') {
     this._type = 'edit';
-    this.button.addClass('button-edit')
-      .text('Edit');
-  }
-  else if (typecmp === 'edit-small') {
+    this.button.addClass('button-edit').text('Edit');
+  } else if (typecmp === 'edit-small') {
     this._type = 'edit-small';
-    this.button.addClass('button-edit-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-edit.png">');
-  }
-  else if (typecmp === 'more-small' || typecmp === 'less-small') {
+    this.button.addClass('button-edit-small');
+  } else if (typecmp === 'more-small' || typecmp === 'less-small') {
     this._type = typecmp;
-    this.toggle_state = this._type.split('-')[0];
+    var state = this._type.split('-')[0];
+    this.toggle_state = (state === 'more');
+    this.button.addClass('button-' + state + '-small');
+
     var that = this;
-
-    this.button.addClass('button-' + this.toggle_state + '-small')
-      //.html( this.toggle_state === 'more' ? '+' : '-');
-      .html('<img src="' + IMAGE_ROOT + 'button-' + this.toggle_state 
-         + '.png">');
-
     this.button.click(function() {
-        if (that.toggle_state === 'more') {
-          that.toggle_state = 'less';
-
-          that.button.removeClass('button-more-small');
-          that.button.addClass('button-less-small');
-
-          //that.button.html( that.toggle_state === 'more' ? '+' : '-');
-          that.button.html('<img src="' + IMAGE_ROOT + 'button-less.png">');
-        } 
-        
-        else if (that.toggle_state === 'less') {
-          that.toggle_state = 'more';
-
-          that.button.removeClass('button-less-small');
-          that.button.addClass('button-more-small');
-
-          //that.button.html( that.toggle_state === 'more' ? '+' : '-');
-          that.button.html('<img src="' + IMAGE_ROOT + 'button-more.png">');
-        }
-      });
-  }
-  else if (typecmp === 'ok') {
+        that.button.toggleClass('button-more-small', !that.toggle_state);
+        that.button.toggleClass('button-less-small', that.toggle_state);
+        that.toggle_state = !that.toggle_state;
+    });
+  } else if (typecmp === 'ok') {
     this._type = 'ok';
-    this.button.addClass('button-ok')
-      .text('Edit');
-  }
-  else if (typecmp === 'quit') {
+    this.button.addClass('button-ok').text('Edit');
+  } else if (typecmp === 'quit') {
     this._type = 'quit';
-    this.button.addClass('button-quit')
-      .text('Cancel');
-  }
-  else {
+    this.button.addClass('button-quit').text('Cancel');
+  } else {
     // Default case
     this.button.text(label);
   }
@@ -158,36 +118,23 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   this._click = click;
 
   if (bus) {
-    if ( typeof this._click === "function" ) {
+    if (typeof this._click === "function") {
       // This is a callback
       this.button.click(this._click);
-    }
-    else if ( typeof click === "string" ) {
+    } else if (typeof click === "string") {
       evbus = this._bus;
-
-      if (this.toggle_state) {
-        var that = this;
-
-        this.button.click(function() {
-            evbus.publish(that.toggle_state + '_' + click, eventData);
-        });
-      }
-
-      else {
-        // Publish an event 
-        this.button.click(function() {
-            evbus.publish(click, eventData);
-        });
-      }
+      this.button.click(function() {
+        evbus.publish(click, eventData);
+      });
     }
   }
 };
 
 // Implementing buttons methods in their own scope. 
-(function(){
+(function() {
   // Just a shortcut for the prototype
   var _proto = WDAT.api.Button.prototype;
-  
+
   /* Returns the button as a jQuery object.
    * 
    * Return value:
@@ -196,7 +143,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   _proto.toJQ = function() {
     return this.button;
   };
-  
+
   /* Returns the button as a string.
    * 
    * Return value:
@@ -205,7 +152,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   _proto.toString = function() {
     return this.button.html();
   };
-  
+
   /* Unregister the event used by the button from the event
    * bus.
    * 
