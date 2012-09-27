@@ -28,32 +28,73 @@ button:hover {
   background-image: none;
 }
 
-button.red {
+.btnRed {
   background-color: @red;
   .vertical-gradient(@light-red, @red);
 }
 
-button.red:hover {
+.btnRedHover {
   background-color: @light-red;
   background-image: none;
 }
 
-button.green {
+.btnGreen {
   background-color: @green;
   .vertical-gradient(@light-green, @green);
 }
 
-button.green:hover {
+.btnGreenHover {
   background-color: @light-green;
   background-image: none;
 }
 
-button.blue {
+.btnBlue {
   background-color: @blue;
   .vertical-gradient(@light-blue, @blue);
 }
 
-button.blue:hover {
+.btnBlueHover {
   background-color: @light-blue;
   background-image: none;
 }
+
+/* Define colored classes */
+button.red   { .btnRed; }
+button.green { .btnGreen; }
+button.blue  { .btnBlue; }
+
+button.red:hover   { .btnRedHover; }
+button.green:hover { .btnGreenHover; }
+button.blue:hover  { .btnBlueHover; }
+
+/* Define functional classes */
+button.button-add { .btnGreen; }
+button.button-add:hover { .btnGreenHover; }
+
+button.button-del { .btnRed; }
+button.button-del:hover { .btnRedHover; }
+
+button.button-sel { .btnBlue; }
+button.button-sel:hover { .btnBlueHover; }
+
+button.button-edit { .btnBlue; }
+button.button-edit:hover { .btnBlueHover; }
+
+/* Define functional small classes */
+button.button-add-small { .btnGreen; }
+button.button-add-small:hover { .btnGreenHover; }
+
+button.button-del-small { .btnRed; }
+button.button-del-small:hover { .btnRedHover; }
+
+button.button-sel-small { .btnBlue; }
+button.button-sel-small:hover { .btnBlueHover; }
+
+button.button-edit-small { .btnBlue; }
+button.button-edit-small:hover { .btnBlueHover; }
+
+button.button-more-small { .btnGreen; padding: @smallcushion; }
+button.button-more-small:hover { .btnGreenHover; padding: @smallcushion;}
+
+button.button-less-small { .btnRed; padding: @smallcushion;}
+button.button-less-small:hover { .btnRedHover; padding: @smallcushion;}
