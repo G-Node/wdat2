@@ -137,7 +137,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else {
     // Default case
-    this.button.text(label);
+    this.button.text(label).addClass('button-big');
   }
 
   // If class specified, use it instead of anything else
