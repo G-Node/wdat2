@@ -27,6 +27,14 @@ if (!window.WDAT.api) { window.WDAT.api = {}; }
  *
  *      String : Name of the event to publish when clicked. 
  *
+ *        Signature of subscribers: function(event, eventData);
+ *
+ *        Signature of subscribers for toggle functions:
+ *            function(event, more_state, eventData);
+ *            
+ *            Here, more_state is a boolean. True if button was more when
+ *            clicked.  False if button was less when clicked.  
+ *
  *      null:  Do nothing when clicked.
  *
  *      Additional notes:  A toggle button (label = 'more-small' or
@@ -40,6 +48,47 @@ if (!window.WDAT.api) { window.WDAT.api = {}; }
  *  - eventData: Object  (optional)
  *      Additional data to be passed when the events are fired.  If not
  *      specified, no additional data is passed.
+ *
+ *
+ *  The table below defines the criteria for predefined buttons.
+ *
+ * +--------------+--------------+--------------+--------------+--------------+
+ * |     Type     |  Label/Text  |    Image     |    Event     | CSS Classes  |
+ * +==============+==============+==============+==============+==============+
+ * | add          | New          | -            | click        | button-add   |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | add-small    | -            | button-      | click        | button-add-  |
+ * |              |              | add.png      |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | del          | Delete       | -            | click        | button-del   |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | del-small    | -            | button-      | click        | button-del-  |
+ * |              |              | del.png      |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | sel          | Select       | -            | click        | button-del-  |
+ * |              |              |              |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | sel-small    | -            | button-      | click        | button-sel-  |
+ * |              |              | star.png     |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | edit         | Edit         | -            | click        | button-edit  |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | edit-small   | -            | button-      | click        | button-edit- |
+ * |              |              | edit.png     |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | more/less-   | -            | button-(more | click        | button-      |
+ * | small        |              | /less).png   |              | more/less    |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | ok           | OK           | -            | click        | button-ok    |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | quit         | Cancel       | -            | click        | button-quit  |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | more/less-   | -            | button-(more | click        | button-      |
+ * | small        |              | /less).png   |              | more/less    |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | default      | label        | -            | click        | button-big   |
+ * +--------------+--------------+--------------+--------------+--------------+
+ *
  * 
  * Depends On:
  *  - jQuery, WDAT.api.EventBus
