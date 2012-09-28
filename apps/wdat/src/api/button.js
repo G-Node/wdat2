@@ -4,8 +4,6 @@
 if (!window.WDAT) {  window.WDAT = {}; }
 if (!window.WDAT.api) { window.WDAT.api = {}; }
 
-var IMAGE_ROOT = "/static/";
-
 /* A button class. 
  *
  * Signature:
@@ -60,8 +58,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'add-small') {
     this._type = 'add-small';
-    this.button.addClass('button-add-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-add.png">');
+    this.button.addClass('button-add-small');
   }
   else if (typecmp === 'del') {
     this._type = 'del';
@@ -70,8 +67,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'del-small') {
     this._type = 'del-small';
-    this.button.addClass('button-del-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-del.png">');
+    this.button.addClass('button-del-small');
   }
   else if (typecmp === 'sel') {
     this._type = 'sel';
@@ -80,8 +76,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'sel-small') {
     this._type = 'sel-small';
-    this.button.addClass('button-sel-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-star.png">');
+    this.button.addClass('button-sel-small');
   }
   else if (typecmp === 'edit') {
     this._type = 'edit';
@@ -90,18 +85,14 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'edit-small') {
     this._type = 'edit-small';
-    this.button.addClass('button-edit-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-edit.png">');
+    this.button.addClass('button-edit-small');
   }
   else if (typecmp === 'more-small' || typecmp === 'less-small') {
     this._type = typecmp;
     this.toggle_state = this._type.split('-')[0];
     var that = this;
 
-    this.button.addClass('button-' + this.toggle_state + '-small')
-      //.html( this.toggle_state === 'more' ? '+' : '-');
-      .html('<img src="' + IMAGE_ROOT + 'button-' + this.toggle_state 
-         + '.png">');
+    this.button.addClass('button-' + this.toggle_state + '-small');
 
     this.button.click(function() {
         if (that.toggle_state === 'more') {
@@ -109,9 +100,6 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
 
           that.button.removeClass('button-more-small');
           that.button.addClass('button-less-small');
-
-          //that.button.html( that.toggle_state === 'more' ? '+' : '-');
-          that.button.html('<img src="' + IMAGE_ROOT + 'button-less.png">');
         } 
         
         else if (that.toggle_state === 'less') {
@@ -119,9 +107,6 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
 
           that.button.removeClass('button-less-small');
           that.button.addClass('button-more-small');
-
-          //that.button.html( that.toggle_state === 'more' ? '+' : '-');
-          that.button.html('<img src="' + IMAGE_ROOT + 'button-more.png">');
         }
       });
   }
