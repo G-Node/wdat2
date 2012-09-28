@@ -6,15 +6,17 @@ button::-moz-focus-inner {
 }
 
 button {
-  margin-left: @cushioning/4;
-  margin-right: @cushioning/4;
-
   border-radius: @borderradius;
   border-width: 0px; 
 
   font-family: @baseFontFamily;
   font-size: @baseFontSize;
 
+  margin-left: @cushioning/4;
+  margin-right: @cushioning/4;
+}
+
+.btnBig {
   color: @white;
   background-color: @mid-grey;
   .light-text-shadow;
@@ -23,37 +25,43 @@ button {
   .vertical-padding(@smallcushion);
 }
 
-button:hover {
+.btnBigHover {
   background-color: @light-grey;
   background-image: none;
 }
 
 .btnRed {
+  .btnBig;
   background-color: @red;
   .vertical-gradient(@light-red, @red);
 }
 
 .btnRedHover {
+  .btnBigHover;
   background-color: @light-red;
   background-image: none;
 }
 
 .btnGreen {
+  .btnBig;
   background-color: @green;
   .vertical-gradient(@light-green, @green);
 }
 
 .btnGreenHover {
+  .btnBigHover;
   background-color: @light-green;
   background-image: none;
 }
 
 .btnBlue {
+  .btnBig;
   background-color: @blue;
   .vertical-gradient(@light-blue, @blue);
 }
 
 .btnBlueHover {
+  .btnBigHover;
   background-color: @light-blue;
   background-image: none;
 }
