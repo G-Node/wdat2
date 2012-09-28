@@ -88,32 +88,34 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
     this.button.addClass('button-edit-small');
   }
   else if (typecmp === 'more-small' || typecmp === 'less-small') {
-    this._type = typecmp;
-    this.toggle_state = this._type.split('-')[0];
-    var that = this;
+    var that = this
+      , state = typecmp.split('-')[0];
 
-    this.button.addClass('button-' + this.toggle_state + '-small');
+    // Flag to check whether currently in more condition or not
+    this.more_state = (state === 'more');
+
+    this.button.addClass('button-' + state + '-small');
 
     this.button.click(function() {
-        if (that.toggle_state === 'more') {
-          that.toggle_state = 'less';
-
-          that.button.removeClass('button-more-small');
-          that.button.addClass('button-less-small');
-        } 
-        
-        else if (that.toggle_state === 'less') {
-          that.toggle_state = 'more';
-
-          that.button.removeClass('button-less-small');
-          that.button.addClass('button-more-small');
+        // Handle events directly, within this callback.  For details, note
+        // [async-event] below.
+        if (bus) {
+          bus.publish(click, that.more_state, eventData);
         }
-      });
+
+        // Update the model
+        that.more_state = !that.more_state;
+
+        // Update the UI
+        that.button.toggleClass('button-more-small', that.more_state);
+        that.button.toggleClass('button-less-small', !that.more_state);
+
+    });
   }
   else if (typecmp === 'ok') {
     this._type = 'ok';
     this.button.addClass('button-ok')
-      .text('Edit');
+      .text('OK');
   }
   else if (typecmp === 'quit') {
     this._type = 'quit';
@@ -150,23 +152,18 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
     else if ( typeof click === "string" ) {
       evbus = this._bus;
 
-      if (this.toggle_state) {
-        var that = this;
-
-        this.button.click(function() {
-            evbus.publish(that.toggle_state + '_' + click, eventData);
-        });
-      }
-
-      else {
-        // Publish an event 
-        this.button.click(function() {
-            evbus.publish(click, eventData);
-        });
-      }
-    }
-  }
-};
+      if (this.more_state === undefined) {
+        /* Publish an event only if this is a non-toggle button.  Toggle
+         * buttons maintain their own states and hence handle their own event
+         * publications.
+         *
+         * [Note][async-event]: It may seem that we could have exposed the
+         * state of the toggle button and handled eventing here.  The problem
+         * with that is the asynchronous nature of $.click() ( and the
+         * browser's event handling). There could be a race condition.  Th
+         */
+        this.button.click(function() { evbus.publish(click, eventData); }); } }
+  } };
 
 // Implementing buttons methods in their own scope. 
 (function(){

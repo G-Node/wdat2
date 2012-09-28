@@ -18,9 +18,14 @@
     var log = function(event, args) {
       $(".event-log").first().append("<p>event fired: " + args + "</p>");
     };
+
+    var log_toggle = function(event, state, args) {
+      $(".event-log").first().append("<p>toggled: from " +
+          (state?"more":"less") + "; eventData: " + args + "</p>");
+    };
+
     bus.subscribe('foo', log);
-    bus.subscribe('more_foo', log);
-    bus.subscribe('less_foo', log);
+    bus.subscribe('toggle_foo', log_toggle);
 
     var h = $('<h3></h3>').text('Predefined buttons');
     $(".button-container").append(h);
@@ -66,9 +71,9 @@
     h = $('<h3></h3>').text('Toggle buttons');
     $(".button-container").append(h);
 
-    b = new WDAT.api.Button('more-small', bus, 'foo', null, 'Toggle state is in the event name');
+    b = new WDAT.api.Button('more-small', bus, 'toggle_foo', null); 
     $('.button-container').append(b.toJQ());
-    b = new WDAT.api.Button('less-small', bus, 'foo', null, 'Toggle state is in the event name');
+    b = new WDAT.api.Button('less-small', bus, 'toggle_foo', null);
     $('.button-container').append(b.toJQ());
   };
   $(window).load(init);
