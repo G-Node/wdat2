@@ -1,4 +1,5 @@
 /* ---------- file: button.less -----------*/
+
 /* Mozilla specific to remove browser inconsistencies */ 
 button::-moz-focus-inner {
   padding: 0;
@@ -6,15 +7,17 @@ button::-moz-focus-inner {
 }
 
 button {
-  margin-left: @cushioning/4;
-  margin-right: @cushioning/4;
-
   border-radius: @borderradius;
   border-width: 0px; 
 
   font-family: @baseFontFamily;
   font-size: @baseFontSize;
 
+  margin-left: @cushioning/4;
+  margin-right: @cushioning/4;
+}
+
+.btnBig {
   color: @white;
   background-color: @mid-grey;
   .light-text-shadow;
@@ -23,37 +26,46 @@ button {
   .vertical-padding(@smallcushion);
 }
 
-button:hover {
+.btnBigHover {
   background-color: @light-grey;
   background-image: none;
 }
 
+button.button-big { .btnBig; }
+button.button-big:hover { .btnBigHover; }
+
 .btnRed {
+  .btnBig;
   background-color: @red;
   .vertical-gradient(@light-red, @red);
 }
 
 .btnRedHover {
+  .btnBigHover;
   background-color: @light-red;
   background-image: none;
 }
 
 .btnGreen {
+  .btnBig;
   background-color: @green;
   .vertical-gradient(@light-green, @green);
 }
 
 .btnGreenHover {
+  .btnBigHover;
   background-color: @light-green;
   background-image: none;
 }
 
 .btnBlue {
+  .btnBig;
   background-color: @blue;
   .vertical-gradient(@light-blue, @blue);
 }
 
 .btnBlueHover {
+  .btnBigHover;
   background-color: @light-blue;
   background-image: none;
 }
@@ -81,20 +93,82 @@ button.button-edit { .btnBlue; }
 button.button-edit:hover { .btnBlueHover; }
 
 /* Define functional small classes */
-button.button-add-small { .btnGreen; }
-button.button-add-small:hover { .btnGreenHover; }
+.btnSmall {
+  width: 22px;
+  height: 22px;
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+}
 
-button.button-del-small { .btnRed; }
-button.button-del-small:hover { .btnRedHover; }
+@image-root: 'static'; /* Absolute URL. No leading or trailing slash */
+@button-add-image: "@{image-root}/button-add.png";
+@button-del-image: '@{image-root}/button-del.png';
+@button-sel-image: '@{image-root}/button-star.png';
+@button-edit-image: '@{image-root}/button-edit.png';
 
-button.button-sel-small { .btnBlue; }
-button.button-sel-small:hover { .btnBlueHover; }
+button.button-add-small {
+  .btnSmall;
 
-button.button-edit-small { .btnBlue; }
-button.button-edit-small:hover { .btnBlueHover; }
+  background-color: @light-grey;
+  border: 1px solid @green;
 
-button.button-more-small { .btnGreen; padding: @smallcushion; }
-button.button-more-small:hover { .btnGreenHover; padding: @smallcushion;}
+  .vertical-gradient-image(@lighter-grey, @light-grey, @button-add-image);
+}
+button.button-add-small:hover { 
+  background-color: @lighter-grey;
+  border: 1px solid @green;
 
-button.button-less-small { .btnRed; padding: @smallcushion;}
-button.button-less-small:hover { .btnRedHover; padding: @smallcushion;}
+  .vertical-gradient-image(@white, @light-grey, @button-add-image);
+}
+
+button.button-del-small {
+  .btnSmall;
+
+  background-color: @light-grey;
+  border: 1px solid @red;
+
+  .vertical-gradient-image(@lighter-grey, @light-grey, @button-del-image);
+}
+button.button-del-small:hover { 
+  background-color: @lighter-grey;
+  border: 1px solid @red;
+
+  .vertical-gradient-image(@white, @light-grey, @button-del-image);
+}
+
+button.button-sel-small {
+  .btnSmall;
+
+  background-color: @light-grey;
+  border: 1px solid @blue;
+
+  .vertical-gradient-image(@lighter-grey, @light-grey, @button-sel-image);
+}
+button.button-sel-small:hover { 
+  background-color: @lighter-grey;
+  border: 1px solid @blue;
+
+  .vertical-gradient-image(@white, @light-grey, @button-sel-image);
+}
+
+button.button-edit-small {
+  .btnSmall;
+
+  background-color: @light-grey;
+  border: 1px solid @blue;
+
+  .vertical-gradient-image(@lighter-grey, @light-grey, @button-edit-image);
+}
+button.button-edit-small:hover { 
+  background-color: @lighter-grey;
+  border: 1px solid @blue;
+
+  .vertical-gradient-image(@white, @light-grey, @button-edit-image);
+}
+
+button.button-more-small { .btnGreen; padding: 1.5 * @smallcushion; }
+button.button-more-small:hover { .btnGreenHover; padding: 1.5 * @smallcushion;}
+
+button.button-less-small { .btnRed; padding: 1.5 * @smallcushion;}
+button.button-less-small:hover { .btnRedHover; padding: 1.5 * @smallcushion;}

@@ -4,8 +4,6 @@
 if (!window.WDAT) {  window.WDAT = {}; }
 if (!window.WDAT.api) { window.WDAT.api = {}; }
 
-var IMAGE_ROOT = "/static/";
-
 /* A button class. 
  *
  * Signature:
@@ -29,6 +27,14 @@ var IMAGE_ROOT = "/static/";
  *
  *      String : Name of the event to publish when clicked. 
  *
+ *        Signature of subscribers: function(event, eventData);
+ *
+ *        Signature of subscribers for toggle functions:
+ *            function(event, more_state, eventData);
+ *            
+ *            Here, more_state is a boolean. True if button was more when
+ *            clicked.  False if button was less when clicked.  
+ *
  *      null:  Do nothing when clicked.
  *
  *      Additional notes:  A toggle button (label = 'more-small' or
@@ -42,6 +48,47 @@ var IMAGE_ROOT = "/static/";
  *  - eventData: Object  (optional)
  *      Additional data to be passed when the events are fired.  If not
  *      specified, no additional data is passed.
+ *
+ *
+ *  The table below defines the criteria for predefined buttons.
+ *
+ * +--------------+--------------+--------------+--------------+--------------+
+ * |     Type     |  Label/Text  |    Image     |    Event     | CSS Classes  |
+ * +==============+==============+==============+==============+==============+
+ * | add          | New          | -            | click        | button-add   |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | add-small    | -            | button-      | click        | button-add-  |
+ * |              |              | add.png      |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | del          | Delete       | -            | click        | button-del   |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | del-small    | -            | button-      | click        | button-del-  |
+ * |              |              | del.png      |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | sel          | Select       | -            | click        | button-del-  |
+ * |              |              |              |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | sel-small    | -            | button-      | click        | button-sel-  |
+ * |              |              | star.png     |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | edit         | Edit         | -            | click        | button-edit  |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | edit-small   | -            | button-      | click        | button-edit- |
+ * |              |              | edit.png     |              | small        |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | more/less-   | -            | button-(more | click        | button-      |
+ * | small        |              | /less).png   |              | more/less    |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | ok           | OK           | -            | click        | button-ok    |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | quit         | Cancel       | -            | click        | button-quit  |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | more/less-   | -            | button-(more | click        | button-      |
+ * | small        |              | /less).png   |              | more/less    |
+ * +--------------+--------------+--------------+--------------+--------------+
+ * | default      | label        | -            | click        | button-big   |
+ * +--------------+--------------+--------------+--------------+--------------+
+ *
  * 
  * Depends On:
  *  - jQuery, WDAT.api.EventBus
@@ -60,8 +107,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'add-small') {
     this._type = 'add-small';
-    this.button.addClass('button-add-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-add.png">');
+    this.button.addClass('button-add-small');
   }
   else if (typecmp === 'del') {
     this._type = 'del';
@@ -70,8 +116,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'del-small') {
     this._type = 'del-small';
-    this.button.addClass('button-del-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-del.png">');
+    this.button.addClass('button-del-small');
   }
   else if (typecmp === 'sel') {
     this._type = 'sel';
@@ -80,8 +125,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'sel-small') {
     this._type = 'sel-small';
-    this.button.addClass('button-sel-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-star.png">');
+    this.button.addClass('button-sel-small');
   }
   else if (typecmp === 'edit') {
     this._type = 'edit';
@@ -90,45 +134,37 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'edit-small') {
     this._type = 'edit-small';
-    this.button.addClass('button-edit-small')
-      .html('<img src="' + IMAGE_ROOT + 'button-edit.png">');
+    this.button.addClass('button-edit-small');
   }
   else if (typecmp === 'more-small' || typecmp === 'less-small') {
-    this._type = typecmp;
-    this.toggle_state = this._type.split('-')[0];
-    var that = this;
+    var that = this
+      , state = typecmp.split('-')[0];
 
-    this.button.addClass('button-' + this.toggle_state + '-small')
-      //.html( this.toggle_state === 'more' ? '+' : '-');
-      .html('<img src="' + IMAGE_ROOT + 'button-' + this.toggle_state 
-         + '.png">');
+    // Flag to check whether currently in more condition or not
+    this.more_state = (state === 'more');
+
+    this.button.addClass('button-' + state + '-small');
 
     this.button.click(function() {
-        if (that.toggle_state === 'more') {
-          that.toggle_state = 'less';
-
-          that.button.removeClass('button-more-small');
-          that.button.addClass('button-less-small');
-
-          //that.button.html( that.toggle_state === 'more' ? '+' : '-');
-          that.button.html('<img src="' + IMAGE_ROOT + 'button-less.png">');
-        } 
-        
-        else if (that.toggle_state === 'less') {
-          that.toggle_state = 'more';
-
-          that.button.removeClass('button-less-small');
-          that.button.addClass('button-more-small');
-
-          //that.button.html( that.toggle_state === 'more' ? '+' : '-');
-          that.button.html('<img src="' + IMAGE_ROOT + 'button-more.png">');
+        // Handle events directly, within this callback.  For details, note
+        // [async-event] below.
+        if (bus) {
+          bus.publish(click, that.more_state, eventData);
         }
-      });
+
+        // Update the model
+        that.more_state = !that.more_state;
+
+        // Update the UI
+        that.button.toggleClass('button-more-small', that.more_state);
+        that.button.toggleClass('button-less-small', !that.more_state);
+
+    });
   }
   else if (typecmp === 'ok') {
     this._type = 'ok';
     this.button.addClass('button-ok')
-      .text('Edit');
+      .text('OK');
   }
   else if (typecmp === 'quit') {
     this._type = 'quit';
@@ -137,7 +173,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else {
     // Default case
-    this.button.text(label);
+    this.button.text(label).addClass('button-big');
   }
 
   // If class specified, use it instead of anything else
@@ -165,23 +201,18 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
     else if ( typeof click === "string" ) {
       evbus = this._bus;
 
-      if (this.toggle_state) {
-        var that = this;
-
-        this.button.click(function() {
-            evbus.publish(that.toggle_state + '_' + click, eventData);
-        });
-      }
-
-      else {
-        // Publish an event 
-        this.button.click(function() {
-            evbus.publish(click, eventData);
-        });
-      }
-    }
-  }
-};
+      if (this.more_state === undefined) {
+        /* Publish an event only if this is a non-toggle button.  Toggle
+         * buttons maintain their own states and hence handle their own event
+         * publications.
+         *
+         * [Note][async-event]: It may seem that we could have exposed the
+         * state of the toggle button and handled eventing here.  The problem
+         * with that is the asynchronous nature of $.click() ( and the
+         * browser's event handling). There could be a race condition.  Th
+         */
+        this.button.click(function() { evbus.publish(click, eventData); }); } }
+  } };
 
 // Implementing buttons methods in their own scope. 
 (function(){
