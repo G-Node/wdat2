@@ -4,6 +4,10 @@
  * [less-docs] : http://lesscss.org/#-nested-rules
  *
  */
+@root: 'static';
+@light-disclosure-down: '@{root}/light-grey-disclosure-arrow-down.png';
+@dark-disclosure-down: '@{root}/dark-grey-disclosure-arrow-down.png';
+
 div.search-bar {
   display: inline-block;
 
@@ -13,14 +17,14 @@ div.search-bar {
   }
 
   .query {
-    width: 300px;
     display: inline-block;
     border: 1px solid @lighter-grey;
     border-radius: @borderradius;
 
     input.textbox {
+      display: inline-block;
+      width: 300px;
       border: none;
-      width: 90%;
       font-family: @baseFontFamily;
       font-size: @baseFontSize;
       line-height: @baseLineHeight;
@@ -28,6 +32,27 @@ div.search-bar {
 
       .horizontal-padding(@smallcushion);
       .vertical-padding(@smallcushion - 1);
+
+      /* webkit reset */
+      outline-offset: 0px;
+      outline: 0px none;
+      margin-top: 0px;
+      margin-bottom: 0px;
+      height: 16px;
+    }
+
+
+    a.advanced {
+      display: inline-block;
+      height: 9px;
+      width: 15px;
+
+      background-image: url('/@{light-disclosure-down}');
+      background-position: center; 
+      background-repeat: no-repeat;
+    }
+    a.advanced:hover {
+      background-image: url('/@{dark-disclosure-down}');
     }
   }
 

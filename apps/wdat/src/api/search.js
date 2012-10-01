@@ -24,12 +24,13 @@ WDAT.api.VSearchBar = function(name, bus) {
   // Create the query div. Contains text-field and the advanced options
   // handle.
   var querydiv = $('<div class="query"></div>')
-    , textbox  = $('<input type="text" class="textbox" value="I tried so hard and got so far.  Till the end, it doesnt matter"></input>');
+    , textbox  = $('<input type="text" class="textbox" value="I tried so hard and got so far.  Till the end, it doesnt matter"></input>')
+    , advanced = $('<a href="#" class="advanced"></a>');
 
   $(querydiv).append(textbox);
+  $(querydiv).append(advanced);
 
   this._container.append(querydiv);
-
 
   // Create the go button
   var gobutton = new WDAT.api.Button('Go', this.lBus, 'go', 'blue');
@@ -49,5 +50,3 @@ WDAT.api.VSearchBar = function(name, bus) {
     return this._container;
   };
 })();
-
-
