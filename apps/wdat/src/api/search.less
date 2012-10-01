@@ -8,6 +8,8 @@
 @light-disclosure-down: '@{root}/light-grey-disclosure-arrow-down.png';
 @dark-disclosure-down: '@{root}/dark-grey-disclosure-arrow-down.png';
 
+@queryWidth: 400px;
+
 div.search-bar {
   display: inline-block;
 
@@ -23,7 +25,7 @@ div.search-bar {
 
     input.textbox {
       display: inline-block;
-      width: 300px;
+      width: @queryWidth;
       border: none;
       font-family: @baseFontFamily;
       font-size: @baseFontSize;
