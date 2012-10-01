@@ -1,0 +1,37 @@
+/* Using less nested classes. If in confusion, consult [less-docs] before
+ * making changes.  
+ *
+ * [less-docs] : http://lesscss.org/#-nested-rules
+ *
+ */
+div.search-bar {
+  display: inline-block;
+
+  button.go {
+    display: inline-block;
+    margin-right: 0px;
+  }
+
+  .query {
+    width: 300px;
+    display: inline-block;
+    border: 1px solid @lighter-grey;
+    border-radius: @borderradius;
+
+    input.textbox {
+      border: none;
+      width: 90%;
+      font-family: @baseFontFamily;
+      font-size: @baseFontSize;
+      line-height: @baseLineHeight;
+      color: @dark-grey;
+
+      .horizontal-padding(@smallcushion);
+      .vertical-padding(@smallcushion - 1);
+    }
+  }
+
+  .query:hover {
+    border-color: @mid-grey;
+  }
+}
