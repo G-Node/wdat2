@@ -7,6 +7,8 @@ if (!window.WDAT.api) window.WDAT.api = {};
 /* VSearchBar. */
 
 WDAT.api.VSearchBar = function(name, bus) {
+  var SEARCH_PLACEHOLDER = "Search...";
+
   // Initialize name and the container element
   if (typeof name === 'string') {  // name is a string
     this._container = $('<div class="search-bar"></div>').attr('id', name);
@@ -24,7 +26,9 @@ WDAT.api.VSearchBar = function(name, bus) {
   // Create the query div. Contains text-field and the advanced options
   // handle.
   var querydiv = $('<div class="query"></div>')
-    , textbox  = $('<input type="text" class="textbox" value="I tried so hard and got so far.  Till the end, it doesnt matter"></input>')
+    , textbox  = $('<input type="text" class='+
+            '"textbox placeholder" value="'+
+            SEARCH_PLACEHOLDER +'"></input>')
     , advanced = $('<a href="#" class="advanced"></a>');
 
   $(querydiv).append(textbox);
@@ -37,6 +41,22 @@ WDAT.api.VSearchBar = function(name, bus) {
   gobutton.toJQ().addClass('go');
 
   this._container.append(gobutton.toJQ());
+
+  // On focus, adjust classes and value
+  $(textbox).focus(function(){
+      if (this.value === SEARCH_PLACEHOLDER) {
+        this.value = ''; 
+        $(this).toggleClass('placeholder', false);
+      }
+  });
+
+  // On blur, adjust classes and value
+  $(textbox).blur(function() {
+      if (this.value === '') {
+        $(this).toggleClass('placeholder', true);
+        this.value = SEARCH_PLACEHOLDER;
+      }
+  });
 };
 
 (function () {
