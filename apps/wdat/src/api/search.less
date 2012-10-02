@@ -16,6 +16,9 @@ div.search-bar {
   button.go {
     display: inline-block;
     margin-right: 0px;
+
+    .horizontal-padding(@cushioning);
+    .vertical-padding(@cushioning);
   }
 
   .query {
@@ -33,8 +36,8 @@ div.search-bar {
       line-height: @baseLineHeight;
       color: @darker-grey;
 
-      .horizontal-padding(@smallcushion);
-      .vertical-padding(@smallcushion - 1);
+      .horizontal-padding(@cushioning);
+      .vertical-padding(@cushioning - 1);
 
       /* webkit reset */
       outline-offset: 0px;
