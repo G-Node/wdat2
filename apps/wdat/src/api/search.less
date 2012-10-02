@@ -24,6 +24,7 @@ div.search-bar {
     border-radius: @borderradius;
 
     input.textbox {
+      background-color: transparent;
       display: inline-block;
       width: @queryWidth;
       border: none;
@@ -65,5 +66,10 @@ div.search-bar {
 
   .query:hover {
     border-color: @mid-grey;
+  }
+
+  .query-active {
+    border-color: @light-blue !important;
+    box-shadow: 0px 0px 1px 2px @lighter-grey inset;
   }
 }
