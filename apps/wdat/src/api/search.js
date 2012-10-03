@@ -31,7 +31,8 @@ WDAT.api.VSearchBar = function(name, bus) {
             '"textbox placeholder" value="'+
             SEARCH_PLACEHOLDER +'"></input>')
   this._advanced = $('<a href="#" class="advanced"></a>');
-  this._advpanel = $('<div class="advpanel hidden"></div>');
+  this._advpanel = $('<div class="advpanel"></div>');
+  $(this._advpanel).hide();  // Shouldn't be visible by default.
 
   $(this._querydiv).append(this._textbox);
   $(this._querydiv).append(this._advanced);
@@ -109,10 +110,14 @@ WDAT.api.VSearchBar = function(name, bus) {
       this._adv_width_set_flag = true;
     }
     
-    if (forceShow) {
-      panel.toggleClass('hidden', !forceShow);
+    if (forceShow !== undefined) {
+      if (forceShow === true) {
+        $(panel).slideDown();
+      } else {
+        $(panel).slideUp();
+      }
     } else {
-      panel.toggleClass('hidden');
+      $(panel).slideToggle();
     }
   };
 })();
