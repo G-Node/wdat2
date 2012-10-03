@@ -30,11 +30,11 @@ WDAT.api.VSearchBar = function(name, bus) {
   this._textbox  = $('<input type="text" class='+
             '"textbox placeholder" value="'+
             SEARCH_PLACEHOLDER +'"></input>')
-  this._advancedBtn = $('<a href="#" class="advanced"></a>');
+  this._advanced = $('<a href="#" class="advanced"></a>');
   this._advpanel = $('<div class="advpanel hidden"></div>');
 
   $(this._querydiv).append(this._textbox);
-  $(this._querydiv).append(this._advancedBtn);
+  $(this._querydiv).append(this._advanced);
 
   this._container.append(this._querydiv);
   this._container.append(this._advpanel);
@@ -68,6 +68,16 @@ WDAT.api.VSearchBar = function(name, bus) {
         this.value = SEARCH_PLACEHOLDER;
       }
   });
+
+  // On clicking the advanced button, emit an event on the localbus
+  $(this._advanced).click(function () {
+      that.lBus.publish('AdvancedButtonClick');
+  });
+
+  // On 'AdvancedButtonClick' on local bus, toggle the advpanel
+  this.lBus.subscribe('AdvancedButtonClick', function () {
+      that.toggleAdvanced();
+  });
 };
 
 (function () {
@@ -79,5 +89,30 @@ WDAT.api.VSearchBar = function(name, bus) {
    */ 
   WDAT.api.VSearchBar.prototype.toJQ = function () {
     return this._container;
+  };
+
+  /* Toggle the visibility of the advanced panel. 
+   *
+   * :param forceShow allows you to cotrol.  True displays the panel, false
+   * hides it.
+   *
+   * Return value: none
+   */
+  WDAT.api.VSearchBar.prototype.toggleAdvanced = function (forceShow) { 
+    var panel = this._advpanel;
+
+    // Only set width if it already hasn't been set
+    if (!this._adv_width_set_flag) {
+      var width = $(this._querydiv).width();
+      $(panel).css('width', width + 'px');
+
+      this._adv_width_set_flag = true;
+    }
+    
+    if (forceShow) {
+      panel.toggleClass('hidden', !forceShow);
+    } else {
+      panel.toggleClass('hidden');
+    }
   };
 })();
