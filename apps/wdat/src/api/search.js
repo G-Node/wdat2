@@ -7,7 +7,8 @@ if (!window.WDAT.api) window.WDAT.api = {};
 /* VSearchBar. */
 
 WDAT.api.VSearchBar = function(name, bus) {
-  var SEARCH_PLACEHOLDER = "Search...";
+  var SEARCH_PLACEHOLDER = "Search..."
+    , that = this;
 
   // Initialize name and the container element
   if (typeof name === 'string') {  // name is a string
@@ -25,16 +26,18 @@ WDAT.api.VSearchBar = function(name, bus) {
   
   // Create the query div. Contains text-field and the advanced options
   // handle.
-  var querydiv = $('<div class="query"></div>')
-    , textbox  = $('<input type="text" class='+
+  this._querydiv = $('<div class="query"></div>')
+  this._textbox  = $('<input type="text" class='+
             '"textbox placeholder" value="'+
             SEARCH_PLACEHOLDER +'"></input>')
-    , advanced = $('<a href="#" class="advanced"></a>');
+  this._advancedBtn = $('<a href="#" class="advanced"></a>');
+  this._advpanel = $('<div class="advpanel hidden"></div>');
 
-  $(querydiv).append(textbox);
-  $(querydiv).append(advanced);
+  $(this._querydiv).append(this._textbox);
+  $(this._querydiv).append(this._advancedBtn);
 
-  this._container.append(querydiv);
+  this._container.append(this._querydiv);
+  this._container.append(this._advpanel);
 
   // Create the go button
   var gobutton = new WDAT.api.Button('Go', this.lBus, 'go', 'blue');
@@ -43,9 +46,9 @@ WDAT.api.VSearchBar = function(name, bus) {
   this._container.append(gobutton.toJQ());
 
   // On focus, adjust classes and value
-  $(textbox).focus(function(){
+  $(this._textbox).focus(function(){
       // First, add query-active class to querydiv
-      $(querydiv).toggleClass('query-active', true);
+      $(this._querydiv).toggleClass('query-active', true);
 
       // Update classes and values for textbox
       if (this.value === SEARCH_PLACEHOLDER) {
@@ -55,9 +58,9 @@ WDAT.api.VSearchBar = function(name, bus) {
   });
 
   // On blur, adjust classes and value
-  $(textbox).blur(function() {
+  $(this._textbox).blur(function() {
       // First, remove query-active class to querydiv
-      $(querydiv).toggleClass('query-active', false);
+      $(this._querydiv).toggleClass('query-active', false);
 
       // Update classes and values for textbox
       if (this.value === '') {
