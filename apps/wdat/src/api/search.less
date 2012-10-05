@@ -51,6 +51,7 @@ div.search-bar {
       float: right;
       height: 30px;
       width: 15px;
+      cursor: pointer;
 
       background-image: url('/@{light-disclosure-down}');
       background-position: center; 
@@ -81,5 +82,38 @@ div.search-bar {
 
     background-color: @white;
     box-shadow: 0px 1px 1px 1px @lighter-grey;
+
+    table.form {
+      border-spacing: @smallcushion;
+      border-collapse: separate;
+      width: 100%;
+
+      margin-top: 1em;
+    }
+
+    td.label {
+      padding-left: @cushioning;
+      padding-right: @cushioning;
+      text-align: right;
+    }
+
+    td.widget {
+      text-align: left;
+      padding: 0px;
+
+      input[type=text] {
+        border: 1px solid @bordercolor;
+        border-radius: @borderradius;
+        padding: @smallcushion * 0.5;
+      }
+
+      input[type=text]:hover {
+        border-color: @mid-grey;
+      }
+
+      input[type=text]:focus {
+        border-color: @light-blue;
+      }
+    }
   }
 }

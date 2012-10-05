@@ -79,6 +79,9 @@ WDAT.api.VSearchBar = function(name, bus) {
   this.lBus.subscribe('AdvancedButtonClick', function () {
       that.toggleAdvanced();
   });
+
+  // Prepare the advanced panel
+  this.createAdvancedPanel();
 };
 
 (function () {
@@ -119,5 +122,33 @@ WDAT.api.VSearchBar = function(name, bus) {
     } else {
       $(panel).slideToggle();
     }
+  };
+
+  /* Create the advanced pane options.  This has been cordoned off to its own
+   * function to make things easier to manage.  The constructor need not be so
+   * concerned with the details of the advanced pane.
+   */
+  WDAT.api.VSearchBar.prototype.createAdvancedPanel = function () {
+    var advpanel = this._advpanel
+      , advtable = $('<table class="form"></table>')
+      , tr, datewidget, datepicker;
+
+    var TROW_TEMPLATE = '<tr><td class="label"></td><td class="widget"></td></tr>';
+  
+    // Animal textbox
+    tr = $(TROW_TEMPLATE);
+    tr.find('td.label').append($('<label for="search-adv-animal">Animal</label>'));
+    tr.find('td.widget').append($('<input type=text id="search-adv-animal" class="search-adv"></input>'));
+    $(advtable).append(tr);
+
+    // Created textbox
+    tr = $(TROW_TEMPLATE);
+    datewidget = $('<input type=text id="search-adv-created"></input>');
+    tr.find('td.label').append($('<label for="search-adv-created">Created (date)</label>'));
+    tr.find('td.widget').append(datewidget);
+    datepicker = new WDAT.api.DatePicker(datewidget);
+    $(advtable).append(tr);
+
+    $(advpanel).append(advtable);
   };
 })();
