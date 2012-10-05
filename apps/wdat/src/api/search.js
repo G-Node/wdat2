@@ -30,7 +30,7 @@ WDAT.api.VSearchBar = function(name, bus) {
   this._textbox  = $('<input type="text" class='+
             '"textbox placeholder" value="'+
             SEARCH_PLACEHOLDER +'"></input>')
-  this._advanced = $('<a href="#" class="advanced"></a>');
+  this._advanced = $('<a class="advanced"></a>');
   this._advpanel = $('<div class="advpanel"></div>');
   $(this._advpanel).hide();  // Shouldn't be visible by default.
 
