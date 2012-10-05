@@ -150,7 +150,7 @@ WDAT.api.DatePicker = function (textbox) {
   _proto.fillSpecific = function () {
     var that = this 
       , spediv = this._specific
-      , closebtn = $('<a href="#" class="close"></a>')
+      , closebtn = $('<a class="close"></a>')
       , intdate  = $('<input type="hidden"></input>');
 
     $(spediv).append(closebtn);
