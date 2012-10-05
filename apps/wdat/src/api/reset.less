@@ -431,11 +431,15 @@ input[type="search"]::-webkit-search-decoration {
 /*
 * Removes inner padding and border in Firefox 3+.
 */
-
 button::-moz-focus-inner,
 input::-moz-focus-inner {
   border: 0;
   padding: 0;
+}
+/* Remove inner offset and higlight in webkit */
+input[type="text"]:focus{
+  outline-offset:0;
+  outline:none;
 }
 
 /*
