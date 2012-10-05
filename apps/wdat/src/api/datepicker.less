@@ -30,7 +30,7 @@
     display: inline-block;
     height: 16px;
     width: 140px;
-    border: 0px none;
+    border: 0px none !important;
     color: @darker-grey;
     padding: @smallcushion;
   }
@@ -38,10 +38,11 @@
 
 div.datepicker {
   height: 280px;
+  width: 360px;
   border: 1px solid @bordercolor;
 
   position: absolute;
-  display: inline-block;
+  display: block;
 
   background-color: @white;
   vertical-align: top;
