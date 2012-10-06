@@ -72,20 +72,68 @@ WDAT.api.DatePicker = function (textbox, bus) {
     }
   };
 
+  /* Update the textbox and close the datepicker. 
+   *
+   * date is a Date() object, operator 'string' is either '<', '>' or '='
+   */
+  _proto.update = function (date, operator) {
+    var normalize = function (num) {
+      /* Return '08', if 8, '09' if 9 and '10' if 10 */
+      if (num > 9) {
+        return num.toString(); 
+      } else { 
+        return '0' + num.toString();
+      }
+    };
+
+    var dd = normalize(date.getDate())
+      , mm = normalize(date.getMonth() + 1) // months are zero indexed
+      , yyyy = date.getFullYear().toString();
+
+    var datestring = operator + '' + dd + '-' + mm + '-' + yyyy;
+
+    $(this._textbox).val(datestring);
+    this.toggle(false);
+    $(this._textbox).focus();
+  };
+
   /* Fill up the common options */
   _proto.fillCommon = function () {
-    var comdiv = this._common
+    /* First prepare the dates */
+    var today = new Date()
+      , nextdate = new Date() // the date object on which to perform operations
+      , offset = 24*60*60*1000; 
+
+    var week  = new Date(today.getTime() - offset*7);
+    var month = new Date(today.getTime() - offset*30);
+    var half  = new Date(today.getTime() - offset*182);
+    var year  = new Date(today.getTime() - offset*365);
+
+    var that = this
+      , comdiv = this._common
       , ul = $('<ul></ul')
       , TEMPLATE = '<li class="option"><a></a></li>'
-      , common_options = ['Today', 'Within this week', 'Within this month', 
-                          'Within six months', 'Within the year', 
-                          'Even earlier']
+      , common_options = [
+              ['Today', today, '='], 
+              ['Last seven days', week, '>'],
+              ['Last thirty days', month, '>'],
+              ['Last six months', half, '>'],
+              ['Last year', year, '>'],
+              ['Even earlier', year, '<']
+            ]
       , specific_pointer = $('<li class="specific_pointer">Or pick a date »</li>');
 
     for (var i=0; i<common_options.length; i++) {
       var li = $(TEMPLATE);
-      $(li).find('a').first().text(common_options[i]);
-
+      $(li).find('a').first().text(common_options[i][0]);
+      $(li).click((function (j) {
+        // Closure to ensure that the correct i value is used.
+        // http://stackoverflow.com/questions/2568966/how-do-i-pass-the-value-not-the-reference-of-a-js-variable-to-a-function
+        // for details
+        return function () {
+          that.update(common_options[j][1], common_options[j][2]);
+        };
+      })(i));
       $(ul).append(li);
     }
 
