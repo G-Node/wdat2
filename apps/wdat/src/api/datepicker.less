@@ -1,0 +1,81 @@
+@image-root: 'static'; /* Absolute URL. No leading or trailing slash */
+@close-image: "@{image-root}/light-grey-x.png";
+
+.datepicker-target {
+  display: inline-block;
+
+  border: 1px solid @bordercolor;
+  border-radius: @borderradius;
+  padding: @smallcushion;
+
+  color: @darker-grey;
+}
+
+div.datepicker {
+  width:  350px;
+  height: 200px;
+  border: 1px solid @bordercolor;
+
+  position: absolute;
+  display: inline-block;
+
+  background-color: @white;
+  vertical-align: top;
+
+  .common {
+    width: 40%;
+    vertical-align: top;
+    height: 100%;
+    display: inline-block;
+    background-color: @near-white;
+
+    ul {
+      margin: 0px;
+      padding: 0px;
+    }
+
+    li {
+      display: block;
+      padding-top: 0.4em;
+      padding-bottom: 0.4em;
+      padding-left: 1em;
+      list-style-type: none;
+      color: @dark-grey;
+      font-size: 0.95;
+    }
+    
+    li:hover {
+      cursor: pointer;
+      background-color: @light-blue;
+      .vertical-gradient(@light-blue, @blue);
+      color: @white;
+      .light-text-shadow;
+    }
+  }
+
+  .specific {
+    vertical-align: top;
+    width: 60%;
+    height: 100%;
+    display: inline-block;
+    background-color: @white;
+
+    a.close {
+      margin-top: 0.4em;
+      margin-right: 0.4em;
+      width: 15px;
+      height: 15px;
+
+      background-image: url('/@{close-image}');
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.5;
+
+      float: right;
+    }
+
+    a.close:hover {
+      opacity: 0.9;
+    }
+  }
+}
