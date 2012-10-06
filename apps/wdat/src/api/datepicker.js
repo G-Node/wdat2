@@ -9,17 +9,21 @@ if (!window.WDAT.api) window.WDAT.api = {} ;
  * Usage: 
  *   var picker = WDAT.api.DatePicker(textbox);
  *
- * Parameters:
+ *
+ * Parameters: All are required
  *   textbox:  Since dates are usually bound to a textbox instance, this
  *   argument is a jQuery object representing a textbox.
  *
+ * Note
+ *  This class doesn't expose a toJQ() method because it is intended to be used
+ *  directly on a textbox.
+ *
  * Depends : jQuery, jquery.jdpicker.js, button.js, event_bus.js
  */
-WDAT.api.DatePicker = function (textbox, bus) {
+WDAT.api.DatePicker = function (textbox) {
   var that = this;
 
   this.lBus = new WDAT.api.EventBus();
-  this.bus = bus;
   
   this._textbox = textbox;
   this._panel = $('<div class="datepicker"></div>');
