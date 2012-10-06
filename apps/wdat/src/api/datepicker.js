@@ -164,10 +164,47 @@ WDAT.api.DatePicker = function (textbox, bus) {
     $(spediv).append(on.toJQ());
     $(spediv).append(after.toJQ());
 
+    $(before.toJQ()).click(function () {
+      var date;
+      if ($(intdate).val() !== '') {
+        var parts = $(intdate).val().split('/');
+        date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      } else {
+        // If no date has been selected, assume today
+        date = new Date();
+      }
+      that.update(date, '<');
+    });
+
+    $(on.toJQ()).click(function () {
+      var date;
+      if ($(intdate).val() !== '') {
+        var parts = $(intdate).val().split('/');
+        date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      } else {
+        // If no date has been selected, assume today
+        date = new Date();
+      }
+      that.update(date, '=');
+    });
+
+    $(after.toJQ()).click(function () {
+      var date;
+      if ($(intdate).val() !== '') {
+        var parts = $(intdate).val().split('/');
+        date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      } else {
+        // If no date has been selected, assume today
+        date = new Date();
+      }
+      that.update(date, '>');
+    });
+
     // Close button handling
     $(closebtn).click(function () {
        that.toggle(false);
        $(that._textbox).focus()
+
     });
   };
 })();
