@@ -71,10 +71,11 @@ WDAT.api.DatePicker = function (textbox) {
   _proto.fillCommon = function () {
     var comdiv = this._common
       , ul = $('<ul></ul')
-      , TEMPLATE = '<li><a></a></li>'
+      , TEMPLATE = '<li class="option"><a></a></li>'
       , common_options = ['Today', 'Within this week', 'Within this month', 
                           'Within six months', 'Within the year', 
-                          'Even earlier'];
+                          'Even earlier']
+      , specific_pointer = $('<li class="specific_pointer">Or pick a date »</li>');
 
     for (var i=0; i<common_options.length; i++) {
       var li = $(TEMPLATE);
@@ -83,6 +84,8 @@ WDAT.api.DatePicker = function (textbox) {
       $(ul).append(li);
     }
 
+    $(ul).append(specific_pointer);
+
     $(comdiv).append(ul);
   };
 
@@ -90,9 +93,23 @@ WDAT.api.DatePicker = function (textbox) {
   _proto.fillSpecific = function () {
     var that = this 
       , spediv = this._specific
-      , closebtn = $('<a href="#" class="close"></a>');
+      , closebtn = $('<a href="#" class="close"></a>')
+      , intdate  = $('<input type="hidden"></input>');
 
     $(spediv).append(closebtn);
+    $(spediv).append(intdate);
+
+    // Add the calendar widget
+    $(intdate).jdPicker();
+
+    // Add finalizing buttons
+    var before = new WDAT.api.Button('Before', this.lBus, 'before', 'blue')
+      , on     = new WDAT.api.Button('On', this.lBus, 'on', 'blue')
+      , after  = new WDAT.api.Button('After', this.lBus, 'after', 'blue');
+
+    $(spediv).append(before.toJQ());
+    $(spediv).append(on.toJQ());
+    $(spediv).append(after.toJQ());
 
     // Close button handling
     $(closebtn).click(function () {
