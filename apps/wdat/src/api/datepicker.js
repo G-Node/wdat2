@@ -13,16 +13,24 @@ if (!window.WDAT.api) window.WDAT.api = {} ;
  *   textbox:  Since dates are usually bound to a textbox instance, this
  *   argument is a jQuery object representing a textbox.
  *
- * Depends : jQuery
+ * Depends : jQuery, jquery.jdpicker.js, button.js, event_bus.js
  */
-WDAT.api.DatePicker = function (textbox) {
-  var that = this
-    , lBus = WDAT.api.EventBus();
+WDAT.api.DatePicker = function (textbox, bus) {
+  var that = this;
+
+  this.lBus = new WDAT.api.EventBus();
+  this.bus = bus;
   
   this._textbox = textbox;
   this._panel = $('<div class="datepicker"></div>');
+  this._container = $('<div class="datepicker-container"/>');
+  this._handle = $('<a class="calendar"></a>');
   this._common = $('<div class="common"></div>');
   this._specific = $('<div class="specific"></div>');
+
+  // Wrap the handle around the textbox
+  $(this._textbox).wrap(this._container);
+  $(this._textbox).after(this._handle);
 
   // Fill up the common and specific options
   this.fillCommon();
@@ -35,12 +43,9 @@ WDAT.api.DatePicker = function (textbox) {
 
   this._panel.hide();
 
-  // Toggle widget display on focus and blur of textbox 
-  $(this._textbox).focus(function() { 
-      if(!that._prevent) that.toggle(true);
-
-      // Reset flag
-      that._prevent = false;
+  // Toggle widget display on clicking handle
+  $(this._handle).click(function() { 
+      that.toggle();
   });
 };
 
@@ -114,8 +119,6 @@ WDAT.api.DatePicker = function (textbox) {
     // Close button handling
     $(closebtn).click(function () {
        that.toggle(false);
-       that._prevent = true;
-
        $(that._textbox).focus()
     });
   };

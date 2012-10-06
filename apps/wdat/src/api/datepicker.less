@@ -1,19 +1,43 @@
 @image-root: 'static'; /* Absolute URL. No leading or trailing slash */
+@calendar-image: "@{image-root}/icon-calendar.png";
 @close-image: "@{image-root}/light-grey-x.png";
 
-.datepicker-target {
+.datepicker-container {
   display: inline-block;
 
   border: 1px solid @bordercolor;
   border-radius: @borderradius;
-  padding: @smallcushion;
 
   color: @darker-grey;
+
+  a.calendar {
+    display: inline-block;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    padding: @smallcushion;
+    float: right;
+    background: url('/@{calendar-image}');
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.5;
+  }
+  a.calendar:hover {
+    opacity: 1;
+  }
+
+  .datepicker-target {
+    display: inline-block;
+    height: 16px;
+    width: 140px;
+    border: 0px none;
+    color: @darker-grey;
+    padding: @smallcushion;
+  }
 }
 
 div.datepicker {
-  width:  350px;
-  height: 200px;
+  height: 230px;
   border: 1px solid @bordercolor;
 
   position: absolute;
@@ -23,7 +47,7 @@ div.datepicker {
   vertical-align: top;
 
   .common {
-    width: 40%;
+    width: 140px;
     vertical-align: top;
     height: 100%;
     display: inline-block;
