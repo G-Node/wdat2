@@ -25,3 +25,11 @@
 .vertical-gradient-image(@c1, @c2, @image) {
   background-image:url('/@{image}'), -moz-linear-gradient(top, @c1 0%, @c2 100%);
 }
+
+.rounded-corners(@radius: @borderradius) {
+  border-radius: @radius;
+}
+
+.thin-bordered(@color: @bordercolor) {
+  border: 1px solid @color;
+}
