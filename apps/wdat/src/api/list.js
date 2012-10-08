@@ -60,8 +60,8 @@ WDAT.api.VList = function(name, bus, events, categories) {
       this.categories[cat] = tab;
       // create add button if add event is present
       if (this.events.add) {
-        var b = new WDAT.api.Button('add', this.bus, this.events.add, {name : cat,
-          id : cat});
+        var b = new WDAT.api.Button('add-small', this.bus, 
+                this.events.add, null, {name : cat,id : cat});
         tab.find('.list-cat-btn').first().append(b.toJQ());
       }
     }
@@ -406,8 +406,11 @@ WDAT.api.VList = function(name, bus, events, categories) {
     var btns = [];
     if (element.id) {
       for ( var i in this.events) {
-        if (i != 'add') {
-          var b = new WDAT.api.Button(i, this.bus, this.events[i], element);
+        var label = i.toString();
+        if (i !== 'add') {
+          if ($.inArray(label, ['del', 'sel', 'edit', 'more']) >= 0)
+            label = label + '-small';
+          var b = new WDAT.api.Button(label, this.bus, this.events[i], null, element);
           btns.push(b.toJQ());
         }
       }

@@ -1,21 +1,19 @@
 /* ---------- file: list.css -----------*/
 
-.hidden {
+.list .hidden {
   display: none;
 }
 
-.list table {
-  margin: 6px;
+.list table { 
+  margin: @cushioning/4;
   overflow-y: auto;
-}
-
-.list table {
   width: 100%;
   border-spacing: 0px;
 }
 
 .list td,th {
-  padding: 4px;
+  .horizontal-padding(@cushioning);
+  .vertical-padding(@smallcushion);
   vertical-align: top;
   text-align: left;
 }

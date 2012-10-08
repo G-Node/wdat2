@@ -1,8 +1,8 @@
 // ---------- file: button.js ---------- //
 
 // Initialize the module WDAT.widgets if it doesn't exist.
-if (!window.WDAT) {  window.WDAT = {}; }
-if (!window.WDAT.api) { window.WDAT.api = {}; }
+if (!window.WDAT) window.WDAT = {};
+if (!window.WDAT.api) window.WDAT.api = {};
 
 /* A button class. 
  *
@@ -102,37 +102,26 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   // Add labels and classes based solely on the type
   if (typecmp === 'add') {
     this._type = 'add';
-    this.button.addClass('button-add')
-      .text('New');
-  }
-  else if (typecmp === 'add-small') {
+    this.button.addClass('button-add').text('New');
+  } else if (typecmp === 'add-small') {
     this._type = 'add-small';
     this.button.addClass('button-add-small');
-  }
-  else if (typecmp === 'del') {
+  } else if (typecmp === 'del') {
     this._type = 'del';
-    this.button.addClass('button-del')
-      .text('Delete');
-  }
-  else if (typecmp === 'del-small') {
+    this.button.addClass('button-del').text('Delete');
+  } else if (typecmp === 'del-small') {
     this._type = 'del-small';
     this.button.addClass('button-del-small');
-  }
-  else if (typecmp === 'sel') {
+  } else if (typecmp === 'sel') {
     this._type = 'sel';
-    this.button.addClass('button-sel')
-      .text('Select');
-  }
-  else if (typecmp === 'sel-small') {
+    this.button.addClass('button-sel').text('Select');
+  } else if (typecmp === 'sel-small') {
     this._type = 'sel-small';
     this.button.addClass('button-sel-small');
-  }
-  else if (typecmp === 'edit') {
+  } else if (typecmp === 'edit') {
     this._type = 'edit';
-    this.button.addClass('button-edit')
-      .text('Edit');
-  }
-  else if (typecmp === 'edit-small') {
+    this.button.addClass('button-edit').text('Edit');
+  } else if (typecmp === 'edit-small') {
     this._type = 'edit-small';
     this.button.addClass('button-edit-small');
   }
@@ -168,10 +157,8 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   }
   else if (typecmp === 'quit') {
     this._type = 'quit';
-    this.button.addClass('button-quit')
-      .text('Cancel');
-  }
-  else {
+    this.button.addClass('button-quit').text('Cancel');
+  } else {
     // Default case
     this.button.text(label).addClass('button-big');
   }
@@ -194,11 +181,10 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   this._click = click;
 
   if (bus) {
-    if ( typeof this._click === "function" ) {
+    if (typeof this._click === "function") {
       // This is a callback
       this.button.click(this._click);
-    }
-    else if ( typeof click === "string" ) {
+    } else if (typeof click === "string") {
       evbus = this._bus;
 
       if (this.more_state === undefined) {
@@ -215,10 +201,10 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   } };
 
 // Implementing buttons methods in their own scope. 
-(function(){
+(function() {
   // Just a shortcut for the prototype
   var _proto = WDAT.api.Button.prototype;
-  
+
   /* Returns the button as a jQuery object.
    * 
    * Return value:
@@ -227,7 +213,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   _proto.toJQ = function() {
     return this.button;
   };
-  
+
   /* Returns the button as a string.
    * 
    * Return value:
@@ -236,7 +222,7 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   _proto.toString = function() {
     return this.button.html();
   };
-  
+
   /* Unregister the event used by the button from the event
    * bus.
    * 
