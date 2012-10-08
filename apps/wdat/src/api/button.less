@@ -7,7 +7,7 @@ button::-moz-focus-inner {
 }
 
 button {
-  border-radius: @borderradius;
+  .rounded-corners;
   border-width: 0px; 
 
   font-family: @baseFontFamily;
@@ -111,13 +111,13 @@ button.button-add-small {
   .btnSmall;
 
   background-color: @light-grey;
-  border: 1px solid @green;
+  .thin-bordered(@green);
 
   .vertical-gradient-image(@lighter-grey, @light-grey, @button-add-image);
 }
 button.button-add-small:hover { 
   background-color: @lighter-grey;
-  border: 1px solid @green;
+  .thin-bordered(@green);
 
   .vertical-gradient-image(@white, @light-grey, @button-add-image);
 }
@@ -126,13 +126,13 @@ button.button-del-small {
   .btnSmall;
 
   background-color: @light-grey;
-  border: 1px solid @red;
+  .thin-bordered(@red);
 
   .vertical-gradient-image(@lighter-grey, @light-grey, @button-del-image);
 }
 button.button-del-small:hover { 
   background-color: @lighter-grey;
-  border: 1px solid @red;
+  .thin-bordered(@red);
 
   .vertical-gradient-image(@white, @light-grey, @button-del-image);
 }
@@ -141,13 +141,13 @@ button.button-sel-small {
   .btnSmall;
 
   background-color: @light-grey;
-  border: 1px solid @blue;
+  .thin-bordered(@blue);
 
   .vertical-gradient-image(@lighter-grey, @light-grey, @button-sel-image);
 }
 button.button-sel-small:hover { 
   background-color: @lighter-grey;
-  border: 1px solid @blue;
+  .thin-bordered(@blue);
 
   .vertical-gradient-image(@white, @light-grey, @button-sel-image);
 }
@@ -156,13 +156,13 @@ button.button-edit-small {
   .btnSmall;
 
   background-color: @light-grey;
-  border: 1px solid @blue;
+  .thin-bordered(@blue);
 
   .vertical-gradient-image(@lighter-grey, @light-grey, @button-edit-image);
 }
 button.button-edit-small:hover { 
   background-color: @lighter-grey;
-  border: 1px solid @blue;
+  .thin-bordered(@blue);
 
   .vertical-gradient-image(@white, @light-grey, @button-edit-image);
 }
