@@ -1,0 +1,49 @@
+
+.tree div.tree-node {
+  /*border: 1px solid black;*/
+  margin-left: 20px;
+}
+
+.tree div.collapsed div.tree-node {
+  display: none;
+}
+
+.tree div.node-name {
+  cursor: pointer;
+  padding: 4px;
+}
+
+.tree div.node-content:HOVER {
+  background: @light-grey !important;
+}
+
+.tree div.node-content:HOVER .node-btn {
+  display: block;
+}
+
+.tree div.node-btn {
+  padding: 2px;
+  cursor: pointer;
+  float: right;
+  text-align: right;
+  display: none;
+}
+
+
+div.selected span {
+   background: #dddddd !important;
+}
+
+
+
+div.tree-node div.node-name:BEFORE {
+   content: url(/static/tni-open.gif);
+}
+
+div.collapsed div.node-name:BEFORE {
+  content: url(/static/tni-closed.gif);
+}
+
+div.leaf-node div.node-name:BEFORE {
+   content: url(/static/tni-leaf.gif);
+}
