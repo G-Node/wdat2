@@ -42,16 +42,17 @@ WDAT.api.VTree = function(name, bus, events) {
   // event IDs
   this.events = {}
   for (var i in events) {
-    this.events[events[i]] = this.name + '-' + events[i];
+    this.events[events[i]] = this.name + '-' + events[i].toString();
   }
+  this.events['changed'] = this.name + '-changed';
 };
 
 // define trees methods in their own scope
 (function() {
 
   ELEM_TMPL = '<div class="tree-node collapsed"><div class="node-content">'
-            + '<div class="node-btn"></div><div class="node-name"></div>'
-            + '</div></div>';
+            + '<div class="node-icon"></div><div class="node-btn"></div>'
+            + '<div class="node-name"></div></div></div>';
   
   /* Add a new node to the tree.
    * 
@@ -83,6 +84,20 @@ WDAT.api.VTree = function(name, bus, events) {
       // is a leaf
       if (isLeaf)
         elem.addClass('leaf-node');
+      // fire expand events on click
+      if (this.events.more) {
+        var that = this;
+        elem.find('.node-icon').click(function() {
+          that.bus.publish(that.events.more, element);
+        });
+      }
+      // fire select event when clicking on the node content
+      if (this.events.sel) {
+        var that = this;
+        elem.find('.node-name').click(function() {
+          that.bus.publish(that.events.sel, element);
+        });
+      }
       // add element to the tree
       if (this.has(parent)) {
         var p = this._tree.find('#' + this._toId(parent)).first(); 
@@ -90,13 +105,6 @@ WDAT.api.VTree = function(name, bus, events) {
         p.removeClass('leaf-node');
       } else {
         this._tree.append(elem);
-      }
-      // fire select events on click
-      if (this.events.more) {
-        var that = this;
-        elem.find('.node-name').click(function() {
-          that.bus.publish(that.events.more, element);
-        });
       }
     }
     return element;
@@ -115,6 +123,55 @@ WDAT.api.VTree = function(name, bus, events) {
   WDAT.api.VTree.prototype.update = function(element) {
     var elem = this._tree.find('#' + this._toId(element) + ' .node-name');
     elem.text(element.name);
+  };
+  
+  /* Edit the name of an existing list element.
+   * 
+   * Parameter:
+   *  - element: String, Obj.  The elements to edit or the id of this 
+   *                           element.
+   *
+   *  - category: String       The category containing the element to edit.
+   * 
+   * Return value:
+   *   None
+   */
+  WDAT.api.VTree.prototype.edit = function(element, category) {
+    // find element by id
+    if (this.has(element)) {
+      var elem = $('#' + this._toId(element));
+      elem = elem.children('.node-content');
+      // save old element
+      var namediv = elem.children('.node-name').first();
+      var name = namediv.text();
+      namediv.empty();
+      var buttons = elem.children('.node-btn').first();
+      buttons.detach();
+      // create input and replace old content
+      var input = $('<input />').attr('type', 'text').attr('value', name);
+      namediv.append(input);
+      input.focus().select();
+      // listen on key events
+      var that = this;
+      input.keyup(function(e) {
+        if (e.keyCode == 13) {
+          // ENTER: submit changes
+          var newname = input.val();
+          namediv.empty().text(newname);
+          elem.prepend(buttons);
+          if (element.id)
+            element.name = newname;
+          else
+            element = {id: element, name: newname};
+          that.bus.publish(that.events.changed, element);
+        }
+        if (e.keyCode == 27) {
+          // ESC: restore old text
+          namediv.empty().text(name);
+          elem.prepend(buttons);
+        }
+      });
+    }
   };
 
   /* Remove a node and all his children from the tree.
@@ -148,10 +205,11 @@ WDAT.api.VTree = function(name, bus, events) {
   WDAT.api.VTree.prototype.select = function(element, single) {
     // get the element and its selection status
     var elem = this._tree.find('#' + this._toId(element));
+    elem = elem.children('.node-content');
     var selected = elem.is('.selected');
     // if single, then unselect all
     if (single) {
-      this._tree.find('.tree-node').each(function() {
+      this._tree.find('.node-content').each(function() {
         $(this).removeClass('selected');
       });
     }
@@ -166,7 +224,7 @@ WDAT.api.VTree = function(name, bus, events) {
   WDAT.api.VTree.prototype.expand = function(element, single) {
     // get the element and its selection status
     var elem = this._tree.find('#' + this._toId(element));
-    //if (!elem.is('leaf-node')) {
+    if (!elem.is('leaf-node')) {
       var collapsed = elem.is('.collapsed');
       // if single, then unselect all
       if (single) {
@@ -176,9 +234,9 @@ WDAT.api.VTree = function(name, bus, events) {
       }
       elem.toggleClass('collapsed', !collapsed);
       return !collapsed;
-    //} else {
-    //  return true;
-    //}
+    } else {
+      return true;
+    }
   };
 
 
@@ -192,10 +250,11 @@ WDAT.api.VTree = function(name, bus, events) {
    *    True if the element or the id exists in that tree, false otherwise.
    */
   WDAT.api.VTree.prototype.has = function(element) {
-    if (element != null && element.id && this._tree.find('#' + this._toId(element.id)).length > 0)
+    if (element != null && this._tree.find('#' + this._toId(element)).length > 0) {
       return true;
-    else
+    } else {
       return false;
+    }
   };
   
   /* Returns the element that contains the tree as a jQuery object.
@@ -216,8 +275,7 @@ WDAT.api.VTree = function(name, bus, events) {
     var that = this;
     return function(event, data) {
       if (data.id)
-        that.select(data.id);
-      $('.event-log').first().append(event + ': ' + data.id);
+        that.select(data.id, true);
     };
   };
 
@@ -231,7 +289,6 @@ WDAT.api.VTree = function(name, bus, events) {
     return function(event, data) {
       if (data.id)
         that.expand(data.id);
-      $('.event-log').first().append(event.toString() + ': ' + data.id);
     };
   };
 
@@ -269,8 +326,8 @@ WDAT.api.VTree = function(name, bus, events) {
     if (element.id) {
       for ( var i in this.events) {
         var label = i.toString();
-        if (i !== 'more') {
-          if ($.inArray(label, ['del', 'add', 'edit', 'sel']) >= 0)
+        if ($.inArray(label, ['more', 'sel', 'changed']) < 0) {
+          if ($.inArray(label, ['del', 'add', 'edit']) >= 0)
             label = label + '-small';
           var b = new WDAT.api.Button(label, this.bus, this.events[i], null, element);
           btns.push(b.toJQ());
@@ -285,8 +342,8 @@ WDAT.api.VTree = function(name, bus, events) {
    */
   WDAT.api.VTree.prototype._toId = function(id) {
     var result = null;
-    if (id !== null) {
-      if (id.id)
+    if (id != null && id != undefined) {
+      if (id['id'])
         result = this.name + '-' + id.id.toString();
       else
         result = this.name + '-' + id.toString();

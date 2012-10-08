@@ -1,49 +1,55 @@
 
-.tree div.tree-node {
-  /*border: 1px solid black;*/
+.tree .tree-node .tree-node {
   margin-left: 20px;
 }
 
-.tree div.collapsed div.tree-node {
+.tree .collapsed .tree-node {
   display: none;
 }
 
-.tree div.node-name {
+.tree .node-content {
   cursor: pointer;
-  padding: 4px;
 }
 
-.tree div.node-content:HOVER {
+.tree .node-content:HOVER {
   background: @light-grey !important;
 }
 
-.tree div.node-content:HOVER .node-btn {
-  display: block;
+.tree .selected {
+  background: @light-blue;
 }
 
-.tree div.node-btn {
-  padding: 2px;
-  cursor: pointer;
+.tree .node-icon, .node-name {
+  padding: @smallcushion;
+}
+
+.tree .node-btn {
+  padding: @smallcushion / 2;
   float: right;
   text-align: right;
   display: none;
 }
 
-
-div.selected span {
-   background: #dddddd !important;
+.tree .node-content:HOVER .node-btn {
+  display: block;
 }
 
-
-
-div.tree-node div.node-name:BEFORE {
-   content: url(/static/tni-open.gif);
+.tree .node-icon {
+  float: left;
+  background-image: url(/static/tni-open.png);
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 18px;
+  height: 18px;
 }
 
-div.collapsed div.node-name:BEFORE {
-  content: url(/static/tni-closed.gif);
-}
+.tree .collapsed .node-icon { background-image: url(/static/tni-closed.png); }
 
-div.leaf-node div.node-name:BEFORE {
-   content: url(/static/tni-leaf.gif);
-}
+.tree .leaf-node .node-icon { background-image: url(/static/tni-leaf.png); }
+
+.tree .node-icon:HOVER { background-image: url(/static/tni-hover-open.png); }
+
+.tree .collapsed .node-icon:HOVER { background-image: url(/static/tni-hover-closed.png); }
+
+.tree .leaf-node .node-icon:HOVER { background-image: url(/static/tni-hover-leaf.png); }
+
