@@ -19,9 +19,9 @@
       $(".event-log").first().append("<p>event fired: " + args + "</p>");
     };
 
-    var log_toggle = function(event, state, args) {
+    var log_toggle = function(event, evData) {
       $(".event-log").first().append("<p>toggled: from " +
-          (state?"more":"less") + "; eventData: " + args + "</p>");
+          (evData.state) + "; eventData:</p>");
     };
 
     bus.subscribe('foo', log);
