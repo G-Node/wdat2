@@ -8,25 +8,30 @@ if (!window.WDAT.api) window.WDAT.api = {};
  * the tree can be expanded and collapsed. Further nodes can be appended and removed from
  * the tree.
  * 
- * Internally the tree is represented by nested div elements. Each div contains a span 
- * element as the textual representation of the node. 
+ * Internally the tree is represented by nested div elements. 
  * 
- * <div id="1" class="tree-node [collapsed]">
- *     <span>Node Label Root</span>
- *     <div id="2" class="tree-node [tree-leaf]"><span>Node Label 2</span></div>
- *     ...
+ * <div class="tree-node [collapsed]">
+ *    <div class="node-content [selected]">'
+ *        <div class="node-icon"></div>
+ *        <div class="node-btn"></div>
+ *        <div class="node-name"></div>
+ *    </div>
+ *    [children]
  * </div>
  * 
  * Parameters: 
- *  - name: String     Individual name/id for the list (optional). 
+ *  - name: String/Obj    Name/ID for this individual tree or a jQuery object representing
+ *                        an empty div that will be used as the container for the tree.
  *  
- *  - bus: EventBus   A bus handling events.
+ *  - bus: EventBus       A bus handling events.
  * 
- *  - select: String   The event to fire if an element should be selected. If select is
- *            a falsy value, the list doesn't provide selection.
+ *  - select: Array       Array with event names that the tree will provide.
+ *                        Common events are 'del', 'add', 'edit' and 'sel'.
+ *                        Events for changes ('changed') and expand/collapse ('more')
+ *                        will be added if not present in the event array.
  * 
  * Depends on: 
- *  - jQuery, WDAT.util.EventBus
+ *  - jQuery, WDAT.api.EventBus, WDAT.api.Button
  */
 WDAT.api.VTree = function(name, bus, events) {
   // initialize name and tree body (_tree)
@@ -44,7 +49,11 @@ WDAT.api.VTree = function(name, bus, events) {
   for (var i in events) {
     this.events[events[i]] = this.name + '-' + events[i].toString();
   }
-  this.events['changed'] = this.name + '-changed';
+  // add mandatory events
+  if (!events['changed'])
+    this.events['changed'] = this.name + '-changed';
+  if (!events['more'])
+    this.events['more'] = this.name + '-more';
 };
 
 // define trees methods in their own scope
@@ -54,20 +63,22 @@ WDAT.api.VTree = function(name, bus, events) {
             + '<div class="node-icon"></div><div class="node-btn"></div>'
             + '<div class="node-name"></div></div></div>';
   
-  /* Add a new node to the tree.
+  /* Add a new node to the tree. Elements of the tree are represented as a
+   * object that must at least contain a property 'name'. If this object has 
+   * also a property 'id' this will be used as an identifier. Otherwise a unique
+   * id will be chosen.   
    * 
    * Parameter:
-   *  - parent_id: String    The id of the parent node, if this is a falsy value or the
-   *              name of the tree the new node will be inserted at the root
-   *              of the tree.
+   *  - element: Obj        The element to add to the tree.
    *  
-   *  - id: String      The id of the new node, if this is null a unique id will
-   *              be created.
-   *  
-   *  - data: String      The textual representation of the node.
-   *  
-   *  - isleaf: Bool      Is the new node a leaf or a node (optional default true)?    
+   *  - parent: String/Obj  The is of the parent or the parent object. When null the
+   *                        new element will be added to the root of the tree (optional).
+   *                        
+   *  - isLeaf: Boolean     Indicates if the element should be displayed as a leaf node.
+   *                        Leaf nodes don't fire expand/collapse events.
    * 
+   * Return value:
+   *    The element added to the tree.
    */
   WDAT.api.VTree.prototype.add = function(element, parent, isLeaf) {
     // check for existence
@@ -88,7 +99,8 @@ WDAT.api.VTree = function(name, bus, events) {
       if (this.events.more) {
         var that = this;
         elem.find('.node-icon').click(function() {
-          that.bus.publish(that.events.more, element);
+          if (!elem.is('.leaf-node'))
+            that.bus.publish(that.events.more, element);
         });
       }
       // fire select event when clicking on the node content
@@ -113,12 +125,10 @@ WDAT.api.VTree = function(name, bus, events) {
   /* Update the textual representation of a node.
    * 
    * Parameter:
-   *  - id: String    The id of the node to update.
-   *  
-   *  - data: String    The new textual representation of the node.
+   *  - element: Obj      The element to update.
    *  
    * Return value:
-   *  - None
+   *    None
    */
   WDAT.api.VTree.prototype.update = function(element) {
     var elem = this._tree.find('#' + this._toId(element) + ' .node-name');
@@ -130,13 +140,11 @@ WDAT.api.VTree = function(name, bus, events) {
    * Parameter:
    *  - element: String, Obj.  The elements to edit or the id of this 
    *                           element.
-   *
-   *  - category: String       The category containing the element to edit.
    * 
    * Return value:
-   *   None
+   *    None
    */
-  WDAT.api.VTree.prototype.edit = function(element, category) {
+  WDAT.api.VTree.prototype.edit = function(element) {
     // find element by id
     if (this.has(element)) {
       var elem = $('#' + this._toId(element));
@@ -177,30 +185,29 @@ WDAT.api.VTree = function(name, bus, events) {
   /* Remove a node and all his children from the tree.
    * 
    * Parameter:
-   *  - id: String    The id of the node to remove.
-   *  
-   *  - setleaf: Bool    Should the parent be marked as a leaf node if it no longer 
-   *            has any children? (optional, default false)
-   *  
+   *  - element: String, Obj.  The elements to edit or the id of this 
+   *                           element.
+   * 
    * Return value:
-   *  - None
+   *    None
    */
   WDAT.api.VTree.prototype.remove = function(element) {
     var elem = this._tree.find('#' + this._toId(element));
     elem.remove();
   };
 
-  /* Select a specific leaf of the tree. Nodes that don't 
-   * are marked as leafs can't be selected.
+  /* Select a specific leaf of the tree. If the element is already selected
+   * it will be deselected.
    * 
    * Parameter:
-   *  - id: String    The id of the node to be selected.
-   *  
-   *  - single: Boolean  If true all other currently selected nodes are
-   *            deselected.
+   *  - element: String, Obj.  The elements to select or the id of this 
+   *                           element.
+   *
+   *  - single: Boolean        If true all other currently selected nodes are
+   *                           deselected.
    * 
    * Return value:
-   *  - None
+   *    True if now selected, false otherwise.
    */
   WDAT.api.VTree.prototype.select = function(element, single) {
     // get the element and its selection status
@@ -218,8 +225,18 @@ WDAT.api.VTree = function(name, bus, events) {
   };
 
 
-  /*
+  /* Expand a specific leaf of the tree. If the element is already expanded it will
+   * be collapsed.
    * 
+   * Parameter:
+   *  - element: String, Obj.  The elements to expand or the id of this 
+   *                           element.
+   *
+   *  - single: Boolean        If true all other currently expanded nodes are
+   *                           collapsed.
+   * 
+   * Return value:
+   *    True if now expanded false otherwise.
    */
   WDAT.api.VTree.prototype.expand = function(element, single) {
     // get the element and its selection status
@@ -235,7 +252,7 @@ WDAT.api.VTree = function(name, bus, events) {
       elem.toggleClass('collapsed', !collapsed);
       return !collapsed;
     } else {
-      return true;
+      return false;
     }
   };
 
