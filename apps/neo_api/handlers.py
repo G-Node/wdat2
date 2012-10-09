@@ -126,23 +126,30 @@ class MetadataHandler(BaseHandler):
         message_type = "no_metadata_found"
         resp_data = {}
 
-        if objects and hasattr(objects[0], 'metadata_buffer'):
+        if objects and hasattr(objects[0], 'metadata_buffer_ids'):
             value_model = self.model.metadata.field.rel.to
             prop_model = value_model.parent_property.field.rel.to
 
-            values = objects[0].metadata_buffer # m2m should be loaded by default
-            full_values = value_model.objects.get_related( objects = values )
+            kwargs = {}
+            # loading related values (m2m should be loaded by default)
+            kwargs["local_id__in"] = objects[0].metadata_buffer_ids
+            values = value_model.objects.filter( **kwargs )
+            ser_values = self.serializer.serialize(values, options=self.options)
 
-            props = [v.parent_property for v in full_values]
-            full_props = prop_model.objects.get_related( objects = props )
+            # mmap is a list of pairs (<value_id>, <property_id>)
+            mmap = value_model.objects.filter( **kwargs ).values_list('local_id',\
+                'parent_property_id')
+
+            # loading properties
+            kwargs["local_id__in"] = [v.parent_property_id for v in values]
+            props = prop_model.objects.filter( **kwargs )
+            ser_props = self.serializer.serialize(props, options=self.options)
 
             pairs = []
-            for v in full_values:
-                for_ser = [p for p in full_props if p.id == v.parent_property.id]
-                ser_prop = self.serializer.serialize(for_ser, options=self.options)[0]
-                ser_val = self.serializer.serialize([v], options=self.options)[0]
-
-                pairs.append([ser_prop, ser_val])
+            for i in mmap:
+                v = [x for x in ser_values if x['fields']['local_id'] == i[0]][0]
+                p = [x for x in ser_props if x['fields']['local_id'] == i[1]][0]
+                pairs.append([ p , v ])
             resp_data["metadata"] = pairs
             message_type = "metadata_found"
 
