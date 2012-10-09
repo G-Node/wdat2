@@ -52,8 +52,8 @@ WDAT.api.VList = function(name, bus, events, categories) {
   if (categories) {
     for ( var i in categories) {
       var cat = categories[i];
-      var tab = $('<table><tr class="list-cat"><th class="list-cat-name"></th>'
-              + '<th class="list-cat-btn"></th></tr></table>');
+      var tab = $('<ul><lh class="list-cat"><span class="list-cat-name"></span>'
+                + '<span class="list-cat-btn"></span></lh></ul>');
       tab.attr('id', this.name + '-' + cat);
       tab.find('.list-cat-name').first().append(cat);
       this._list.append(tab);
@@ -66,7 +66,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
       }
     }
   }
-  tab = $('<table></table>');
+  tab = $('<ul></ul>');
   tab.attr('id', this.name + '-default');
   this._list.append(tab);
   this.categories['default'] = tab;
@@ -75,11 +75,11 @@ WDAT.api.VList = function(name, bus, events, categories) {
 // Define the methods of in their own scope
 (function() {
   // Private template for new list elements
-  ELEM_TMPL = '<tr class="list-elem">'
-          + '<td><span class="list-elem-name"></span><span class="list-elem-info"></span>'
-          + '<div class="list-elem-data hidden"></div></td>'
-          + '<td class="list-elem-btn"></td></tr>';
-
+  var ELEM_TMPL = '<li class="list-elem"><div class="list-elem-btn"></div>' 
+                + '<div class="list-elem-content"><span class="list-elem-name"></span>' 
+                + '<span class="list-elem-info"></span></div>'
+                + '<div class="list-elem-data hidden"></div></li>';
+  
   // method definition
 
   /* Add a new element to the list. If the element doesn't has id, a unique identifier
@@ -214,31 +214,40 @@ WDAT.api.VList = function(name, bus, events, categories) {
    *   None
    */
   WDAT.api.VList.prototype.edit = function(element, category) {
+    var cat;
+    // get category if present
+    if (category && this.categories[category])
+      cat = this.categories[category];
+    else
+      cat = this._list;
     // find element by id
-    var elem = $('#' + this._toId(element));
+    var elem = cat.find('#' + this._toId(element));
     // save old element
-    var oldelem = elem.find('td').first();
-    var oldname = elem.find('.list-elem-name').first();
-    oldelem.detach();
-    var buttons = elem.find('td').last();
-    buttons.detach();
+    var btndiv = elem.children('.list-elem-btn');
+    btndiv.detach();
+    var contdiv = elem.children('.list-elem-content');
+    var name = contdiv.children('.list-elem-name').text();
+    contdiv.detach();
     // create input and replace old content
-    var input = $('<input />').attr('type', 'text').attr('value', oldname.text());
-    elem.append($('<td />').append(input)).append($('<td />'));
+    var indiv = $('<div><input type="text" value="" /></div>');
+    var input = indiv.children('input').attr('value', name);
+    elem.prepend(indiv);
     input.focus().select();
     // listen on key events
     input.keyup(function(e) {
       if (e.keyCode == 13) {
         // ENTER: submit changes
-        var newname = input.val();
-        oldname.text(newname);
-        elem.empty().append(oldelem);
-        elem.append(buttons);
+        name = input.val();
+        contdiv.children('.list-elem-name').text(name);
+        indiv.remove();
+        elem.prepend(contdiv);
+        elem.prepend(btndiv);
       }
       if (e.keyCode == 27) {
         // ESC: restore old text
-        elem.empty().append(oldelem);
-        elem.append(buttons);
+        indiv.remove();
+        elem.prepend(contdiv);
+        elem.prepend(btndiv);
       }
     });
   };
@@ -303,7 +312,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Parameter:
    *  - element: String, Obj.  The elements to expand or the id of this 
    *                           element.
-   *                           
+   * 
    *  - category: String       The category containing the element to expand.
    *  
    *  - single: Bool           Set to true if the expanded element should be the 
@@ -369,7 +378,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
     var that = this;
     return function(event, data) {
       if (data.id)
-        that.expand(data.id, null, true);
+        that.expand(data.id, null, false);
     };
   };
 
