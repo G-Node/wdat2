@@ -30,11 +30,11 @@ if (!window.WDAT.api) window.WDAT.api = {};
  *        Signature of subscribers: function(event, eventData);
  *
  *        Signature of subscribers for toggle functions:
- *            function(event, more_state, eventData);
+ *            function(event, eventData);
  *            
- *            Here, more_state is a boolean. True if button was more when
- *            clicked.  False if button was less when clicked.  
- *
+ *            Here, eventData.state is a string.  Either 'more' or 'less'
+ *            depending on which action the user intended.
+ *            
  *      null:  Do nothing when clicked.
  *
  *      Additional notes:  A toggle button (label = 'more-small' or
@@ -99,6 +99,9 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   // determine the type
   var typecmp = label.toLowerCase();
 
+  // add a reference to current instance
+  var that = this;
+
   // Add labels and classes based solely on the type
   if (typecmp === 'add') {
     this._type = 'add';
@@ -126,29 +129,15 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
     this.button.addClass('button-edit-small');
   }
   else if (typecmp === 'more-small' || typecmp === 'less-small') {
-    var that = this
-      , state = typecmp.split('-')[0];
+    var state = typecmp.split('-')[0];
 
-    // Flag to check whether currently in more condition or not
+    // Flag to check whether currently in more condition or not.  This flag is
+    // important since it is the only thing that separates a toggle button from
+    // a normal button.  Used later in the event handlers to figure out the
+    // state of the button.
     this.more_state = (state === 'more');
 
     this.button.addClass('button-' + state + '-small');
-
-    this.button.click(function() {
-        // Handle events directly, within this callback.  For details, note
-        // [async-event] below.
-        if (bus) {
-          bus.publish(click, that.more_state, eventData);
-        }
-
-        // Update the model
-        that.more_state = !that.more_state;
-
-        // Update the UI
-        that.button.toggleClass('button-more-small', that.more_state);
-        that.button.toggleClass('button-less-small', !that.more_state);
-
-    });
   }
   else if (typecmp === 'ok') {
     this._type = 'ok';
@@ -179,26 +168,41 @@ WDAT.api.Button = function(label, bus, click, className, eventData) {
   // register events
   this._bus = bus;
   this._click = click;
+  this._eventData = eventData;
 
   if (bus) {
     if (typeof this._click === "function") {
       // This is a callback
       this.button.click(this._click);
-    } else if (typeof click === "string") {
-      evbus = this._bus;
+    }
+    else if ( typeof click === "string" ) {
+      if (this.more_state !== undefined) {
+        // This is a toggle button, append that information to eventData
+        if (this._eventData === undefined) {
+          this._eventData = {};
+        }
+      } 
 
-      if (this.more_state === undefined) {
-        /* Publish an event only if this is a non-toggle button.  Toggle
-         * buttons maintain their own states and hence handle their own event
-         * publications.
-         *
-         * [Note][async-event]: It may seem that we could have exposed the
-         * state of the toggle button and handled eventing here.  The problem
-         * with that is the asynchronous nature of $.click() ( and the
-         * browser's event handling). There could be a race condition.  Th
-         */
-        this.button.click(function() { evbus.publish(click, eventData); }); } }
-  } };
+      this.button.click(function() { 
+        /* Within this function, 'that' represents a reference to the Button
+         * object for this button */
+        if (that.more_state !== undefined) {
+          that._eventData.state = (that.more_state === true) ? 'more' : 'less';
+
+          // Update the model
+          that.more_state = !that.more_state;
+
+          // Update the UI
+          that.button.toggleClass('button-more-small', that.more_state);
+          that.button.toggleClass('button-less-small', !that.more_state);
+
+        }
+
+        that._bus.publish(click, that._eventData);
+      });
+    }
+  } 
+};
 
 // Implementing buttons methods in their own scope. 
 (function() {
