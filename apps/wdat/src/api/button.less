@@ -122,65 +122,69 @@ button.button-edit:hover { .btnBlueHover; }
 button.button-add-small {
   .btnSmall;
 
-  background-color: @light-grey;
-  .thin-bordered(@green);
-
-  .vertical-gradient-image(@lighter-grey, @light-grey, @button-add-image);
+  background-color: @mid-grey;
+  .background-image(@button-add-image);
 }
 button.button-add-small:hover { 
-  background-color: @lighter-grey;
-  .thin-bordered(@green);
-
-  .vertical-gradient-image(@white, @light-grey, @button-add-image);
+  background-color: @green;
+  .background-image(@button-add-image);
 }
 
 button.button-del-small {
   .btnSmall;
 
-  background-color: @light-grey;
-  .thin-bordered(@red);
-
-  .vertical-gradient-image(@lighter-grey, @light-grey, @button-del-image);
+  background-color: @mid-grey;
+  .background-image(@button-del-image);
 }
 button.button-del-small:hover { 
-  background-color: @lighter-grey;
-  .thin-bordered(@red);
-
-  .vertical-gradient-image(@white, @light-grey, @button-del-image);
+  background-color: @red;
+  .background-image(@button-del-image);
 }
 
 button.button-sel-small {
   .btnSmall;
 
-  background-color: @light-grey;
-  .thin-bordered(@blue);
-
-  .vertical-gradient-image(@lighter-grey, @light-grey, @button-sel-image);
+  background-color: @mid-grey;
+  .background-image(@button-sel-image);
 }
 button.button-sel-small:hover { 
-  background-color: @lighter-grey;
-  .thin-bordered(@blue);
-
-  .vertical-gradient-image(@white, @light-grey, @button-sel-image);
+  background-color: @blue;
+  .background-image(@button-sel-image);
 }
 
 button.button-edit-small {
   .btnSmall;
 
-  background-color: @light-grey;
-  .thin-bordered(@blue);
-
-  .vertical-gradient-image(@lighter-grey, @light-grey, @button-edit-image);
+  background-color: @mid-grey;
+  .background-image(@button-edit-image);
 }
 button.button-edit-small:hover { 
-  background-color: @lighter-grey;
-  .thin-bordered(@blue);
-
-  .vertical-gradient-image(@white, @light-grey, @button-edit-image);
+  background-color: @blue;
+  .background-image(@button-edit-image);
 }
 
-button.button-more-small { .btnGreen; padding: 1.5 * @smallcushion; }
-button.button-more-small:hover { .btnGreenHover; padding: 1.5 * @smallcushion;}
+button.button-more-small { 
+  .btnGreen; 
+  padding: 1.5 * @smallcushion; 
+  height: 12px; 
+  width: 12px;
+}
+button.button-more-small:hover { 
+  .btnGreenHover; 
+  padding: 1.5 * @smallcushion;
+  height: 12px; 
+  width: 12px;
+}
 
-button.button-less-small { .btnRed; padding: 1.5 * @smallcushion;}
-button.button-less-small:hover { .btnRedHover; padding: 1.5 * @smallcushion;}
+button.button-less-small { 
+  .btnRed;
+  padding: 1.5 * @smallcushion;
+  height: 12px; 
+  width: 12px;
+}
+button.button-less-small:hover { 
+  .btnRedHover;
+  padding: 1.5 * @smallcushion;
+  height: 12px; 
+  width: 12px;
+}

@@ -22,8 +22,8 @@
   background-image:-webkit-gradient(linear, right top, right bottom, color-stop(0%, @c1), color-stop(100%, @c2));
 }
 
-.vertical-gradient-image(@c1, @c2, @image) {
-  background-image:url('/@{image}'), -moz-linear-gradient(top, @c1 0%, @c2 100%);
+.background-image(@image) {
+  background-image:url('/@{image}');
 }
 
 .rounded-corners(@radius: @borderradius) {
