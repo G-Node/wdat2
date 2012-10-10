@@ -58,6 +58,24 @@ def available_fk_fields( model ):
     reserved = reserved_field_names( model )
     return [ f for f in model._meta.local_fields if not f.name in reserved and f.rel ]
 
+def create_simple_objects():
+    ser = NEOSerializer()
+    ser.host = "http://testhost.org"
+    sample_objects = {}
+    for cls in meta_classnames.values():
+        objs = cls.objects.get_related( local_id=1 )
+        sobj = ser.serialize( objs )[0]['fields']
+
+        # non-editable fields
+        names = reserved_field_names( objs[0] )
+        # reversed relations
+        names += [l for l in sobj.keys() if (l.find("_set") == len(l) - 4)]
+        for i in names:
+            if sobj.has_key(i):
+                sobj.pop( i ) # remove reserved fields
+        sample_objects[ objs[0].obj_type ] = sobj
+    return sample_objects
+
 
 class TestUnauthorized(TestCase):
     # TODO update that to test all the objects
@@ -133,22 +151,7 @@ class TestGeneric(TestCase):
 
         # populate test JSON NEO object bodies if not done yet, create objects
         if self.sample_objects is None:
-            ser = NEOSerializer()
-            ser.host = "http://testhost.org"
-            sample_objects = {}
-            for cls in meta_classnames.values():
-                objs = cls.objects.get_related( local_id=1 )
-                sobj = ser.serialize( objs )[0]['fields']
-
-                # non-editable fields
-                names = reserved_field_names( objs[0] )
-                # reversed relations
-                names += [l for l in sobj.keys() if (l.find("_set") == len(l) - 4)]
-                for i in names:
-                    if sobj.has_key(i):
-                        sobj.pop( i ) # remove reserved fields
-                sample_objects[ objs[0].obj_type ] = sobj
-            self.sample_objects = sample_objects
+            self.sample_objects = create_simple_objects()
 
             # step 1. Create original objects ( test CREATE )
             # must be here to create objects for other tests
@@ -325,6 +328,7 @@ class TestSecurity(TestCase):
     def setUp(self):
         logged_in = self.client.login(username="joe", password="pass")
         self.assertTrue(logged_in)
+        self.sample_objects = create_simple_objects()
 
     def test_access_alien(self):
         for key in self.sample_objects.keys():

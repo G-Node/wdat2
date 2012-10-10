@@ -215,14 +215,19 @@ class BaseHandler(object):
                 objects = filter_func(objects, self.options[key], user)
 
         if self.attr_filters: # include django lookup filters
-
-            # convert to list if needed
             for key, value in self.attr_filters.items():
-                if key.find('__in') > 0 and type(value) == type(''):
+                # using local_id instead of id due to versioning
+                new_key = key
+                if str( key[ : key.find('__')] ) == 'id':
+                    new_key = key.replace('id', 'local_id')
+                    self.attr_filters[ new_key ] = self.attr_filters.pop(key)
+
+                # convert to list if needed
+                if new_key.find('__in') > 0 and type(str(value)) == type(''):
                     new_val = value.replace('[', '').replace(']', '')
                     new_val = new_val.replace('(', '').replace('])', '')
                     
-                    self.attr_filters[key] = [int(v) for v in new_val.split(',')]
+                    self.attr_filters[new_key] = [int(v) for v in new_val.split(',')]
             objects = objects.filter(**self.attr_filters)
 
         # permissions filter:
