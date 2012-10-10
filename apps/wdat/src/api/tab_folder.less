@@ -1,1 +1,43 @@
 /* ---------- file: tab_folder.less ---------- */
+
+.tab-folder ul.tab-navigation {
+  .vertical-padding(@smallcushion - 2);
+  .horizontal-padding(0);
+  margin: 0px;
+  list-style: none;
+  display: block;
+  /*border: 1px solid green;*/
+}
+
+.tab-folder .tab-navigation li {
+  .vertical-padding(@smallcushion);
+  .horizontal-padding(@cushioning * 2);
+  margin: 0;
+  border-top: 1px solid @bordercolor;
+  border-right: 1px solid @bordercolor;
+  display: inline;
+  background-color: @lighter-grey;
+}
+
+.tab-folder .tab-navigation li:FIRST-CHILD {
+  border-left: 1px solid @bordercolor;
+}
+
+.tab-folder .tab-navigation li.selected {
+  background-color: white;
+}
+
+.tab-folder .tab-navigation li span {
+  text-decoration: none;
+  margin: 0px;
+}
+
+
+.tab-folder .tab-content {
+  display:none;
+}
+
+.tab-folder div.selected {
+  display: block;
+  border: 1px solid @bordercolor;
+}

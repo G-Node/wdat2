@@ -59,12 +59,13 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
       this._folder.append(tab);
       // create control if needed and append tab
       if (this._control) {
-        var cont = $('<li></li>').attr('id', this._toControlId(id)).text(name);
+        var cont = $('<li></li>').text(name).attr('id', this._toControlId(id));
         var that = this;
         cont.click(function() { that.bus.publish(that.event, id); });
         this._control.append(cont);
       }
       // select last element
+      this.select(id);
       return id;
     //} else {
     //  return null;
@@ -76,8 +77,8 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
     this._folder.children('.tab-content').removeClass('selected');
     this._folder.children('#' + this._toId(id)).addClass('selected');
     if (this._control) {
-      this.control.children('li').removeClass('selected');
-      this.control.children('#' + this._toControlId(id)).addClass('selected');
+      this._control.children().removeClass('selected');
+      this._control.children('#' + this._toControlId(id)).addClass('selected');
     }
   };
   
