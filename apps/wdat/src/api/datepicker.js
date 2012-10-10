@@ -98,6 +98,7 @@ WDAT.api.DatePicker = function (textbox) {
 
     $(this._textbox).val(datestring);
     this.toggle(false);
+    $(this._textbox).keyup(); // To detect changes on the values
     $(this._textbox).focus();
   };
 
