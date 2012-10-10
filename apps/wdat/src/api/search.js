@@ -49,7 +49,7 @@ WDAT.api.VSearchBar = function(name, bus) {
   // On focus, adjust classes and value
   $(this._textbox).focus(function(){
       // First, add query-active class to querydiv
-      $(this._querydiv).toggleClass('query-active', true);
+      $(that._querydiv).toggleClass('query-active', true);
 
       // Update classes and values for textbox
       if (this.value === SEARCH_PLACEHOLDER) {
@@ -61,7 +61,7 @@ WDAT.api.VSearchBar = function(name, bus) {
   // On blur, adjust classes and value
   $(this._textbox).blur(function() {
       // First, remove query-active class to querydiv
-      $(this._querydiv).toggleClass('query-active', false);
+      $(that._querydiv).toggleClass('query-active', false);
 
       // Update classes and values for textbox
       if (this.value === '') {
