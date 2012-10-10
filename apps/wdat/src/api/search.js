@@ -134,11 +134,17 @@ WDAT.api.VSearchBar = function(name, bus) {
       , tr, datewidget, datepicker;
 
     var TROW_TEMPLATE = '<tr><td class="label"></td><td class="widget"></td></tr>';
-  
+ 
+    // Animal textbox
+    tr = $(TROW_TEMPLATE);
+    tr.find('td.label').append($('<label for="search-adv-project">Project</label>'));
+    tr.find('td.widget').append($('<input type=text id="search-adv-project" class="search-adv fixedwidth"></input>'));
+    $(advtable).append(tr);
+ 
     // Animal textbox
     tr = $(TROW_TEMPLATE);
     tr.find('td.label').append($('<label for="search-adv-animal">Animal</label>'));
-    tr.find('td.widget').append($('<input type=text id="search-adv-animal" class="search-adv"></input>'));
+    tr.find('td.widget').append($('<input type=text id="search-adv-animal" class="search-adv fixedwidth"></input>'));
     $(advtable).append(tr);
 
     // Created textbox
