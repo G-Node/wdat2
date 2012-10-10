@@ -156,8 +156,11 @@ class TestGeneric(TestCase):
             for obj_type, obj in self.sample_objects.items():
                 ids[obj_type] = []
                 for i in range(3): # create a few objects
-                    response = self.client.post("/neo/%s/" % obj_type, \
-                        json.dumps(obj, cls=DjangoJSONEncoder), content_type="application/json")
+                    try:
+                        response = self.client.post("/neo/%s/" % obj_type, \
+                            json.dumps(obj, cls=DjangoJSONEncoder), content_type="application/json")
+                    except AttributeError:
+                        print obj_type, obj
                     self.assertEqual(response.status_code, 201, \
                         "Obj type %s; response: %s" % (obj_type, response.content))
                     # save object ids for later

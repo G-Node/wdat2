@@ -66,12 +66,15 @@ class NEOHandler(BaseHandler):
         if not objects: return None
 
         tags = {}
-        if m2m_dict.has_key('metadata') and not (self.options.has_key('cascade') and \
+        if m2m_dict.has_key('metadata') and m2m_dict['metadata'] and not \
+            (self.options.has_key('cascade') and \
                 not self.options['cascade']):
+
+            model = objects[0].__class__ # any better way?
             tags = {'metadata': m2m_dict['metadata']}
-            obj_with_related = objects.model.objects.fetch_fks( objects = objects )
+            obj_with_related = model.objects.fetch_fks( objects = objects )
             rels = [(f.model, f.model().obj_type + "_set") for f in \
-                objects.model._meta.get_all_related_objects() if not \
+                model._meta.get_all_related_objects() if not \
                 issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
 
             # recursively update children
