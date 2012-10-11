@@ -67,6 +67,8 @@ WDAT.api.VSearchBar = function(name, bus) {
       if (this.value === '') {
         $(this).toggleClass('placeholder', true);
         this.value = SEARCH_PLACEHOLDER;
+      } else { 
+        $(this).toggleClass('placeholder', false);
       }
   });
 
