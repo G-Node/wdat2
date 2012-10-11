@@ -4,9 +4,17 @@
 if (!window.WDAT) window.WDAT = {};
 if (!window.WDAT.api) window.WDAT.api = {};
 
-/* Constructor for the class VTabFolder. A tab folder is a 
+/* Constructor for the class VTabFolder. A tab folder can display one of multiple
+ * contents (tabs) inside a defined area. The folder provides functionality to switch 
+ * between all tabs and to remove and add tabs.
  * 
  * Parameters: 
+ *  - namme: String, Obj.     The id of the list or a jQuery object.
+ *  
+ *  - bus: EventBus           Bus handling events.
+ *  
+ *  - hasControl: boolean     If true the tab folder shows controls that allow to switch
+ *                            between tabs. 
  * 
  * Depends on: 
  *  - jQuery, WDAT.api.EventBus
@@ -59,7 +67,9 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
       if (this._control) {
         var cont = $('<li></li>').text(name).attr('id', this._toControlId(id));
         var that = this;
-        cont.click(function() { that.bus.publish(that.event, id); });
+        cont.click(function() {
+          that.bus.publish(that.event, id);
+        });
         this._control.append(cont);
       }
       // select last element
@@ -69,9 +79,19 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
       return null;
     }
   };
-  
-  /*
+
+  /* Replace the content of an existing tab.
    * 
+   * Parameter:
+   *  - tab: jQuery       jQuery object representing a block element as
+   *                      the content of the tab.
+   *
+   *  - id: String        Individual identifier for the of the tab.
+   *  
+   *  - name: String      A human readable name used in the tab control bar (optional).
+   * 
+   * Return value:
+   *    None
    */
   WDAT.api.VTabFolder.prototype.update = function(tab, id, name) {
     if (id && this._folder.children('#' + this._toId(id)).length > 0) {
@@ -87,11 +107,16 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
         var cont = this._control.children('#' + this._toControlId(id));
         cont.text(name);
       }
-    } 
+    }
   };
-  
-  /*
+
+  /* Rmove an existing tab.
    * 
+   * Parameter:
+   *  - id: String        Individual identifier for the of the tab.
+   *
+   * Return value:
+   *    None
    */
   WDAT.api.VTabFolder.prototype.remove = function(id) {
     if (id && this._folder.children('#' + this._toId(id)).length > 0) {
@@ -105,14 +130,19 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
       if (this._control) {
         var cont = this._control.children('#' + this._toControlId(id));
         cont.remove();
-        if (selected) 
+        if (selected)
           this._control.children().first().addClass('selected');
       }
-    } 
+    }
   };
 
-  /*
+  /* Select the tab to display.
    * 
+   * Parameter:
+   *  - id: String        Individual identifier for the of the tab.
+   *
+   * Return value:
+   *    None
    */
   WDAT.api.VTabFolder.prototype.select = function(id) {
     // deselect all other tabs
@@ -124,15 +154,20 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
     }
   };
 
-  var _handler = null;
+  /* Default select handler for selection events fired by the control panel.
+   * 
+   * Return value:
+   *    None
+   */
+  var _shandler = null;
   WDAT.api.VTabFolder.prototype.selectHandler = function() {
-    if (_handler === null) {
+    if (_shandler === null) {
       var that = this;
-      _handler = function(event, data) {
+      _shandler = function(event, data) {
         that.select(data);
       };
     }
-    return _handler;
+    return _shandler;
   };
 
   /* Helper function for the creation of unique ids.
@@ -145,10 +180,10 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
         result = this.name + '-' + id.id.toString();
       else
         result = this.name + '-' + id.toString();
-    } 
+    }
     return result;
   };
-  
+
   /* Helper function for the creation of unique ids.
    * For internal use only.
    */
@@ -159,7 +194,7 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
         result = this.name + '-control-' + id.id.toString();
       else
         result = this.name + '-control-' + id.toString();
-    } 
+    }
     return result;
   };
 

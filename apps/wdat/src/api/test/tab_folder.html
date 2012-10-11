@@ -21,8 +21,8 @@
     folder.add($('<div>One</div>'), 'one', 'Tab One');
     folder.add($('<div>Two</div>'), 'two', 'Tab Two');
     folder.add($('<div>Three</div>'), 'three', 'Tab Three');
-    folder.add($('<div>Foo</div>'), 'foo', 'Tab Three');
-    folder.update($('<div>Foo2</div>'), 'foo', 'Tab Three v2');
+    folder.add($('<div>Foo</div>'), 'foo', 'Tab Foo');
+    folder.update($('<div>Foo2</div>'), 'three', 'Tab Three v2');
     folder.remove('foo');
     bus.subscribe(folder.event, folder.selectHandler());
   };
