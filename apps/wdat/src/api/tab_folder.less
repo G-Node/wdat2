@@ -1,22 +1,32 @@
 /* ---------- file: tab_folder.less ---------- */
 
 .tab-folder ul.tab-navigation {
-  .vertical-padding(@smallcushion - 2);
+  .vertical-padding(@smallcushion - 1px);
   .horizontal-padding(0);
   margin: 0px;
+  font-size: @baseFontSize + 2px;
   list-style: none;
   display: block;
-  /*border: 1px solid green;*/
+}
+
+.tab-folder div.tab-content {
+  display:none;
+}
+
+.tab-folder div.selected {
+  display: block;
+  border: 1px solid @bordercolor;
 }
 
 .tab-folder .tab-navigation li {
   .vertical-padding(@smallcushion);
   .horizontal-padding(@cushioning * 2);
-  margin: 0;
   border-top: 1px solid @bordercolor;
   border-right: 1px solid @bordercolor;
-  display: inline;
+  border-bottom: 1px solid @bordercolor;
   background-color: @lighter-grey;
+  display: inline;
+  cursor: pointer;
 }
 
 .tab-folder .tab-navigation li:FIRST-CHILD {
@@ -24,20 +34,11 @@
 }
 
 .tab-folder .tab-navigation li.selected {
+	border-bottom: 1px solid white;
   background-color: white;
 }
 
 .tab-folder .tab-navigation li span {
   text-decoration: none;
   margin: 0px;
-}
-
-
-.tab-folder .tab-content {
-  display:none;
-}
-
-.tab-folder div.selected {
-  display: block;
-  border: 1px solid @bordercolor;
 }

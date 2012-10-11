@@ -18,13 +18,13 @@
   var init = function() {
     var bus = new WDAT.api.EventBus(); 
     var folder = new WDAT.api.VTabFolder($('#tf-1'), bus, true);
-    folder.add($('<div>One</div>'), 'one', 'One');
-    folder.add($('<div>Two</div>'), 'two', 'Two');
-    folder.add($('<div>Foo</div>'), 'foo', 'FOO');
-    bus.subscribe(folder.event, function(event, data) {
-      $(".event-log").append(folder.event + ': ' + data + '<br>');
-      folder.select(data);
-    });
+    folder.add($('<div>One</div>'), 'one', 'Tab One');
+    folder.add($('<div>Two</div>'), 'two', 'Tab Two');
+    folder.add($('<div>Three</div>'), 'three', 'Tab Three');
+    folder.add($('<div>Foo</div>'), 'foo', 'Tab Three');
+    folder.update($('<div>Foo2</div>'), 'foo', 'Tab Three v2');
+    folder.remove('foo');
+    bus.subscribe(folder.event, folder.selectHandler());
   };
   $(window).load(init);
 </script>
