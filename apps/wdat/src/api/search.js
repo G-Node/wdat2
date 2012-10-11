@@ -4,7 +4,28 @@
 if (!window.WDAT) window.WDAT = {};
 if (!window.WDAT.api) window.WDAT.api = {};
 
-/* VSearchBar. */
+/* VSearchBar.  Constructor.
+ *
+ * Implements a search bar that has facilities for advanced search parameters.
+ * Search parameters are finally condensed into a single searchString that is
+ * used to make the query.  Advanced options are in the form of a drop-down
+ * panel.
+ *
+ * Parameters:
+ *  - name: String, obj.  The name of the search bar or a jQuery object into
+ *                        which to introduce the search bar.
+ *
+ *  - bus: EventBus       Bus to which we publish events for autocompletion and
+ *                        search invocation
+ *  Note: 
+ *    autocomplete has not been implemented yet because it is difficult to
+ *    imagine the servers responses and work it out.  When the development of
+ *    the main application starts, implementing autocomplete should be top
+ *    priority. 
+ *
+ *  Depends on:
+ *    jQuery, WDAT.util.EventBus, WDAT.api.Button
+ * */
 
 WDAT.api.VSearchBar = function(name, bus) {
   var SEARCH_PLACEHOLDER = "Search..."
