@@ -17,6 +17,10 @@ if (!window.WDAT.api) window.WDAT.api = {};
  *
  *  - bus: EventBus       Bus to which we publish events for autocompletion and
  *                        search invocation
+ *
+ *  Events: 
+ *    'SearchFired': when a search is fired, arguments are the queryString 
+ *
  *  Note: 
  *    autocomplete has not been implemented yet because it is difficult to
  *    imagine the servers responses and work it out.  When the development of
