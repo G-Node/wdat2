@@ -1,4 +1,4 @@
-// ------------------ file: search_bar.js ---------//
+// ------------------ file: search.js ---------//
 
 // Initialize the module WDAT.widgets if it doesn't exist.
 if (!window.WDAT) window.WDAT = {};
