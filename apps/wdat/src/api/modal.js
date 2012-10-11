@@ -4,7 +4,58 @@
 if (!window.WDAT) window.WDAT = {};
 if (!window.WDAT.api) window.WDAT.api = {};
 
-/* VModal.  Constructor */
+/* VModal.  Constructor 
+ *
+ * Parameters:
+ *   - name : string or jQuery object 
+ *        If string, the modal window is given this id.  The glasspane is given
+ *        the id (name + '-glasspane').  Events are of the form 
+ *            'ModalToggle-' + name
+ *
+ *   - bus : EventBus
+ *        The bus to publish toggle events on
+ *
+ *   - eventData: Object
+ *        Additional data to be passed to the subscribers for toggle events
+ *
+ *  Eventing:
+ *   When the modal window is either shown or hidden, an event 
+ *       "ModalToggle-" + name 
+ *   is fired.  The eventData object for this publication contains a 'visible'
+ *   flag which is true if the modal is visible after the event was fired and
+ *   false otherwise.
+ *
+ *
+ *  Important Methods:
+ *    - toggle(forceShow)
+ *        Return : none;
+ *        toggle displaying the modal.  forceShow set to true ensures that the
+ *        window is shown.  forceShow set to false ensures that the window is
+ *        not shown.
+ *
+ *    - hide() show()
+ *        Return : none;
+ *        self-explanatory.  Also used by the toggle() function to animate the
+ *        window and glasspane.
+ *
+ *    - getModal()
+ *        Return : jQuery object;
+ *        returns a jQuery object encapsulating the modal div.  This is used to
+ *        populate the modal window in the calling application.
+ *
+ *  NOTE: this class defines no predefined way to dismiss a modal window.  This
+ *  is left to the calling application.  A dismiss action may be invoked by
+ *  simply calling 
+ *
+ *     m.toggle(false); 
+ *
+ *  where m is the VModal object.  This is done because there is no clear cut
+ *  dismiss action.  Some modals may require the selection of an option, some
+ *  may require an extra close button, etc.  This is left completely to the
+ *  client application.  So please, do remember to add a dismissive action. 
+ *
+ *  Depends: jQuery, EventBus
+ */
 WDAT.api.VModal = function (name, bus, eventData) {
   var that = this;
 
