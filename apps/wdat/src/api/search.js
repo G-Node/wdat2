@@ -157,35 +157,103 @@ WDAT.api.VSearchBar = function(name, bus) {
     }
   };
 
+  /* buildSearchString() : build a search string from all the advanced options
+   * and writes it to the textbox.  Also, publishes a "SearchStringChanged"
+   * event which has the string as part of the eventData object.
+   */
+  WDAT.api.VSearchBar.prototype.buildSearchString = function () {
+    var options = $('.search-adv')
+      , i, searchString = "", keywords, property, value, operator, checkop;
+
+    keywords = this.keywords;
+
+    for (i=0; i<options.length; i++) {
+      // This extracts after 'search-adv'
+      property = $(options[i]).attr('id').substring(11); 
+      value = $(options[i]).val();
+
+      if (value === '') {
+        // Simply go to the next thing
+        continue;
+      }
+
+      checkop = value.charAt(0);
+      operator = '=';
+
+      if (checkop === '>' || checkop === '<' || checkop === '=') {
+        // If the value specifies an operator, don't use the default
+        operator = '';
+      }
+
+      searchString += '--' + property + operator + value  + ' ';
+    }
+
+    searchString = keywords + searchString;
+
+    // Update the value in the main search box
+    $(this._textbox).val(searchString);
+
+    // To tell all listeners that there has been a changes
+    $(this._textbox).blur(); 
+  };
+
   /* Create the advanced pane options.  This has been cordoned off to its own
    * function to make things easier to manage.  The constructor need not be so
    * concerned with the details of the advanced pane.
    */
   WDAT.api.VSearchBar.prototype.createAdvancedPanel = function () {
-    var advpanel = this._advpanel
+    var that = this
+      , advpanel = this._advpanel
       , advtable = $('<table class="form"></table>')
-      , tr, datewidget, datepicker;
+      , tr, inp, datewidget, datepicker;
 
     var TROW_TEMPLATE = '<tr><td class="label"></td><td class="widget"></td></tr>';
  
-    // Animal textbox
+    /* Note: Since all the inputs have the same class 'search-adv', it would
+     * probably make more sense to handle events on a '.search-adv' selector.
+     * The not-so-obvious problem with this approach is that selection and
+     * invocation can only be done after the DOM has been fully manipulated.
+     * Since that time cannot be easily adjudged, each input element has been
+     * made into a jQuery object and handled separately.
+     *
+     *
+     * Note: The inputs have their ids as 'search-adv-' followed by the
+     * respective opiton that will be in the search string.  Eg.  
+     * the input search-adv-project will be embedded in the search string as 
+     * "--project=<<value>>".  Take care when you are adding new inputs.
+     */
+
+    var changeCallback = function () {
+      // Is called on all keyup or blur events on the input controls.
+      that.buildSearchString();
+    };
+
+    // Project textbox
     tr = $(TROW_TEMPLATE);
+    inp =  $('<input type=text id="search-adv-project" class="search-adv fixedwidth"></input>');
     tr.find('td.label').append($('<label for="search-adv-project">Project</label>'));
-    tr.find('td.widget').append($('<input type=text id="search-adv-project" class="search-adv fixedwidth"></input>'));
+    tr.find('td.widget').append(inp);
+    $(inp).keyup(changeCallback);
+    $(inp).blur(changeCallback);
     $(advtable).append(tr);
  
     // Animal textbox
     tr = $(TROW_TEMPLATE);
+    inp = $('<input type=text id="search-adv-animal" class="search-adv fixedwidth"></input>');
     tr.find('td.label').append($('<label for="search-adv-animal">Animal</label>'));
-    tr.find('td.widget').append($('<input type=text id="search-adv-animal" class="search-adv fixedwidth"></input>'));
+    tr.find('td.widget').append(inp);
+    $(inp).keyup(changeCallback);
+    $(inp).blur(changeCallback),
     $(advtable).append(tr);
 
     // Created textbox
     tr = $(TROW_TEMPLATE);
-    datewidget = $('<input type=text id="search-adv-created"></input>');
+    datewidget = $('<input class="search-adv" type=text id="search-adv-created"></input>');
     tr.find('td.label').append($('<label for="search-adv-created">Created (date)</label>'));
     tr.find('td.widget').append(datewidget);
     datepicker = new WDAT.api.DatePicker(datewidget);
+    $(datewidget).keyup(changeCallback);
+    $(datewidget).blur(changeCallback);
     $(advtable).append(tr);
 
     $(advpanel).append(advtable);
