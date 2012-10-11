@@ -65,10 +65,10 @@ WDAT.api.VSearchBar = function(name, bus) {
   this._container.append(this._advpanel);
 
   // Create the go button
-  var gobutton = new WDAT.api.Button('Go', this.lBus, 'go', 'blue');
-  gobutton.toJQ().addClass('go');
+  this.gobutton = new WDAT.api.Button('Go', this.lBus, 'go', 'blue');
+  this.gobutton.toJQ().addClass('go');
 
-  this._container.append(gobutton.toJQ());
+  this._container.append(this.gobutton.toJQ());
 
   // On focus, adjust classes and value
   $(this._textbox).focus(function(){
@@ -132,6 +132,28 @@ WDAT.api.VSearchBar = function(name, bus) {
   // On 'AdvancedButtonClick' on local bus, toggle the advpanel
   this.lBus.subscribe('AdvancedButtonClick', function () {
       that.toggleAdvanced();
+  });
+
+  // Handle submit-like events,  <Enter> or Go
+  var makeQuery = function () {
+    // switch off the advanced panel.
+    that.toggleAdvanced(false);
+
+    var query = $(that._textbox).val();
+    if (query === SEARCH_PLACEHOLDER) {
+      query = '';
+    }
+
+    that.bus.publish('SearchFired', query);
+  };
+
+  $(this.gobutton.toJQ()).click(function (){
+    makeQuery();
+  });
+  $(this._textbox).keydown(function(e) {
+    if (e.which === 13) { // Enter keycode
+      makeQuery(); 
+    }
   });
 
   // Prepare the advanced panel

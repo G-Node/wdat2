@@ -21,9 +21,14 @@
     <script type="text/javascript">
       var init = function () {
         var bus = new WDAT.api.EventBus() 
-          , s = new WDAT.api.VSearchBar('search-1', bus); 
+          , s = new WDAT.api.VSearchBar('search-1', bus)
+          , log = function (event, args) {
+            $('.event-log').first().append('<p>Event fired: ' + args + '</p>');
+          };
 
         $('.container').append(s.toJQ());
+
+        bus.subscribe('SearchFired', log);
       };
 
       $(window).load(init);
@@ -33,6 +38,7 @@
     <h1>Search Bar Test</h1>
     <div class="container" ></div>
     <h3>Event Log</h3>
+    <div class="event-log"></div>
   </body>
 </html>
 
