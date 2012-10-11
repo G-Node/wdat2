@@ -20,6 +20,9 @@ WDAT.api.VSearchBar = function(name, bus) {
     this.name = name.attr('id');
   }
 
+  // To ensure that there is some query string
+  this.keywords = ''; 
+
   // There is a requirement for a global bus as well as a local bus.
   this.bus = bus;
   this.lBus = new WDAT.api.EventBus();
@@ -70,6 +73,34 @@ WDAT.api.VSearchBar = function(name, bus) {
       } else { 
         $(this).toggleClass('placeholder', false);
       }
+
+      // Publish KeywordsChanged event.
+      that.lBus.publish('KeywordsChanged', this.value);
+  });
+
+  // On losing focus, trigger calc. of the keywords part of the search string.
+  this.lBus.subscribe('KeywordsChanged', function (event, value) {
+    var queryString = value, keywords 
+      , pos = queryString.indexOf('--');
+
+    if (queryString.length === 0) {
+      keywords = '';
+      return;
+    }
+    
+    if (pos !== -1) {
+      // Switches present in queryString
+      keywords = queryString.substr(0, pos);
+    } else {
+      keywords = queryString;
+    }
+
+    // Pad with trailing spaces if not already done.
+    if (keywords[keywords.length-1] !== ' ') {
+      keywords += ' ';
+    }
+
+    that.keywords = keywords;
   });
 
   // On clicking the advanced button, emit an event on the localbus
