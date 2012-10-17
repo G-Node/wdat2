@@ -87,7 +87,7 @@ WDAT.api.VBreadCrumb = function(name, bus) {
    * Return value:
    *    None
    */
-  WDAT.api.VBreadCrumb.prototype.remove = function(pos = 0) {
+  WDAT.api.VBreadCrumb.prototype.remove = function(pos) {
     var elements = this._navi.children();
     if (!pos)
       pos = 0;
