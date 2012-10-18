@@ -26,7 +26,7 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
   this._bus = bus;
   // create a worker
   if (Worker) {    // if worker is defined in the browser
-    w = new Worker('../data/data_api.js.worker');
+    w = new Worker('../../src/api/data/data_api.js.worker');
     this._worker = w;
     // send worker init message
     var init = {'resource': resource, 'adapter': adapter, 'action': 'init', 'event': 'init-event'};
