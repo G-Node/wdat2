@@ -7,8 +7,8 @@ importScripts('network_resource.js', 'resource_adapter.js');
 if (!WDAT) var WDAT = {};
 
 // Create resource and adapter
-WDAT.resource = new WDAT.api.data.NetworkResource();
-WDAT.adapter  = new WDAT.api.data.ResourceAdapter();
+// WDAT.resource = new WDAT.api.data.NetworkResource();
+// WDAT.adapter  = new WDAT.api.data.ResourceAdapter();
 
 // Create the worker routine that handles all messages send to the worker
 // The message is expected to have the following structure (see data_api.js)
@@ -19,10 +19,14 @@ WDAT.handle_message = function(msg) {
   // crate a result
   var result = {};
   switch (msg.action) {
+    case 'init':
+      WDAT.resource = new WDAT.api.data[msg.resource]();
+      WDAT.adapter  = new WDAT.api.data[msg.adapter]();
+      result.data = "Worker initialized!";
+      break;
     case 'get':
-      result.data = "Worker get OK!";
-      //result.data = WDAT.resource.get(msg.type, msg.data);
-      //result.data = WDAT.adapter.adapt(msg.data);
+      result.data = WDAT.resource.get(msg.type, msg.data);
+      result.data = WDAT.adapter.adapt(result.data);
       break;
     case 'update':
       break;

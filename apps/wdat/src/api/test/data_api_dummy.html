@@ -18,9 +18,7 @@
 <script type="text/javascript">
   var init = function() {
     var bus = new WDAT.api.EventBus();
-    var resource = new WDAT.api.data.NetworkResource();
-    var adapter  = new WDAT.api.data.ResourceAdapter();
-    var data_api = new WDAT.api.data.DataAPI(resource, adapter, bus);
+    var data_api = new WDAT.api.data.DataAPI('NetworkResource', 'ResourceAdapter', bus);
     bus.subscribe('data-api-get-event', function(event, data) {
       $('.event-log').append('data-api-get-event: ' + data + '<br>');
     });

@@ -14,9 +14,9 @@ WDAT.api.data.ResourceAdapter = function(resource, adapter, bus) {
 // define methods of ResourceAdapter
 (function(){
   
-  /* Dummy get method.
+  /* Dummy adapt method.
    */
-  WDAT.api.data.ResourceAdapter.prototype.get = function(data) {
+  WDAT.api.data.ResourceAdapter.prototype.adapt = function(data) {
     return data;
   };
 

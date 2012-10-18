@@ -17,7 +17,7 @@ WDAT.api.data.NetworkResource = function(resource, adapter, bus) {
   /* Dummy get method.
    */
   WDAT.api.data.NetworkResource.prototype.get = function(type, searchparam) {
-    return "Cool NetworkResource data.";
+    return "Network resource test 'get()' OK.";
   };
 
 }());

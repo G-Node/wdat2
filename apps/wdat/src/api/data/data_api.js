@@ -8,27 +8,29 @@ if (!window.WDAT.api.data) window.WDAT.api.data = {};
 /* DataAPI is a interface to access a data source.
  * 
  * Parameter:
- *  - resource: NetworkResource     A class name connector to a network resource that 
- *                                  allows standardized access to data and metadata.
+ *  - resource: String          Class name of a network resource, the constructor must be 
+ *                              defined in the file 'network_resource.js' and has to be in the
+ *                              module WDAT.api.data. 
  *
- *  - adapter: ResourceAdapter      A data converter, that allows the conversion
- *                                  of data provided by the resource into a format
- *                                  usable for WDAT.
+ *  - adapter: String           Class name for a resource adapter, the constructor must be 
+ *                              defined in the file 'resource_adapter.js' and has to be in the
+ *                              module WDAT.api.data. 
  *
- *  - bus: EventBus                 A bus used for event driven data access.
+ *  - bus: EventBus             A bus used for event driven data access.
  *  
  * Depends On:
- *  - jQuery, WDAT.api.EventBus, WDAT.api.data.NetworkResource
- *    WDAT.api.data.ResourceAdapter
+ *  - jQuery, WDAT.api.EventBus and the used resource and adapter class.
  */
 WDAT.api.data.DataAPI = function(resource, adapter, bus) {
-  this._resource = resource;
-  this._adapter = adapter;
+  // set message bus
   this._bus = bus;
   // create a worker
   if (Worker) {    // if worker is defined in the browser
     w = new Worker('../data/data_api.js.worker');
     this._worker = w;
+    // send worker init message
+    var init = {'resource': resource, 'adapter': adapter, 'action': 'init', 'event': 'init-event'};
+    w.postMessage(init);
     // callback for messages from the worker
     var that = this;
     w.onmessage = function(msg) {
@@ -43,6 +45,9 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
     };
   } else {         // if not defined set to false 
     this._worker = false;
+    // create resource and adapter from class names
+    this._resource = WDAT.api.data[resource]();
+    this._adapter = WDAT.api.data[adapter]();
   }
 };
 
