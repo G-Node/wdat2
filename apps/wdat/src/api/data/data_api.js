@@ -27,11 +27,14 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
   this._bus = bus;
   // create a worker
   if (Worker) {    // if worker is defined in the browser
-    w = new Worker('data_api.js.worker');
+    w = new Worker('../data/data_api.js.worker');
     this._worker = w;
     // callback for messages from the worker
+    var that = this;
     w.onmessage = function(msg) {
-      this._notifyRequest(msg.event, msg.data);
+      // the original message from the worker is wrapped in a message 
+      // object and contained in msg.data
+      that._notifyRequest(msg.data.event, msg.data.data);
     };
     // callback for errors inside the worker
     w.onerror = function(err) {
@@ -59,6 +62,17 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
     }
   };
   
+  /*
+   * 
+   */
+  WDAT.api.data.DataAPI.prototype.test = function(event) {
+    if (this._worker) { // if Worker is available just notify it
+      this._notifyWorker(event, 'test');
+    } else { // if Worker is not available we have to do this here 
+      this._notifyRequest(event, 'Worker are not available in your browser!');
+    }
+  };
+  
   /* Notifies the worker.
    * 
    * Wraps parameter in one object:
@@ -82,7 +96,7 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
    * 
    */
   WDAT.api.data.DataAPI.prototype._notifyRequest = function(event, data) {
-    this.bus.publish(event, data);
+    this._bus.publish(event, data);
   };
   
 }());
