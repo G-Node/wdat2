@@ -1,0 +1,43 @@
+//---------- file: data_api.js.worker ----------//
+
+// Avoid execution of the script in browsers that don't support
+// workers
+if (Worker) {
+
+  // Import scripts for resource and adapter
+  importScipts('network_resource.js', 'network_adapter.js');
+
+  // Define name space WDAT if not available (but it should be)
+  if (!WDAT) WDAT = {};
+  
+  // Create resource and adapter
+  WDAT.resource = new WDAT.api.data.NetworkResource();
+  WDAT.adapter  = new WDAT.api.data.ResourceAdapter();
+  
+  // Create the worker routine that handles all messages send to the worker
+  // The message is expected to have the following structure (see data_api.js)
+  // { event: <event>, action: <action>, type: <type>, data: <data> }
+  WDAT.handle_message = function(msg) {
+    var result = {};
+    switch (msg.action) {
+      case 'get':
+        result.data = WDAT.resource.get(msg.type, msg.data);
+        result.data = WDAT.adapter.adapt(msg.data);
+        break;
+      case 'update':
+        break;
+      case 'save':
+        break;
+      case 'delete':
+        break;
+      default:
+        result.data = "Worker Test OK";
+        break;
+    }
+    result.event = msg.event;
+    return result;
+  };
+  
+  // Attach worker routine to message events and notify the main thread
+  onmessage = function(msg) { postMessage(WDAT.handle_message(msg)); };
+}
