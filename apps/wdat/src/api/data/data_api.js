@@ -66,7 +66,36 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
 // DataAPI methods
 (function() {
   // Convenient reference to the prototype
-  var proto = WDAT.api.data.DataAPI.prototype;
+  var proto = WDAT.api.data.DataAPI.prototype
+    // Define NEO types
+    , metadata_types  = ['section', 'property', 'value']
+    , plotdata_types  = ['analogsignal', 'irsaanalogsignal', 'spike', 
+                         'spiketrain', 'event' ,'epoch']
+    , container_types = ['block', 'segment', 'eventarray', 'epocharray',
+                         'analogsignalarray', 'unit', 'recordingchannel',
+                         'recordingchannelgroup']
+    // A set of all types
+    , all_types = metadata_types.concat(plotdata_types, container_types);
+
+  /* Parse a specifier object and return a specifier object with a URL built
+   * up.  A URL is all that is, infact required to make a request.  There is no
+   * POST data.
+   */
+  proto.parseSpecifier = function (specifier) {
+    // Use window.location to create general URL skeleton
+    var loc = window.location
+      , url = loc.protocol + '//' + loc.host + '/electrophysiology/';
+
+    // If 'type' specified
+    if ( specifier.hasOwnProperty('type') ) {
+      if ( metadata_types.indexOf(specifier.type) != -1) {
+        // A metadata type has been specified
+        url = url + 'metadata/' + specifier.type;
+      }
+    }
+
+    return url;
+  };
 
   /* Sends out a request to either the worker thread or using the
    * NetworkResource object to fetch the object.  The object is then converted
@@ -82,6 +111,7 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
     // event     : event to publish when data has been adapted.  
     // specifier : an object specifying which objects to fetch.
   };
+
 })();
 
 
