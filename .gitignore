@@ -14,3 +14,9 @@ celeryconfig.py
 
 # Precompiled python
 *.pyc
+
+# js and css inside static (produced by makefile)
+apps/wdat/static/*.js
+apps/wdat/static/*.js.worker
+apps/wdat/static/*.css
+apps/wdat/static/*.less
