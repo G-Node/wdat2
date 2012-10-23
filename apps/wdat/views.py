@@ -6,12 +6,7 @@ def data(request):
     tp = loader.get_template('data.html')
     return HttpResponse(tp.render(con))
 
-def metadata(request):
+def test(request, file):
     con = RequestContext(request)
-    tp = loader.get_template('metadata.html')
-    return HttpResponse(tp.render(con))
-
-def plot(request):
-    con = RequestContext(request)
-    tp = loader.get_template('plot.html')
+    tp = loader.get_template('test/' + file + '.html')
     return HttpResponse(tp.render(con))
