@@ -1,14 +1,11 @@
-describe('Specifier Parsing Tests', function () {
+describe('URL Generation using object specifiers', function () {
   var bus = WDAT.api.EventBus()
-    , dapi_proto = WDAT.api.data.DataAPI.prototype;
-    
-  it('Should create a metadata type url for metadata type requests', function () {
-    var url1 = dapi_proto.parseSpecifier({'type': 'section'})
-      , url2 = dapi_proto.parseSpecifier({'type': 'property'})
-      , url3 = dapi_proto.parseSpecifier({'type': 'value'});
+    , dap = WDAT.api.data.DataAPI.prototype; // DataAPI prototype
 
-    expect(url1).toMatch(/metadata/);
-    expect(url2).toMatch(/metadata/);
-    expect(url3).toMatch(/metadata/);
+  it("Should return sensible URLs for *object* requests", function () {
+    var url = dap.parseSpecifier({'object': 'analogsignal_11', 
+      'some': 'other', 'parameters': 'that', 'will': 'just', 'be': 'passed'});
+
+    expect(url).toMatch(/\/analogsignal\/11\?some=other&parameters=that&will=just/);
   });
 });

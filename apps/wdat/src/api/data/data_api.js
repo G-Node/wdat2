@@ -75,9 +75,45 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
                          'analogsignalarray', 'unit', 'recordingchannel',
                          'recordingchannelgroup']
     // A set of all types
-    , all_types = metadata_types.concat(plotdata_types, container_types);
+    , all_types = metadata_types.concat(plotdata_types, container_types)
+    , mapping = {
+        'property': 'properties',
+        'section': 'sections',
+        'value': 'values'
+      };
 
-  /* Parse a specifier object and return a specifier object with a URL built
+  /* Builds a query string of a javscript object.  Works non-recursively and
+   * only on string type objects. */
+  var serializeToQueryString = function (dictionary) {
+    var str = [];
+    
+    for(var p in dictionary) {
+       str.push(encodeURIComponent(p) + "=" + encodeURIComponent(dictionary[p]));
+    }
+    return str.join("&");
+  };
+
+  /* Removes the object, type and parent attributes from a specifer and return
+   * the result.
+   */
+  var clean = function (specifier) {
+    var rtn = {}
+      , filter_re = /(object|parent|type)/;
+    
+    for (name in specifier) {
+      if ( !filter_re.test(name) ) {
+        rtn[name] = specifier[name];
+      }
+    }
+
+    return rtn;
+  };
+    
+
+  /* This is the workhorse function in the data-api.  Would it make more sense
+   * to push this to the woker thread?
+   *
+   * Parse a specifier object and return a specifier object with a URL built
    * up.  A URL is all that is, infact required to make a request.  There is no
    * POST data.
    */
@@ -86,15 +122,44 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
     var loc = window.location
       , url = loc.protocol + '//' + loc.host + '/electrophysiology/';
 
-    // If 'type' specified
-    if ( specifier.hasOwnProperty('type') ) {
-      if ( metadata_types.indexOf(specifier.type) != -1) {
-        // A metadata type has been specified
-        url = url + 'metadata/' + specifier.type;
+    // First, complete the specifier: with explicit inferred attributes
+    if ( !specifier.hasOwnProperty('type') ) {
+      // Well, the type attribute is necessary
+      if ( specifier.hasOwnProperty('object') ) {
+        // Infer type from object string
+        var splits = specifier.object.split('_');
+
+        if (splits.length > 1) {
+          specifier.type = splits[0];
+        }
       }
     }
 
-    return url;
+    // Handle url generation for object requests
+    if ( specifier.hasOwnProperty('object') ) {
+      if ( plotdata_types.indexOf(specifier.type) > -1 ) {
+        // Plottable object requests.  These are the only ones that need to be
+        // handled for object requests.
+        var id = specifier.object.split('_')[1]
+          , query_string = serializeToQueryString( clean(specifier) );
+
+
+        // Also respect the id of the object being requested
+        url += specifier.type + '/' + id + '?' + query_string; 
+
+        return url;
+      }
+    }
+
+    // Handle url generation for children requests
+    if ( specifier.type === 'children' ) {
+      var parent_type = specifier.parent.split('_')[0];
+
+      if ( container_types.indexOf(parent_type) > -1 ) {
+        // A list of all container children has been requested.
+        // TODO.  Discuss and figure out.
+      }
+    }
   };
 
   /* Sends out a request to either the worker thread or using the
