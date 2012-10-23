@@ -160,6 +160,8 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
         // TODO.  Discuss and figure out.
       }
     }
+
+    return 'mock-url';
   };
 
   /* Sends out a request to either the worker thread or using the
