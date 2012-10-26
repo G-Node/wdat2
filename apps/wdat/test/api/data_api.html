@@ -22,20 +22,25 @@
       , log = function (event, args) {
         $('.event-log').first().append('<p>Data received: ' + args + '</p>');
       }
+      , button = new WDAT.api.Button('Send Request')
       , dapi = new WDAT.api.data.DataAPI('GNodeNetworkResource', 'GNodeResourceAdapter', bus);
 
     bus.subscribe('data-rec', log);
 
-    // Get an object
-    dapi.get('data-rec', {'object': 'analogsignal_11'});
+    $('.controls').append(button.toJQ());
+
+    $( button.toJQ() ).click(function() {
+      dapi.get('data-rec', {'object': 'analogsignal_11'});
+    });
   };
 
   $(window).load(init);
 </script>
 </head>
-<body>
+<body style="padding-left: 10px;">
   <h1>DataAPI Test</h1>
-  <div class="event-log" style="padding-left: 40px"></div>
+  <div class="controls"></div>
+  <div class="event-log" style="padding-left: 10px"></div>
 </body>
 </html>
 
