@@ -22,19 +22,28 @@ if (!WDAT) var WDAT = {};
 if (!WDAT.api) WDAT.api = {};
 if (!WDAT.api.data) WDAT.api.data = {};
 
-/* Dummy network resource.
- */
-WDAT.api.data.NetworkResource = function() {
-  // nothing to be done here
+WDAT.api.data.GNodeNetworkResource = function() {
+  this.XHR = new XMLHttpRequest();
 };
 
 // define methods of NetworkResource
 (function(){
-  
-  /* Dummy get method.
+  var proto = WDAT.api.data.GNodeNetworkResource.prototype;
+
+  /* Async method.  Isn't expected to return any value.  Just call the callback
+   * function with the response code as the first argument and the response
+   * text as the second.
    */
-  WDAT.api.data.NetworkResource.prototype.get = function(type, searchparam) {
-    return "Network resource test 'get()' OK.";
+  proto.get = function(url, callback) {
+    if ( typeof(url) !== 'string' ) {
+      throw ("WDAT.api.data.NetworkResource.get() expects a string as an URL.");
+    }
+    if (!callback) {
+      throw ("WDAT.api.data.NetworkResource.get() expects a callback as the second arg.");
+    }
+
+    // XXX request the object.
+    callback( '200', '{"asdf":"Jklk"}' );
   };
 
 }());

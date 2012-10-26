@@ -22,18 +22,17 @@ if (!WDAT) var WDAT = {};
 if (!WDAT.api) WDAT.api = {};
 if (!WDAT.api.data) WDAT.api.data = {};
 
-/* Dummy resource adapter.
- */
-WDAT.api.data.ResourceAdapter = function() {
+WDAT.api.data.GNodeResourceAdapter = function() {
   // nothing to be done here
+  this.x = 'y';
 };
 
 // define methods of ResourceAdapter
 (function(){
-  
-  /* Dummy adapt method.
-   */
-  WDAT.api.data.ResourceAdapter.prototype.adapt = function(data) {
+  /* Adapt the data returned via an XHR connection.  Note: this is a
+   * synchronous command and returns the adapted object.*/
+  WDAT.api.data.GNodeResourceAdapter.prototype.adapt = function(data) {
+    // XXX Write the adapter
     return data;
   };
 

@@ -24,16 +24,28 @@ if (!window.WDAT.api.data) window.WDAT.api.data = {};
  * Depends On:
  *  - jQuery, WDAT.api.EventBus and the used resource and adapter class.
  */
+
 WDAT.api.data.DataAPI = function(resource, adapter, bus) {
   this._bus = bus;
 
   // Suffix the javascript file name to this address
-  var _js_directory = '../../src/api/data/';
+  var _js_directory = '../../src/api/data/',
+      that = this; // reference to the current object
 
   // Create the worker if defined in the browser
   if (Worker) {
     w = new Worker(_js_directory + 'data_api.worker.js');
     this._worker = w;
+
+    var messageHandler = function (event) {
+      // Since there is a wrapping event object
+      var message = event.data;
+
+      if (message.status === '200') {
+        // Call the publish event on the DataAPI._bus object
+        that._bus.publish(message.event, message.data);
+      }
+    }
 
     // Create an initialization message
     var init = {
@@ -41,14 +53,13 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
       'adapter'  : adapter,
       'action'   : 'init',
       'event'    : 'init-event'
-    }, 
-        that = this; // reference to the current object
+    }; 
 
     // Send the initialization message to the worker thread
-    w.postMessage(init);
+    w.postMessage( JSON.stringify(init) );
 
     // Handle messages returned from the worker
-    w.onmessage = that.messageHandler;
+    w.onmessage = messageHandler;
 
     // Handle error messages from the worker
     w.onerror = that.errorHandler;
@@ -177,7 +188,21 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
   proto.get = function (event, specifier) {
     // event     : event to publish when data has been adapted.  
     // specifier : an object specifying which objects to fetch.
+    var url = this.parseSpecifier(specifier);
+   
+    if (this._worker) {
+      // Compose the message
+      var message = {
+        'event'  : event, 
+        'action' : 'get',
+        'url'    : url
+      };
+
+      // Post the message to the worker thread
+      this._worker.postMessage(message);
+    }
   };
+
 
 })();
 
