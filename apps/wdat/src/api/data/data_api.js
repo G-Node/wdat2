@@ -172,10 +172,8 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
     return 'mock-url';
   };
 
-  /* Sends out a request to either the worker thread or using the
-   * NetworkResource object to fetch the object.  The object is then converted
-   * suitably by the worker thread itself or in its absence, by this function
-   * itself into an adapted object.
+  /* Requests for the data based on the __SPECIFIER__, adapts the data and
+   * raises *event* when complete passing on the adapted object as a parameter.
    *
    * Returns:  nothing
    *
@@ -186,21 +184,35 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
     // event     : event to publish when data has been adapted.  
     // specifier : an object specifying which objects to fetch.
     var url = this.parseSpecifier(specifier);
-   
+
+    this.getByURL(event, url);
+  };
+
+
+  /* Requests for the data based on the __URL__, adapts the data and raises
+   * *event* when complete passing on the adapted object as a parameter.
+   *
+   * Returns:  nothing
+   *
+   * SideEffect:  When the object has been downloaded and adapted, the event is
+   * published.  The object is appended to the list.
+   */
+  proto.getByURL = function(event, url) {
+    // event : event to publish when data has been adapted.
+    // url   : the url to which to send requests.
     if (this._worker) {
       // Compose the message
       var message = {
-        'event'  : event, 
-        'action' : 'get',
-        'url'    : url
+        'event' : event,
+        'action': 'get',
+        'url'   : url
       };
 
       // Post the message to the worker thread
       this._worker.postMessage(message);
     }
+    // XXX Non-worker environment
   };
-
-
 })();
 
 
