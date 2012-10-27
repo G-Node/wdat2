@@ -34,14 +34,14 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
 
   // Create the worker if defined in the browser
   if (Worker) {
-    w = new Worker(_js_directory + 'data_api.worker.js');
+    w = new Worker(_js_directory + 'data_api.worker.js?no=cache' + Math.random());
     this._worker = w;
 
     var messageHandler = function (event) {
       // Since there is a wrapping event object
       var message = event.data;
 
-      if (message.status === '200') {
+      if (message.status === 200) {
         // Call the publish event on the DataAPI._bus object
         that._bus.publish(message.event, message.data);
       }
@@ -58,11 +58,8 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
     // Send the initialization message to the worker thread
     w.postMessage( JSON.stringify(init) );
 
-    // Handle messages returned from the worker
-    w.onmessage = messageHandler;
-
-    // Handle error messages from the worker
-    w.onerror = that.errorHandler;
+    // Handle messages success and failure returned from the worker
+    w.onmessage = w.onerror = messageHandler; 
   } else {
     // The browser doesn't support Workers, gracefully fallback to single
     // thread operations. TODO

@@ -2,7 +2,8 @@
 
 
 // Import scripts for resource and adapter
-importScripts('network_resource.js', 'resource_adapter.js');
+importScripts( 'network_resource.js?no=cache' + Math.random(), 
+               'resource_adapter.js?no=cache' + Math.random() );
 
 // Define name space WDAT if not available (but it should be because of importScripts())
 if (!WDAT) var WDAT = {};

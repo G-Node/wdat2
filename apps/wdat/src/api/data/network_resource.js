@@ -35,6 +35,16 @@ WDAT.api.data.GNodeNetworkResource = function() {
    * text as the second.
    */
   proto.get = function(url, callback) {
+    var that = this,
+        transferComplete = function(event) {
+          callback(that.XHR.status,
+                   that.XHR.responseText);
+          
+          // Remove event listner, because the callback function may differ
+          // across calls to get();
+          that.XHR.removeEventListener('load', transferComplete);
+        };
+
     if ( typeof(url) !== 'string' ) {
       throw ("WDAT.api.data.NetworkResource.get() expects a string as an URL.");
     }
@@ -42,8 +52,9 @@ WDAT.api.data.GNodeNetworkResource = function() {
       throw ("WDAT.api.data.NetworkResource.get() expects a callback as the second arg.");
     }
 
-    // XXX request the object.
-    callback( '200', '{"asdf":"Jklk"}' );
+    this.XHR.open('GET', url, true);
+    this.XHR.addEventListener('load', transferComplete);
+    this.XHR.send();
   };
 
 }());
