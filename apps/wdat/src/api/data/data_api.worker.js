@@ -32,20 +32,38 @@ WDAT.api.data.workerRoutine = function(msg_data) {
       WDAT.api.data.adapter  = new WDAT.api.data[msg_data.adapter]();
       break;
     case 'get':
-      // handle get requests here
+      // handle get requests here. The message will contain either 'url' or
+      // 'specifier' not both. Note, all calls are synchronous, even though
+      // some are ajax calls
       var event = msg_data.event,
-          url   = msg_data.url;
+          url   = msg_data.url,
+          specifier = msg_data.specifier,
+          raw_data, status_code, tmp, message, adapted_data;
 
-      WDAT.api.data.resource.get(url, function (status_code, response_text) {
-        var adapted_data = WDAT.api.data.adapter.adapt(response_text),
-            message = {
-              'event'  : event,
-              'status' : status_code,
-              'data'   : adapted_data
-            };
+      if (url !== undefined) {
+        tmp = WDAT.api.data.resource.getByURL(url);
 
-        postMessage(message);
-      });
+        raw_data = tmp.response_text;
+        status_code = tmp.status_code;
+      }
+
+      if (specifier !== undefined) {
+        tmp = WDAT.api.data.resource.get(specifier);
+
+        raw_data = tmp.response_text;
+        status_code = tmp.status_code;
+      }
+
+      adapted_data = WDAT.api.data.adapter.adapt(raw_data);
+
+      message = {
+        'event'  : event,
+        'status' : status_code,
+        'data'   : adapted_data
+      };
+
+      // Send message back to the client thread.
+      postMessage(message);
       break;
     case 'update':
       // handle update requests

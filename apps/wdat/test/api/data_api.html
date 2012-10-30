@@ -30,7 +30,7 @@
     $('.controls').append(button.toJQ());
 
     $( button.toJQ() ).click(function() {
-      dapi.get('data-rec', {'object': 'analogsignal_11'});
+      dapi.getByURL('data-rec', '/test/');
     });
   };
 
