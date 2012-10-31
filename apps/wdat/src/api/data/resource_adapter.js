@@ -35,7 +35,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
    * has the following form.
    * 
    * { 
-   *   id: <id>,                // non host part of the permalink
+   *   id: <id>,                // path part of the permalink
    *   name: <name>,
    *   date_created: <date>,
    *   owner: <str>,            // id to the owner
@@ -65,12 +65,11 @@ WDAT.api.data.GNodeResourceAdapter = function() {
       tmp = tmp.join('');
     }
     // remove parameter
-    return = tmp.split('?')[0];
+    return tmp.split('?')[0];
   };
   
   // data model description
-  WDAT.api.data.GNodeResourceAdapter.DATA_OBJECTS = 
-  {
+  WDAT.api.data.GNodeResourceAdapter.DATA_OBJECTS = {
     metadata: {
       section: {
           attr: [],
@@ -111,14 +110,14 @@ WDAT.api.data.GNodeResourceAdapter = function() {
         /* move to plotable ? */
         epocharray: {
           attr: ['name', 'labels', 'description', 'file_origin'],
-          data: ['times', 'durations']
+          data: ['times', 'durations'],
           children: ['epoch'],
           parents: ['segment']
         },
         /* move to plotable ? */
         analogsignalarray: {
           attr: ['name', 'description', 'file_origin', 'sampling_rate', 't_start'],
-          data: ['analogsignal_set']
+          data: ['analogsignal_set'],
           children: ['analogsignal'],
           parents: ['segment']
         },
@@ -141,7 +140,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
       plotable: {
         spike: {
           attr: ['name', 'description', 'file_origin', 'sampling_rate', 'left_sweep'],
-          data: ['time', 'waveform']
+          data: ['time', 'waveform'],
           children: [],
           parents: ['segment', 'unit']
         },
