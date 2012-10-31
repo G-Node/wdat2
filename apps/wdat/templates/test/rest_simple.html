@@ -1,0 +1,36 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}REST Simple Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+var init = function() {
+  $('#get').click(getRequest)
+};
+
+function getRequest() {
+  $('.event-log').append('Start').append('<br>');
+  var url = $('#url').val();
+  $('.event-log').append('URL: ' + url).append('<br>');
+  var request = new XMLHttpRequest();
+  request.open('GET', url);
+  request.onreadystatechange = function() {
+    $('.event-log').append('request.readyState: ' +  request.readyState).append('<br>');
+    if (request.readyState === 4) {
+      $('.event-log').append('request.status: ' +  request.status).append('<br>');
+      $('.event-log').append('request.responseText: ' +  request.responseText).append('<br><br>');
+    }
+  };
+  request.send(null);
+}
+$(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>REST Simple Test</h1>
+<input type="text" size="80" id="url"><br>
+<button id="get">GET</button>
+<h1>Log</h1>
+<div class="event-log"></div>
+{% endblock %}

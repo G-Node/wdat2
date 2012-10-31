@@ -27,7 +27,7 @@
 }
 
 .tree .node-btn {
-  padding: @smallcushion / 2;
+  padding: @smallcushion / 4;
   float: right;
   text-align: right;
   display: none;
@@ -39,20 +39,24 @@
 
 .tree .node-icon {
   float: left;
-  background-image: url(/static/tni-open.png);
+  background-image: url(/site_media/static/tni-open.png);
   background-position: center;
   background-repeat: no-repeat;
   width: 18px;
   height: 18px;
 }
 
-.tree .collapsed .node-icon { background-image: url(/static/tni-closed.png); }
+.tree .collapsed .node-icon { background-image: url(/site_media/static/tni-closed.png); }
 
-.tree .leaf-node .node-icon { background-image: url(/static/tni-leaf.png); }
+.tree .leaf-node .node-icon { background-image: url(/site_media/static/tni-leaf.png); }
 
-.tree .node-icon:HOVER { background-image: url(/static/tni-hover-open.png); }
+.tree .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-open.png); }
 
-.tree .collapsed .node-icon:HOVER { background-image: url(/static/tni-hover-closed.png); }
+.tree .collapsed .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-closed.png); }
 
-.tree .leaf-node .node-icon:HOVER { background-image: url(/static/tni-hover-leaf.png); }
+.tree .leaf-node .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-leaf.png); }
+
+.tree button {
+  margin-right: @smallcushion / 2;
+}
 

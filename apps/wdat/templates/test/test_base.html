@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>{% block title %}{% endblock %}</title>
+<link rel="stylesheet" href="{{ STATIC_URL }}wdat-api.css" />
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.0.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}wdat-api.js"></script>
+{% block extra_script %}{% endblock %}
+<style type="text/css">
+/* test specific styles */
+.test-container {
+  border: 1px solid grey;
+  margin: 4px;
+  margin-left: 238px;
+}
+.test-nav {
+  border: 1px solid grey;
+  margin: 4px;
+  margin-top: 0px;
+  padding: 4px;
+  float: left; 
+  min-height: 400px;
+  width: 220px;
+}
+</style>
+</head>
+<body>
+<div class="test-container test-nav">
+<h1>Test Navigation</h1>
+<p>
+{% for f in files %}<a href="{{ f }}">{{ f }}</a><br>
+{% endfor %}
+</p>
+</div>
+<div class="test-container">
+{% block body %}<h1>Select a Test</h1>{% endblock %}
+</div>
+</body>
+</html>
