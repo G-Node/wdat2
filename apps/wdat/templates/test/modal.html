@@ -1,0 +1,44 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Modal Window Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function () {
+    var bus = new WDAT.api.EventBus()
+      , m = new WDAT.api.VModal('modality', bus)
+      , b = new WDAT.api.Button('Launch Modal', bus, function () {
+          m.toggle();
+          }, 'blue')
+       , close = new WDAT.api.Button('Close Modal', bus, function () {
+          m.hide();
+          }, 'red');
+
+
+    var log = function (event, evData) {
+      $('.log').first().append('<p>Visible : ' + evData.visible + '</p>');
+    };
+
+    // subscribe to events
+    bus.subscribe('ModalToggle-modality', log);
+
+    // Add stuff to the modal window.
+    var mw = m.getModal();
+    mw.append('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse consectetur elit vitae massa eleifend varius. Ut accumsan porta purus ut accumsan. Praesent vitae tellus libero, quis vulputate nisl. Vestibulum ullamcorper tincidunt luctus. Morbi id est vitae elit convallis congue. Suspendisse facilisis lorem sit amet felis dictum auctor tempus ipsum accumsan. Pellentesque vulputate euismod nunc, nec porta risus viverra in. Etiam faucibus velit eu quam porta posuere. Vestibulum euismod elit id dolor suscipit id lacinia felis fringilla. Pellentesque dapibus ullamcorper erat, nec fringilla tortor mattis sed. ');
+    mw.append($('<br/>'));
+    mw.append(close.toJQ());
+
+    $('.container').append(b.toJQ());
+  };
+
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1 style="margin-left: 0.5em;">Modal Window Test</h1>
+<div class="container" style="margin-left: 1em;"></div>
+<h2 style="margin-left: 1em;">Event Log</h2>
+<div class="log" style="margin-left: 2em;"></div>
+{% endblock %}
+
