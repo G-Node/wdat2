@@ -19,8 +19,13 @@ function getRequest() {
     $('.event-log').append('Request Ready State: ' +  request.readyState).append('<br>');
     if (request.readyState === 4) {
       $('.event-log').append('Request Status: ' +  request.status).append('<br>');
-      $('.event-log').append('Response Text: ' +  request.responseText).append('<br><br>');
-      $('.event-log').append('Adapted Text: ' +  adapter.adapt(request.responseText)).append('<br><br>');
+      data = request.responseText;
+      console.log('Response Text: ' + JSON.stringify(JSON.parse(data), null, 2) + '\n\n');
+      $('.event-log').append('Response Text: ' +  data).append('<br><br>');
+      data = adapter.adapt(data);
+      data = JSON.stringify(data, null, 2);
+      console.log('Adapted Text: ' + data + '\n\n');
+      $('.event-log').append('Adapted Text: ' +  data).append('<br><br>');
     }
   };
   request.send(null);

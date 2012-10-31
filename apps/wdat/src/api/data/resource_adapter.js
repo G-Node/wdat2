@@ -47,7 +47,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
    * }
    */
   WDAT.api.data.GNodeResourceAdapter.prototype.adapt = function(data) {
-    // XXX Write the adapter
+    if (typeof data  === 'string') data = JSON.parse(data);
     return data;
   };
   
