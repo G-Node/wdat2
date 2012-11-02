@@ -63,7 +63,7 @@ class Datafile(SafetyLevel, ObjectState):
         (4, _('odml')),
         (5, _('hdf5_array')),
     )
-    title = models.CharField( 'name', blank=True, max_length=200 )
+    name = models.CharField( 'name', blank=True, max_length=200 )
     caption = models.TextField( 'description', blank=True)
     section = models.ForeignKey(Section, blank=True, null=True)
     raw_file = models.FileField( 'raw_file', storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
@@ -80,7 +80,7 @@ class Datafile(SafetyLevel, ObjectState):
     size = models.IntegerField('size', blank=True, null=True)
 
     def __unicode__(self):
-        return self.title
+        return self.name
 
     @models.permalink
     def get_absolute_url(self):

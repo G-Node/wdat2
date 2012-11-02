@@ -32,7 +32,7 @@ class FileHandler(BaseHandler):
             if form.is_valid():
                 datafile = form.save(commit=False)
                 datafile.owner = request.user
-                datafile.title = request.FILES['raw_file'].name
+                datafile.name = request.FILES['raw_file'].name
 
                 self.model.save_changes( objects=[datafile], update_kwargs={}, \
                     m2m_dict={}, fk_dict={}, m2m_append=True )
@@ -123,12 +123,12 @@ class FileOperationsHandler(BaseHandler):
         Processes requests for file download.
         An alternative way is to use xsendfile:
         #response = HttpResponse(mimetype='application/force-download')
-        #response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.title)
+        #response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.name)
         """
         mimetype, encoding = mimetypes.guess_type(datafile.raw_file.path)
         mimetype = mimetype or 'application/octet-stream' 
         response = HttpResponse(datafile.raw_file.read(), mimetype=mimetype)
-        response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.title)
+        response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.name)
         response['Content-Length'] = datafile.raw_file.size 
         if encoding: 
             response["Content-Encoding"] = encoding
