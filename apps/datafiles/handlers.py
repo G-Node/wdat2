@@ -100,15 +100,20 @@ class FileOperationsHandler(BaseHandler):
             filename += '-E' + str( self.options['end_index'] )
 
         full_path = os.path.join( settings.TMP_FILES_PATH, filename )
-        if not os.path.exists( full_path ):
-            # otherwise required data is already there, can use tmp as cache
-            dataslice = datafile.get_slice( **self.options )
+        #if not os.path.exists( full_path ):
+        # could try to use existing file with the slice? as cache
+        dataslice = datafile.get_slice( **self.options )
+        if not len(dataslice) > 0:
+            BadRequest(message_type="wrong_index", request=request)
 
-            # pytables and h5py do not support files in memory((
-            #temp = tempfile.NamedTemporaryFile()
-            fileh = tb.openFile( full_path, mode = "w")
-            fileh.createArray( "/", "data", dataslice )
-            fileh.close()
+        # pytables and h5py do not support files in memory((
+        #temp = tempfile.NamedTemporaryFile()
+
+        import pdb
+        pdb.set_trace()
+        fileh = tb.openFile( full_path, mode = "w")
+        fileh.createArray( "/", "data", dataslice )
+        fileh.close()
 
         #wrapper = FileWrapper( file( full_path ) )
         #response = HttpResponse(wrapper, content_type='application/x-hdf')

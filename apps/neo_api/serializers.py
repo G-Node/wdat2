@@ -49,10 +49,10 @@ class NEOSerializer(Serializer):
             elif obj.obj_type == "analogsignal":
                 s_index, e_index, downsample, t_start, new_rate = \
                     obj.get_slice(**self.options)
-                #datalink = self.resolve_permalink( signal, add_str='/data' )
-
+                
                 url_base = ''.join([ self.host, _get_url_base( Datafile ) ])
                 datalink = urlparse.urljoin( url_base, str( obj.signal_id ) )
+                datalink +=  '/data/'
 
                 params = param_clean(s_index, e_index, downsample)
                 if params:

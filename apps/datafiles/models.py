@@ -116,10 +116,10 @@ class Datafile(SafetyLevel, ObjectState):
         return self.file_type == 5
 
     def get_slice(self, start_index=0, end_index=10**9, downsample=None, **kwargs):
-        """ returns a slice of the analog signal data.
+        """ returns a slice of the array data.
         start, end - indexes as int """
         if not self.has_array:
-            raise TypeError("This file cannot be opened for slicing.")
+            raise TypeError("This file cannot be opened for data slicing.")
 
         with tb.openFile(self.raw_file.path, 'r') as f:
             l = f.listNodes( "/" )[0][ start_index : end_index ]
