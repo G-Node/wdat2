@@ -17,6 +17,7 @@ import django_access
 from neo_api.models import *
 from datafiles.models import Datafile
 from common import *
+import numpy as np
 from settings import FILE_MEDIA_ROOT
 print "imports completed.."
 
@@ -38,7 +39,8 @@ for i in range(10):
 
     # step 1. create file with array data
     path = "data/%d_array.h5" % i
-    create_file_with_array( path, random=True )
+    arr = np.random.rand( size )
+    create_file_with_array( path, arr )
 
     # step 2. create Datafile
     d = Datafile.objects.create( title = path, owner = u, file_type=5, \

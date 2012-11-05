@@ -46,7 +46,8 @@ class BaseHandler(object):
         self.offset = 0
         self.max_results = settings.REST_CONFIG['max_results'] # 1000
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
-        self.update = True # create / update via POST
+        self.update = True # create / update via POST by default
+        self.mode = settings.DEFAULT_RESPONSE_MODE
         #self.excluded_bulk_update = () # error when bulk update on these fields
 
 
@@ -105,7 +106,7 @@ class BaseHandler(object):
                     objects = None
 
             if not create:
-                q = self.options.get("q", "info")
+                q = self.options.get("q", self.mode)
                 if q == 'full' or q == 'beard':
                     kwargs["fetch_children"] = True
 
@@ -214,14 +215,19 @@ class BaseHandler(object):
                 objects = filter_func(objects, self.options[key], user)
 
         if self.attr_filters: # include django lookup filters
-
-            # convert to list if needed
             for key, value in self.attr_filters.items():
-                if key.find('__in') > 0 and type(value) == type(''):
+                # using local_id instead of id due to versioning
+                new_key = key
+                if str( key[ : key.find('__')] ) == 'id':
+                    new_key = key.replace('id', 'local_id')
+                    self.attr_filters[ new_key ] = self.attr_filters.pop(key)
+
+                # convert to list if needed
+                if new_key.find('__in') > 0 and type(str(value)) == type(''):
                     new_val = value.replace('[', '').replace(']', '')
                     new_val = new_val.replace('(', '').replace('])', '')
                     
-                    self.attr_filters[key] = [int(v) for v in new_val.split(',')]
+                    self.attr_filters[new_key] = [int(v) for v in new_val.split(',')]
             objects = objects.filter(**self.attr_filters)
 
         # permissions filter:

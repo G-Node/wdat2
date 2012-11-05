@@ -66,25 +66,45 @@ class NEOHandler(BaseHandler):
         if not objects: return None
 
         tags = {}
-        model = type( objects[0] ) # TODO make this better
-        if m2m_dict.has_key('metadata') and not (self.options.has_key('cascade') and \
+        if m2m_dict.has_key('metadata') and m2m_dict['metadata'] and not \
+            (self.options.has_key('cascade') and \
                 not self.options['cascade']):
+
+            model = objects[0].__class__ # any better way?
             tags = {'metadata': m2m_dict['metadata']}
             obj_with_related = model.objects.fetch_fks( objects = objects )
-            rels = [f.model().obj_type + "_set" for f in model._meta.get_all_related_objects() \
-                if not issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
+            rels = [(f.model, f.model().obj_type + "_set") for f in \
+                model._meta.get_all_related_objects() if not \
+                issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
 
-            # get all relatives
-            for rel_name in rels:
-
+            # recursively update children
+            for rel_model, rel_name in rels:
+                # collect children plinks of type rel_name for all requested objects
                 for_update = []
                 for obj in obj_with_related:
-                    for_update += getattr(obj, rel_name + "_data")
+                    for_update += getattr(obj, rel_name + "_buffer")
 
-                if for_update:
-                    child_model = type( for_update[0] )
-                    # update metadata for them
-                    child_model.save_changes( for_update, {}, tags, {}, self.m2m_append)
+                # extract ids from permalinks
+                processed = [] # ids of related objects which metadata should be updated
+                for p in for_update:
+                    if p.rfind('/') + 1 == len(p):
+                        p = p[ : len(p)-1 ]
+                    processed.append( p[ p.rfind('/') + 1 : ] )
+
+                if processed: # update metadata for all children of type rel_name
+                    children = rel_model.objects.filter( local_id__in = processed )
+                    rel_model.save_changes(children, {}, tags, {}, self.m2m_append)
+                    self.run_post_processing( objects=children, m2m_dict=m2m_dict )
+
+                    """ the recursion could be done by calling the 
+                    'create_and_update' function of the Handler (self), however
+                    the current method is assumed to be a bit faster as it works
+                    with objects directly. for any case, consider code below."""
+                    #request = kwargs['request']
+                    #request.body = json.dumps( tags )
+                    #self.attr_filters = {'local_id__in': processed}
+                    #self( request ) # executes the recursive update
+
 
 
 class MetadataHandler(BaseHandler):
@@ -97,6 +117,7 @@ class MetadataHandler(BaseHandler):
     def __init__(self, *args, **kwargs):
         super(MetadataHandler, self).__init__(*args, **kwargs)
         self.actions = { 'GET': self.get }
+        self.mode = settings.RESPONSE_MODES[3] # full load
 
     def get(self, request, objects, code=200):
         """ returns metadata for an object as a dict of property - value pairs """
@@ -108,23 +129,30 @@ class MetadataHandler(BaseHandler):
         message_type = "no_metadata_found"
         resp_data = {}
 
-        if objects:
+        if objects and hasattr(objects[0], 'metadata_buffer_ids'):
             value_model = self.model.metadata.field.rel.to
             prop_model = value_model.parent_property.field.rel.to
 
-            values = objects[0].metadata_buffer # m2m should be loaded by default
-            full_values = value_model.objects.get_related( objects = values )
+            kwargs = {}
+            # loading related values (m2m should be loaded by default)
+            kwargs["local_id__in"] = objects[0].metadata_buffer_ids
+            values = value_model.objects.filter( **kwargs )
+            ser_values = self.serializer.serialize(values, options=self.options)
 
-            props = [v.parent_property for v in full_values]
-            full_props = prop_model.objects.get_related( objects = props )
+            # mmap is a list of pairs (<value_id>, <property_id>)
+            mmap = value_model.objects.filter( **kwargs ).values_list('local_id',\
+                'parent_property_id')
+
+            # loading properties
+            kwargs["local_id__in"] = [v.parent_property_id for v in values]
+            props = prop_model.objects.filter( **kwargs )
+            ser_props = self.serializer.serialize(props, options=self.options)
 
             pairs = []
-            for v in full_values:
-                for_ser = [p for p in full_props if p.id == v.parent_property.id]
-                ser_prop = self.serializer.serialize(for_ser, options=self.options)[0]
-                ser_val = self.serializer.serialize([v], options=self.options)[0]
-
-                pairs.append([ser_prop, ser_val])
+            for i in mmap:
+                v = [x for x in ser_values if x['fields']['local_id'] == i[0]][0]
+                p = [x for x in ser_props if x['fields']['local_id'] == i[1]][0]
+                pairs.append([ p , v ])
             resp_data["metadata"] = pairs
             message_type = "metadata_found"
 

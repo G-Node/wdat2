@@ -111,8 +111,9 @@ class RelatedManager( VersionManager ):
         """ assigns permalinks of the reversed-related children to the list of 
         objects given. Expects list of objects, uses reversed FKs to fetch 
         children and their ids. Returns same list of objects, each having new  
-        attribute WITH postfix _buffer after default django <fk_name>_set field, 
-        containing list of reversly related FK object permalinks. """
+        attributes WITH postfix _buffer and _buffer_ids after default django 
+        <fk_name>_set field, containing list of reversly related FK object 
+        permalinks and ids respectively. """
         if not objects: return []
 
         id_attr = _get_id_attr_name( self.model )
@@ -171,33 +172,39 @@ class RelatedManager( VersionManager ):
             relmap = rel_model.objects.filter( **dict(filt, **timeflt) ).values_list(id_attr, rel_field_name)
 
             if relmap:
-                # preparing fk map: preparing a dict with keys as parent 
-                # object ids, and lists with related children as values.
-                fk_map = {}
+                # preparing fk maps: preparing dicts with keys as parent 
+                # object ids, and lists with related children links and ids.
+                fk_map_plinks = {}
+                fk_map_ids = {}
                 mp = np.array( relmap )
                 fks = set( mp[:, 1] )
                 for i in fks:
-                    fk_map[i] = [ url_base + str(x) for x in mp[ mp[:,1]==i ][:,0] ]
+                    fk_map_ids[i] = [ int(x) for x in mp[ mp[:,1]==i ][:,0] ]
+                    fk_map_plinks[i] = [ url_base + str(x) for x in fk_map_ids[i] ]
 
                 for obj in objects: # parse children into attrs
                     try:
                         lid = getattr(obj, id_attr)
-                        setattr( obj, rel_name + "_buffer", fk_map[lid] )
+                        setattr( obj, rel_name + "_buffer", fk_map_plinks[lid] )
+                        setattr( obj, rel_name + "_buffer_ids", fk_map_ids[lid] )
                     except KeyError: # no children, but that's ok
                         setattr( obj, rel_name + "_buffer", [] )
+                        setattr( obj, rel_name + "_buffer_ids", [] )
                     #setattr( obj, rel_name + "_data", [x[0] for x in relmap if x[1] == lid] )
             else:
                 # objects do not have any children of that type
                 for obj in objects: 
                     setattr( obj, rel_name + "_buffer", [] )
+                    setattr( obj, rel_name + "_buffer_ids", [] )
         return objects
 
     def fetch_m2m(self, objects, timeflt={}):
         """ assigns permalinks of the related m2m children to the list of 
         objects given. Expects list of objects, uses m2m to fetch children with 
         their ids. Returns same list of objects, each having new attribute WITH 
-        postfix _buffer after default django <m2m_name> field, containing list 
-        of m2m related object permalinks. """
+        postfix _buffer and _buffer_ids after default django <m2m_name> field, 
+        containing list of m2m related object permalinks and ids respectively. 
+        """
         if not objects: return []
 
         id_attr = _get_id_attr_name( self.model )
@@ -222,24 +229,29 @@ class RelatedManager( VersionManager ):
             rel_m2m_map = [ ( getattr(r, own_name + "_id"), \
                 getattr(r, rev_name + "_id") ) for r in rel_m2ms ]
             if rel_m2m_map:
-                # preparing m2m map: preparing a dict with keys as parent 
-                # object ids, and lists with m2m related children as values.
-                m2m_map = {}
+                # preparing m2m maps: preparing dicts with keys as parent 
+                # object ids, and lists with m2m related children links and ids.
+                m2m_map_plinks = {}
+                m2m_map_ids = {}
                 mp = np.array( rel_m2m_map )
                 fks = set( mp[:, 0] )
                 for i in fks:
-                    m2m_map[i] = [ url_base + str(x) for x in mp[ mp[:,0]==i ][:,1] ]
+                    m2m_map_ids[i] = [ int(x) for x in mp[ mp[:,0]==i ][:,1] ]
+                    m2m_map_plinks[i] = [ url_base + str(x) for x in m2m_map_ids[i] ]
 
                 for obj in objects: # parse children into attrs
                     try:
                         lid = getattr(obj, id_attr)
-                        setattr( obj, field.name + '_buffer', m2m_map[lid] )
+                        setattr( obj, field.name + '_buffer', m2m_map_plinks[lid] )
+                        setattr( obj, field.name + '_buffer_ids', m2m_map_ids[lid] )
                     except KeyError: # no children, but that's ok
                         setattr( obj, field.name + '_buffer', [] )
+                        setattr( obj, field.name + '_buffer_ids', [] )
             else:
                 # objects do not have any m2ms of that type
                 for obj in objects: 
                     setattr( obj, field.name + '_buffer', [] )
+                    setattr( obj, field.name + '_buffer_ids', [] )
         return objects
 
     def get_related(self, *args, **kwargs):
