@@ -22,6 +22,8 @@ if (!WDAT) var WDAT = {};
 if (!WDAT.api) WDAT.api = {};
 if (!WDAT.api.data) WDAT.api.data = {};
 
+/* Adapter that provides conversion methods. 
+ */
 WDAT.api.data.GNodeResourceAdapter = function() {
   
 };
@@ -29,7 +31,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
 // define methods of ResourceAdapter
 (function(){
 
-  /* Converts a from GNodeNetworkResource into a format that can easily be used 
+  /* Converts data from GNodeNetworkResource into a format that can easily be used 
    * inside the wdat application. The result is always an array of objects. Each object 
    * has the following form.
    * 
@@ -39,13 +41,19 @@ WDAT.api.data.GNodeResourceAdapter = function() {
    *   category: <cat>,         // data or metadata
    *   name: <name>,
    *   date_created: <date>,
-   *   owner: <str>,            // id to the owner
-   *   safety_level: <int>,     // 1 = public, 2 = friendly, 3 = private
-   *   fields: {},              // other optional attributes 
+   *   owner: <str>,            // id of the owner profile
+   *   safety_level: <level>,   // public, friendly or private
+   *   fields: {},              // other object specific attributes 
    *   children: {},            // all child objects as a list of ids
    *   parents: {},             // all parent objects as a list of ids
-   *   data: {},                // data as key value pairs
+   *   data: {},                // data as { unit: <unit>, data: <data> }
    * }
+   * 
+   * Parameter:
+   *  - data: Obj, String       A response object as specified in the 
+   *                            Documentation of the RESTfull api
+   * Return value
+   *    An array of converted objects
    */
   WDAT.api.data.GNodeResourceAdapter.prototype.adapt = function(data) {
     var adapted_data = [];
@@ -134,9 +142,14 @@ WDAT.api.data.GNodeResourceAdapter = function() {
   };
 
   /* Extracts only the path part of a url.
+   * For internal use only.
    * 
+   * Parameter:
+   *  - url: String       The url to strip
+   *  
+   * Return value:
+   *  - The path part of the url without leading '/'
    */
-  WDAT.api.data.GNodeResourceAdapter.prototype._stripURL = _stripURL;
   function _stripURL(url) {
     var tmp = url.split('://');
     // remove protocol host and port if present
@@ -152,6 +165,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
   };
 
   // data model description
+  // TODO description for metadata objects
   DATA_OBJECTS = {
     metadata: {
       section: {
