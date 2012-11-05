@@ -89,19 +89,20 @@ class FileOperationsHandler(BaseHandler):
 
 
     def data(self, request, datafile):
-        """ returns the [sliced] data array as HDF5 file """
+        """ returns the [sliced] data array. Supports following formats:
+        - HDF5
+        - JSON
+        """
         if not datafile.has_array:
             return BadRequest(message_type="no_hdf5_array", request=request)
 
+        # getting dataslice from file
         filename = datafile.guid
         if self.options.has_key('start_index'):
             filename += '-S' + str( self.options['start_index'] )
         if self.options.has_key('end_index'):
             filename += '-E' + str( self.options['end_index'] )
 
-        full_path = os.path.join( settings.TMP_FILES_PATH, filename )
-        #if not os.path.exists( full_path ):
-        # could try to use existing file with the slice? as cache
         dataslice = datafile.get_slice( **self.options )
         if not len(dataslice) > 0:
             BadRequest(message_type="wrong_index", request=request)
@@ -109,17 +110,25 @@ class FileOperationsHandler(BaseHandler):
         # pytables and h5py do not support files in memory((
         #temp = tempfile.NamedTemporaryFile()
 
-        import pdb
-        pdb.set_trace()
-        fileh = tb.openFile( full_path, mode = "w")
-        fileh.createArray( "/", "data", dataslice )
-        fileh.close()
+        if self.options.has_key('format') and self.options['format'] == 'json':
+            # 1. return as JSON
+            response = HttpResponse( str(dataslice.tolist()) )
 
-        #wrapper = FileWrapper( file( full_path ) )
-        #response = HttpResponse(wrapper, content_type='application/x-hdf')
-        response = HttpResponse( file( full_path ).read(), mimetype='application/x-hdf')
-        response['Content-Disposition'] = 'attachment; filename=%s.h5' % filename
-        response['Content-Length'] = os.path.getsize( full_path )
+        else:
+            # 2. return as HDF5 (default)
+            full_path = os.path.join( settings.TMP_FILES_PATH, filename )
+            #if not os.path.exists( full_path ):
+            # could try to use existing file with the slice? as cache
+            fileh = tb.openFile( full_path, mode = "w")
+            fileh.createArray( "/", "data", dataslice )
+            fileh.close()
+
+            #wrapper = FileWrapper( file( full_path ) )
+            #response = HttpResponse(wrapper, content_type='application/x-hdf')
+            response = HttpResponse( file( full_path ).read(), mimetype='application/x-hdf')
+            response['Content-Disposition'] = 'attachment; filename=%s.h5' % filename
+            response['Content-Length'] = os.path.getsize( full_path )
+
         return response
 
 

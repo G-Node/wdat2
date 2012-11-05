@@ -156,6 +156,7 @@ request_params_cleaner = {
     'q': lambda x: object_filters[str(x)], # may raise ValueError or IndexError
     'groups_of': lambda x: int(x), # may raise ValueError
     'spacing': lambda x: int(x), # may raise ValueError
+    'format': lambda x: x.lower(),
     #'every': lambda x: int(x), # replaced by groups_of + spacing
 }
 
