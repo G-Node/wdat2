@@ -414,7 +414,8 @@ class ObjectState(models.Model):
 
     def compute_hash(self):
         """ computes the hash of itself """
-        return hashlib.sha1( pickle.dumps(self) ).hexdigest()
+        #return hashlib.sha1( pickle.dumps(self) ).hexdigest()
+        return hashlib.sha1( self.get_absolute_url() ).hexdigest()
 
     @property
     def obj_type(self):
@@ -435,12 +436,11 @@ class ObjectState(models.Model):
 
     def save(self, *args, **kwargs):
         """ implements versioning by always saving new object """
-        self.guid = self.compute_hash() # recompute hash 
-
         now = datetime.now()
         if not self.local_id: # saving new object, not a new version
-            self.local_id = self._get_new_local_id()
+            self.local_id = self._get_new_local_id() # must be first
             self.date_created = now
+            self.guid = self.compute_hash() # compute unique hash 
 
         else: # update previous version, set ends_at to now()
             upd = self.__class__.objects.filter( local_id = self.local_id )
@@ -515,6 +515,7 @@ class ObjectState(models.Model):
                         # requires to hit the database, so not scalable
                         obj.local_id = self._get_new_local_id()
                         obj.date_created = now
+                        obj.guid = obj.compute_hash() # compute unique hash 
 
                     # update objects with new attrs and FKs
                     for name, value in update_kwargs.items():
@@ -525,7 +526,6 @@ class ObjectState(models.Model):
                             oid = getattr( related_obj, 'local_id', related_obj.id )
                         setattr(obj, field_name + '_id', oid)
 
-                    obj.guid = obj.compute_hash() # recompute hash 
                     obj.starts_at = now
                     obj.id = None
                 self.objects.bulk_create( objects )
