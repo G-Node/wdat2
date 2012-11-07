@@ -1,0 +1,59 @@
+//---------- file: data_api.js.worker ----------//
+
+
+// Import scripts for resource and adapter
+importScripts('network_resource.js', 'resource_adapter.js');
+
+// Define name space WDAT if not available (but it should be because of importScripts())
+if (!WDAT) var WDAT = {};
+
+/* Create the worker routine that handles all messages send to the worker
+ * The message is expected to have the following structure (see data_api.js):
+ * 
+ *    { event: <event>, action: <action>, type: <type>, data: <data> }
+ *    
+ * Parameters:
+ *  - msg: Object     The message object produced by calling postMessge(data) on
+ *                    the worker object in the main thread.
+ *
+ * Return value:
+ *    The data object that will be passed to the onmessage() method of the worker
+ *    object in the main thread. 
+ */
+WDAT.worker_routine = function(msg) {
+  // the original message is wrapped in a message object and contained in msg.data
+  msg = msg.data
+  // crate a result
+  var result = {};
+  switch (msg.action) {
+    case 'init':
+      // initialize network resource and resource adapter
+      WDAT.resource = new WDAT.api.data[msg.resource]();
+      WDAT.adapter  = new WDAT.api.data[msg.adapter]();
+      result.data = "Worker initialized!";
+      break;
+    case 'get':
+      // handle get requests here
+      result.data = WDAT.resource.get(msg.type, msg.data);
+      result.data = WDAT.adapter.adapt(result.data);
+      break;
+    case 'update':
+      // handle update requests
+      break;
+    case 'save':
+      // handle save requests
+      break;
+    case 'delete':
+      // handle delete requests
+      break;
+    default:
+      // just a test to see if web worker are ok
+      result.data = "Worker Test OK";
+      break;
+  }
+  result.event = msg.event;
+  return result;
+};
+
+// Attach worker routine to message events and notify the main thread
+onmessage = function(msg) { postMessage(WDAT.worker_routine(msg)); };

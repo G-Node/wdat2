@@ -1,0 +1,32 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Tree Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function() {
+    var bus = new WDAT.api.EventBus(); 
+    var tree = new WDAT.api.VTree($('#tree-1'), bus, ['del', 'sel', 'edit', 'add', 'more']);
+    bus.subscribe(tree.events.sel, tree.selectHandler());
+    bus.subscribe(tree.events.more, tree.expandHandler());
+    bus.subscribe(tree.events.del, tree.removeHandler());
+    bus.subscribe(tree.events.edit, tree.editHandler());
+    bus.subscribe(tree.events.add, function(event, data) {
+      var elem = {name: 'Test Node', type: 'section'};
+      tree.add(elem, data);
+    });
+    var n = tree.add({name: 'root-01', type: 'section'});
+    n = tree.add({name: 'root-01-child01', type: 'section'}, n);
+    tree.add({name: 'root-01-child01-child01', type: 'section'}, n, true);
+    tree.add({name: 'root-01-child01-child02', type: 'section'}, n, true);
+    tree.add({name: 'root-02', type: 'section'});
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Tree Test</h1>
+<div id="tree-1"></div>
+<div class="event-log"></div>
+{% endblock %}

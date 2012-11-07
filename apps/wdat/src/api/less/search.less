@@ -1,0 +1,131 @@
+/* Using less nested classes. If in confusion, consult [less-docs] before
+ * making changes.  
+ *
+ * [less-docs] : http://lesscss.org/#-nested-rules
+ *
+ */
+@root: 'static';
+@light-disclosure-down: '@{root}/light-grey-disclosure-arrow-down.png';
+@dark-disclosure-down: '@{root}/dark-grey-disclosure-arrow-down.png';
+
+@queryWidth: 400px;
+
+div.search-bar {
+  display: inline-block;
+
+  button.go {
+    display: inline-block;
+    margin-right: 0px;
+
+    .horizontal-padding(@cushioning);
+    .vertical-padding(@cushioning);
+  }
+
+  .query {
+    display: inline-block;
+    .thin-bordered;
+    .rounded-corners;
+
+    input.textbox {
+      background-color: transparent;
+      display: inline-block;
+      width: @queryWidth;
+      border: none;
+      font-family: @baseFontFamily;
+      font-size: @baseFontSize;
+      line-height: @baseLineHeight;
+      color: @darker-grey;
+
+      .horizontal-padding(@cushioning);
+      .vertical-padding(@cushioning - 1);
+    }
+
+    input.placeholder {
+      color: @dark-grey;
+      font-style: italic;
+    }
+
+
+    a.advanced {
+      display: inline-block;
+      float: right;
+      height: 30px;
+      width: 15px;
+      cursor: pointer;
+
+      background-image: url('/@{light-disclosure-down}');
+      background-position: center; 
+      background-repeat: no-repeat;
+    }
+    a.advanced:hover {
+      background-image: url('/@{dark-disclosure-down}');
+    }
+  }
+
+  .query:hover {
+    border-color: @mid-grey;
+  }
+
+  .query-active {
+    border-color: @mid-grey !important;
+    box-shadow: 0px 0px 1px 2px @near-white inset;
+  }
+
+  /* div.search-bar .advpanel */
+  .advpanel {
+    position: absolute;
+    display: block;
+
+    .thin-bordered;
+    .rounded-corners;
+
+    background-color: @white;
+    box-shadow: 0px 1px 1px 1px @lighter-grey;
+
+    table.form {
+      border-spacing: @smallcushion;
+      border-collapse: separate;
+      width: 100%;
+
+      margin-top: 1em;
+      margin-bottom: 1em;
+    }
+
+    td.label {
+      padding-left: @cushioning;
+      padding-right: @cushioning;
+      text-align: right;
+    }
+
+    td.widget {
+      text-align: left;
+      padding: 0px;
+
+      input[type=text] {
+        .thin-bordered;
+        .rounded-corners;
+        padding: @smallcushion; 
+      }
+
+      input[type=text]:hover {
+        border-color: @mid-grey;
+      }
+
+      input[type=text]:focus {
+        border-color: @light-blue;
+      }
+
+      input[type=text].fixedwidth {
+        width: 200px - 2*@smallcushion;
+      }
+
+      .datepicker-container{
+        width: 200px;
+      }
+
+      .datepicker-container:hover {
+        border-color: @mid-grey;
+      }
+    }
+  }
+}

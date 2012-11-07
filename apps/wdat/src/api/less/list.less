@@ -1,0 +1,57 @@
+/* ---------- file: list.css -----------*/
+
+.list .hidden {
+  display: none;
+}
+
+.list { 
+  overflow-y: auto;
+  width: 100%;
+  border-spacing: 0px;
+}
+
+.list .list-elem {
+  .thin-bordered;
+  .rounded-corners(@smallcushion);
+  margin: @smallcushion / 2;
+  list-style-type: none;
+  vertical-align: middle;
+}
+
+.list .list-cat-name, .list-elem-content, .list-elem-data {
+  padding: @smallcushion;
+  list-style-type: none;
+  vertical-align: middle;
+}
+
+.list .list-cat {
+  font-size: @baseFontSize + 2px;
+  font-weight: bold;
+}
+
+.list div.list-elem-btn, div.list-cat-btn {
+  padding: @smallcushion / 2;
+  display: none;
+  float: right;
+}
+
+.list .list-elem-info {
+  font-size: @baseFontSize - 2px;
+  font-style: italic;
+  color: @dark-grey;
+  padding-left: 4px;
+}
+
+.list .list-elem:HOVER {
+  .rounded-corners(@smallcushion);
+  background: @light-grey !important;
+  .list-elem-btn { display: block !important; }
+}
+
+.list .selected {
+  background: @light-blue;
+}
+
+.list button {
+  margin-right: @smallcushion / 2;
+}

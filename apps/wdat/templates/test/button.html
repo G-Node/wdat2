@@ -1,0 +1,79 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Button Test{% endblock %}
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function() {
+    var bus = new WDAT.api.EventBus();
+    var log = function(event, args) {
+      $(".event-log").first().append("<p>event fired: " + args + "</p>");
+    };
+
+    var log_toggle = function(event, evData) {
+      $(".event-log").first().append("<p>toggled: from " +
+          (evData.state) + "; eventData:</p>");
+    };
+
+    bus.subscribe('foo', log);
+    bus.subscribe('toggle_foo', log_toggle);
+
+    var h = $('<h3></h3>').text('Predefined buttons');
+    $(".button-container").append(h);
+
+    var b = new WDAT.api.Button('add', bus, 'foo', null, 'Adding');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('del', bus, 'foo', null, 'Deleting');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('sel', bus, 'foo', null, 'Selecting');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('edit', bus, 'foo', null, 'Editing');
+    $(".button-container").append(b.toJQ());
+
+
+    h = $('<h3></h3>').text('Predefined small buttons');
+    $(".button-container").append(h);
+
+    var b = new WDAT.api.Button('add-small', bus, 'foo', null, 'Small adding');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('del-small', bus, 'foo', null, 'Small deleting');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('sel-small', bus, 'foo', null, 'Small selecting');
+    $(".button-container").append(b.toJQ());
+    b = new WDAT.api.Button('edit-small', bus, 'foo', null, 'Small editing');
+    $(".button-container").append(b.toJQ());
+
+    h = $('<h3></h3>').text('Event system checks');
+    $(".button-container").append(h);
+
+    b = new WDAT.api.Button('Should create an alert', bus, function() {
+        alert('And, it does!');
+      }, 'blue');
+    $('.button-container').append(b.toJQ());
+
+    b = new WDAT.api.Button('Should publish an event', bus, 'foo', 'green', 
+        'And it does!');
+    $('.button-container').append(b.toJQ());
+
+    b = new WDAT.api.Button('Should do nothing', bus, null);
+    $('.button-container').append(b.toJQ());
+
+
+    h = $('<h3></h3>').text('Toggle buttons');
+    $(".button-container").append(h);
+
+    b = new WDAT.api.Button('more-small', bus, 'toggle_foo', null); 
+    $('.button-container').append(b.toJQ());
+    b = new WDAT.api.Button('less-small', bus, 'toggle_foo', null);
+    $('.button-container').append(b.toJQ());
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+{% block body %}
+  <h1>Button Test</h1>
+  <div style="padding-left: 20px">
+    <div class="button-container"></div>
+    <h3>Events Logger</div>
+    <div class="event-log" style="padding-left: 40px"></div>
+  </div>
+{% endblock %}

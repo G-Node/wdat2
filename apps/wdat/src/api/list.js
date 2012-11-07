@@ -1,219 +1,440 @@
 // ---------- file: list.js ---------- //
 
 // Initialize the module WDAT.widgets if it doesn't exist.
-if (!window.WDAT) { window.WDAT = {}; }
-if (!window.WDAT.api) { window.WDAT.api = {}; }
+if (!window.WDAT) window.WDAT = {};
+if (!window.WDAT.api) window.WDAT.api = {};
 
 /* Constructor for the class VList. VList implements view to a dynamic list. Elements can 
- * be added, removed, edited and selected.  
+ * be added, removed, edited and selected. The list expects all elements to have at least
+ * the attribute 'name'.
  * 
- * Internally the list is represented by a table structure. This structure is created by the
- * list view itself.
+ * Minimal list element: 
+ *   { name: <name> }
+ * Complete list element:
+ *   { id: <id>,       // The elements id, must be unique in the whole list.
+ *     name: <name>,   // The name of the element (string)
+ *     info: <info>,   // Some additional information (string)
+ *     data: <data> }  // Data that is only visible on expanded elements (string or jQuery)
  * 
- * <table class='list' id='name'> 
- * 		<tr id='id'><td class='list-data'>data</td>[<td class='list-buttons'>button list</td>]</tr> ...
- * <table>
+ * Elements can be grouped in different categories. Internally the list is represented by 
+ * a table structure. This structure is created by the list view itself.
  * 
  * Parameters: 
- *  - name: String 		Individual name/id for the list (optional). 
- *  
- *  - bus: EventBus 	Bus handling events.
+ *  - name: String, Obj.  The name of the list or a jQuery object.
+ *
+ *  - bus: EventBus       Bus handling events.
  *   
- *  - remove: String 	The event name to publish if an remove event occurs. If remove is 
- *  					a falsy value, the list doesn't provide a remove button.
+ *  - events: Array       Array of event identifiers (optional).
  *  
- *  - edit: String 		The event name to publish if an edit event occurs. If edit is 
- *  					a falsy value, the list doesn't provide a edit button.
- * 
- *  - select: String 	The event to fire if an element should be selected. If select is
- *  					a falsy value, the list doesn't provide selection.
+ *  - categories: Array   Array of all categories / groups of the list (optional).
  * 
  * Depends on: 
- *  - jQuery, WDAT.util.EventBus, WDAT.api.Button
+ *    jQuery, WDAT.util.EventBus, WDAT.api.Button
  */
-WDAT.api.VList = function(name, bus, remove, edit, select) {
-
-	this._bus = bus;
-	
-	if (name) {
-		this.name = name;
-	} else {
-		this.name = 'list-' + bus.uid();
-	}
-
-	this._edit   = edit;
-	this._remove = remove;
-	this._select = select;
-
-	this.list = $('<table></table>');
-	this.list.attr('id', this.name).addClass('list');
+WDAT.api.VList = function(name, bus, events, categories) {
+  // initialize name and the list body (_list)
+  if (typeof name === 'string') { // name is a string
+    this._list = $('<div class="list"></div>').attr('id', name);
+    this.name = name;
+  } else if (typeof name === 'object') { // name is a jquery object
+    this._list = name;
+    this._list.addClass('list')
+    this.name = name.attr('id');
+  }
+  this.bus = bus;
+  // create event identifier
+  this.events = {}
+  for ( var i in events) {
+    this.events[events[i]] = this.name + '-' + events[i];
+  }
+  // create list structure
+  this.categories = {};
+  if (categories) {
+    for ( var i in categories) {
+      var cat = categories[i];
+      var tab = $('<ul><lh class="list-cat"><span class="list-cat-name"></span>'
+                + '<span class="list-cat-btn"></span></lh></ul>');
+      tab.attr('id', this.name + '-' + cat);
+      tab.find('.list-cat-name').first().append(cat);
+      this._list.append(tab);
+      this.categories[cat] = tab;
+      // create add button if add event is present
+      if (this.events.add) {
+        var b = new WDAT.api.Button('add-small', this.bus, 
+                this.events.add, null, {name : cat,id : cat});
+        tab.find('.list-cat-btn').first().append(b.toJQ());
+      }
+    }
+  }
+  tab = $('<ul></ul>');
+  tab.attr('id', this.name + '-default');
+  this._list.append(tab);
+  this.categories['default'] = tab;
 };
 
 // Define the methods of in their own scope
 (function() {
+  // Private template for new list elements
+  var ELEM_TMPL = '<li class="list-elem"><div class="list-elem-btn"></div>' 
+                + '<div class="list-elem-content"><span class="list-elem-name"></span>' 
+                + '<span class="list-elem-info"></span></div>'
+                + '<div class="list-elem-data hidden"></div></li>';
+  
+  // method definition
 
-	// method definition 
+  /* Add a new element to the list. If the element doesn't has id, a unique identifier
+   * will be created.
+   * 
+   * Parameter:
+   *  - element: Object    The element to add to the list.
+   *  
+   *  - category: String   The category (optional).
+   *  
+   *  - position: Number   The elements position (optional). If a category is given
+   *                       this is the position inside this category.
+   *                       TODO implement inserts at a position.
+   * 
+   * Return value:
+   *    The inserted element.
+   */
+  WDAT.api.VList.prototype.add = function(element, category, position) {
+    if (!this.has(element)) {
+      // crate an id if necessary
+      if (!element.id)
+        element.id = this.bus.uid();
+      var id = this._toId(element);
+      // Create a new representation of the element e
+      var elem = $(ELEM_TMPL);
+      elem.attr('id', id);
+      elem.find('.list-elem-name').first().text(element.name);
+      if (element.info)
+        elem.find('.list-elem-info').first().text(element.info);
+      if (element.data)
+        elem.find('.list-elem-data').first().append(element.data);
+      // add buttons
+      elem.find('.list-elem-btn').first().append(this._buttons(element))
+      // Add element e to the list 
+      if (category && this.categories[category]) {
+        this.categories[category].append(elem);
+      } else {
+        this.categories['default'].append(elem);
+      }
+    }
+    return element;
+  };
+  
+  WDAT.api.VList.prototype.has = function(element) {
+    if (element.id && this._list.find('#' + this._toId(element.id)).length > 0)
+      return true;
+    else
+      return false;
+  };
 
-	/* Add a new item to the end of the list.
-	 * 
-	 * Parameter:
-	 *  - id: String	The elements id (optional).
-	 *  				If id is a falsy value, a unique id will be created.
-	 *  
-	 *  - data: String	The elements content.
-	 *  
-	 * Return value:
-	 *  - The id of the added element.
-	 */
-	WDAT.api.VList.prototype.add = function(id, data) {
-		// crate an id if necessary
-		if (!id) {
-			id = this.name + '-id-' + this._bus.uid();
-		}
-		// create a table row with data and buttons
-		var tr = $('<tr />').attr('id', id);
-		var da = $('<td />').addClass('list-data').text(data);
-		var bt = $('<td />').addClass('list-buttons');
-		if (this._edit) {
-			bt.append((new WDAT.api.Button('edit', this._bus, this._edit, id)).toJQ()).append('&nbsp;');
-		}
-		if (this._select) {
-			var that = this; // because of funny js scoping
-			tr.click( function() {that._bus.publish(that._select, id); } );
-		}
-		if (this._remove) {
-			bt.append((new WDAT.api.Button('rem', this._bus, this._remove, id)).toJQ()).append('&nbsp;');
-		}
-		// put it all together
-		tr.append(da);
-		tr.append(bt);
-		this.list.append(tr);
-		// return the id
-		return id;
-	};
-	
-	/* Update the content of an existing list element.
-	 * 
-	 * Parameter:
-	 *  - id: String	The elements id.
-	 *  
-	 *  - data: String	The elements content.
-	 *  
-	 * Return value:
-	 *  - None
-	 */
-	WDAT.api.VList.prototype.update = function(id, data) {
-		var elem = $('#' + id);
-		elem.find('td').fist().text(data);
-	};
+  /* Add new items to the list. 
+   * 
+   * Parameter:
+   *  - elements: Array    The elements to add to the list.
+   *  
+   *  - category: String   The category (optional).
+   *  
+   *  - position: Number   The elements position (optional). If a category is given
+   *                       this is the position inside this category.
+   *                       TODO implement inserts at a position.
+   * 
+   * Return value:
+   *    The elements added to the list.
+   */
+  WDAT.api.VList.prototype.addAll = function(elements, category, position) {
+    // select category
+    if (category && this.categories[category])
+      category = this.categories[category];
+    else
+      category = categories['default'];
+    // iterate over elements
+    for ( var i in elements) {
+      var element = elements[i];
+      if (!this.has(element)) {
+        // crate an id if necessary
+        if (!element.id)
+          element.id = this.bus.uid();
+        var id = this._toId(element);
+        // Create a new representation of the element e
+        var elem = $(ELEM_TMPL);
+        elem.attr('id', id);
+        elem.find('.list-elem-name').first().text(element.name);
+        if (element.info)
+          elem.find('.list-elem-info').first().text(element.info);
+        if (element.data)
+          elem.find('.list-elem-data').first().append(element.data);
+        // add buttons
+        elem.find('.list-elem-btn').first().append(this._buttons(element))
+        // Add element e to the category 
+        category.append(elem)
+      }
+    }
+    return elements;
+  };
 
-	/* Edit the content of an existing list element.
-	 * 
-	 * Parameter:
-	 *  - id: String	The elements id.
-	 * 
-	 * Return value:
-	 *  - None
-	 */
-	WDAT.api.VList.prototype.edit = function(id) {
-		// find element by id
-		var elem = $('#' + id);
-		// save old name
-		var oldname = elem.find('td').first();
-		oldname.detach();
-		var buttons = elem.find('td').last();
-		buttons.detach();
-		// create input and replace old content
-		var input = $('<input />').attr('type', 'text').attr('value', oldname.text());
-		elem.append($('<td />').append(input)).append($('<td />'));
-		input.focus().select();
-		// listen on key events
-		input.keyup(function(e) {
-			if (e.keyCode == 13) {
-				// ENTER: submit changes
-				var newname = input.val();
-				elem.empty().append(oldname.text(newname));
-				elem.append(buttons);
-			} if (e.keyCode == 27) {
-				// ESC: restore old text
-				elem.empty().append(oldname);
-				elem.append(buttons);
-			}
-		});
-	};
+  /* Update the content of an existing list element.
+   * 
+   * Parameter:
+   *  - element: Object    The element to update.
+   *  
+   *  - category: String   The category containing the element to update.
+   *  
+   * Return value:
+   *   None
+   */
+  WDAT.api.VList.prototype.update = function(element, category) {
+    var tab;
+    // get category if present
+    if (category && this.categories[category])
+      tab = this.categories[category];
+    else
+      tab = this._list;
+    // get the element and do update
+    var e = tab.find('#' + this._toId(element)).first();
+    if (element.name)
+      e.find('.list-elem-name').first().text(element.name);
+    if (element.info)
+      e.find('.list-elem-info').first().text(element.info);
+    if (element.data)
+      e.find('.list-elem-data').empty().append(element.data);
+  };
 
-	/* Remove an element from the list.
-	 * 
-	 * Parameter:
-	 *  - id: String	The id of the element to remove.
-	 *  
-	 * Return value:
-	 *  - None
-	 */
-	WDAT.api.VList.prototype.remove = function(id) {
-		var elem = $('#' + id);
-		elem.remove();
-		return elem;
-	};
-	
-	/* Select an element in the list.
-	 * 
-	 * Parameter:
-	 *  - id: String	The id of the element to select.
-	 *  
-	 *  - single: Bool	Set to true if the selected element should be the 
-	 *  				only selected element in the whole list.
-	 *  
-	 * Return value:
-	 *  - None
-	 */
-	WDAT.api.VList.prototype.select = function(id, single) {
-		var elem = $('#' + id);
-		if (single) {
-			this.list.find('tr').each(function() {
-				$(this).removeClass('selected');
-			});
-		}
-		elem.addClass('selected');
-	};
-	
-	/* Toggle the selection of an element in the list.
-	 * 
-	 * Parameter:
-	 *  - id: String	The id of the element.
-	 *  
-	 * Return value:
-	 *  - The selection state of the specified element.
-	 */
-	WDAT.api.VList.prototype.toggleSelect = function(id) {
-		var elem = $('#' + id);
-		elem.toggleClass('selected');
-		return elem.hasClass('selected');
-	};
+  /* Edit the name of an existing list element.
+   * 
+   * Parameter:
+   *  - element: String, Obj.  The elements to edit or the id of this 
+   *                           element.
+   *
+   *  - category: String       The category containing the element to edit.
+   * 
+   * Return value:
+   *   None
+   */
+  WDAT.api.VList.prototype.edit = function(element, category) {
+    var cat;
+    // get category if present
+    if (category && this.categories[category])
+      cat = this.categories[category];
+    else
+      cat = this._list;
+    // find element by id
+    var elem = cat.find('#' + this._toId(element));
+    // save old element
+    var btndiv = elem.children('.list-elem-btn');
+    btndiv.detach();
+    var contdiv = elem.children('.list-elem-content');
+    var name = contdiv.children('.list-elem-name').text();
+    contdiv.detach();
+    // create input and replace old content
+    var indiv = $('<div><input type="text" value="" /></div>');
+    var input = indiv.children('input').attr('value', name);
+    elem.prepend(indiv);
+    input.focus().select();
+    // listen on key events
+    input.keyup(function(e) {
+      if (e.keyCode == 13) {
+        // ENTER: submit changes
+        name = input.val();
+        contdiv.children('.list-elem-name').text(name);
+        indiv.remove();
+        elem.prepend(contdiv);
+        elem.prepend(btndiv);
+      }
+      if (e.keyCode == 27) {
+        // ESC: restore old text
+        indiv.remove();
+        elem.prepend(contdiv);
+        elem.prepend(btndiv);
+      }
+    });
+  };
 
-	/* Remove all elements from the list.
-	 */
-	WDAT.api.VList.prototype.clear = function() {
-		this.list.find('tr').each(function() {
-			$(this).remove();
-		});
-	};
+  /* Remove an element from the list.
+   * 
+   * Parameter:
+   *  - element: String, Obj.  The elements to remove or the id of this 
+   *                           element.
+   *
+   *  - category: String       The category containing the element to remove.
+   * 
+   * Return value:
+   *   None
+   */
+  WDAT.api.VList.prototype.remove = function(element, category) {
+    var tab;
+    // get category if present
+    if (category && this.categories[category])
+      tab = this.categories[category];
+    else
+      tab = this._list;
+    // get the element to remove
+    tab.find('#' + this._toId(element)).first().remove();
+  };
 
-	/* Returns the list as a jQuery object.
-	 * Use this method to include the list into your document.
-	 * 
-	 * Return value: - The list (jQuery)
-	 */
-	WDAT.api.VList.prototype.toJQ = function() {
-		return this.list;
-	};
+  /* Select an element in the list. If the element is already selected 
+   * the selection will be removed (toggle).
+   * 
+   * Parameter:
+   *  - element: String, Obj.  The elements to select or the id of this 
+   *                           element.
+   *
+   *  - category: String       The category containing the element to select.
+   *
+   *  - single: Bool           Set to true if the selected element should be the 
+   *                           only selected element in the whole list.
+   *
+   * Return value:
+   *    True if the element is now selected false otherwise. 
+   */
+  WDAT.api.VList.prototype.select = function(element, category, single) {
+    var tab = this._list;
+    // set tab category if present
+    if (category && this.categories[category])
+      tab = this.categories[category];
+    // get element and toggle selected
+    var elem = tab.find('#' + this._toId(element));
+    var selected = elem.is('.selected');
+    if (single) {
+      this._list.find('.list-elem').each(function() {
+        $(this).removeClass('selected');
+      });
+    }
+    elem.toggleClass('selected', !selected);
+    return !selected;
+  };
 
-	/* Returns the list as a string.
-	 * 
-	 * Return value: - The list as a string.
-	 */
-	WDAT.api.VList.prototype.toString = function() {
-		return this.list.html();
-	};
+  /* Expand an element in the list. If the element is already expanded 
+   * it will be collapsed again.
+   * 
+   * Parameter:
+   *  - element: String, Obj.  The elements to expand or the id of this 
+   *                           element.
+   * 
+   *  - category: String       The category containing the element to expand.
+   *  
+   *  - single: Bool           Set to true if the expanded element should be the 
+   *                           only expanded element in the whole list.
+   *  
+   * Return value:
+   *    True if the element is now expanded false otherwise. 
+   */
+  WDAT.api.VList.prototype.expand = function(element, category, single) {
+    var tab = this._list;
+    // set tab category if present
+    if (category && this.categories[category])
+      tab = this.categories[category];
+    // get element and toggle hidden
+    var elem = tab.find('#' + this._toId(element) + ' .list-elem-data');
+    var hidden = elem.is('.hidden');
+    if (single) {
+      this._list.find('.list-elem-data').each(function() {
+        $(this).addClass('hidden');
+      });
+    }
+    elem.toggleClass('hidden', !hidden);
+    return hidden;
+  };
+
+  /* Remove all elements from the list without removing the categories.
+   */
+  WDAT.api.VList.prototype.clear = function() {
+    this._list.find('.list-elem').each(function() {
+      $(this).remove();
+    });
+  };
+
+  /* Returns the list as a jQuery object.
+   * Use this method to include the list into your document.
+   * 
+   * Return value: 
+   *    The list (jQuery)
+   */
+  WDAT.api.VList.prototype.toJQ = function() {
+    return this._list;
+  };
+
+  /* Crates a default handler function for select events. 
+   * 
+   * Return value:
+   *   A default handler.
+   */
+  WDAT.api.VList.prototype.selectHandler = function() {
+    var that = this;
+    return function(event, data) {
+      if (data.id)
+        that.select(data.id);
+    };
+  };
+
+  /* Crates a default handler function for expand events. 
+   * 
+   * Return value:
+   *   A default handler.
+   */
+  WDAT.api.VList.prototype.expandHandler = function() {
+    var that = this;
+    return function(event, data) {
+      if (data.id)
+        that.expand(data.id, null, false);
+    };
+  };
+
+  /* Crates a default handler function for delete events. 
+   * 
+   * Return value:
+   *   A default handler.
+   */
+  WDAT.api.VList.prototype.removeHandler = function() {
+    var that = this;
+    return function(event, data) {
+      if (data.id)
+        that.remove(data.id);
+    };
+  };
+
+  /* Crates a default handler function for edit events. 
+   * 
+   * Return value:
+   *   A default handler.
+   */
+  WDAT.api.VList.prototype.editHandler = function() {
+    var that = this;
+    return function(event, data) {
+      if (data.id)
+        that.edit(data.id);
+    };
+  };
+
+  /* Helper function for the creation of buttons
+   * matching the event list. For internal use only.
+   */
+  WDAT.api.VList.prototype._buttons = function(element) {
+    var btns = [];
+    if (element.id) {
+      for ( var i in this.events) {
+        var label = i.toString();
+        if (i !== 'add') {
+          if ($.inArray(label, ['del', 'sel', 'edit', 'more']) >= 0)
+            label = label + '-small';
+          var b = new WDAT.api.Button(label, this.bus, this.events[i], null, element);
+          btns.push(b.toJQ());
+        }
+      }
+    }
+    return btns;
+  };
+
+  /* Helper function for the creation unique ids.
+   * For internal use only.
+   */
+  WDAT.api.VList.prototype._toId = function(id) {
+    if (id.id)
+      return this.name + '-' + id.id;
+    else
+      return this.name + '-' + id;
+  };
 
 }());

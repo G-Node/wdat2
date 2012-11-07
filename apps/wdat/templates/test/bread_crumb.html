@@ -1,0 +1,26 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Bread Crumb Navigation Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function() {
+    var bus = new WDAT.api.EventBus(); 
+    var bcn = new WDAT.api.VBreadCrumb($('#bcn-1'), bus);
+    bus.subscribe(bcn.event, function(event, data) { 
+      $('.event-log').append(bcn.event + ': ' + data.id).append('<br>'); 
+    });
+    bcn.add({id: 'one', name: 'One'});
+    bcn.add({id: 'two', name: 'Two'});
+    bcn.add({id: 'three', name: 'Three'});
+    bcn.add({id: 'four', name: 'Four'}, bcn.pos('two'));
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+  <h1>Bread Crumb Navigation Test</h1>
+  <div id="bcn-1"></div><br>
+  <div class="event-log"></div>
+{% endblock %}

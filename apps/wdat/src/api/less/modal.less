@@ -1,0 +1,31 @@
+@modal-width: 500px;
+@modal-z-index: 1000;
+
+.glasspane {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: @modal-z-index;
+
+  background: rgba(100, 100, 100, 0.8);
+
+  /* Define styles for the actual modal window here */
+  .modal {
+    width: @modal-width; 
+    min-height: 120px;
+    margin: auto;
+    margin-top: 140px;
+    z-index: @modal-z-index;
+
+    .rounded-corners;
+    .thin-bordered;
+
+    .vertical-padding(@largecushion);
+    .horizontal-padding(@largecushion);
+    
+    background: @white;
+  }
+}
+
