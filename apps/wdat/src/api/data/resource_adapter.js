@@ -170,7 +170,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
     metadata: {
       section: {
           fields: ['name', 'description', 'odml_type', 'tree_position'],
-          children: ['property_set', 'block_set','datafile_set'],
+          children: ['property_set', 'block_set','datafile_set','section_set'],
           parents: ['parent_section']
         },
       property: {
