@@ -31,7 +31,7 @@ def convert_to_timeseries(line):
     s = line.split(" ")
     for i in range(s.count('')):
         s.remove('')
-    return s
+    return [float(el) for el in s]
 
 
 def create_thomas():

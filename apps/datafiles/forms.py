@@ -42,21 +42,21 @@ class DeleteDatafileForm(forms.Form):
         user = kwargs.pop('user')
         super(DeleteDatafileForm, self).__init__(*args, **kwargs)
         self.fields['set_choices'] = forms.MultipleChoiceField(
-            choices=[(c.id, c.title) for c in Datafile.objects.filter(Q(current_state=10, owner=user))],
+            choices=[(c.id, c.name) for c in Datafile.objects.filter(Q(current_state=10, owner=user))],
             widget=widgets.CheckboxSelectMultiple)
 
 class DatafileShortEditForm(forms.ModelForm):
     
     class Meta:
         model = Datafile
-        fields = ('title', 'caption', 'tags')
+        fields = ('name', 'caption', 'tags')
         
 class PrivacyEditForm(forms.ModelForm):
     
     class Meta:
         model = Datafile
         #fields = ('safety_level', 'shared_with')
-        fields = ('safety_level', 'title')
+        fields = ('safety_level', 'name')
     
     def __init__(self, user=None, *args, **kwargs):
         self.user = user

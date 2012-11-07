@@ -34,7 +34,7 @@ class DatafilesTest(TestCase):
 	""" expected: can't perform action """
         
 	f = open('apps/datafiles/tests/Bach_WTC1_Richter_01.mp3')
-	response = self.client.post('/datafiles/create/', {'title': 'TestFile1', 'raw_file': f})
+	response = self.client.post('/datafiles/create/', {'name': 'TestFile1', 'raw_file': f})
 	f.close()
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["location"], "http://" + SERVER_NAME + "/account/login/?next=/datafiles/create/")
@@ -64,7 +64,7 @@ class DatafilesTest(TestCase):
         self.assertTrue(logged_in)
 	f = open('apps/datafiles/tests/Bach_WTC1_Richter_01.mp3')
         response = self.client.post("/datafiles/create/", {
-            "title": "SecondFile",
+            "name": "SecondFile",
 	    "safety_level": 1,
             "raw_file": f
         })
@@ -90,7 +90,7 @@ class DatafilesTest(TestCase):
         self.assertEqual(response.status_code, 404)
 	# both files should not be manageable, as they belong to Joe
         response = self.client.post("/datafiles/details/1/", {
-            "title": "Bob changed the first file name",
+            "name": "Bob changed the first file name",
 	    "recording_date": "2010-02-15 19:11",
 	    "initial-recording_date": "2010-02-15 19:11",
             "caption": "Bob changed the first file description",
@@ -111,7 +111,7 @@ class DatafilesTest(TestCase):
         self.assertEqual(str(Datafile.objects.get(pk=1).shared_with.all()[0].id), "1")
 	# the second file even unavailable
         response = self.client.post("/datafiles/details/2/", {
-            "title": "Bob changed the second file name",
+            "name": "Bob changed the second file name",
 	    "recording_date": "2010-02-15 19:11",
 	    "initial-recording_date": "2010-02-15 19:11",
             "caption": "Bob changed the second file description",
@@ -141,7 +141,7 @@ class DatafilesTest(TestCase):
         self.assertEqual(response.status_code, 200)
 	# both files should not be manageable, as they belong to Joe
         response = self.client.post("/datafiles/details/2/", {
-            "title": "Jane changed the first file name",
+            "name": "Jane changed the first file name",
 	    "recording_date": "2010-02-15 19:11",
 	    "initial-recording_date": "2010-02-15 19:11",
             "caption": "Jane changed the first file description",
@@ -161,7 +161,7 @@ class DatafilesTest(TestCase):
         self.assertEqual(Datafile.objects.get(pk=2).shared_with.all().count(), 0)
 	# the first file even unavailable
         response = self.client.post("/datafiles/details/1/", {
-            "title": "Jane changed the second file name",
+            "name": "Jane changed the second file name",
 	    "recording_date": "2010-02-15 19:11",
 	    "initial-recording_date": "2010-02-15 19:11",
             "caption": "Jane changed the second file description",
@@ -190,7 +190,7 @@ class DatafilesTest(TestCase):
         self.assertEqual(response.status_code, 200)
 	# both files should not be manageable, as they belong to me (testing just one)
         response = self.client.post("/datafiles/details/1/", {
-            "title": "Joe changed the first file name",
+            "name": "Joe changed the first file name",
 	    "recording_date": "2010-02-15 19:11",
 	    "initial-recording_date": "2010-02-15 19:11",
             "caption": "Joe changed the first file description",

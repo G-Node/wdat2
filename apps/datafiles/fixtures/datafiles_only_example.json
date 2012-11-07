@@ -48,7 +48,7 @@
         "pk": 200,
         "model": "datafiles.datafile",
         "fields": {
-            "title": "FirstFile",
+            "name": "FirstFile",
             "caption": "File description should go here",
             "date_added": "2010-02-15 19:11:56",
             "owner": 1,
@@ -63,7 +63,7 @@
         "pk": 201,
         "model": "datafiles.datafile",
         "fields": {
-            "title": "Second",
+            "name": "Second",
             "caption": "File description should go here",
             "date_added": "2010-02-15 19:11:56",
             "owner": 1,
@@ -78,7 +78,7 @@
         "pk": 202,
         "model": "datafiles.datafile",
         "fields": {
-            "title": "Third",
+            "name": "Third",
             "caption": "File description should go here",
             "date_added": "2010-02-15 19:11:56",
             "owner": 1,

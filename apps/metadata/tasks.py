@@ -43,7 +43,7 @@ def export_xml(sections, recursive=True):
     """ Exports given sections with all children and properties with odML parser. """
     def export_section(section, recursive=True):
         """ Exports a section into odML section, including properties. """
-        s = odml_section(name=section.title)
+        s = odml_section(name=section.name)
         s.type = section.odml_type
         for p in section.get_properties():
             prop = odml_property(name=p.name, value=p.values_as_str)

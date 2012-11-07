@@ -134,7 +134,7 @@ def extract_from_archive(file_id):
                     parent_section = locations[member.name[:member.name.rindex("/")]]
                 except ValueError: # this file is in the 'root' of archive
                     if not locations.has_key("/"):
-                        locations["/"] = create_section("extracted from %s" % d.title)
+                        locations["/"] = create_section("extracted from %s" % d.name)
                     parent_section = locations["/"]
                     file_name = member.name
                 create_file(file_name, File(ef), parent_section)
@@ -171,7 +171,7 @@ def extract_from_archive(file_id):
                     parent_section = locations[member.filename[:member.filename.rindex("/")]]
                 except ValueError: # this file is in the 'root' of archive
                     if not locations.has_key("/"):
-                        locations["/"] = create_section("extracted from %s" % d.title)
+                        locations["/"] = create_section("extracted from %s" % d.name)
                     parent_section = locations["/"]
                     file_name = member.filename
                 create_file(file_name, File(open(ef_path, "r")), parent_section)
@@ -235,7 +235,7 @@ def convert_from_csv(id):
             arr = np.array(s, dtype=float)
 
             a = AnalogSignal()
-            a.name = "From File: %s, #%s" % (d.title, n+1)
+            a.name = "From File: %s, #%s" % (d.name, n+1)
             a.t_start = 0.0
             a.t_start__unit = "ms"
             a.sampling_rate = 10000 # ???
