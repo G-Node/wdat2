@@ -100,7 +100,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
         adapted.fields = {}
         for (var f in template.fields) {
           f = template.fields[f];
-          if (f === 'name' || (f === 'value' && adapted.type === 'value')) {
+          if (f === 'name' || (f === 'data' && adapted.type === 'value')) {
             adapted.name = element.fields[f];
           } else {
             adapted.fields[f] = element.fields[f];
@@ -169,19 +169,20 @@ WDAT.api.data.GNodeResourceAdapter = function() {
   DATA_OBJECTS = {
     metadata: {
       section: {
-          fields: [],
-          children: [],
-          parents: []
+          fields: ['name', 'description', 'odml_type', 'tree_position'],
+          children: ['property_set', 'block_set','datafile_set'],
+          parents: ['parent_section']
         },
       property: {
-          fields: [],
-          children: [],
-          parents: []
+          fields: ['name', 'definition', 'dependency', 'dependency_value', 
+                   'mapping', 'unit', 'dtype', 'uncertainty', 'comment'],
+          children: ['value_set'],
+          parents: ['section']
         },
       value: {
-          fields: [],
+          fields: ['data'],
           children: [],
-          parents: []
+          parents: ['parent_property']
         }
     },
     data: {
@@ -189,7 +190,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
         block: {
           fields: ['name', 'index', 'description', 'file_origin', 'filedatetime', 'recdatetime'],
           children: ['segment_set', 'recordingchannelgroup_set'],
-          parents: []
+          parents: ['']
         },
         segment: {
           fields: ['name', 'index', 'description', 'file_origin', 'filedatetime', 'recdatetime'],
