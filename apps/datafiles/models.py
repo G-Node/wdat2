@@ -63,7 +63,7 @@ class Datafile(SafetyLevel, ObjectState):
         (4, _('odml')),
         (5, _('hdf5_array')),
     )
-    title = models.CharField( 'name', blank=True, max_length=200 )
+    name = models.CharField( 'name', blank=True, max_length=200 )
     caption = models.TextField( 'description', blank=True)
     section = models.ForeignKey(Section, blank=True, null=True)
     raw_file = models.FileField( 'raw_file', storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
@@ -80,7 +80,7 @@ class Datafile(SafetyLevel, ObjectState):
     size = models.IntegerField('size', blank=True, null=True)
 
     def __unicode__(self):
-        return self.title
+        return self.name
 
     @models.permalink
     def get_absolute_url(self):
@@ -116,10 +116,10 @@ class Datafile(SafetyLevel, ObjectState):
         return self.file_type == 5
 
     def get_slice(self, start_index=0, end_index=10**9, downsample=None, **kwargs):
-        """ returns a slice of the analog signal data.
+        """ returns a slice of the array data.
         start, end - indexes as int """
         if not self.has_array:
-            raise TypeError("This file cannot be opened for slicing.")
+            raise TypeError("This file cannot be opened for data slicing.")
 
         with tb.openFile(self.raw_file.path, 'r') as f:
             l = f.listNodes( "/" )[0][ start_index : end_index ]

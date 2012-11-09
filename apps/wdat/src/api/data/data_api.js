@@ -34,7 +34,7 @@ WDAT.api.data.DataAPI = function(resource, adapter, bus) {
 
   // Create the worker if defined in the browser
   if (Worker) {
-    w = new Worker(_js_directory + 'data_api.worker.js?no=cache' + Math.random());
+    w = new Worker(_js_directory + 'data_api.js.worker?no=cache' + Math.random());
     this._worker = w;
 
     var messageHandler = function (event) {
