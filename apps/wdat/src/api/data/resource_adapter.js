@@ -20,16 +20,16 @@
 // Initialize modules
 if (!WDAT) var WDAT = {};
 if (!WDAT.api) WDAT.api = {};
-if (!WDAT.api.data) WDAT.api.data = {};
 
-/* Adapter that provides conversion methods. 
- */
-WDAT.api.data.GNodeResourceAdapter = function() {
-  
-};
-
-// define methods of ResourceAdapter
+// create anonymous namespace
 (function(){
+
+  /* Constuctor of the resource adapter
+   */
+  WDAT.api.ResourceAdapter = ResourceAdapter;
+  function ResourceAdapter() {
+  
+  };
 
   /* Converts data from GNodeNetworkResource into a format that can easily be used 
    * inside the wdat application. The result is always an array of objects. Each object 
@@ -55,7 +55,7 @@ WDAT.api.data.GNodeResourceAdapter = function() {
    * Return value
    *    An array of converted objects
    */
-  WDAT.api.data.GNodeResourceAdapter.prototype.adapt = function(data) {
+  ResourceAdapter.prototype.adapt = function(data) {
     var adapted_data = [];
     if (typeof data  === 'string') data = JSON.parse(data);
     // iterate over results
@@ -275,5 +275,5 @@ WDAT.api.data.GNodeResourceAdapter = function() {
       }
     }
   }; // end data model description
-  WDAT.api.data.GNodeResourceAdapter.DATA_OBJECTS = DATA_OBJECTS;
+  ResourceAdapter.DATA_OBJECTS = DATA_OBJECTS;
 }());
