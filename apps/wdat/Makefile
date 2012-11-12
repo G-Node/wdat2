@@ -11,10 +11,10 @@ STATIC_JS = static
 STATIC_CSS = static
 
 # all js sources
-SRC_JS = $(wildcard src/api/*.js) $(wildcard src/api/data/*.js)
+SRC_JS = $(wildcard src/main/*.js) $(wildcard src/api/*.js) $(wildcard src/api/data/*.js)
 # sources that are also needes as separate files
-SRC_JS_ADD = src/api/data/network_resource.js \
-	src/api/data/resource_adapter.js
+SRC_JS_ADD = src/api/data/network_resource.js 
+
 # web worker sources
 SRC_JS_WORK = src/api/data/data_api.js.worker
 

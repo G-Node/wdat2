@@ -1,0 +1,35 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}DataAPI Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+function init() {
+  var bus = new WDAT.api.EventBus();
+  var data = new WDAT.api.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+
+  logResults = function(event, data) {
+    console.log(JSON.stringify(data, null, 2));
+  }
+  
+  bus.subscribe('data-api', logResults);
+
+  getByURLRequest = function() {
+    var url = $('#url').val();
+    data.getByURL('data-api', url);
+  }
+  
+  $('#get').click(getByURLRequest)
+};
+
+$(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>DataAPI Test</h1>
+<input type="text" size="80" id="url"><br>
+<button id="get">GET</button>
+<h1>Log</h1>
+<div class="event-log"></div>
+{% endblock %}
