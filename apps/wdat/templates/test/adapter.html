@@ -9,7 +9,7 @@ var init = function() {
 };
 
 function getRequest() {
-  var adapter = new WDAT.api.data.GNodeResourceAdapter();
+  var adapter = new WDAT.api.ResourceAdapter();
   $('.event-log').append('Start').append('<br>');
   var url = $('#url').val();
   $('.event-log').append('URL: ' + url).append('<br>');

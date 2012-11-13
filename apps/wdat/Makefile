@@ -1,6 +1,6 @@
 # js compiler
 JSC = uglifyjs
-JSCARGS = 
+JSCARGS = --no-copyright
 # css compiler
 CSSC = lessc
 CSSCARGS = 
@@ -11,10 +11,10 @@ STATIC_JS = static
 STATIC_CSS = static
 
 # all js sources
-SRC_JS = $(wildcard src/api/*.js) $(wildcard src/api/data/*.js)
+SRC_JS = $(wildcard src/main/*.js) $(wildcard src/api/*.js) $(wildcard src/api/data/*.js)
 # sources that are also needes as separate files
-SRC_JS_ADD = src/api/data/network_resource.js \
-	src/api/data/resource_adapter.js
+SRC_JS_ADD = src/api/data/network_resource.js 
+
 # web worker sources
 SRC_JS_WORK = src/api/data/data_api.js.worker
 
@@ -34,7 +34,7 @@ wdat-api.js: $(SRC_JS) $(SRC_JS_ADD) $(SRC_JS_WORK)
 wdat-api-min.js: wdat-api.js $(SRC_JS_ADD) $(SRC_JS_WORK)
 	$(JSC) $(JSCARGS) $(STATIC_JS)/wdat-api.js > $(STATIC_JS)/wdat-api.min.js
 	for i in $(SRC_JS_ADD); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js`.min.js ; done
-	for i in $(SRC_JS_WORK); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js`.min.js.worker ; done
+	for i in $(SRC_JS_WORK); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js.worker`.min.js.worker ; done
 	
 # compile css files
 wdat-api.css: $(SRC_LESS)

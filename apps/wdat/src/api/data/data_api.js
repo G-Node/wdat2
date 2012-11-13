@@ -1,134 +1,143 @@
 // ---------- file: data_api.js ---------- //
 
-// Initialize modules
-if (!window.WDAT) window.WDAT = {};
-if (!window.WDAT.api) window.WDAT.api = {};
-if (!window.WDAT.api.data) window.WDAT.api.data = {};
+// initialize modules
+if (!WDAT) var WDAT = {};
+if (!WDAT.api) WDAT.api = {};
 
-/* DataAPI is a interface to access a data source.
- * 
- * Parameter:
- *  - resource: String  
- *      Class name of a network resource, the constructor must be 
- *      defined in the file 'network_resource.js' and has to be in the
- *      module WDAT.api.data. 
- *
- *  - adapter: String           
- *      Class name for a resource adapter, the constructor must be 
- *      defined in the file 'resource_adapter.js' and has to be in the
- *      module WDAT.api.data. 
- *
- *  - bus: EventBus             
- *      A bus used for event driven data access.
- *  
- * Depends On:
- *  - jQuery, WDAT.api.EventBus and the used resource and adapter class.
- */
-
-WDAT.api.data.DataAPI = function(resource, adapter, bus) {
-  this._bus = bus;
-
-  // Suffix the javascript file name to this address
-  var _js_directory = '../../src/api/data/',
-      that = this; // reference to the current object
-
-  // Create the worker if defined in the browser
-  if (Worker) {
-    w = new Worker(_js_directory + 'data_api.js.worker?no=cache' + Math.random());
-    this._worker = w;
-
-    var messageHandler = function (event) {
-      // Since there is a wrapping event object
-      var message = event.data;
-
-      if (message.status === 200) {
-        // Call the publish event on the DataAPI._bus object
-        that._bus.publish(message.event, message.data);
-      }
-    };
-
-    // Create an initialization message
-    var init = {
-      'resource' : resource,
-      'adapter'  : adapter,
-      'action'   : 'init',
-      'event'    : 'init-event'
-    }; 
-
-    // Send the initialization message to the worker thread
-    w.postMessage( JSON.stringify(init) );
-
-    // Handle messages success returned from the worker
-    w.onmessage = messageHandler; 
-
-    // TODO
-    w.onerror = undefined; 
-  } else {
-    // The browser doesn't support Workers, gracefully fallback to single
-    // thread operations. TODO
-    this._worker = false;
-
-    // Instantiate resource and adapters from class names
-    this._resource = WDAT.api.data[resource]();
-    this._adapter  = WDAT.api.data[adapter]();
-  }
-};
-
-// DataAPI methods
+//define in anonymous name space
 (function() {
-  // Convenient reference to the prototype
-  var proto = WDAT.api.data.DataAPI.prototype;
 
-  /* Requests for the data based on the __SPECIFIER__, adapts the data and
-   * raises *event* when complete passing on the adapted object as a parameter.
+  /* DataAPI is a interface to access a web data source. The basic concept of DataAPI is 
+   * to provide a uniform interface e.g. to a RESTfull API. To access the source the 
+   * DataAPI needs a NetworkResource. A ResurceAdapter is needed in order to convert data
+   * from a resource specific format into a format used by the application and vice versa.
+   * 
+   * Response: every method of the DataAPI delivers an asynchronous response by publishing
+   * the data to an event that is specified by the first parameter of each method. A 
+   * response data object has always the following structure:
+   *  {
+   *    url: string,          // The url that was requested internally (debugging)
+   *    status: number,       // The HTTP request status
+   *    response: response,   // Array with results or Message string
+   *    error: bool           // true if an error has occurred, undefined otherwise
+   *  }
    *
-   * Returns:  nothing
+   * Parameter:
+   *  - resource: String      Class name of a network resource, the constructor must be 
+   *                          defined in the file 'network_resource.js' and has to be in the
+   *                          module WDAT.api. 
    *
-   * SideEffect:  When the object has been downloaded and adapted, the event is
-   * published.  The object is appended to the list.
+   *  - adapter: String       Class name for a resource adapter, the constructor must be 
+   *                          defined in the file 'network_resource.js' and has to be in the
+   *                          module WDAT.api. 
+   *
+   *  - bus: EventBus         A bus used for event driven data access.
+   *
+   * Depends on:
+   *    WDAT.api.EventBus and the used resource and adapter class.
    */
-  proto.get = function (event, specifier) {
-    // event     : event to publish when data has been adapted.  
-    // specifier : an object specifying which objects to fetch.
-    if (this._worker) {
-      // Compose the message
-      var message = {
-        'event'     : event,
-        'action'    : 'get',
-        'specifier' : specifier
-      }
-
-      // Post the message to the worker thread.
-      this._worker.postMessage(message);
-    }
-    // XXX Non-worker environment
-  };
-
-
-  /* Requests for the data based on the __URL__, adapts the data and raises
-   * *event* when complete passing on the adapted object as a parameter.
-   *
-   * Returns:  nothing
-   *
-   * SideEffect:  When the object has been downloaded and adapted, the event is
-   * published.  The object is appended to the list.
-   */
-  proto.getByURL = function(event, url) {
-    // event : event to publish when data has been adapted.
-    // url   : the url to which to send requests.
-    if (this._worker) {
-      // Compose the message
-      var message = {
-        'event' : event,
-        'action': 'get',
-        'url'   : url
+  WDAT.api.DataAPI = DataAPI;
+  function DataAPI(resource, adapter, bus) {
+    this._bus = bus;
+    // create a worker
+    if (Worker) { // if worker is defined in the browser
+      w = new Worker('/site_media/static/data_api.min.js.worker');
+      this._worker = w;
+      // send worker init message
+      var init = {'resource' : resource, 'adapter' : adapter, 'action' : 'init',
+        'event' : 'init-event'};
+      w.postMessage(init);
+      // callback for messages from the worker
+      var that = this;
+      w.onmessage = function(msg) {
+        that._bus.publish(msg.data.event, msg.data.data);
       };
-
-      // Post the message to the worker thread
-      this._worker.postMessage(message);
+      // callback for errors inside the worker
+      w.onerror = function(err) {
+        console.log("Error in Worker at: " + err.filename + ": " + err.lineno + ": " + err.message + ".");
+      };
+    } else { // if web workers are not available 
+      this._worker = false;
     }
-    // XXX Non-worker environment
+    // create resource and adapter from class names
+    this._resource = new WDAT.api[resource]();
+    this._adapter = new WDAT.api[adapter]();
+  }
+
+  /* Get get data by search specifiers.
+   *
+   * Supported search specifiers:
+   *  - permalink:  category/type/number
+   *  - id:         permalink or number
+   *  - type:       'section', 'value', 'analogsignal' etc.
+   *  - category:   'data' or 'metadata'
+   *  - parent:     permalink or ''
+   *  - name:       string
+   *
+   * Parameter:
+   *  - event: Sting      Event id for published data.
+   *
+   *  - specifiers: Obj   Object containing all specifiers.
+   *
+   * Return value:
+   *    None
+   */
+  DataAPI.prototype.get = function(event, specifiers) {
+    if (this._worker) { // if Worker is available just notify it
+      this._notifyWorker(event, 'get', specifiers);
+    } else { // if Worker is not available we have to do this here 
+      var result = this._resource.get(specifiers);
+      if (!result.error)
+        result.response = this._adapter.adapt(result.response);
+      this._bus.publish(event, result);
+    }
   };
-})();
 
+  /* Get get data by url.
+   *
+   * Parameter:
+   *  - event: Sting      Event id for published data.
+   *
+   *  - url: String       The URL to request.
+   *
+   * Return value:
+   *    None
+   */
+  DataAPI.prototype.getByURL = function(event, url) {
+    if (this._worker) { // if Worker is available just notify it
+      this._notifyWorker(event, 'get_by_url', url);
+    } else { // if Worker is not available we have to do this here 
+      var result = this._resource.getByURL(url);
+      if (!result.error)
+        result.response = this._adapter.adapt(result.response);
+      this._bus.publish(event, result);
+    }
+  };
 
+  /* Send a message to the worker. This method is for internal use only. Messages sent 
+   * to the worker have always the following structure:
+   *  {
+   *    event: string,   // the event that recieves the result
+   *    action: string,  // 'get', 'update', 'delete', 'save' or 'test'
+   *    data: object     // data like search parameter or data of the object to save
+   *  }
+   *
+   * Parameter:
+   *  - event: String     The event that is used by the worker to return data.
+   *
+   *  - action: String    The requested action.
+   *  
+   *  - data: Obj.        Object containing all data for this request.
+   *
+   * Return value:
+   *    None
+   */
+  DataAPI.prototype._notifyWorker = function(event, action, data) {
+    var worker_msg = {};
+    worker_msg.event = event;
+    worker_msg.action = action;
+    worker_msg.data = data;
+    this._worker.postMessage(worker_msg);
+  };
+
+}());

@@ -1,6 +1,6 @@
 // ----------- file: version.js -------------
 
 // Create the WDAT object if it doesn't exist
-if (!window.WDAT) { window.WDAT = {}; }
+if (!window.WDAT) window.WDAT = {};
 
-wdat.version = '0.9.0';
+WDAT.version = '0.10.0';
