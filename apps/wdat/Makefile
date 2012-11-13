@@ -34,7 +34,7 @@ wdat-api.js: $(SRC_JS) $(SRC_JS_ADD) $(SRC_JS_WORK)
 wdat-api-min.js: wdat-api.js $(SRC_JS_ADD) $(SRC_JS_WORK)
 	$(JSC) $(JSCARGS) $(STATIC_JS)/wdat-api.js > $(STATIC_JS)/wdat-api.min.js
 	for i in $(SRC_JS_ADD); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js`.min.js ; done
-	for i in $(SRC_JS_WORK); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js`.min.js.worker ; done
+	for i in $(SRC_JS_WORK); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js.worker`.min.js.worker ; done
 	
 # compile css files
 wdat-api.css: $(SRC_LESS)

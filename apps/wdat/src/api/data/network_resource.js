@@ -352,7 +352,7 @@ if (!WDAT.api) WDAT.api = {};
     metadata : {
       section : {
         fields : ['name', 'description', 'odml_type', 'tree_position'],
-        children : ['property_set', 'block_set', 'datafile_set', 'section_setcd'],
+        children : ['property_set', 'block_set', 'datafile_set', 'section_set'],
         parents : ['parent_section']},
       property : {
         fields : ['name', 'definition', 'dependency', 'dependency_value', 'mapping',

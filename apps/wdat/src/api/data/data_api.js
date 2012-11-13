@@ -32,7 +32,7 @@ if (!WDAT.api) WDAT.api = {};
     this._bus = bus;
     // create a worker
     if (Worker) { // if worker is defined in the browser
-      w = new Worker('/site_media/static/data_api.js.worker');
+      w = new Worker('/site_media/static/data_api.min.js.worker');
       this._worker = w;
       // send worker init message
       var init = {'resource' : resource, 'adapter' : adapter, 'action' : 'init',

@@ -15,9 +15,9 @@ function init() {
 
   /* log the results of data api requests */
   function logResults(event, data) {
-    console.log("\nTest URL: " + data.url);
-    console.log("\nTest Result: " + JSON.stringify(data.response, null, 2));
-    $('.event-log').append(JSON.stringify(data.response, null, 2) + '<br><br>');
+    $('.event-log').text("")
+    $('.event-log').append("\nTest URL: " + data.url + "\n");
+    $('.event-log').append("\nTest Result: " + JSON.stringify(data.response, null, 2) + "\n");
   }
   
   /* request data from DataAPI by URL */
@@ -65,5 +65,7 @@ $(window).load(init);
 </p>
 <p><input type="text" size="80" id="param">&nbsp;<button id="get-by-param">GET</button></p>
 <h1>Log</h1>
-<div class="event-log"></div>
+<p>
+<pre class="event-log"></pre>
+</p>
 {% endblock %}

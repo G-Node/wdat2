@@ -1,7 +1,7 @@
 //---------- file: data_api.js.worker ----------//
 
 // Import scripts for resource and adapter
-importScripts('network_resource.js');
+importScripts('network_resource.min.js');
 
 // Define name space WDAT if not available (but it should be because of importScripts())
 if (!WDAT) var WDAT = {}; 
