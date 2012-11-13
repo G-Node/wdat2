@@ -1,34 +1,43 @@
 // ---------- file: data_api.js ---------- //
 
-// Initialize modules
+// initialize modules
 if (!WDAT) var WDAT = {};
 if (!WDAT.api) WDAT.api = {};
 
-//define in anonymous namespace
+//define in anonymous name space
 (function() {
 
-  /* DataAPI is a interface to access a data source.
+  /* DataAPI is a interface to access a web data source. The basic concept of DataAPI is 
+   * to provide a uniform interface e.g. to a RESTfull API. To access the source the 
+   * DataAPI needs a NetworkResource. A ResurceAdapter is needed in order to convert data
+   * from a resource specific format into a format used by the application and vice versa.
+   * 
+   * Response: every method of the DataAPI delivers an asynchronous response by publishing
+   * the data to an event that is specified by the first parameter of each method. A 
+   * response data object has always the following structure:
+   *  {
+   *    url: string,          // The url that was requested internally (debugging)
+   *    status: number,       // The HTTP request status
+   *    response: response,   // Array with results or Message string
+   *    error: bool           // true if an error has occurred, undefined otherwise
+   *  }
    *
    * Parameter:
-   *  - resource: String
-   *      Class name of a network resource, the constructor must be 
-   *      defined in the file 'network_resource.js' and has to be in the
-   *      module WDAT.api.data. 
+   *  - resource: String      Class name of a network resource, the constructor must be 
+   *                          defined in the file 'network_resource.js' and has to be in the
+   *                          module WDAT.api. 
    *
-   *  - adapter: String
-   *      Class name for a resource adapter, the constructor must be 
-   *      defined in the file 'resource_adapter.js' and has to be in the
-   *      module WDAT.api.data. 
+   *  - adapter: String       Class name for a resource adapter, the constructor must be 
+   *                          defined in the file 'network_resource.js' and has to be in the
+   *                          module WDAT.api. 
    *
-   *  - bus: EventBus
-   *      A bus used for event driven data access.
+   *  - bus: EventBus         A bus used for event driven data access.
    *
-   * Depends On:
-   *  - jQuery, WDAT.api.EventBus and the used resource and adapter class.
+   * Depends on:
+   *    WDAT.api.EventBus and the used resource and adapter class.
    */
   WDAT.api.DataAPI = DataAPI;
   function DataAPI(resource, adapter, bus) {
-    // set message bus
     this._bus = bus;
     // create a worker
     if (Worker) { // if worker is defined in the browser
@@ -41,15 +50,13 @@ if (!WDAT.api) WDAT.api = {};
       // callback for messages from the worker
       var that = this;
       w.onmessage = function(msg) {
-        // the original message from the worker is wrapped in a message 
-        // object and contained in msg.data
-        that._notifyRequest(msg.data.event, msg.data.data);
+        that._bus.publish(msg.data.event, msg.data.data);
       };
       // callback for errors inside the worker
       w.onerror = function(err) {
-        console.log("Error at " + err.filename + ": " + err.lineno + ": " + err.message + ".");
+        console.log("Error in Worker at: " + err.filename + ": " + err.lineno + ": " + err.message + ".");
       };
-    } else { // if not defined set to false 
+    } else { // if web workers are not available 
       this._worker = false;
     }
     // create resource and adapter from class names
@@ -57,22 +64,44 @@ if (!WDAT.api) WDAT.api = {};
     this._adapter = new WDAT.api[adapter]();
   }
 
-  /*
-   * 
+  /* Get get data by search specifiers.
+   *
+   * Supported search specifiers:
+   *  - permalink:  category/type/number
+   *  - id:         permalink or number
+   *  - type:       'section', 'value', 'analogsignal' etc.
+   *  - category:   'data' or 'metadata'
+   *  - parent:     permalink or ''
+   *  - name:       string
+   *
+   * Parameter:
+   *  - event: Sting      Event id for published data.
+   *
+   *  - specifiers: Obj   Object containing all specifiers.
+   *
+   * Return value:
+   *    None
    */
-  DataAPI.prototype.get = function(event, searchparam) {
+  DataAPI.prototype.get = function(event, specifiers) {
     if (this._worker) { // if Worker is available just notify it
-      this._notifyWorker(event, 'get', searchparam);
+      this._notifyWorker(event, 'get', specifiers);
     } else { // if Worker is not available we have to do this here 
-      var result = this._resource.get(searchparam);
+      var result = this._resource.get(specifiers);
       if (!result.error)
         result.response = this._adapter.adapt(result.response);
-      this._notifyRequest(event, result);
+      this._bus.publish(event, result);
     }
   };
 
-  /*
-   * 
+  /* Get get data by url.
+   *
+   * Parameter:
+   *  - event: Sting      Event id for published data.
+   *
+   *  - url: String       The URL to request.
+   *
+   * Return value:
+   *    None
    */
   DataAPI.prototype.getByURL = function(event, url) {
     if (this._worker) { // if Worker is available just notify it
@@ -81,30 +110,27 @@ if (!WDAT.api) WDAT.api = {};
       var result = this._resource.getByURL(url);
       if (!result.error)
         result.response = this._adapter.adapt(result.response);
-      this._notifyRequest(event, result);
+      this._bus.publish(event, result);
     }
   };
 
-  /*
-   * 
-   */
-  DataAPI.prototype.test = function(event) {
-    if (this._worker) { // if Worker is available just notify it
-      this._notifyWorker(event, 'test');
-    } else { // if Worker is not available we have to do this here 
-      this._notifyRequest(event, 'Worker are not available in your browser!');
-    }
-  };
-  
-  /* Notifies the worker.
-   * 
-   * Wraps parameter in one object:
-   * {
-   *    event: <event>,   // the event that recieves the result
-   *    action: <action>, // 'get', 'update', 'delete', 'save' or 'test'
-   *    type: <type>,     // 'analogsignal', 'section' etc.
-   *    data: <data>      // data like search parameter or data of the object to save
-   * }
+  /* Send a message to the worker. This method is for internal use only. Messages sent 
+   * to the worker have always the following structure:
+   *  {
+   *    event: string,   // the event that recieves the result
+   *    action: string,  // 'get', 'update', 'delete', 'save' or 'test'
+   *    data: object     // data like search parameter or data of the object to save
+   *  }
+   *
+   * Parameter:
+   *  - event: String     The event that is used by the worker to return data.
+   *
+   *  - action: String    The requested action.
+   *  
+   *  - data: Obj.        Object containing all data for this request.
+   *
+   * Return value:
+   *    None
    */
   DataAPI.prototype._notifyWorker = function(event, action, data) {
     var worker_msg = {};
@@ -112,13 +138,6 @@ if (!WDAT.api) WDAT.api = {};
     worker_msg.action = action;
     worker_msg.data = data;
     this._worker.postMessage(worker_msg);
-  };
-
-  /* Publish an event with event data to the message bus.
-   * 
-   */
-  DataAPI.prototype._notifyRequest = function(event, data) {
-    this._bus.publish(event, data);
   };
 
 }());

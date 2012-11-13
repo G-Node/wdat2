@@ -1,6 +1,6 @@
 # js compiler
 JSC = uglifyjs
-JSCARGS = 
+JSCARGS = --no-copyright
 # css compiler
 CSSC = lessc
 CSSCARGS = 

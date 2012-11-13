@@ -17,29 +17,53 @@
  * XMLHtpRequest, TypedArrays and so on can be used here. 
  */
 
-// Initialize modules
+// initialize modules
 if (!WDAT) var WDAT = {};
 if (!WDAT.api) WDAT.api = {};
 
-// create anonymous namespace
+// create anonymous name space
 (function(){
 
   //-------------------------------------------------------------------------------------
   // Class: NetworkResource
   //-------------------------------------------------------------------------------------
 
+  /* Constructor of the class NetworkResource. NetworkResource provides methods to 
+   * access a web resource, in this case the G-Node RESTfull API. 
+   * 
+   * Parameter:
+   *    None
+   *
+   * Depends on:
+   *    Nothing
+   */
   WDAT.api.NetworkResource = NetworkResource;
   function NetworkResource() {
     this._xhr = new XMLHttpRequest();
   };
 
-  /* Get data based on a specifier. */
+  /* Get data from the G-Node RESTfull API by search specifiers. See DataAPI.get() for 
+   * further explanation.
+   * 
+   * Parameter:
+   *  - specifier: Obj.     An object containing multiple search specifier.
+   *  
+   * Return value:
+   *    The requested data as a JSON string as specified by the G-Node RESTfull API.
+   */
   NetworkResource.prototype.get = function(specifier) {
     var url = this._specToURL(specifier);
     return this.getByURL(url);
   };
 
-  /* Get data based on an URL. */
+  /* Get data from the G-Node RESTfull API by URL.
+   * 
+   * Parameter:
+   *  - url: String         The URL to request from the API.
+   *  
+   * Return value:
+   *    The requested data as a JSON string as specified by the G-Node RESTfull API.
+   */
   NetworkResource.prototype.getByURL = function(url) {
     var result = {};
     result.url = url;
@@ -188,14 +212,22 @@ if (!WDAT.api) WDAT.api = {};
   // Class: ResourceAdapter
   //-------------------------------------------------------------------------------------
 
-  /* Constuctor of the resource adapter
+  /* Constuctor of the class ResourceAdapter. The Resource adapter is needed in order to 
+   * convert data from the G-Node RESTfull API specific format into a format used by 
+   * the application and vice versa.
+   * 
+   * Parameter:
+   *    None
+   *
+   * Depends on:
+   *    Nothing
    */
   WDAT.api.ResourceAdapter = ResourceAdapter;
   function ResourceAdapter() {
     // nothing to do
   };
 
-  /* Converts data from GNodeNetworkResource into a format that can easily be used 
+  /* Converts data from NetworkResource into a format that can easily be used 
    * inside the wdat application. The result is always an array of objects. Each object 
    * has the following form.
    * 
@@ -294,14 +326,14 @@ if (!WDAT.api) WDAT.api = {};
     return adapted_data;
   };
   
-  /* Extracts only the path part of a url.
+  /* Extracts only the path part of a URL.
    * For internal use only.
    * 
    * Parameter:
-   *  - url: String       The url to strip
+   *  - url: String       The URL to strip
    *  
    * Return value:
-   *  - The path part of the url without leading '/'
+   *  - The path part of the URL without leading '/'
    */
   ResourceAdapter.prototype._stripURL = function(url) {
     var tmp = url.split('://');
@@ -319,9 +351,17 @@ if (!WDAT.api) WDAT.api = {};
 
   //-------------------------------------------------------------------------------------
   // Helper functions and objects
+  // For internal use only
   //-------------------------------------------------------------------------------------
 
-
+  /* Find the matching category for specific type using _DATA_OBJECTS.
+   * 
+   * Parameter:
+   *  - type: String      The type of a data object e.g. section, segment or analogsignal
+   * 
+   * Return value:
+   *    The corresponding category e.g. metadata or electrophysiology
+   */
   function _getCategory(type) {
     if (_DATA_OBJECTS.metadata.hasOwnProperty(type))
       return 'metadata';
@@ -333,6 +373,14 @@ if (!WDAT.api) WDAT.api = {};
       return null;
   }
 
+  /* Get the matching template for a specific type defined in _DATA_OBJECTS.
+   * 
+   * Parameter:
+   *  - type: String      The type of a data object e.g. section, segment or analogsignal
+   * 
+   * Return value:
+   *    The corresponding template object defined in _DATA_OBJECTS.
+   */
   function _getTemplate(type) {
     if (_DATA_OBJECTS.metadata.hasOwnProperty(type))
       return _DATA_OBJECTS.metadata[type];
@@ -344,10 +392,21 @@ if (!WDAT.api) WDAT.api = {};
       return null;
   }
 
+  /* Determine by its type if a data object is plotable, using the definitions 
+   * in _DATA_OBJECTS.
+   * 
+   * Parameter:
+   *  - type: String      The type of a data object e.g. section, segment or analogsignal
+   * 
+   * Return value:
+   *    true if the object is plotable, false otherwise
+   */
   function _isPlotable(type) {
     return _DATA_OBJECTS.data.plotable.hasOwnProperty(type);
   }
 
+  /* Specification of all objects managed by the G-Node RESTfull API
+   */
   _DATA_OBJECTS = {
     metadata : {
       section : {
@@ -444,6 +503,6 @@ if (!WDAT.api) WDAT.api = {};
       }
     }
   }; // end of _DATA_OBJECTS
-  NetworkResource.DATA_OBJECTS = _DATA_OBJECTS;
-  ResourceAdapter.DATA_OBJECTS = _DATA_OBJECTS;
+  // NetworkResource.DATA_OBJECTS = _DATA_OBJECTS;
+  // ResourceAdapter.DATA_OBJECTS = _DATA_OBJECTS;
 }());
