@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>DataAPI Worker Test</title>
+<style type="text/less">
+  @import "../../src/api/less/reset.less";
+  @import "../../src/api/less/utils.less";
+  @import "../../src/api/less/base.less";
+  @import "../../src/api/less/button.less";
+</style>
+<script type="text/javascript" src="http://lesscss.googlecode.com/files/less-1.3.0.min.js"></script>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.0.min.js"></script>
+<script type="text/javascript" src="../../src/api/event_bus.js"></script>
+<script type="text/javascript" src="../../src/api/button.js"></script>
+<!-- <script type="text/javascript" src="../../src/api/data/network_resource.js"></script>
+<script type="text/javascript" src="../../src/api/data/resource_adapter.js"></script> -->
+<script type="text/javascript" src="../../src/api/data/data_api.js"></script>
+<script type="text/javascript">
+  var init = function() {
+    var bus = new WDAT.api.EventBus()
+      , log = function (event, args) {
+        $('.event-log').first().append('<p>Data received: ' + args + '</p>');
+      }
+      , button = new WDAT.api.Button('Send Request')
+      , dapi = new WDAT.api.data.DataAPI('GNodeNetworkResource', 'GNodeResourceAdapter', bus);
+
+    bus.subscribe('data-rec', log);
+
+    $('.controls').append(button.toJQ());
+
+    $( button.toJQ() ).click(function() {
+      dapi.getByURL('data-rec', '/test/');
+    });
+  };
+
+  $(window).load(init);
+</script>
+</head>
+<body style="padding-left: 10px;">
+  <h1>DataAPI Test</h1>
+  <div class="controls"></div>
+  <div class="event-log" style="padding-left: 10px"></div>
+</body>
+</html>
+

@@ -1,0 +1,43 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Adapter Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+var init = function() {
+  $('#get').click(getRequest)
+};
+
+function getRequest() {
+  var adapter = new WDAT.api.data.GNodeResourceAdapter();
+  $('.event-log').append('Start').append('<br>');
+  var url = $('#url').val();
+  $('.event-log').append('URL: ' + url).append('<br>');
+  var request = new XMLHttpRequest();
+  request.open('GET', url);
+  request.onreadystatechange = function() {
+    $('.event-log').append('Request Ready State: ' +  request.readyState).append('<br>');
+    if (request.readyState === 4) {
+      $('.event-log').append('Request Status: ' +  request.status).append('<br>');
+      data = request.responseText;
+      console.log('Response Text: ' + JSON.stringify(JSON.parse(data), null, 2) + '\n\n');
+      $('.event-log').append('Response Text: ' +  data).append('<br><br>');
+      data = adapter.adapt(data);
+      data = JSON.stringify(data, null, 2);
+      console.log('Adapted Text: ' + data + '\n\n');
+      $('.event-log').append('Adapted Text: ' +  data).append('<br><br>');
+    }
+  };
+  request.send(null);
+}
+$(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Adapter Test</h1>
+<input type="text" size="80" id="url"><br>
+<button id="get">GET</button>
+<h1>Log</h1>
+<div class="event-log"></div>
+{% endblock %}
