@@ -5,21 +5,36 @@
 {% block extra_script %}
 <script type="text/javascript">
 function init() {
+
   var bus = new WDAT.api.EventBus();
-  var data = new WDAT.api.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+  var data_api = new WDAT.api.DataAPI('NetworkResource', 'ResourceAdapter', bus);
 
-  logResults = function(event, data) {
-    console.log(JSON.stringify(data, null, 2));
-  }
-  
   bus.subscribe('data-api', logResults);
+  $('#get-by-url').click(getByURLRequest);
+  $('#get-by-param').click(getByParamRequest);
 
-  getByURLRequest = function() {
-    var url = $('#url').val();
-    data.getByURL('data-api', url);
+  /* log the results of data api requests */
+  function logResults(event, data) {
+    console.log("\nTest URL: " + data.url);
+    console.log("\nTest Result: " + JSON.stringify(data.response, null, 2));
+    $('.event-log').append(JSON.stringify(data.response, null, 2) + '<br><br>');
   }
   
-  $('#get').click(getByURLRequest)
+  /* request data from DataAPI by URL */
+  function getByURLRequest() {
+    var url = $('#url').val();
+    if (url)
+      data_api.getByURL('data-api', url);
+  }
+  
+  /* request data from DataAPI by search parameter */
+  function getByParamRequest() {
+    var param = $('#param').val();
+    if (param) {
+      param = JSON.parse(param);
+      data_api.get('data-api', param);
+    }
+  }
 };
 
 $(window).load(init);
@@ -28,8 +43,27 @@ $(window).load(init);
 
 {% block body %}
 <h1>DataAPI Test</h1>
-<input type="text" size="80" id="url"><br>
-<button id="get">GET</button>
+<h2>Request data by URL:</h2>
+<p>
+  Examples:
+  <pre>
+  /metadata/section/1
+  /electrophysiology/block/1
+  /electrophysiology/segment/1
+  </pre>
+</p>
+<p><input type="text" size="80" id="url">&nbsp;<button id="get-by-url">GET</button></p>
+<h2>Request data by search parameter:</h2>
+<p>
+  Examples:
+  <pre>
+  {"id": "/metadata/section/1"}
+  {"id": 1, "type": "section"}
+  {"type": "section", "parent": "/metadata/section/1"}
+  {"type": "analogsignal", "name":"FIX Signal-995"}
+  </pre>
+</p>
+<p><input type="text" size="80" id="param">&nbsp;<button id="get-by-param">GET</button></p>
 <h1>Log</h1>
 <div class="event-log"></div>
 {% endblock %}

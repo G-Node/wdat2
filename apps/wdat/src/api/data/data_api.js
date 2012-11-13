@@ -1,12 +1,8 @@
 // ---------- file: data_api.js ---------- //
 
 // Initialize modules
-if (!WDAT) {
-  var WDAT = {};
-}
-if (!WDAT.api) {
-  WDAT.api = {};
-}
+if (!WDAT) var WDAT = {};
+if (!WDAT.api) WDAT.api = {};
 
 //define in anonymous namespace
 (function() {
@@ -55,10 +51,10 @@ if (!WDAT.api) {
       };
     } else { // if not defined set to false 
       this._worker = false;
-      // create resource and adapter from class names
-      this._resource = new WDAT.api[resource]();
-      this._adapter = new WDAT.api[adapter]();
     }
+    // create resource and adapter from class names
+    this._resource = new WDAT.api[resource]();
+    this._adapter = new WDAT.api[adapter]();
   }
 
   /*
@@ -69,7 +65,8 @@ if (!WDAT.api) {
       this._notifyWorker(event, 'get', searchparam);
     } else { // if Worker is not available we have to do this here 
       var result = this._resource.get(searchparam);
-      result = this._adapter.adapt(result);
+      if (!result.error)
+        result.response = this._adapter.adapt(result.response);
       this._notifyRequest(event, result);
     }
   };
@@ -82,7 +79,8 @@ if (!WDAT.api) {
       this._notifyWorker(event, 'get_by_url', url);
     } else { // if Worker is not available we have to do this here 
       var result = this._resource.getByURL(url);
-      result = this._adapter.adapt(result);
+      if (!result.error)
+        result.response = this._adapter.adapt(result.response);
       this._notifyRequest(event, result);
     }
   };

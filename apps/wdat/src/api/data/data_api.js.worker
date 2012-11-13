@@ -4,12 +4,8 @@
 importScripts('network_resource.js');
 
 // Define name space WDAT if not available (but it should be because of importScripts())
-if (!WDAT) { 
-  var WDAT = {}; 
-}
-if (!WDAT.work) { 
-  WDAT.work = {}; 
-}
+if (!WDAT) var WDAT = {}; 
+if (!WDAT.work) WDAT.work = {};
 
 /* Create the worker routine that handles all messages send to the worker
  * The message is expected to have the following structure (see data_api.js):
@@ -39,12 +35,14 @@ WDAT.work.worker_routine = function(msg) {
     case 'get':
       // handle get requests here
       result.data = WDAT.work.resource.get(msg.data);
-      result.data = WDAT.work.adapter.adapt(result.data);
+      if (!result.data.error)
+        result.data.response = WDAT.work.adapter.adapt(result.data.response);
       break;
     case 'get_by_url':
       // handle get requests here
       result.data = WDAT.work.resource.getByURL(msg.data);
-      result.data = WDAT.work.adapter.adapt(result.data);
+      if (!result.data.error)
+        result.data.response = WDAT.work.adapter.adapt(result.data.response);
       break;
     case 'update':
       // handle update requests

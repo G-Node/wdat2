@@ -18,12 +18,8 @@
  */
 
 // Initialize modules
-if (!WDAT) { 
-  var WDAT = {}; 
-}
-if (!WDAT.api) { 
-  WDAT.api = {}; 
-}
+if (!WDAT) var WDAT = {};
+if (!WDAT.api) WDAT.api = {};
 
 // create anonymous namespace
 (function(){
@@ -39,24 +35,154 @@ if (!WDAT.api) {
 
   /* Get data based on a specifier. */
   NetworkResource.prototype.get = function(specifier) {
-    var url = _specToURL(specifier);
+    var url = this._specToURL(specifier);
     return this.getByURL(url);
   };
 
   /* Get data based on an URL. */
   NetworkResource.prototype.getByURL = function(url) {
-    var result;
+    var result = {};
+    result.url = url;
     // This is a synchronous call.
     this._xhr.open('GET', url, false);
     this._xhr.send();
 
     if (this._xhr.status === 200) {
-      result = this._xhr.responseText;
+      result.status = this._xhr.status;
+      result.response = this._xhr.responseText;
     } else {
-      result = 'Request failed (' + this._xhr.status + ')';
+      result.status = this._xhr.status;
+      result.error = true;
+      result.response = 'Request failed (' + this._xhr.status + ')';
     }
     return result;
   };
+  
+  /* Creates a URL from a set of given search specifiers. See NetworkResource.get()
+   * for further explanation. This function is for internal use only.
+   * 
+   * Parameter:
+   *  - spec: Obj         A set of search specifiers
+   *  
+   * Return value:
+   *    A URL that performs a search as defined by the specifiers.
+   */
+  NetworkResource.prototype._specToURL = function(spec) {
+    var url;
+    if (spec.id || spec.permalink) {
+      // if id or permalink is specified all other parameters besides type and category 
+      // are ignored
+      if (spec.permalink) spec.id = spec.permalink;
+      // split id
+      var split = spec.id.toString().split('?')[0].split('/');
+      // remove empty strings from split 
+      var tmp = []
+      for (var i in split) {
+        if (split[i] && split[i] != "") tmp.push(split[i]);
+      }
+      split = tmp;
+      if (split.length === 3) {
+        spec.category = split[0];
+        spec.type = split[1];
+        spec.id = split[2];
+      }
+      if (!spec.category) {
+        spec.category = _getCategory(spec.type);
+      }
+      url = '/' + spec.category + '/' + spec.type + '/' + spec.id + '?q=full';
+    } else { 
+      // if no id or permalink is specified additional parameters are evaluated
+      if (!spec.category) {
+        spec.category = _getCategory(spec.type);
+      }
+      // TODO maybe handle errors when category and type are unset
+      url = '/' + spec.category + '/' + spec.type + '/?q=full&'
+      for (var i in spec) {
+        if (spec.hasOwnProperty(i) && i !== 'type' && i !== 'category' && i !== 'id') {
+          url += this._specToComp(spec.type, i, spec[i], '='); // TODO other operators
+        }
+      }
+    }
+    return 'http://' + location.hostname + ':' + location.port + url;
+  }
+  
+  /* Creates a string representing a component of a URI query string from a key, 
+   * a value and an operator (optional). This is for internal use only.
+   * 
+   * Example:
+   *   'name', 'foo' --> name__icontains=foo&
+   * 
+   * Parameter:
+   *  - type: String        The type to search for
+   *  - key: String         The key of the search specifier
+   *  - value: Sting, Num   The value of the search specifier
+   *  - op: String          The operator e.g. '=', '>', '<' (optional)
+   *  
+   * Return value:
+   *    A Sting representing a query component
+   */
+  NetworkResource.prototype._specToComp = function(type, key, value, op) {
+    var result = '';
+    var template = _getTemplate(type);
+    // Lambda that converts an operator to its equivalent in the URL
+    var opToString = function(operator) {
+      switch (operator) {
+        case '>':
+          operator =  '__gt=';
+          break;
+        case '<':
+          operator = '__le=';
+          break;
+        default:
+          operator = '__icontains=';
+          break;
+      }
+      return operator;
+    };
+    // handle different types of key specifiers
+    switch (key) {
+      case 'category':  // ignore key category
+        break;
+      case 'type':      // ignore key type
+        break;
+      case 'parent':  // search for objects with specific parent
+        var split = value.toString().split('?')[0].split('/');
+        // remove empty strings from split 
+        var tmp = []
+        for (var i in split) {
+          if (split[i] && split[i] != "") tmp.push(split[i]);
+        }
+        split = tmp;
+        if (split.length === 3) {
+          var parent_type = split[1];
+          var parent_id = split[2];
+          var parent_name;
+          for (var i in template.parents) {
+            if (i.match(parent_type)) {
+              parent_name = i;
+              break;
+            }
+          }
+          result = encodeURIComponent(parent_name) + '=' + encodeURIComponent(parent_id) + '&';
+        } else {
+          result = '';
+          if (!value || vlaue == "") {
+            for (var i in template.parents) {
+              result += encodeURIComponent(template.parents[i]) + '__isnull=1&';
+            }
+          }
+        }
+        break;
+      default:
+        op = opToString(op)
+        if (value && value != "")
+          result = encodeURIComponent(key) + op + encodeURIComponent(value) + '&';
+        else
+          result = encodeURIComponent(key) + '__isnull=1&'
+        break;
+    }
+    return result;
+  }
   
   //-------------------------------------------------------------------------------------
   // Class: ResourceAdapter
@@ -102,13 +228,13 @@ if (!WDAT.api) {
       // the adapted result
       var adapted = {}
       // adapt general data
-      var tmp = _stripURL(element.permalink).split('/');
+      var tmp = this._stripURL(element.permalink).split('/');
       adapted.id = tmp.join('/');
       adapted.type = tmp[1];
       adapted.category = _getCategory(adapted.type);
       adapted.plotable = _isPlotable(adapted.type);
       adapted.date_created = element.fields.date_created;
-      adapted.owner = _stripURL(element.fields.owner);
+      adapted.owner = this._stripURL(element.fields.owner);
       switch (element.fields.safety_level) {
         case 1:
           adapted.safety_level = 'public'
@@ -121,15 +247,7 @@ if (!WDAT.api) {
           break;
       }
       // set template
-      var template;
-      if (adapted.category === 'data') {
-        if (adapted.plotable)
-          template = _DATA_OBJECTS.data.plotable[adapted.type]
-        else
-          template = _DATA_OBJECTS.data.container[adapted.type]
-      } else {
-        template = _DATA_OBJECTS.metadata[adapted.type]
-      }
+      var template = _getTemplate(adapted.type);
       if (template) {
         // adapt fields
         adapted.fields = {}
@@ -148,7 +266,7 @@ if (!WDAT.api) {
           if (element.fields[c] && element.fields[c].length > 0) {
             adapted.children[c] = [];
             for (var i in element.fields[c]) {
-              adapted.children[c][i] = _stripURL(element.fields[c][i]);
+              adapted.children[c][i] = this._stripURL(element.fields[c][i]);
             }
           }
         }
@@ -157,7 +275,7 @@ if (!WDAT.api) {
         for (var p in template.parents) {
           p = template.parents[p];
           if (element.fields[p]) {
-            adapted.parents[p] = _stripURL(element.fields[p]);
+            adapted.parents[p] = this._stripURL(element.fields[p]);
           }
         }
         // adapt data
@@ -167,7 +285,7 @@ if (!WDAT.api) {
           if (element.fields[d]) {
             adapted.data[d] = element.fields[d];
             if (adapted.data[d].data && typeof adapted.data[d].data === 'string')
-              adapted.data[d].data = _stripURL(adapted.data[d].data);
+              adapted.data[d].data = this._stripURL(adapted.data[d].data);
           }
         }
       }
@@ -175,114 +293,6 @@ if (!WDAT.api) {
     }
     return adapted_data;
   };
-
-  //-------------------------------------------------------------------------------------
-  // Helper functions and objects
-  //-------------------------------------------------------------------------------------
-
-  /* Creates a URL from a set of given search specifiers. See NetworkResource.get()
-   * for further explanation. This function is for internal use only.
-   * 
-   * Parameter:
-   *  - spec: Obj         A set of search specifiers
-   *  
-   * Return value:
-   *    A URL that performs a search as defined by the specifiers.
-   */
-  function _specToURL(spec) {
-    var url;
-    if (spec.id || spec.permalink) {
-      // if id or permalink is specified all other parameters besides type and category 
-      // are ignored
-      if (spec.permalink) spec.id = spec.permalink;
-      var tmp = spec.id.toString().split('?')[0].split('/');
-      if (tmp.length === 3) {
-        spec.category = tmp[0];
-        spec.type = tmp[1];
-        spec.id = tmp[2];
-      }
-      if (!spec.category) {
-        spec.category = _getCategory(spec.type);
-      }
-      url = '/' + spec.category + '/' + spec.type + '/' + spec.id;
-    } else { 
-      // if no id or permalink is specified additional parameters are evaluated
-      if (!spec.category) {
-        spec.category = _getCategory(spec.type);
-      }
-      // TODO maybe handle errors when category and type are unset
-      url = '/' + spec.category + '/' + spec.type + '/?'
-      for (var i in spec) {
-        if (spec.hasOwnProperty(i) && i !== 'type' && i !== 'category' && i !== 'id') {
-          url += _specToComp(spec.type, i, spec[i], '='); // TODO other operators
-        }
-      }
-    }
-    return 'http://' + location.hostname + ':' + location.port + url;
-  }
-  
-  /* Creates a string representing a component of a URI query string from a key, 
-   * a value and an operator (optional). This is for internal use only.
-   * 
-   * Example:
-   *   'name', 'foo' --> name__icontains=foo&
-   * 
-   * Parameter:
-   *  - type: String        The type to search for
-   *  - key: String         The key of the search specifier
-   *  - value: Sting, Num   The value of the search specifier
-   *  - op: String          The operator e.g. '=', '>', '<' (optional)
-   *  
-   * Return value:
-   *    A Sting representing a query component
-   */
-  function _specToComp(type, key, value, op) {
-    var result = '';
-    var template = _getTemplate(type);
-    // Lambda that converts an operator to its equivalent in the URL
-    var opToString = function(operator) {
-      switch (operator) {
-        case '>':
-          operator =  '__gt=';
-          break;
-        case '<':
-          operator = '__le=';
-          break;
-        default:
-          operator = '__icontains=';
-          break;
-      }
-    };
-    // handle different types of key specifiers
-    switch (key) {
-      case 'category':  // ignore key category
-        break;
-      case 'type':      // ignore key type
-        break;
-      case 'parent':  // search for objects with specific parent
-        var tmp = value.toString().split('?')[0].split('/');
-        if (tmp.length === 3) {
-          var parent_type = tmp[1];
-          var parent_id = tmp[2];
-          var parent_name;
-          for (var i in template.parents) {
-            if (i.match(parent_type)) {
-              parent_name = i;
-              break;
-            }
-          }
-          if (parent_name) {
-            result = encodeURIComponent(parent_name) + '=' + encodeURIComponent(parent_id) + '&';
-          }
-        }
-        break;
-      default:
-        op = opToString(op)
-        result = encodeURIComponent(key) + op + encodeURIComponent(value) + '&';
-        break;
-    }
-    return result;
-  }
   
   /* Extracts only the path part of a url.
    * For internal use only.
@@ -293,7 +303,7 @@ if (!WDAT.api) {
    * Return value:
    *  - The path part of the url without leading '/'
    */
-  function _stripURL(url) {
+  ResourceAdapter.prototype._stripURL = function(url) {
     var tmp = url.split('://');
     // remove protocol host and port if present
     if (tmp.length > 1) {
@@ -307,13 +317,18 @@ if (!WDAT.api) {
     return tmp.split('?')[0];
   }
 
+  //-------------------------------------------------------------------------------------
+  // Helper functions and objects
+  //-------------------------------------------------------------------------------------
+
+
   function _getCategory(type) {
     if (_DATA_OBJECTS.metadata.hasOwnProperty(type))
       return 'metadata';
     else if (_DATA_OBJECTS.data.container.hasOwnProperty(type))
-      return 'data';
+      return 'electrophysiology';
     else if (_DATA_OBJECTS.data.plotable.hasOwnProperty(type))
-      return 'data';
+      return 'electrophysiology';
     else
       return null;
   }
@@ -430,4 +445,5 @@ if (!WDAT.api) {
     }
   }; // end of _DATA_OBJECTS
   NetworkResource.DATA_OBJECTS = _DATA_OBJECTS;
+  ResourceAdapter.DATA_OBJECTS = _DATA_OBJECTS;
 }());
