@@ -134,17 +134,20 @@ class BaseHandler(object):
                 if matched:
                     params[smart_unicode(k)] = request_params_cleaner.get(matched[0])(v)
 
-                else: # attribute- and other filters
-                    try: 
-                        """ here we add local_id to all FKs (not the real IDs 
-                        which change from version to version). Note, that all
-                        other nice filters like parent__name__contains will not
-                        work because of the versioning. """
-                        field = self.model._meta.get_field( k )
-                        #if field.rel and isinstance(field.rel, models.ManyToOneRel):
-                        #    k += '__local_id'
-                    except FieldDoesNotExist:
-                        pass
+                else: # attribute- and other filters, lookups
+                    """ here one could add some field-based validation for every  
+                    key, like:
+
+                    if k.find('__'):
+                        try: 
+                            field_name = k[ : k.find('__') ]
+                            field = self.model._meta.get_field( field_name )
+                        except FieldDoesNotExist:
+                            # ignore this key?
+                            pass
+
+                    for better safety.
+                    """
                     attr_filters[smart_unicode(k)] = smart_unicode(v)
 
             params["permalink_host"] = '%s://%s' % (request.is_secure() and \
@@ -228,6 +231,15 @@ class BaseHandler(object):
                     new_val = new_val.replace('(', '').replace('])', '')
                     
                     self.attr_filters[new_key] = [int(v) for v in new_val.split(',')]
+
+                # __isnull needs value conversion to correct bool
+                if new_key.find('__isnull') > 0 and type(str(value)) == type(''):
+                    try:
+                        if int(value) == 0:
+                            self.attr_filters[new_key] = 0
+                    except ValueError:
+                        pass # we treat any other value except 0 as True
+
             objects = objects.filter(**self.attr_filters)
 
         # permissions filter:
