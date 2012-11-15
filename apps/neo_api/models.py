@@ -5,7 +5,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 
 import numpy as np
 from fields import models as fmodels
-from state_machine.models import ObjectState, SafetyLevel, VersionedM2M, _split_time
+from state_machine.models import ObjectState, SafetyLevel, VersionedM2M, VersionedForeignKey, _split_time
 from datafiles.models import Datafile
 from metadata.models import Section, Value
 from rest.meta import meta_objects, meta_messages, meta_children, factor_options, meta_parents
@@ -160,7 +160,7 @@ class Block(BaseInfo):
         pass
 
     @property
-    def size(self): # FIXME select only current revision and state = 10
+    def size(self):
         return int(np.array([w.size for w in self.segment_set.all()]).sum())
 
 
@@ -174,12 +174,13 @@ class Segment(BaseInfo):
     filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
     index = models.IntegerField('index', null=True, blank=True)
     # NEO relationships
-    block = models.ForeignKey(Block, blank=True, null=True)
+    #block = models.ForeignKey(Block, blank=True, null=True)
+    block = VersionedForeignKey(Block, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='segment_metadata', \
         blank=True, null=True)
 
     @property
-    def size(self): # FIXME select only current revision and state = 10
+    def size(self):
         return int(np.array([np.array([w.size for w in getattr(self, child + \
             "_set").all()]).sum() for child in meta_children["segment"]]).sum())
 
