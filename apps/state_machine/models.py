@@ -24,24 +24,61 @@ import numpy as np
 """
 Basic Version Control implementation features.
 
-1. We set PK for every django-model to a non-auto incremental ID field. This 
+
+1. Database representation
+
+a) Table for a versioned model
+every object has 'starts_at' and 'ends_at' fields. Current (latest) object 
+version always has 'ends_at' = NULL, all previous versions have 'ends_at' set 
+with the datetime equals to the 'starts_at' field of the next version. Thus 
+every version is a new row in the database; all unchanged attributes are 
+redundantly copied.
+
+b) How do foreign keys work
+we make django think that 'local_id' (non-unique across versions) is the PK for
+any model. This allows using normal django ORM (calling lazy relations like 
+event.segment etc.), and to avoid duplicated by fetching several object 
+versions, we set an additional time filters on the original object manager, as 
+well as we proxy these filters to the managers that fetch related objects.
+
+c) Table holding M2M relationship between versioned models
+M2M relations are also versioned. To support that we created a base class that 
+supports versioning ('VersionedM2M'), which should be used as a proxy model for
+versioned M2M relations.
+
+2. A trick with Primary Key
+We set PK for every django-model to a non-auto incremental ID field. This 
 field is updated manually and is actually unique across objects but not across 
 rows in the table, so all versions of the same object have the same ID value. 
 This PK is needed for django to auto-build relationships via FKs and M2Ms, 
-however, the initial table creation in the DB should avoid PKs creation.
+however, the initial table creation in the DB should be done with PK set to the
+'guid' field (see 'ObjectState' class).
 
-2. All versioned models should inherit from ObjectState. In this base class the 
+
+3. Base class supporting versioning
+All versioned models should inherit from 'ObjectState'. In this base class the 
 creation and update of an object is implemented with versioning.
 
-3. Model manager
 
-4. default VersionedQuerySet
+4. Model manager
+Is extended with having '_at_time' attribute, used in case some older object 
+version is requested. It sets appropriate filters on the QuerySet when 'at_time'
+parameter is provided in the request (MUST be a always a first filter if used as 
+VersionedManager.filter(at_time='2012-07-26 17:16:12').filter(...) )
 
-5. Relations
+
+5. default VersionedQuerySet
+is extended with the automatic support for timing of the objects to fetch from 
+the db, thus realising object versioning.
+
+
+6. ORM extentions that support lazy relations
 
 important:
  - use VersionedForeignKey instead of ForeignKey field
+ - create M2Ms 'through' model, subclassed from 'VersionedM2M' class
 
+this allows relations to be versioned.
 
 a) Reverse Single Related:
 is implemented by overriding a ForeignKey class by VersionedForeignKey, namely 
@@ -52,18 +89,12 @@ VersionedQuerySet instance that supports versioning and hits the database with
 time, equal to the time of the original object, when appropriate parent object 
 is called. 
 
-b) Foreign Related Objects:
+b) Foreign Related and all M2M Objects:
 all '<object_type>_set' attributes are wrapped in the base class (ObjectState) 
 in __getattribute__ by assigning the time to the RelatedManager, returned by 
-default by the '<object_type>_set' descriptor.
-
-
-
-4. Database representation
-
-a) Table for a versioned model
-
-b) Table holding M2M relationship between versioned models
+default by the '<object_type>_set' descriptor. Thus the RelatedManager knows 
+about timing to request related objects from the database, equal to the time of
+the original object.
 
 """
 
@@ -427,9 +458,8 @@ class VersionedM2M( models.Model ):
 
 class ObjectState(models.Model):
     """
-    A Simple G-Node-State base representation for other classes (e.g. Sections,
-    Files etc.) An object can be Active, Deleted and Archived, usually with the
-    following cycle:
+    A base class for a versioned G-Node object. An object can be Active, Deleted
+     and Archived, usually with the following cycle:
 
     Active <--> Deleted -> Archived
 
@@ -437,9 +467,13 @@ class ObjectState(models.Model):
     revision is created and a new version of the object is created.
 
     There are three types of object IDs:
-    - 'id' field - automatically created by Django and used for FKs and JOINs
     - 'guid' - a hash of an object, a unique global object identifier (GUID)
     - 'local_id' - object ID invariant across object versions
+
+    IMPORTANT. When initializing new database with 'django manage.py syncdb', 
+    one MUST set 'primary_key' option to the 'guid' field, so that django 
+    creates PK and all FKs on 'guid' db column, but then move this option back 
+    to the 'local_id' field.
 
     How to create a FK field:
 
@@ -457,7 +491,6 @@ class ObjectState(models.Model):
     # local ID, invariant between object versions, distinct between objects
     # local ID + starts_at basically making a PK
     local_id = models.IntegerField('LID', primary_key=True, editable=False)
-    #revision = models.IntegerField(editable=False) # switch on for rev-s support
     owner = models.ForeignKey(User, editable=False)
     current_state = models.IntegerField(choices=STATES, default=10)
     date_created = models.DateTimeField(editable=False)

@@ -24,7 +24,6 @@ from rest.meta import *
 # check ACL
 # parent's e-tag should change when child has been changed
 
-
 class BaseHandler(object):
     """
     An abstract class that implements basic REST API functions like get single 
@@ -150,8 +149,7 @@ class BaseHandler(object):
                     """
                     attr_filters[smart_unicode(k)] = smart_unicode(v)
 
-            params["permalink_host"] = '%s://%s' % (request.is_secure() and \
-                'https' or 'http', request.get_host())
+            params["permalink_host"] = get_host_for_permalink( request )
             self.options = params
             self.attr_filters = attr_filters # save here attribute-specific filters
         except (ObjectDoesNotExist, ValueError, IndexError, KeyError), e:
