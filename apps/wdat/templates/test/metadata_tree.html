@@ -1,0 +1,32 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Metadata Tree Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function() {
+    var selEvent = 'pmeta-select';
+    var bus = new WDAT.api.EventBus(); 
+    var api = new WDAT.api.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+    var pmeta = new WDAT.api.PMetadataTree($('#tree-1'), api, bus, selEvent);
+    bus.subscribe(selEvent, logSelection);
+    pmeta.load();
+    function logSelection(event, data) {
+      var logMsg = "Selection: " + JSON.stringify(data) + "\n";
+      $('.event-log').append(logMsg);
+      console.log(logMsg);
+    }
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Metadata Tree Test</h1>
+<div id="tree-1" style="width: 260px; height: 400px; border: 1px solid grey; overflow: scroll; overflow-x: auto">
+</div>
+<h1>Log</h1>
+<p>
+<pre class="event-log"></pre>
+</p>
+{% endblock %}
