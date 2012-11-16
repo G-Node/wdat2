@@ -208,7 +208,6 @@ class VersionedQuerySet( QuerySet ):
         return obj
 
 
-
 class VersionManager(models.Manager):
     """ A special manager for versioned objects. By default it returns queryset 
     with filters on the 'ends_at' attribute = NULL (last version of an object) 
@@ -256,7 +255,7 @@ class VersionManager(models.Manager):
     #    return self.get(first_name=first_name, last_name=last_name)
 
 
-class RelatedManager( VersionManager ):
+class RESTObjectsManager( VersionManager ):
     """ extends a normal manager for versioned objects with a 'get_related' 
     method, which is able to fetch objects together with permalinks to the 
     direct, reversed and m2m relatives. """
@@ -464,7 +463,7 @@ class ObjectState(models.Model):
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
     ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
-    objects = RelatedManager()
+    objects = RESTObjectsManager()
     _at_time = None # indicates an older version for object instance
 
     class Meta:
