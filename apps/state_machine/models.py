@@ -261,19 +261,6 @@ class RelatedManager( VersionManager ):
     method, which is able to fetch objects together with permalinks to the 
     direct, reversed and m2m relatives. """
 
-    def _prefetch_objects(self, *args, **kwargs):
-        """ prefetch objects based on filters provided in **kwargs, split kwargs
-        into 'versioning' part (at_time, current_state) and normal filter part
-        (all other filters). This is useful when fetching object relatives. 
-        Returns objects as QuerySet, filters as kwargs and version-related 
-        filters as timeflt. """
-        if not kwargs.has_key('objects'):
-            objects = self.filter( **kwargs )
-        else:
-            objects = kwargs['objects']
-        kwargs, timeflt = _split_time( **kwargs )
-        return objects, kwargs, timeflt
-
     def fetch_fks(self, objects, timeflt={}):
         """ assigns permalinks of the reversed-related children to the list of 
         objects given. Expects list of objects, uses reversed FKs to fetch 
@@ -422,53 +409,23 @@ class RelatedManager( VersionManager ):
         return objects
 
     def get_related(self, *args, **kwargs):
-        """ 
-        should be something like this
-        returns a list of objects with children, not a queryset
-        """
+        """ returns a LIST (not a queryset) of objects with children permalinks. 
+        This should be faster than using any of standard django 'select_related'
+        or 'prefetch_related' methods which (unexpectedly) do not work as 
+        suggested. """
         fetch_children = kwargs.pop('fetch_children', False)
-        objects, kwargs, timeflt = self._prefetch_objects(*args, **kwargs)
+        if not kwargs.has_key('objects'):
+            objects = self.filter( **kwargs )
+        else:
+            objects = kwargs['objects']
+
+        kwargs, timeflt = _split_time( **kwargs )
+
+        if not fetch_children:
+            return objects
 
         if objects: # evaluates queryset, executes 1 SQL
-
-            """
-            if self.model().obj_type == 'analogsignalarray':
-                import pdb
-                pdb.set_trace()
-
-            # fetch direct FKs (parents)
-            fk_fields = [ f for f in self.model._meta.local_fields if not f.rel is None ]
-            for par_field in fk_fields:
-                # select all related parents of a specific type, evaluate!
-                ids = set([ getattr(x, par_field.name + "_id") for x in objects ])
-
-
-                id_attr = _get_id_attr_name( par_field.rel.to )
-                if id_attr == 'local_id'
-                    par = par_field.rel.to.objects.filter( local_id__in = ids, **timeflt ).values_list( id_attr )
-
-                else: # normal FK to a django model
-                    par = par_field.rel.to.objects.filter( id__in = ids ).values_list( id_attr )
-
-                # make a mapping between parent ids and objects
-                relmap = dict( [ ( getattr(r, id_attr), r ) for r in par ] )
-                for obj in objects: # parse parents into attrs
-                    try:
-                        setattr( obj, par_field.name, \
-                            relmap[ getattr(obj, par_field.name + "_id") ] )
-                    except KeyError:
-                        setattr( obj, par_field.name, None )
-
-            if self.model().obj_type == 'analogsignalarray':
-                import pdb
-                pdb.set_trace()
-            """
-
-            if not fetch_children:
-                return objects
-
             # fetch reversed FKs (children)
-            #objects = self.fetch_fks( dict(timeflt, **kwargs), objects=objects )
             objects = self.fetch_fks( objects, timeflt )
 
             # fetch reversed M2Ms (m2m children)
