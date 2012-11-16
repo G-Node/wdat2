@@ -288,39 +288,6 @@ class RelatedManager( VersionManager ):
             url_base = _get_url_base( rel_model )
 
             # fetching reverse relatives of type rel_name:
-            """
-            # 1. option with TEMP table for higher performance. Should be
-            # faster but requires some SQL..
-            now = datetime.now()
-            temp_table = "stage1_" + hashlib.sha1(str(now)).hexdigest()
-
-            cursor = connection.cursor()
-            cursor.execute('CREATE TEMPORARY TABLE ' + temp_table + ' (n INT)')
-            cursor.execute('INSERT INTO ' + temp_table + ' (n) VALUES (' +\
-                '), ('.join( [str(x) for x in ids] ) + ')' )
-            transaction.commit_unless_managed()
-
-            db_table = rel_model._meta.db_table
-            cls = rel_model.__name__.lower()
-
-            # select only ids (faster)
-            query = 'SELECT \
-                model.' + id_attr + ', ' + rel_field_name + '_id FROM '\
-                 + db_table + ' model LEFT JOIN ' + temp_table + \
-                ' temp ON model.' + id_attr + ' = temp.n'
-
-            cursor.execute( query )
-            relmap = cursor.fetchall()
-
-            # or full objects
-            #query = 'SELECT model.* FROM ' + db_table + ' model LEFT JOIN ' + \
-            #    temp_table + ' temp ON model.' + id_attr + ' = temp.n'
-
-            #relmap = rel_model.objects.raw(query)
-            #relmap = relmap.filter( **timeflt ) FIXME
-            """
-
-            # 2. option with IN clause, should be a bit slower
             filt = { rel_field_name + '__in': ids }
             # relmap is a list of pairs (<child_id>, <parent_ref_id>)
             relmap = rel_model.objects.filter( **dict(filt, **timeflt) ).values_list(id_attr, rel_field_name)
