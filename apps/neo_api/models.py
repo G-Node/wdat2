@@ -57,20 +57,9 @@ def _clean_csv(arr):
 
 class BaseInfo(SafetyLevel, ObjectState):
     """
-    Basic info about any NEO object created at G-Node.
-
-    State:
-    Active <--> Deleted -> Archived
-
+    Base abstract class for any NEO object created at G-Node.
     """
-    file_origin = models.ForeignKey(Datafile, blank=True, null=True, editable=False)
-
-    #def __init__(self, *args, **kwargs):
-    #    md_classname = '%s_%s' % (self.obj_type, 'metadata')
-    #    self.metadata = models.ManyToManyField(Value, through=md_classname, \
-    #        blank=True, null=True)
-    #    super(BaseInfo, self).__init__(*args, **kwargs)
-    #    self._meta.many_to_many.append( self.metadata )
+    file_origin = VersionedForeignKey(Datafile, blank=True, null=True, editable=False)
 
     @models.permalink
     def get_absolute_url(self):
@@ -151,7 +140,7 @@ class Block(BaseInfo):
     name = models.CharField('name', max_length=name_max_length)
     filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
     index = models.IntegerField('index', null=True, blank=True)
-    section = models.ForeignKey(Section, blank=True, null=True)
+    section = VersionedForeignKey(Section, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='block_metadata', \
         blank=True, null=True)
 
@@ -163,7 +152,6 @@ class Block(BaseInfo):
     def size(self):
         return int(np.array([w.size for w in self.segment_set.all()]).sum())
 
-
 # 2 (of 15)
 class Segment(BaseInfo):
     """
@@ -174,7 +162,6 @@ class Segment(BaseInfo):
     filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
     index = models.IntegerField('index', null=True, blank=True)
     # NEO relationships
-    #block = models.ForeignKey(Block, blank=True, null=True)
     block = VersionedForeignKey(Block, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='segment_metadata', \
         blank=True, null=True)
@@ -184,7 +171,6 @@ class Segment(BaseInfo):
         return int(np.array([np.array([w.size for w in getattr(self, child + \
             "_set").all()]).sum() for child in meta_children["segment"]]).sum())
 
-
 # 3 (of 15)
 class EventArray(BaseInfo):
     """
@@ -192,7 +178,7 @@ class EventArray(BaseInfo):
     """
     # no NEO attributes
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='eventarray_metadata', \
         blank=True, null=True)
 
@@ -206,8 +192,8 @@ class Event(BaseInfo):
     time = models.FloatField('time')
     time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
-    eventarray = models.ForeignKey(EventArray, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
+    eventarray = VersionedForeignKey(EventArray, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='event_metadata', \
         blank=True, null=True)
 
@@ -226,7 +212,7 @@ class EpochArray(BaseInfo):
     """
     # no NEO attributes
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='epocharray_metadata', \
         blank=True, null=True)
 
@@ -242,8 +228,8 @@ class Epoch(BaseInfo):
     duration = models.FloatField('duration')
     duration__unit = fmodels.TimeUnitField('duration__unit', default=def_time_unit)
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
-    epocharray = models.ForeignKey(EpochArray, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
+    epocharray = VersionedForeignKey(EpochArray, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='epoch_metadata', \
         blank=True, null=True)
 
@@ -263,7 +249,7 @@ class RecordingChannelGroup(BaseInfo):
     # NEO attributes
     name = models.CharField('name', max_length=name_max_length)
     # NEO relationships
-    block = models.ForeignKey(Block, blank=True, null=True)
+    block = VersionedForeignKey(Block, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='recordingchannelgroup_metadata', \
         blank=True, null=True)
 
@@ -276,7 +262,7 @@ class RecordingChannel(BaseInfo):
     name = models.CharField('name', max_length=name_max_length)
     index = models.IntegerField('index', null=True, blank=True)
     # NEO relationships
-    recordingchannelgroup = models.ForeignKey(RecordingChannelGroup, blank=True, null=True)
+    recordingchannelgroup = VersionedForeignKey(RecordingChannelGroup, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='recordingchannel_metadata', \
         blank=True, null=True)
 
@@ -304,10 +290,10 @@ class SpikeTrain(BaseInfo, DataObject):
     t_stop = models.FloatField('t_stop', blank=True, null=True)
     t_stop__unit = fmodels.TimeUnitField('t_stop__unit', default=def_time_unit)
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
-    unit = models.ForeignKey(Unit, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
+    unit = VersionedForeignKey(Unit, blank=True, null=True)
     # NEO data arrays
-    times = models.ForeignKey( Datafile, related_name='spiketrains' )
+    times = VersionedForeignKey( Datafile, related_name='spiketrains' )
     times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
     metadata = models.ManyToManyField(Value, through='spiketrain_metadata', \
         blank=True, null=True)
@@ -375,8 +361,8 @@ class AnalogSignalArray(BaseInfo):
     NEO AnalogSignalArray @ G-Node.
     """
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
-    recordingchannelgroup = models.ForeignKey(RecordingChannelGroup, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
+    recordingchannelgroup = VersionedForeignKey(RecordingChannelGroup, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='analogsignalarray_metadata', \
         blank=True, null=True)
 
@@ -406,11 +392,11 @@ class AnalogSignal(BaseInfo, DataObject):
     t_start = models.FloatField('t_start')
     t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
-    recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
-    analogsignalarray = models.ForeignKey(AnalogSignalArray, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
+    recordingchannel = VersionedForeignKey(RecordingChannel, blank=True, null=True)
+    analogsignalarray = VersionedForeignKey(AnalogSignalArray, blank=True, null=True)
     # NEO data arrays
-    signal = models.ForeignKey( Datafile, related_name='analogsignals' )
+    signal = VersionedForeignKey( Datafile, related_name='analogsignals' )
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
     metadata = models.ManyToManyField(Value, through='analogsignal_metadata', \
         blank=True, null=True)
@@ -487,12 +473,12 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
     t_start = models.FloatField('t_start')
     t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
-    recordingchannel = models.ForeignKey(RecordingChannel, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
+    recordingchannel = VersionedForeignKey(RecordingChannel, blank=True, null=True)
     # NEO data arrays
-    signal = models.ForeignKey( Datafile, related_name='irsa_signals' )
+    signal = VersionedForeignKey( Datafile, related_name='irsa_signals' )
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
-    times = models.ForeignKey( Datafile, related_name='irsa_times' )
+    times = VersionedForeignKey( Datafile, related_name='irsa_times' )
     times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
     metadata = models.ManyToManyField(Value, through='irsaanalogsignal_metadata', \
         blank=True, null=True)
@@ -570,8 +556,8 @@ class Spike(BaseInfo):
     left_sweep = models.FloatField('left_sweep', default=0.0)
     left_sweep__unit = fmodels.TimeUnitField('left_sweep__unit', default=def_time_unit)
     # NEO relationships
-    segment = models.ForeignKey(Segment, blank=True, null=True)
-    unit = models.ForeignKey(Unit, blank=True, null=True)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
+    unit = VersionedForeignKey(Unit, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='spike_metadata', \
         blank=True, null=True)
 
@@ -587,10 +573,10 @@ class WaveForm(BaseInfo, DataObject):
     channel_index = models.IntegerField('channel_index', null=True, blank=True)
     time_of_spike = models.FloatField('time_of_spike', default=0.0) # default used when WF is related to a Spike
     time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
-    waveform = models.ForeignKey( Datafile, related_name='waveforms' )
+    waveform = VersionedForeignKey( Datafile, related_name='waveforms' )
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
-    spiketrain = models.ForeignKey(SpikeTrain, blank=True, null=True)
-    spike = models.ForeignKey(Spike, blank=True, null=True)
+    spiketrain = VersionedForeignKey(SpikeTrain, blank=True, null=True)
+    spike = VersionedForeignKey(Spike, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='waveform_metadata', \
         blank=True, null=True)
 
@@ -659,8 +645,8 @@ def get_type_by_class(cls):
 #===============================================================================
 
 class unit_recordingchannel( VersionedM2M ):
-    unit = models.ForeignKey( Unit )
-    recordingchannel = models.ForeignKey( RecordingChannel )
+    unit = VersionedForeignKey( Unit )
+    recordingchannel = VersionedForeignKey( RecordingChannel )
 
 
 for class_name, cls in meta_classnames.iteritems():
@@ -684,8 +670,8 @@ for class_name, cls in meta_classnames.iteritems():
     m2m_class = type(name, ( VersionedM2M, ), {
             'Meta': meta,
             '__module__': from_model.__module__,
-            from_: models.ForeignKey(from_model, related_name='%s+' % name),
-            to: models.ForeignKey(to_model, related_name='%s+' % name)
+            from_: VersionedForeignKey(from_model, related_name='%s+' % name),
+            to: VersionedForeignKey(to_model, related_name='%s+' % name)
         })
     globals()[name] = m2m_class
 

@@ -63,9 +63,9 @@ class BaseHandler(object):
         With respect to the overall performance, the algorithm is the following:
         - first it constructs a QuerySet with all user-provided filters from the 
         request, security filters etc.
-        - then it evaluates the QuerySet getting object ids from the database
+        - then it evaluates the QuerySet getting object guids from the database
         - then another QuerySet is being built, requesting objects with the
-        relatives, m2m (if needed) but only for the ids, filtered in steps 1-2.
+        relatives, m2m (if needed) but only for the guids, filtered in steps 1-2
         """
         kwargs = {}
         create = False
@@ -92,7 +92,7 @@ class BaseHandler(object):
                     # GET, DELETE or BULK UPDATE
                     objects = self.model.objects.filter( **kwargs )
                     try:
-                        objects = self.do_filter(request.user, objects, update)
+                        objects = self.primary_filtering(request.user, objects, update)
                     except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
                         # filter key/value is/are wrong
                         return BadRequest(json_obj={"details": e.message}, \
@@ -110,9 +110,9 @@ class BaseHandler(object):
                 if q == 'full' or q == 'beard':
                     kwargs["fetch_children"] = True
 
-                all_ids = objects.values_list( "id", flat=True )
-                if len(all_ids) > 0: # evaluate pre-QuerySet here, 1st SQL!
-                    kwargs["id__in"] = self.do_sift(all_ids)
+                all_ids = objects.values_list( "guid", flat=True )
+                if len(all_ids) > 0: # evaluate pre-QuerySet here, hits database
+                    kwargs["guid__in"] = self.secondary_filtering(all_ids)
                     objects = self.model.objects.get_related( **kwargs )
                 else:
                     objects = []
@@ -170,44 +170,7 @@ class BaseHandler(object):
         return rdata
 
 
-    def do_sift(self, ids):
-        """ simply sifts the given list with the following parameters:
-        - offset
-        - max_results
-        - spacing
-        - groups_of """
-
-        offset = self.offset
-        if self.options.has_key('offset'):
-            offset = self.options["offset"]
-
-        max_results = self.max_results
-        if self.options.has_key('max_results'):
-            max_results = self.options["max_results"]
-
-        """
-        # TODO
-        if self.options.has_key('spacing') and self.options.has_key('groups_of'):
-            spacing = self.options['spacing']
-            groups_of = self.options['groups_of']
-            objs = objects.all() # be careful, work with a diff queryset
-            length = objs.count()
-            if spacing > 0 and groups_of > 0 and groups_of < length:
-                fg = int( length / (spacing + groups_of) ) # number of full groups
-                for i in range(fg):
-                    st_ind = (i * (spacing + groups_of))
-                    end_ind = st_ind + groups_of
-                    objs = objs | objects.all()[st_ind:end_ind]
-
-                # don't forget there could some objects left as non-full group
-                ind = fg * (spacing + groups_of) # index of the 1st object in the 'orphaned' group
-                if ((length - 1) - ind) > -1: # some objects left
-                    objs = objs | objects.all()[ind:]
-            objects = objs
-        """
-        return ids[ offset: offset + max_results ]
-
-    def do_filter(self, user, objects, update=False):
+    def primary_filtering(self, user, objects, update=False):
         """ filter objects as per request params + security filtering """
 
         # GET params filters
@@ -273,6 +236,44 @@ class BaseHandler(object):
         objects = perm_filtered | objects.filter(owner=user)
 
         return objects
+
+
+    def secondary_filtering(self, ids):
+        """ simply sifts the given list with the following parameters:
+        - offset
+        - max_results
+        - spacing
+        - groups_of """
+
+        offset = self.offset
+        if self.options.has_key('offset'):
+            offset = self.options["offset"]
+
+        max_results = self.max_results
+        if self.options.has_key('max_results'):
+            max_results = self.options["max_results"]
+
+        """
+        # TODO
+        if self.options.has_key('spacing') and self.options.has_key('groups_of'):
+            spacing = self.options['spacing']
+            groups_of = self.options['groups_of']
+            objs = objects.all() # be careful, work with a diff queryset
+            length = objs.count()
+            if spacing > 0 and groups_of > 0 and groups_of < length:
+                fg = int( length / (spacing + groups_of) ) # number of full groups
+                for i in range(fg):
+                    st_ind = (i * (spacing + groups_of))
+                    end_ind = st_ind + groups_of
+                    objs = objs | objects.all()[st_ind:end_ind]
+
+                # don't forget there could some objects left as non-full group
+                ind = fg * (spacing + groups_of) # index of the 1st object in the 'orphaned' group
+                if ((length - 1) - ind) > -1: # some objects left
+                    objs = objs | objects.all()[ind:]
+            objects = objs
+        """
+        return ids[ offset: offset + max_results ]
 
 
     def get(self, request, objects, code=200):

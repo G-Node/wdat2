@@ -9,7 +9,7 @@ from datetime import datetime
 from django.db import models
 from django.db.models.fields import TextField
 from django.contrib.auth.models import User
-from state_machine.models import SafetyLevel, ObjectState
+from state_machine.models import SafetyLevel, ObjectState, VersionedForeignKey
 from django.core.files import storage
 from django.template.defaultfilters import filesizeformat
 from friends.models import Friendship
@@ -65,7 +65,7 @@ class Datafile(SafetyLevel, ObjectState):
     )
     name = models.CharField( 'name', blank=True, max_length=200 )
     caption = models.TextField( 'description', blank=True)
-    section = models.ForeignKey(Section, blank=True, null=True)
+    section = VersionedForeignKey(Section, blank=True, null=True)
     raw_file = models.FileField( 'raw_file', storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField( 'tags' )
     # here we put file info extracted using neuroshare, stored as JSON

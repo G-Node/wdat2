@@ -6,7 +6,7 @@ from django.db.models import Max
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
 
-from state_machine.models import SafetyLevel, ObjectState
+from state_machine.models import SafetyLevel, ObjectState, VersionedForeignKey
 from metadata.serializers import SectionSerializer, PropertySerializer, ValueSerializer
 
 class Section(SafetyLevel, ObjectState):
@@ -27,7 +27,7 @@ class Section(SafetyLevel, ObjectState):
     name = models.CharField(_('name'), max_length=100)
     description = models.TextField(_('description'), blank=True)
     odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
-    parent_section = models.ForeignKey('self', blank=True, null=True) # link to itself to create a tree.
+    parent_section = VersionedForeignKey('self', blank=True, null=True) # link to itself to create a tree.
     # position in the list on the same level in the tree
     tree_position = models.IntegerField('tree_position', blank=True, default=0)
     # field indicates whether it is a "template" section
@@ -148,7 +148,7 @@ class Property(SafetyLevel, ObjectState):
     dtype = models.CharField('dtype', blank=True, max_length=10)
     uncertainty = models.CharField('uncertainty', blank=True, max_length=10)
     comment = models.TextField('comment', blank=True)
-    section = models.ForeignKey(Section)
+    section = VersionedForeignKey(Section)
 
     def __unicode__(self):
         return self.name
@@ -184,7 +184,7 @@ class Value(SafetyLevel, ObjectState):
     Class implemented metadata Value. 
     """
     #FIXME add more attributes to the value
-    parent_property = models.ForeignKey(Property) # can't use just property((
+    parent_property = VersionedForeignKey(Property) # can't use just property((
     data = models.TextField('value', blank=True)
 
     def __unicode__(self):

@@ -17,8 +17,9 @@ import settings
 import numpy as np
 
 
-#-------------------------------------------------------------------------------
-# Base classes and their Manager. Version control is implemented on that level.
+#===============================================================================
+# Base classes and their Managers. Version control is implemented on that level.
+#===============================================================================
 
 """
 Basic Version Control implementation features.
@@ -66,6 +67,9 @@ b) Table holding M2M relationship between versioned models
 
 """
 
+#===============================================================================
+# Supporting functions
+#===============================================================================
 
 def _split_time( **kwargs ):
     """ extracts 'at_time' and 'current_state' into separate dict """
@@ -97,6 +101,41 @@ def _get_url_base(model):
         url = url[:url.rfind('/')]
     return url.replace('1000000000', '')
 
+#===============================================================================
+# Field and Descriptor subclasses for VERSIONED Reverse Single relationships
+#===============================================================================
+
+class VReverseSingleRelatedObjectDescriptor( ReverseSingleRelatedObjectDescriptor ):
+    """ To natively support versioned objects, we need to proxy object's time
+    ('_at_time') parameter across object descriptors. To fetch related objects 
+    at the time, equal to the time of the original object, the corresponding 
+    QuerySet should be interfaced as VersionedQuerySet with '_at_time' parameter
+    equal to the the original object '_at_time'. So we do need to override the
+    'get_query_set' method only. """
+
+    def get_query_set(self, **db_hints):
+        qs = super(VReverseSingleRelatedObjectDescriptor, self).get_query_set(**db_hints)
+
+        # assign _at_time to the qs if needed
+        if db_hints.has_key( 'instance' ):
+            if isinstance(db_hints['instance'], self.field.model):
+                inst = db_hints['instance']
+                if hasattr(inst, '_at_time'):
+                    at_time = inst._at_time
+                    if at_time:
+                        qs._at_time = at_time
+                        qs = qs.set_time_filters()
+        return qs
+
+
+class VersionedForeignKey( models.ForeignKey ):
+    def contribute_to_class(self, cls, name):
+        super(VersionedForeignKey, self).contribute_to_class(cls, name)        
+        setattr(cls, self.name, VReverseSingleRelatedObjectDescriptor(self))
+
+#===============================================================================
+# VERSIONED QuerySet and object Manager
+#===============================================================================
 
 class VersionedQuerySet( QuerySet ):
     _at_time = None # proxy version time for related models
@@ -123,7 +162,7 @@ class VersionedQuerySet( QuerySet ):
     def _clone(self, klass=None, setup=False, **kwargs):
         """ override _clone method to preserve 'at_time' attribute while cloning
         queryset - in stacked filters, excludes etc. """
-        c = super(VersionedQuerySet, self)._clone(klass=None, setup=False, **kwargs)
+        c = super(VersionedQuerySet, self)._clone(klass, setup, **kwargs)
         c._at_time = self._at_time
         c.current_state = self.current_state
         return c
@@ -169,32 +208,6 @@ class VersionedQuerySet( QuerySet ):
         return obj
 
 
-class VReverseSingleRelatedObjectDescriptor( ReverseSingleRelatedObjectDescriptor ):
-    """ To natively support versioned objects, we need to proxy object's time
-    ('_at_time') parameter across object descriptors. To fetch related objects 
-    at the time, equal to the time of the original object, the corresponding 
-    QuerySet should be interfaced as VersionedQuerySet with '_at_time' parameter
-    equal to the the original object '_at_time'. So we do need to override the
-    'get_query_set' method only. """
-
-    def get_query_set(self, **db_hints):
-        qs = super(VReverseSingleRelatedObjectDescriptor, self).get_query_set(**db_hints)
-
-        # assign _at_time to the qs if needed
-        if db_hints.has_key( 'instance' ):
-            if isinstance(db_hints['instance'], self.field.model):
-                at_time = db_hints['instance']._at_time
-                if at_time:
-                    qs._at_time = at_time
-                    qs = qs.set_time_filters()
-        return qs
-
-
-class VersionedForeignKey( models.ForeignKey ):
-    def contribute_to_class(self, cls, name):
-        super(VersionedForeignKey, self).contribute_to_class(cls, name)        
-        setattr(cls, self.name, VReverseSingleRelatedObjectDescriptor(self))
-
 
 class VersionManager(models.Manager):
     """ A special manager for versioned objects. By default it returns queryset 
@@ -203,19 +216,28 @@ class VersionManager(models.Manager):
     'current_state' are provided, means the special version of an object is 
     requested, this manager returns queryset tuned to the provided time / object
     state. To request object versions at specific moment in time in the past, 
-    the 'at_time' parameter should be provided at this point: to the 
-    filter() method of this Manager. """
+    the 'at_time' parameter should be provided to the manager at first call with
+    the filter() method of this Manager. """
+    use_for_related_fields = True
     _at_time = None
     current_state = 10
 
     def get_query_set(self):
+        """ init QuerySet that supports object versioning """
         qs = VersionedQuerySet(self.model, using=self._db)
+
+        """ after qs init we update at_time and current_state and then set 
+        appropriate filters, if needed. Can't be done in qs __init__! """
         qs._at_time = self._at_time
         qs.current_state = self.current_state
         qs = qs.set_time_filters()
         return qs
 
     def filter(self, **kwargs):
+        """ method is overriden to support object versions. If an object is 
+        requested at a specific point in time here we split this time from 
+        kwargs to further proxy it to the QuerySet, so an appropriate version is
+        fetched. """
         kwargs, timeflt = _split_time( **kwargs )
         if timeflt.has_key('at_time'):
             self._at_time = timeflt.get('at_time')
@@ -238,7 +260,6 @@ class RelatedManager( VersionManager ):
     """ extends a normal manager for versioned objects with a 'get_related' 
     method, which is able to fetch objects together with permalinks to the 
     direct, reversed and m2m relatives. """
-    use_for_related_fields = True
 
     def _prefetch_objects(self, *args, **kwargs):
         """ prefetch objects based on filters provided in **kwargs, split kwargs
@@ -464,9 +485,12 @@ class RelatedManager( VersionManager ):
             raise ObjectDoesNotExist()
         return obj
 
+#===============================================================================
+# Base models for a Versioned Object, M2M relations and Permissions management
+#===============================================================================
 
 class VersionedM2M( models.Model ):
-    """ the abstract model is used as a connection between two objects for many 
+    """ this abstract model is used as a connection between two objects for many 
     to many relationship for versioned objects instead of ManyToMany field. """
 
     date_created = models.DateTimeField(editable=False)
@@ -487,12 +511,11 @@ class ObjectState(models.Model):
     Active <--> Deleted -> Archived
 
     Versioning is implemented as "full copy" mode. For every change, a new 
-    revision is created and a new version of the object and it's related objects
-    (FKs and M2Ms) are created.
+    revision is created and a new version of the object is created.
 
-    There are three types of IDs:
+    There are three types of object IDs:
     - 'id' field - automatically created by Django and used for FKs and JOINs
-    - 'guid' - a hash of an object, used as unique global object identifier
+    - 'guid' - a hash of an object, a unique global object identifier (GUID)
     - 'local_id' - object ID invariant across object versions
 
     How to create a FK field:
@@ -506,11 +529,10 @@ class ObjectState(models.Model):
         (20, _('Deleted')),
         (30, _('Archived')),
     )
-    # global ID, equivalent to an object hash
+    # global ID, distinct for every object version = unique table PK
     guid = models.CharField(max_length=40, editable=False)
-    # local ID, unique between object versions, distinct between objects
+    # local ID, invariant between object versions, distinct between objects
     # local ID + starts_at basically making a PK
-    #local_id = models.IntegerField('LID', editable=False)
     local_id = models.IntegerField('LID', primary_key=True, editable=False)
     #revision = models.IntegerField(editable=False) # switch on for rev-s support
     owner = models.ForeignKey(User, editable=False)
@@ -543,19 +565,32 @@ class ObjectState(models.Model):
         """ wrap getting object attributes to catch calls to related managers,
         which require '_at_time' parameter to retrieve related objects at time,
         equal to the original object. """
-        if name.endswith('_set') and self._at_time:
-            rm = object.__getattribute__(self, name)
-            rm._at_time = self._at_time
-            return rm
-        return object.__getattribute__(self, name)
+        attr = object.__getattribute__(self, name)
+        if isinstance(attr, VersionManager) and self._at_time:
+            """ direct FK, direct M2M or reverse M2M related manager is 
+            requested. By adding '_at_time' attribute we make the related 
+            manager support versioning by requesting related objects at the time
+            equal to the original object ('self' in this case). For reverse FKs 
+            (like 'event.segment') we need to override related descriptor, see
+            'VersionedForeignKey' field class. """
+            attr._at_time = self._at_time
+        return attr
 
     def compute_hash(self):
-        """ computes the hash of itself """
-        #return hashlib.sha1( pickle.dumps(self) ).hexdigest()
-        return hashlib.sha1( self.get_absolute_url() ).hexdigest()
+        """ computes the unique object identifier. We balance between two 
+        options of having a unique GUID:
+        - only across objects, not object versions
+        - across object versions too (every version has a different GUID)
+        For the moment the second option (full uniqueness) is implemented.
+        """
+        # option 1.
+        #return hashlib.sha1( self.get_absolute_url() ).hexdigest()
+        # option 2.
+        return hashlib.sha1( pickle.dumps(self) ).hexdigest()
 
     @property
     def obj_type(self):
+        """ every object has a type defined as lowercase name of the class. """
         return self.__class__.__name__.lower()
 
     def natural_key(self):
@@ -832,6 +867,8 @@ class SingleAccess(models.Model):
 
     IMPORTANT: if you need object to have single accesses you have to define a
     acl_type method for it (see example with 'Section').
+
+    Note: Permissions are NOT version controlled.
     """
     ACCESS_LEVELS = (
         (1, _('Read-only')),
