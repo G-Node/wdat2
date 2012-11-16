@@ -112,10 +112,12 @@ WDAT.api.VTree = function(name, bus, events) {
       }
       // add element to the tree
       if (this.has(parent)) {
+        console.log('VTree.add(): has.parent(' + parent + ') = true');
         var p = this._tree.find('#' + this._toId(parent)).first(); 
         p.append(elem);
         p.removeClass('leaf-node');
       } else {
+        console.log('VTree.add(): has.parent(' + parent + ') = false');
         this._tree.append(elem);
       }
     }
@@ -361,9 +363,9 @@ WDAT.api.VTree = function(name, bus, events) {
     var result = null;
     if (id != null && id != undefined) {
       if (id['id'])
-        result = this.name + '-' + id.id.toString();
+        result = this.name + '-' + id.id.toString().replace(/\//g, '-');
       else
-        result = this.name + '-' + id.toString();
+        result = this.name + '-' + id.toString().replace(/\//g, '-');
     } 
     return result;
   };

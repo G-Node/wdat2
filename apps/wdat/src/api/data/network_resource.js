@@ -98,7 +98,7 @@ if (!WDAT.api) WDAT.api = {};
       // are ignored
       if (spec.permalink) spec.id = spec.permalink;
       // split id
-      var split = spec.id.toString().split('?')[0].split('/');
+      var split = spec.id.toString().split('/');
       // remove empty strings from split 
       var tmp = []
       for (var i in split) {
@@ -122,7 +122,7 @@ if (!WDAT.api) WDAT.api = {};
       // TODO maybe handle errors when category and type are unset
       url = '/' + spec.category + '/' + spec.type + '/?q=full&'
       for (var i in spec) {
-        if (spec.hasOwnProperty(i) && i !== 'type' && i !== 'category' && i !== 'id') {
+        if (i !== 'type' && i !== 'category') {
           url += this._specToComp(spec.type, i, spec[i], '='); // TODO other operators
         }
       }
@@ -170,7 +170,7 @@ if (!WDAT.api) WDAT.api = {};
       case 'type':      // ignore key type
         break;
       case 'parent':  // search for objects with specific parent
-        var split = value.toString().split('?')[0].split('/');
+        var split = value.toString().split('/');
         // remove empty strings from split 
         var tmp = []
         for (var i in split) {
@@ -182,6 +182,7 @@ if (!WDAT.api) WDAT.api = {};
           var parent_id = split[2];
           var parent_name;
           for (var i in template.parents) {
+            i = template.parents[i];
             if (i.match(parent_type)) {
               parent_name = i;
               break;

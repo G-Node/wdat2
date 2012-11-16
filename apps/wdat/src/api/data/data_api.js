@@ -19,7 +19,9 @@ if (!WDAT.api) WDAT.api = {};
    *    url: string,          // The url that was requested internally (debugging)
    *    status: number,       // The HTTP request status
    *    response: response,   // Array with results or Message string
-   *    error: bool           // true if an error has occurred, undefined otherwise
+   *    error: bool,          // true if an error has occurred, undefined otherwise
+   *    param: object,        // All parameter from the original request
+   *    action: string        // The action from the original request
    *  }
    *
    * Parameter:
@@ -75,20 +77,27 @@ if (!WDAT.api) WDAT.api = {};
    *  - name:       string
    *
    * Parameter:
-   *  - event: Sting      Event id for published data.
+   *  - event: String       Event id for published data.
    *
-   *  - specifiers: Obj   Object containing all specifiers.
+   *  - specifiers: Obj     Object containing all specifiers.
+   *  
+   *  - info: Obj, String   Additional information that might be evaluated
+   *                        when the request returns.
    *
    * Return value:
    *    None
    */
-  DataAPI.prototype.get = function(event, specifiers) {
+  DataAPI.prototype.get = function(event, specifiers, info) {
     if (this._worker) { // if Worker is available just notify it
-      this._notifyWorker(event, 'get', specifiers);
+      this._notifyWorker(event, 'get', specifiers, info);
     } else { // if Worker is not available we have to do this here 
       var result = this._resource.get(specifiers);
-      if (!result.error)
+      if (!result.error) {
         result.response = this._adapter.adapt(result.response);
+      }
+      result.action = 'get';
+      result.param = specifiers;
+      result.info = info;
       this._bus.publish(event, result);
     }
   };
@@ -96,20 +105,27 @@ if (!WDAT.api) WDAT.api = {};
   /* Get get data by url.
    *
    * Parameter:
-   *  - event: Sting      Event id for published data.
+   *  - event: Sting        Event id for published data.
    *
-   *  - url: String       The URL to request.
+   *  - url: String         The URL to request.
+   *  
+   *  - info: Obj, String   Additional information that might be evaluated
+   *                        when the request returns.
    *
    * Return value:
    *    None
    */
-  DataAPI.prototype.getByURL = function(event, url) {
+  DataAPI.prototype.getByURL = function(event, url, info) {
     if (this._worker) { // if Worker is available just notify it
-      this._notifyWorker(event, 'get_by_url', url);
+      this._notifyWorker(event, 'get_by_url', url, info);
     } else { // if Worker is not available we have to do this here 
       var result = this._resource.getByURL(url);
-      if (!result.error)
+      if (!result.error) {
         result.response = this._adapter.adapt(result.response);
+      }
+      result.action = 'get_by_url';
+      result.param = url;
+      result.info = info;
       this._bus.publish(event, result);
     }
   };
@@ -123,21 +139,26 @@ if (!WDAT.api) WDAT.api = {};
    *  }
    *
    * Parameter:
-   *  - event: String     The event that is used by the worker to return data.
+   *  - event: String       The event that is used by the worker to return data.
    *
-   *  - action: String    The requested action.
+   *  - action: String      The requested action.
    *  
-   *  - data: Obj.        Object containing all data for this request.
+   *  - data: Obj.          Object containing all data for this request.
+   *  
+   *  - info: Obj, String   Additional information that might be evaluated
+   *                        when the request returns.
    *
    * Return value:
    *    None
    */
-  DataAPI.prototype._notifyWorker = function(event, action, data) {
+  DataAPI.prototype._notifyWorker = function(event, action, param, info) {
     var worker_msg = {};
     worker_msg.event = event;
     worker_msg.action = action;
-    worker_msg.data = data;
+    worker_msg.param = param;
+    worker_msg.info = info;
     this._worker.postMessage(worker_msg);
+    return worker_msg;
   };
 
 }());

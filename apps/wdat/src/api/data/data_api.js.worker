@@ -1,6 +1,6 @@
 //---------- file: data_api.js.worker ----------//
 
-importScripts('network_resource.min.js');
+importScripts('network_resource.js');
 
 // Define name space WDAT if not available (but it should be because of importScripts())
 if (!WDAT) var WDAT = {}; 
@@ -33,13 +33,13 @@ WDAT.work.worker_routine = function(msg) {
       break;
     case 'get':
       // handle get requests here
-      result.data = WDAT.work.resource.get(msg.data);
+      result.data = WDAT.work.resource.get(msg.param);
       if (!result.data.error)
         result.data.response = WDAT.work.adapter.adapt(result.data.response);
       break;
     case 'get_by_url':
       // handle get requests here
-      result.data = WDAT.work.resource.getByURL(msg.data);
+      result.data = WDAT.work.resource.getByURL(msg.param);
       if (!result.data.error)
         result.data.response = WDAT.work.adapter.adapt(result.data.response);
       break;
@@ -57,6 +57,9 @@ WDAT.work.worker_routine = function(msg) {
       result.data = "Worker Test OK";
       break;
   }
+  result.data.action = msg.action;
+  result.data.param = msg.param;
+  result.data.info = msg.info;
   result.event = msg.event;
   return result;
 };

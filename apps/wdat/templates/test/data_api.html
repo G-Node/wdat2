@@ -17,6 +17,8 @@ function init() {
   function logResults(event, data) {
     $('.event-log').text("")
     $('.event-log').append("\nTest URL: " + data.url + "\n");
+    $('.event-log').append("Test action: " + data.action + "\n");
+    $('.event-log').append("Test param: " + JSON.stringify(data.param) + "\n");
     $('.event-log').append("\nTest Result: " + JSON.stringify(data.response, null, 2) + "\n");
   }
   
