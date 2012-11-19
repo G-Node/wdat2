@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models.query import QuerySet
+from django.db.models.sql.where import WhereNode, Constraint, AND
 from django.db.models.fields.related import ForeignKey, ReverseSingleRelatedObjectDescriptor
 from django.db import connection, transaction
 from django.core.exceptions import ValidationError
@@ -155,7 +156,7 @@ class VReverseSingleRelatedObjectDescriptor( ReverseSingleRelatedObjectDescripto
                     at_time = inst._at_time
                     if at_time:
                         qs._at_time = at_time
-                        qs = qs.set_time_filters()
+                        #qs = qs.set_time_filters()
         return qs
 
 
@@ -171,24 +172,24 @@ class VersionedForeignKey( models.ForeignKey ):
 class VersionedQuerySet( QuerySet ):
     _at_time = None # proxy version time for related models
     current_state = 10 # filter all 'active' objects by default
-    version_filters_set = False
+    #version_filters_set = False
 
-    def set_time_filters(self):
-        """ need to return new QuerySet, as filtering always clones itself into 
-        new object instance """
-        qs = self
-        if not self.version_filters_set:
-            if self._at_time:
-                at_time = self._at_time
-                qs = super(VersionedQuerySet, self).filter( Q(starts_at__lte = at_time), Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
-            else:
-                qs = super(VersionedQuerySet, self).filter(ends_at__isnull = True)
+    #def set_time_filters(self):
+    #    """ need to return new QuerySet, as filtering always clones itself into 
+    #    new object instance """
+    #    qs = self
+    #    if not self.version_filters_set:
+    #        if self._at_time:
+    #            at_time = self._at_time
+    #            qs = super(VersionedQuerySet, self).filter( Q(starts_at__lte = at_time), Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
+    #        else:
+    #            qs = super(VersionedQuerySet, self).filter(ends_at__isnull = True)
 
-            if not issubclass(self.model, VersionedM2M): # no 'state' for m2m managers
-                qs = super(VersionedQuerySet, qs).filter(current_state = qs.current_state)
+    #        if not issubclass(self.model, VersionedM2M): # no 'state' for m2m managers
+    #            qs = super(VersionedQuerySet, qs).filter(current_state = qs.current_state)
 
-            qs.version_filters_set = True
-        return qs
+    #        qs.version_filters_set = True
+    #    return qs
 
     def _clone(self, klass=None, setup=False, **kwargs):
         """ override _clone method to preserve 'at_time' attribute while cloning
@@ -197,6 +198,7 @@ class VersionedQuerySet( QuerySet ):
         c._at_time = self._at_time
         c.current_state = self.current_state
         return c
+
     
     def iterator(self):
         """ we assign a special attribute '_at_time' for every object if the 
@@ -205,10 +207,67 @@ class VersionedQuerySet( QuerySet ):
         primarily to proxy this time to related managers to get related objects
         from the same time, as well as indicates that a different version from 
         the current of an object was requested. """
+
+        def update_constraint( node, table ):
+            if hasattr(node, 'children') and node.children:
+                for child in node.children:
+                    update_constraint( child, table )
+            else:
+                node[0].alias = table
+
+        # 1. save limits
+        high_mark, low_mark = self.query.high_mark, self.query.low_mark
+
+        # 2. clear limits
+        self.query.clear_limits()
+
+        # 3. update time filters
+        """ for every table we need to setup
+            - time filters and
+            - state filters
+
+        for the main table we do this by using the normal django API:
+        """
+        # save the initial 'where' tree state
+        where_before = [node for node in self.query.where.children]
+
+        # create time and state filters
+        if self._at_time:
+            at_time = self._at_time
+            #qs = super(VersionedQuerySet, self).filter( Q(starts_at__lte = at_time), Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
+            self.query.add_q( Q(starts_at__lte = at_time) )
+            self.query.add_q( Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
+        else:
+            #qs = super(VersionedQuerySet, self).filter(ends_at__isnull = True)
+            self.query.add_q( Q(ends_at__isnull = True) )
+
+        """ for all other objects (tables), if any, we clone 'where' nodes based
+        on the nodes created above and add them to the overall where node """
+        new_nodes = set( self.query.where.children ) - set( where_before )
+
+        import ipdb
+        ipdb.set_trace()
+
+        for table in self.query.table_map:
+            if not table == self.query.model._meta.db_table:
+                for node in new_nodes:
+                    # clone the node and assign new alias
+                    cloned_node = node.__deepcopy__(memodict=None)
+                    update_constraint( cloned_node, table )
+                    self.query.where.children.append( cloned_node )
+
+        if not issubclass(self.model, VersionedM2M): # no 'state' for m2m managers
+            #qs = super(VersionedQuerySet, qs).filter(current_state = qs.current_state)
+            self.query.add_q( Q(current_state = self.current_state) )
+
+        # 4. re-set limits
+        self.query.set_limits(low=low_mark, high=high_mark)
+
         for obj in super(VersionedQuerySet, self).iterator():
             if self._at_time:
                 obj._at_time = self._at_time
             yield obj
+
 
     def create(self, **kwargs):
         """ this method cleans kwargs required to create versioned object(s) and 
@@ -260,7 +319,7 @@ class VersionManager(models.Manager):
         appropriate filters, if needed. Can't be done in qs __init__! """
         qs._at_time = self._at_time
         qs.current_state = self.current_state
-        qs = qs.set_time_filters()
+        #qs = qs.set_time_filters()
         return qs
 
     def filter(self, **kwargs):
