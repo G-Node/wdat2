@@ -478,7 +478,6 @@ class RESTObjectsManager( VersionManager ):
             objects = self.filter( **kwargs )
         else:
             objects = kwargs['objects']
-
         kwargs, timeflt = _split_time( **kwargs )
 
         if not fetch_children:
@@ -651,9 +650,6 @@ class ObjectState(models.Model):
         with these new attrs and FKs. As objects are homogenious, this kind of 
         validation should work ok.
         """
-        import ipdb
-        ipdb.set_trace()
-
         if not objects: return None
 
         # .. exclude versioned FKs from total validation.. FIXME still needed??
@@ -689,10 +685,7 @@ class ObjectState(models.Model):
 
                 # update versioned FKs in that way so the FK validation doesn't fail
                 for field_name, related_obj in fk_dict.items():
-                    oid = None
-                    if related_obj:
-                        oid = getattr( related_obj, 'local_id', related_obj.id )
-                    setattr(obj, field_name + '_id', oid)
+                    setattr(obj, field_name + '_id', getattr(related_obj, 'pk', None))
 
                 # validate provided data
                 obj.full_clean( exclude = exclude )
@@ -712,10 +705,7 @@ class ObjectState(models.Model):
                     for name, value in update_kwargs.items():
                         setattr(obj, name, value)
                     for field_name, related_obj in fk_dict.items():
-                        oid = None
-                        if related_obj:
-                            oid = getattr( related_obj, 'local_id', related_obj.id )
-                        setattr(obj, field_name + '_id', oid)
+                        setattr(obj, field_name + '_id', getattr(related_obj, 'pk', None))
 
                     obj.guid = obj.compute_hash() # compute unique hash 
                     obj.starts_at = now

@@ -63,7 +63,7 @@ def create_simple_objects():
     ser.host = "http://testhost.org"
     sample_objects = {}
     for cls in meta_classnames.values():
-        objs = cls.objects.get_related( local_id=1 )
+        objs = cls.objects.get_related( pk=1 )
         sobj = ser.serialize( objs )[0]['fields']
 
         # non-editable fields
@@ -117,7 +117,7 @@ class TestGeneric(TestCase):
         post = {}
         units="ms"
         if not field.name == 'times':
-            units = 'mv'
+            units = 'mV'
         try:
             self.new_value = field.to_python( v )
             if self.ser.is_data_field_django(model, field):
@@ -137,6 +137,16 @@ class TestGeneric(TestCase):
         a = np.random.rand( size )
         with tb.openFile(path + "array.h5", "a") as f:
             f.createArray("/", "Random array, size: %d" % a.size, a)
+
+    def _get_id_from_permalink(self, permalink):
+        if permalink.endswith('/'): # remove trailing slash
+            permalink = permalink[:permalink.rfind("/")]
+        res = permalink[ permalink.rfind("/") + 1 : ]
+        try:
+            id = int( res )
+            return id
+        except ValueError:
+            return None
 
     def setUp(self):
         # create test HDF5 file with array data
@@ -168,7 +178,7 @@ class TestGeneric(TestCase):
                         "Obj type %s; response: %s" % (obj_type, response.content))
                     # save object ids for later
                     rdata = json.loads(response.content)
-                    ids[obj_type].append( int(rdata['selected'][0]['fields']['local_id']) )
+                    ids[obj_type].append( self._get_id_from_permalink( rdata['selected'][0]['permalink'] ) )
             self.ids = ids
 
     def test_change(self):
@@ -240,8 +250,7 @@ class TestGeneric(TestCase):
 
                 # change some relationship
                 post, go = self._set_post(field, model, 2)
-                response = self.client.post("/neo/%s/1" % obj_type,\
-                    DjangoJSONEncoder().encode(post), content_type="application/json")
+                response = self.client.post("/neo/%s/1" % obj_type, DjangoJSONEncoder().encode(post), content_type="application/json")
                 self.assertEqual(response.status_code, 200, \
                     "Obj type %s; field: %s, response: %s" % \
                     (obj_type, field.name, response.content))
@@ -276,7 +285,7 @@ class TestGeneric(TestCase):
 
             dt = datetime.now()
             rdata = json.loads(response.content)
-            lid = rdata['selected'][0]['fields']['local_id']
+            lid = self._get_id_from_permalink( rdata['selected'][0]['permalink'] )
 
             # objects should be deleted with a delay to check versioning
             time.sleep(1)

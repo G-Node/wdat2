@@ -105,18 +105,17 @@ class BaseHandler(object):
                     objects = None
 
             if not create:
-                select_params = {}
                 q = self.options.get("q", self.mode)
                 if q == 'full' or q == 'beard':
-                    select_params["fetch_children"] = True
+                    kwargs["fetch_children"] = True
 
                 all_ids = objects.values_list( "guid", flat=True )
                 if len(all_ids) > 0: # evaluate pre-QuerySet here, hits database
-                    select_params["guid__in"] = self.secondary_filtering(all_ids)
+                    kwargs["guid__in"] = self.secondary_filtering(all_ids)
                     if request.method == 'DELETE':
-                        objects = select_params["guid__in"] # just pass [guid's]
+                        objects = kwargs["guid__in"] # just pass [guid's]
                     else:
-                        objects = self.model.objects.get_related( **select_params )
+                        objects = self.model.objects.get_related( **kwargs )
                 else:
                     objects = []
 
@@ -341,9 +340,9 @@ class BaseHandler(object):
 
             # TODO insert here the transaction end
 
-        #except FieldDoesNotExist, v:
-        #    return BadRequest(json_obj={"details": v.message}, \
-        #        message_type="post_data_invalid", request=request)
+        except FieldDoesNotExist, v:
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="post_data_invalid", request=request)
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
@@ -354,9 +353,9 @@ class BaseHandler(object):
                 json_obj={"details": ", ".join(VE.messages)}
             return BadRequest(json_obj=json_obj, \
                 message_type="bad_parameter", request=request)
-        #except (AssertionError, AttributeError, KeyError), e:
-        #    return BadRequest(json_obj={"details": e.message}, \
-        #        message_type="post_data_invalid", request=request)
+        except (AssertionError, AttributeError, KeyError), e:
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="post_data_invalid", request=request)
         except (ReferenceError, ObjectDoesNotExist), e:
             return NotFound(json_obj={"details": e.message}, \
                 message_type="wrong_reference", request=request)
