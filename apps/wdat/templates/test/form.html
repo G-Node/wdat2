@@ -1,0 +1,30 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Form Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function() {
+    var actions = ['cancel', 'submit'];
+    var fields = {
+      'your-name': 'text',
+      'your-password': 'password',
+      'day-of-birth': 'date',
+      'text': 'textarea'
+    };
+    var bus = new WDAT.api.EventBus();
+    var form = new WDAT.api.VForm();
+    form._init($('#form01'), bus, actions, fields);
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Form Test</h1>
+<div>
+<div id="form01"></div>
+</div>
+<div class="event-log">
+</div>
+{% endblock %}
