@@ -1,14 +1,13 @@
-from django.db import models
-from django.db.models.query import QuerySet
+from django.db import models, connection, transaction
+from django.db.models.query import QuerySet, ValuesQuerySet, ValuesListQuerySet, DateQuerySet
 from django.db.models.sql.where import WhereNode, Constraint, AND
 from django.db.models.fields.related import ForeignKey, ReverseSingleRelatedObjectDescriptor
-from django.db import connection, transaction
-from django.core.exceptions import ValidationError
 from django.db.models import Q
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
-from django.core.urlresolvers import reverse
+
 from friends.models import Friendship
 from datetime import datetime
 
@@ -108,8 +107,6 @@ def _split_time( **kwargs ):
     timeflt = {}
     if kwargs.has_key('at_time'):
         timeflt['at_time'] = kwargs.pop('at_time')
-    if kwargs.has_key('current_state'):
-        timeflt['current_state'] = kwargs.pop('current_state')
     return kwargs, timeflt
 
 def _get_id_attr_name(model):
@@ -132,6 +129,7 @@ def _get_url_base(model):
     if url.rfind('/') == len(url) - 1:
         url = url[:url.rfind('/')]
     return url.replace('1000000000', '')
+
 
 #===============================================================================
 # Field and Descriptor subclasses for VERSIONED Reverse Single relationships
@@ -156,7 +154,6 @@ class VReverseSingleRelatedObjectDescriptor( ReverseSingleRelatedObjectDescripto
                     at_time = inst._at_time
                     if at_time:
                         qs._at_time = at_time
-                        #qs = qs.set_time_filters()
         return qs
 
 
@@ -166,48 +163,25 @@ class VersionedForeignKey( models.ForeignKey ):
         setattr(cls, self.name, VReverseSingleRelatedObjectDescriptor(self))
 
 #===============================================================================
-# VERSIONED QuerySet and object Manager
+# VERSIONED QuerySets and object Managers
 #===============================================================================
 
-class VersionedQuerySet( QuerySet ):
+class BaseQuerySetExtension(object):
+    """ basic extension for every queryset class to support versioning """
     _at_time = None # proxy version time for related models
-    current_state = 10 # filter all 'active' objects by default
-    #version_filters_set = False
-
-    #def set_time_filters(self):
-    #    """ need to return new QuerySet, as filtering always clones itself into 
-    #    new object instance """
-    #    qs = self
-    #    if not self.version_filters_set:
-    #        if self._at_time:
-    #            at_time = self._at_time
-    #            qs = super(VersionedQuerySet, self).filter( Q(starts_at__lte = at_time), Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
-    #        else:
-    #            qs = super(VersionedQuerySet, self).filter(ends_at__isnull = True)
-
-    #        if not issubclass(self.model, VersionedM2M): # no 'state' for m2m managers
-    #            qs = super(VersionedQuerySet, qs).filter(current_state = qs.current_state)
-
-    #        qs.version_filters_set = True
-    #    return qs
 
     def _clone(self, klass=None, setup=False, **kwargs):
         """ override _clone method to preserve 'at_time' attribute while cloning
         queryset - in stacked filters, excludes etc. """
-        c = super(VersionedQuerySet, self)._clone(klass, setup, **kwargs)
+        #kwargs['_at_time'] = self._at_time # an alternative way of saving time
+        c = super(BaseQuerySetExtension, self)._clone(klass, setup, **kwargs)
         c._at_time = self._at_time
-        c.current_state = self.current_state
         return c
-
     
     def iterator(self):
-        """ we assign a special attribute '_at_time' for every object if the 
-        original query was supposed to return older versions from some time in 
-        the past ('_at_time' was specified in the Manager). This is useful 
-        primarily to proxy this time to related managers to get related objects
-        from the same time, as well as indicates that a different version from 
-        the current of an object was requested. """
-
+        """ pre-processing versioned queryset before evaluating against database 
+        back-end. Inject version time filters for every versioned model (table),
+        used in the query. """
         def update_constraint( node, table ):
             if hasattr(node, 'children') and node.children:
                 for child in node.children:
@@ -218,62 +192,81 @@ class VersionedQuerySet( QuerySet ):
         # 1. save limits
         high_mark, low_mark = self.query.high_mark, self.query.low_mark
 
-        # 2. clear limits
+        # 2. clear limits to be able to assign more filters, see 'can_filter()'
         self.query.clear_limits()
 
-        # 3. update time filters
-        """ for every table we need to setup
-            - time filters and
-            - state filters
-
-        for the main table we do this by using the normal django API:
-        """
-        # save the initial 'where' tree state
-        where_before = [node for node in self.query.where.children]
-
-        # create time and state filters
+        # 3. update time filters:
+        # - create time filters as separate where node
+        qry = self.query.__class__( model=self.model )
         if self._at_time:
             at_time = self._at_time
-            #qs = super(VersionedQuerySet, self).filter( Q(starts_at__lte = at_time), Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
-            self.query.add_q( Q(starts_at__lte = at_time) )
-            self.query.add_q( Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
+            qry.add_q( Q(starts_at__lte = at_time) )
+            qry.add_q( Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
         else:
-            #qs = super(VersionedQuerySet, self).filter(ends_at__isnull = True)
-            self.query.add_q( Q(ends_at__isnull = True) )
+            qry.add_q( Q(ends_at__isnull = True) )
 
-        """ for all other objects (tables), if any, we clone 'where' nodes based
-        on the nodes created above and add them to the overall where node """
-        new_nodes = set( self.query.where.children ) - set( where_before )
+        # - build map of models with tables: {<table name>: <model>}
+        vmodel_map = {}
+        for model in connection.introspection.installed_models( self.query.tables ):
+            vmodel_map[ model._meta.db_table ] = model
 
-        import ipdb
-        ipdb.set_trace()
-
-        for table in self.query.table_map:
-            if not table == self.query.model._meta.db_table:
-                for node in new_nodes:
-                    # clone the node and assign new alias
-                    cloned_node = node.__deepcopy__(memodict=None)
-                    update_constraint( cloned_node, table )
-                    self.query.where.children.append( cloned_node )
-
-        if not issubclass(self.model, VersionedM2M): # no 'state' for m2m managers
-            #qs = super(VersionedQuerySet, qs).filter(current_state = qs.current_state)
-            self.query.add_q( Q(current_state = self.current_state) )
+        # - add node with time filters to all versioned models (tables)
+        for table in self.query.tables:
+            # skip non-versioned models, like User: no need to filter by time
+            if vmodel_map.has_key( table ):
+                if not ObjectState in vmodel_map[ table ].mro():
+                    continue
+            cloned_node = qry.where.__deepcopy__(memodict=None)
+            update_constraint( cloned_node, table )
+            self.query.where.add( cloned_node, AND )
 
         # 4. re-set limits
         self.query.set_limits(low=low_mark, high=high_mark)
 
+        for obj in super(BaseQuerySetExtension, self).iterator():
+            yield obj
+
+
+class VersionedValuesQuerySet( BaseQuerySetExtension, ValuesQuerySet ):
+    pass
+
+class VersionedValuesListQuerySet( BaseQuerySetExtension, ValuesListQuerySet ):
+    pass
+
+class VersionedDateQuerySet( BaseQuerySetExtension, DateQuerySet ):
+    pass
+
+class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
+    """ An extension for a core QuerySet that supports versioning by overriding 
+    some key functions, like create etc. """
+
+    def _clone(self, klass=None, setup=False, **kwargs):
+        """ need to use versioned classes for values, value list and dates """
+        if klass == ValuesQuerySet:
+            klass = VersionedValuesQuerySet
+        elif klass == ValuesListQuerySet:
+            klass = VersionedValuesListQuerySet
+        elif klass == DateQuerySet:
+            klass = VersionedDateQuerySet
+        return super(VersionedQuerySet, self)._clone(klass, setup, **kwargs)
+
+    def iterator(self):
+        """ we assign a special attribute '_at_time' for every object if the 
+        original query was supposed to return older versions from some time in 
+        the past ('_at_time' was specified in the Request). This is useful 
+        primarily to proxy this time to related managers to get related objects
+        from the same time, as well as indicates that a different version from 
+        the current of an object was requested. """
         for obj in super(VersionedQuerySet, self).iterator():
             if self._at_time:
                 obj._at_time = self._at_time
             yield obj
 
-
     def create(self, **kwargs):
         """ this method cleans kwargs required to create versioned object(s) and 
         proxies the request to the model.save_changes() function, that does the
         physical creation. """
-        # all versioned object must have owner
+        # all versioned objects must have owner
         if not "owner" in kwargs.keys():
             raise ValidationError("Please provide object owner.")
         owner = kwargs.pop("owner")
@@ -309,17 +302,12 @@ class VersionManager(models.Manager):
     the filter() method of this Manager. """
     use_for_related_fields = True
     _at_time = None
-    current_state = 10
 
-    def get_query_set(self):
+    def get_query_set(self, **timeflt ):
         """ init QuerySet that supports object versioning """
         qs = VersionedQuerySet(self.model, using=self._db)
-
-        """ after qs init we update at_time and current_state and then set 
-        appropriate filters, if needed. Can't be done in qs __init__! """
-        qs._at_time = self._at_time
-        qs.current_state = self.current_state
-        #qs = qs.set_time_filters()
+        if timeflt.has_key('at_time'):
+            qs._at_time = timeflt['at_time']
         return qs
 
     def filter(self, **kwargs):
@@ -328,11 +316,7 @@ class VersionManager(models.Manager):
         kwargs to further proxy it to the QuerySet, so an appropriate version is
         fetched. """
         kwargs, timeflt = _split_time( **kwargs )
-        if timeflt.has_key('at_time'):
-            self._at_time = timeflt.get('at_time')
-        if kwargs.has_key('current_state'): # change the filter if requested
-            self.current_state = timeflt.get('current_state')
-        return self.get_query_set().filter( **kwargs )
+        return self.get_query_set( **timeflt ).filter( **kwargs )
 
     def get_by_guid(self, guid):
         """ every object has a global ID (basically it's a hash of it's JSON 
@@ -600,6 +584,7 @@ class ObjectState(models.Model):
         """
         # option 1.
         #return hashlib.sha1( self.get_absolute_url() ).hexdigest()
+
         # option 2.
         return hashlib.sha1( pickle.dumps(self) ).hexdigest()
 
