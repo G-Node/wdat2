@@ -103,7 +103,7 @@ the original object.
 #===============================================================================
 
 def _split_time( **kwargs ):
-    """ extracts 'at_time' and 'current_state' into separate dict """
+    """ extracts 'at_time' into separate dict """
     timeflt = {}
     if kwargs.has_key('at_time'):
         timeflt['at_time'] = kwargs.pop('at_time')
@@ -170,6 +170,14 @@ class BaseQuerySetExtension(object):
     """ basic extension for every queryset class to support versioning """
     _at_time = None # proxy version time for related models
 
+    def filter(self, *args, **kwargs):
+        """ versioned QuerySet supports 'at_time' parameter for filtering 
+        versioned objects. """
+        kwargs, timeflt = _split_time( **kwargs )
+        if timeflt.has_key('at_time'):
+            self._at_time = timeflt['at_time']
+        return super(BaseQuerySetExtension, self).filter(*args, **kwargs)
+
     def _clone(self, klass=None, setup=False, **kwargs):
         """ override _clone method to preserve 'at_time' attribute while cloning
         queryset - in stacked filters, excludes etc. """
@@ -207,11 +215,12 @@ class BaseQuerySetExtension(object):
 
         # - build map of models with tables: {<table name>: <model>}
         vmodel_map = {}
-        for model in connection.introspection.installed_models( self.query.tables ):
+        tables = [tb for tb, rcount in self.query.alias_refcount.items() if rcount]
+        for model in connection.introspection.installed_models( tables ):
             vmodel_map[ model._meta.db_table ] = model
 
         # - add node with time filters to all versioned models (tables)
-        for table in self.query.tables:
+        for table in tables:
             # skip non-versioned models, like User: no need to filter by time
             if vmodel_map.has_key( table ):
                 if not ObjectState in vmodel_map[ table ].mro():
@@ -225,6 +234,18 @@ class BaseQuerySetExtension(object):
 
         for obj in super(BaseQuerySetExtension, self).iterator():
             yield obj
+
+    def delete(self):
+        """ deletion for versioned objects means setting the 'ends_at' field 
+        to the current datetime. Applied only for active versions, having 
+        ends_at=NULL """
+        now = datetime.now()
+        self.filter( ends_at__isnull = True).update( ends_at = now )
+
+    def in_bulk(self):
+        raise NotImplementedError("Not implemented for versioned objects")
+
+
 
 
 class VersionedValuesQuerySet( BaseQuerySetExtension, ValuesQuerySet ):
@@ -293,13 +314,11 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
 
 class VersionManager(models.Manager):
     """ A special manager for versioned objects. By default it returns queryset 
-    with filters on the 'ends_at' attribute = NULL (last version of an object) 
-    and 'current_state' = 10 (active object, not deleted). If 'at_time' and/or 
-    'current_state' are provided, means the special version of an object is 
-    requested, this manager returns queryset tuned to the provided time / object
-    state. To request object versions at specific moment in time in the past, 
-    the 'at_time' parameter should be provided to the manager at first call with
-    the filter() method of this Manager. """
+    with filters on the 'ends_at' attribute = NULL (last version of an object). 
+    If 'at_time' is provided, means the special version of an object is 
+    requested, this manager returns queryset tuned to the provided time. The 
+    'at_time' parameter should be provided to the manager at first call with the
+    filter() method of this Manager. """
     use_for_related_fields = True
     _at_time = None
 
@@ -332,7 +351,8 @@ class VersionManager(models.Manager):
 class RESTObjectsManager( VersionManager ):
     """ extends a normal manager for versioned objects with a 'get_related' 
     method, which is able to fetch objects together with permalinks to the 
-    direct, reversed and m2m relatives. """
+    direct, reversed and m2m relatives. This type of query is needed for the 
+    default Response behaviour """
 
     def fetch_fks(self, objects, timeflt={}):
         """ assigns permalinks of the reversed-related children to the list of 
@@ -535,7 +555,6 @@ class ObjectState(models.Model):
     # local ID + starts_at basically making a PK
     local_id = models.IntegerField('LID', primary_key=True, editable=False)
     owner = models.ForeignKey(User, editable=False)
-    current_state = models.IntegerField(choices=STATES, default=10)
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
     ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
@@ -604,7 +623,7 @@ class ObjectState(models.Model):
         return self.owner
 
     def is_active(self):
-        return self.current_state == 10
+        return not self.ends_at
 
     def save(self, *args, **kwargs):
         """ implements versioning by always saving new object """
@@ -612,14 +631,13 @@ class ObjectState(models.Model):
         if not self.local_id: # saving new object, not a new version
             self.local_id = self._get_new_local_id() # must be first
             self.date_created = now
-            self.guid = self.compute_hash() # compute unique hash 
 
-        else: # update previous version, set ends_at to now()
+        else: # delete previous version, set ends_at to now()
             upd = self.__class__.objects.filter( local_id = self.local_id )
-            upd.filter(ends_at__isnull=True).update( ends_at = now )
+            upd.delete()
 
         # creates new version with updated values
-        self.id = None
+        self.guid = self.compute_hash() # compute unique hash 
         self.starts_at = now
         super(ObjectState, self).save()
 
@@ -633,9 +651,12 @@ class ObjectState(models.Model):
         with these new attrs and FKs. As objects are homogenious, this kind of 
         validation should work ok.
         """
+        import ipdb
+        ipdb.set_trace()
+
         if not objects: return None
 
-        # .. exclude versioned FKs from total validation, needed later
+        # .. exclude versioned FKs from total validation.. FIXME still needed??
         exclude = [ f.name for f in self._meta.local_fields if \
             ( f.rel and isinstance(f.rel, models.ManyToOneRel) ) \
                 and ( 'local_id' in f.rel.to._meta.get_all_field_names() ) ]
@@ -677,17 +698,15 @@ class ObjectState(models.Model):
                 obj.full_clean( exclude = exclude )
 
                 # step 2: close old records
-                now = datetime.now()
-                old_ids = [x.id for x in objects] # id or local_id ??
-                self.objects.filter( id__in = old_ids ).update( ends_at = now )
+                self.objects.filter( guid__in = [x.guid for x in objects] ).delete()
 
                 # step 3: create new objects
+                now = datetime.now()
                 for obj in objects:
                     if not obj.local_id: # saving new object, not a new version
                         # requires to hit the database, so not scalable
                         obj.local_id = self._get_new_local_id()
                         obj.date_created = now
-                        obj.guid = obj.compute_hash() # compute unique hash 
 
                     # update objects with new attrs and FKs
                     for name, value in update_kwargs.items():
@@ -698,8 +717,8 @@ class ObjectState(models.Model):
                             oid = getattr( related_obj, 'local_id', related_obj.id )
                         setattr(obj, field_name + '_id', oid)
 
+                    obj.guid = obj.compute_hash() # compute unique hash 
                     obj.starts_at = now
-                    obj.id = None
                 self.objects.bulk_create( objects )
 
         # process versioned m2m relations separately, in bulk
@@ -874,7 +893,7 @@ class SingleAccess(models.Model):
         (1, _('Read-only')),
         (2, _('Edit')),
     )
-    object_id = models.IntegerField() # local ID of the File/Section
+    object_id = models.IntegerField() # local ID of the shareable object
     object_type = models.CharField( max_length=30 )
     # the pair above identifies a unique object for ACL record
     access_for = models.ForeignKey(User) # with whom it is shared

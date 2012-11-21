@@ -3,7 +3,7 @@
         "pk": 1,
         "model": "datafiles.Datafile",
         "fields": {
-            "title": "some data array",
+            "name": "some data array",
             "raw_file": "data/array.h5",
             "file_type": 5,
             "owner": 1,
@@ -17,7 +17,7 @@
         "pk": 2,
         "model": "datafiles.Datafile",
         "fields": {
-            "title": "some data array",
+            "name": "some data array",
             "raw_file": "data/array.h5",
             "file_type": 5,
             "owner": 1,

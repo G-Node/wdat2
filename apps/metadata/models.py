@@ -62,24 +62,24 @@ class Section(SafetyLevel, ObjectState):
 
     @property
     def sections(self):
-        return self.section_set.filter(current_state=10).order_by("-tree_position")
+        return self.section_set.order_by("-tree_position")
 
     def get_properties(self): # returns all active properties
-        return self.property_set.filter(current_state=10)	    
+        return self.property_set.all()
 
     def get_datafiles(self, user): # returns only accessible files
-        datafiles = self.rel_datafiles.filter(current_state=10)
+        datafiles = self.rel_datafiles.all()
         datafiles = filter(lambda x: x.is_accessible(user), datafiles)
         return datafiles
     def has_datafile(self, datafile_id):
-        if self.datafile_set.filter(current_state=10, id=datafile_id):
+        if self.datafile_set.filter( local_id=datafile_id ):
             return True
         return False
 
     def get_blocks(self, user): # NEO Blocks available in this Section
-        return self.block_set.filter(current_state=10)
+        return self.block_set.all()
     def has_block(self, block_id):
-        if self.block_set.filter(current_state=10, id=block_id):
+        if self.block_set.filter(local_id=block_id):
             return True
         return False
 
@@ -93,7 +93,7 @@ class Section(SafetyLevel, ObjectState):
         for f in self.get_datafiles():
             files_vo += f.raw_file.size
         if r: # retrieve statistics recursively
-            for section in self.section_set.all().filter(current_state=10):
+            for section in self.section_set.all():
                     s1, s2, s3, s4 = section.get_objects_count()
                     properties_no += s1
                     datafiles_no += s2

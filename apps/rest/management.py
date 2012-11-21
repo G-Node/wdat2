@@ -105,14 +105,18 @@ class BaseHandler(object):
                     objects = None
 
             if not create:
+                select_params = {}
                 q = self.options.get("q", self.mode)
                 if q == 'full' or q == 'beard':
-                    kwargs["fetch_children"] = True
+                    select_params["fetch_children"] = True
 
                 all_ids = objects.values_list( "guid", flat=True )
                 if len(all_ids) > 0: # evaluate pre-QuerySet here, hits database
-                    kwargs["guid__in"] = self.secondary_filtering(all_ids)
-                    objects = self.model.objects.get_related( **kwargs )
+                    select_params["guid__in"] = self.secondary_filtering(all_ids)
+                    if request.method == 'DELETE':
+                        objects = select_params["guid__in"] # just pass [guid's]
+                    else:
+                        objects = self.model.objects.get_related( **select_params )
                 else:
                     objects = []
 
@@ -337,9 +341,9 @@ class BaseHandler(object):
 
             # TODO insert here the transaction end
 
-        except FieldDoesNotExist, v:
-            return BadRequest(json_obj={"details": v.message}, \
-                message_type="post_data_invalid", request=request)
+        #except FieldDoesNotExist, v:
+        #    return BadRequest(json_obj={"details": v.message}, \
+        #        message_type="post_data_invalid", request=request)
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
@@ -350,9 +354,9 @@ class BaseHandler(object):
                 json_obj={"details": ", ".join(VE.messages)}
             return BadRequest(json_obj=json_obj, \
                 message_type="bad_parameter", request=request)
-        except (AssertionError, AttributeError, KeyError), e:
-            return BadRequest(json_obj={"details": e.message}, \
-                message_type="post_data_invalid", request=request)
+        #except (AssertionError, AttributeError, KeyError), e:
+        #    return BadRequest(json_obj={"details": e.message}, \
+        #        message_type="post_data_invalid", request=request)
         except (ReferenceError, ObjectDoesNotExist), e:
             return NotFound(json_obj={"details": e.message}, \
                 message_type="wrong_reference", request=request)
@@ -373,7 +377,7 @@ class BaseHandler(object):
 
     def delete(self, request, objects):
         """ delete (archive) provided objects """
-        self.model.save_changes(objects, {'current_state': 20}, {}, {}, True)
+        self.model.objects.filter( guid__in = objects ).delete()
         return Success(message_type="deleted", request=request)
 
     def get_filter_by_name(self, filter_name):
@@ -549,9 +553,9 @@ def top_filter(objects, value, user):
 def visibility_filter(objects, value, user):
     """ filters public / private / shared """
     if value == "private":
-        return objects.filter(current_state=3)
+        return objects.filter( safety_level = 3 )
     if value == "public":
-        return objects.filter(current_state=1)
+        return objects.filter( safety_level = 1 )
     if value == "shared":
         return objects.exclude(owner=user) # permissions are validated later anyway
 

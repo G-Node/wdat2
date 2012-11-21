@@ -44,7 +44,7 @@ def reserved_field_names( model ):
     # non-editable fields
     names = [ fi.name for fi in model._meta.local_fields if not fi.editable ]
     # reserved fields
-    names += [ 'current_state', 'safety_level', 'id', 'section' ]
+    names += [ 'safety_level', 'id', 'section' ]
     # 'section' is excluded because it's a different module, not tested here
     return names
 
