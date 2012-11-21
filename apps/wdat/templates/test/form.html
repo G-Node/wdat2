@@ -13,8 +13,12 @@
       'text': 'textarea'
     };
     var bus = new WDAT.api.EventBus();
-    var form = new WDAT.api.VForm();
-    form._init($('#form01'), bus, actions, fields);
+    var form = new WDAT.api.VForm($('#form01'), bus, fields);
+    
+    var form2 = new WDAT.api.VForm('form02', bus, fields, 'save', true);
+
+    var showbtn = $("#button01").button({text: true, label: "Show Form"});
+    showbtn.click(function() { form2.open(); console.log("show pushed") });
   };
   $(window).load(init);
 </script>
@@ -23,7 +27,8 @@
 {% block body %}
 <h1>Form Test</h1>
 <div>
-<div id="form01"></div>
+<div id="form01" style="border: 1px solid grey"></div>
+<button id="button01"></button>
 </div>
 <div class="event-log">
 </div>

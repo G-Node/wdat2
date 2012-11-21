@@ -1,0 +1,3 @@
+/*button text element */
+.ui-button .ui-button-text { display: block; line-height: 1.2;  }
+.ui-button-text-only .ui-button-text { padding: .3em 1em; }

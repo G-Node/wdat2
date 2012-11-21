@@ -3,12 +3,9 @@
 @close-image: "@{image-root}/light-grey-x.png";
 
 .datepicker-container {
+  .border-std-round;
   display: inline-block;
-
-  .thin-bordered;
-  .rounded-corners;
-
-  color: @darker-grey;
+  color: @fg-grey;
 
   a.calendar {
     display: inline-block;
@@ -37,13 +34,11 @@
 }
 
 div.datepicker {
+  .border-std;
   height: 280px;
   width: 360px;
-  border: 1px solid @bordercolor;
-
   position: absolute;
   display: block;
-
   background-color: @white;
   vertical-align: top;
 
@@ -68,7 +63,7 @@ div.datepicker {
       color: @dark-grey;
       font-size: 1.0em;
     }
-    
+
     li.option:hover {
       cursor: pointer;
       background-color: @light-blue;
@@ -78,6 +73,7 @@ div.datepicker {
     }
 
     li.specific_pointer {
+      .border-std-vert;
       list-style-type: none;
       display: block;
       margin-top: 1.4em;
@@ -89,9 +85,6 @@ div.datepicker {
       padding-left: 1em;
 
       background-color: @white;
-
-      border-top: 1px solid @bordercolor;
-      border-bottom: 1px solid @bordercolor;
     }
   }
 
@@ -197,9 +190,9 @@ div.datepicker {
 }
 
 .jdpicker_w .date_selector .month_nav select {
+	.border-std;
   width:75px;
   margin: 0 auto;
-  border:1px solid #ccc;
   position:relative;
   top:1px
 }
@@ -217,6 +210,7 @@ div.datepicker {
   line-height: 20px;
 }
 .jdpicker_w .date_selector .button {
+  .border-std-round;
   display: block;
   position: absolute;
   top: 0;
@@ -228,16 +222,14 @@ div.datepicker {
   text-align: center;
   font-size: 120%;
   overflow: hidden;
-  border: 1px solid @bordercolor;
-  border-radius: @borderradius;
   cursor:pointer;
 }
 
 .jdpicker_w .date_selector .button:hover, .jdpicker_w .date_selector .button.hover {
+  .border-high;
   background: none;
   color: #333;
   cursor: pointer;
-  border-color: @light-blue;
 }
 
 .jdpicker_w .date_selector .prev {
@@ -248,10 +240,9 @@ div.datepicker {
 }
 
 .jdpicker_w .date_selector table {
-  margin:0 auto;
+  margin: 0 auto;
   border-spacing: 1px;
   border-collapse: separate;
-
   clear: both;
 }
 .jdpicker_w .date_selector th{
@@ -282,7 +273,7 @@ div.datepicker {
 }
 
 .jdpicker_w .date_selector td {
-  border-radius: @borderradius;
+  .rounded;
   line-height: 2em;
   text-align: center;
   white-space: nowrap;
