@@ -624,6 +624,10 @@ class ObjectState(models.Model):
     def is_active(self):
         return not self.ends_at
 
+    def is_accessible(self, user):
+        """ by default object is accessible for it's owner """
+        return self.owner == user
+
     def save(self, *args, **kwargs):
         """ implements versioning by always saving new object """
         now = datetime.now()
