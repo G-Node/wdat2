@@ -348,8 +348,8 @@ class TestSecurity(TestCase):
     def test_update_alien(self):
         for key, obj in self.sample_objects.items():
             # all alien object IDs are just <object_type>_1
-            response = self.client.post("/neo/%s/1/" % key, json.dumps(obj), \
-                content_type="application/json")
+            response = self.client.post("/neo/%s/1/" % key, \
+                json.dumps(obj, cls=DjangoJSONEncoder), content_type="application/json")
             self.assertEqual(response.status_code, 403)
 
 
