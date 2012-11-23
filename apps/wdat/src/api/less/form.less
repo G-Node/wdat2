@@ -7,18 +7,32 @@
 
 .form-view label {
   text-align: right;
-  float: left;
+  display: inline-block;
+  /*float: left;*/
   margin: @smallcushion @smallcushion @smallcushion 0px;
   width: 120px;
 }
 
 .form-view input, textarea {
-  width: 360px;
+  display: inline-block;
   margin: @smallcushion 0px;
 }
 
-.form-btn {
-	text-align: right;
-	margin: @smallcushion;
+/*.form-view input[type="checkbox"] {
+  margin: @cushioning;
+}*/
+
+.form-view input.fixed-width, textarea.fixed-width {
+  width: 360px;
+}
+
+.form-view .field-error {
+  color: red;
+  margin-left: @smallcushion + 120px;
+}
+
+.form-btn { 
+  text-align: right;
+  margin: @smallcushion;
 }
 

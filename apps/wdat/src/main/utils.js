@@ -50,4 +50,34 @@ function strCapitalizeWords(str, sep) {
   return tmp.join(' ');
 }
 
+/* Removes leading and trailing white space characters.
+ * 
+ * Parameters:
+ *  - str: String     The string to trim.
+ *  
+ * Return value:
+ *    Copy of the string without leading and trailing white space characters.
+ */
+function strTrim(str) {
+  return (str || '').replace(/^\s+|\s+$/g, '');
+}
+
+/* More expressive inheritance. Call this function inside the constructor of
+ * the subclass with 'this' as first argument and the constructor of the 
+ * superclass as second one.
+ * 
+ * Parameter:
+ *  - subclass: Obj          Object of the subclass.
+ *  
+ *  - superclass: function   Constructor of the super class.
+ * 
+ * Return value:
+ *    None
+ */
+function inherit(subclass, superclass) {
+  //var constr = subclass.prototype.constructor
+  subclass.prototype = superclass.prototype;
+  subclass.prototype.constructor = subclass;
+  subclass.parent = superclass.prototype;
+}
 

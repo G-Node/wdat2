@@ -7,18 +7,34 @@
   var init = function() {
     var actions = ['cancel', 'submit'];
     var fields = {
-      'your-name': 'text',
-      'your-password': 'password',
-      'day-of-birth': 'date',
-      'text': 'textarea'
+      'your-name': {type: 'text', min: 3, max: 10, obligatory: true},
+      'your-age': {type: 'int', min: 3, max: 10},
+      'your-password': {type: 'password', min: 4, max: 12, obligatory: true},
+      'day-of-birth': {type: 'date', obligatory: true},
+      'satisfied': {type: 'boolean'},
+      'vavorite-pizza' : {type: 'option', options: { funghi: "Pizza Funghi", salami: "Pizza Salami", vegi: "Vegi Pizza"}},
+      'text': {type: 'ltext'}
     };
     var bus = new WDAT.api.EventBus();
-    var form = new WDAT.api.VForm($('#form01'), bus, fields);
-    
-    var form2 = new WDAT.api.VForm('form02', bus, fields, 'save', true);
+    var form = new WDAT.api.VForm()
+    form._init($('#form01'), bus, fields, function() { console.log(JSON.stringify(form.get()));} );
 
+    var form2 = new WDAT.api.VForm()
+    form2._init('form02', bus, fields, 'save', true);
+    
+    var form3 = new WDAT.api.VSectionForm('form03', bus, 'save', true);
+    
+    for (var i in form3) {
+      console.log('form3.' + i);
+    }
+    for (var i in form3.prototype) {
+      console.log('form3.prototype.' + i);
+    }
+    for (var i in form3.parent) {
+      console.log('form3.parent.' + i);
+    }
     var showbtn = $("#button01").button({text: true, label: "Show Form"});
-    showbtn.click(function() { form2.open(); console.log("show pushed") });
+    showbtn.click(function() { form3.open(); console.log("show pushed") });
   };
   $(window).load(init);
 </script>
