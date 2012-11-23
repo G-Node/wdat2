@@ -169,6 +169,55 @@ class VersionedForeignKey( models.ForeignKey ):
 class BaseQuerySetExtension(object):
     """ basic extension for every queryset class to support versioning """
     _at_time = None # proxy version time for related models
+    _time_injected = False
+
+    def inject_time(self):
+        """ pre-processing versioned queryset before evaluating against database 
+        back-end. Inject version time filters for every versioned model (table),
+        used in the query. """
+        def update_constraint( node, table ):
+            if hasattr(node, 'children') and node.children:
+                for child in node.children:
+                    update_constraint( child, table )
+            else:
+                node[0].alias = table
+
+        if not self._time_injected:
+            # 1. save limits
+            high_mark, low_mark = self.query.high_mark, self.query.low_mark
+
+            # 2. clear limits to be able to assign more filters, see 'can_filter()'
+            self.query.clear_limits()
+
+            # 3. update time filters:
+            # - create time filters as separate where node
+            qry = self.query.__class__( model=self.model )
+            if self._at_time:
+                at_time = self._at_time
+                qry.add_q( Q(starts_at__lte = at_time) )
+                qry.add_q( Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
+            else:
+                qry.add_q( Q(ends_at__isnull = True) )
+
+            # - build map of models with tables: {<table name>: <model>}
+            vmodel_map = {}
+            tables = [tb for tb, rcount in self.query.alias_refcount.items() if rcount]
+            for model in connection.introspection.installed_models( tables ):
+                vmodel_map[ model._meta.db_table ] = model
+
+            # - add node with time filters to all versioned models (tables)
+            for table in tables:
+                # skip non-versioned models, like User: no need to filter by time
+                if vmodel_map.has_key( table ):
+                    if not ObjectState in vmodel_map[ table ].mro():
+                        continue
+                cloned_node = qry.where.__deepcopy__(memodict=None)
+                update_constraint( cloned_node, table )
+                self.query.where.add( cloned_node, AND )
+
+            # 4. re-set limits
+            self.query.set_limits(low=low_mark, high=high_mark)
+            self._time_injected = True
 
     def filter(self, *args, **kwargs):
         """ versioned QuerySet supports 'at_time' parameter for filtering 
@@ -187,53 +236,15 @@ class BaseQuerySetExtension(object):
         return c
     
     def iterator(self):
-        """ pre-processing versioned queryset before evaluating against database 
-        back-end. Inject version time filters for every versioned model (table),
-        used in the query. """
-        def update_constraint( node, table ):
-            if hasattr(node, 'children') and node.children:
-                for child in node.children:
-                    update_constraint( child, table )
-            else:
-                node[0].alias = table
-
-        # 1. save limits
-        high_mark, low_mark = self.query.high_mark, self.query.low_mark
-
-        # 2. clear limits to be able to assign more filters, see 'can_filter()'
-        self.query.clear_limits()
-
-        # 3. update time filters:
-        # - create time filters as separate where node
-        qry = self.query.__class__( model=self.model )
-        if self._at_time:
-            at_time = self._at_time
-            qry.add_q( Q(starts_at__lte = at_time) )
-            qry.add_q( Q(ends_at__gt = at_time) | Q(ends_at__isnull = True) )
-        else:
-            qry.add_q( Q(ends_at__isnull = True) )
-
-        # - build map of models with tables: {<table name>: <model>}
-        vmodel_map = {}
-        tables = [tb for tb, rcount in self.query.alias_refcount.items() if rcount]
-        for model in connection.introspection.installed_models( tables ):
-            vmodel_map[ model._meta.db_table ] = model
-
-        # - add node with time filters to all versioned models (tables)
-        for table in tables:
-            # skip non-versioned models, like User: no need to filter by time
-            if vmodel_map.has_key( table ):
-                if not ObjectState in vmodel_map[ table ].mro():
-                    continue
-            cloned_node = qry.where.__deepcopy__(memodict=None)
-            update_constraint( cloned_node, table )
-            self.query.where.add( cloned_node, AND )
-
-        # 4. re-set limits
-        self.query.set_limits(low=low_mark, high=high_mark)
-
+        """ need to inject version time before executing against database """
+        self.inject_time()
         for obj in super(BaseQuerySetExtension, self).iterator():
             yield obj
+
+    def count(self):
+        """ need to inject version time before executing against database """
+        raise NotImplementedError("Not implemented for versioned objects")
+
 
     def delete(self):
         """ deletion for versioned objects means setting the 'ends_at' field 
