@@ -49,12 +49,12 @@
       console.log('REQUEST property: ' + id);
       api.get('get-property', {"id": id, "type": "property"});
     });
-    function doGetSection(event, data) {
+    function doGetProperty(event, data) {
       console.log('EVENT get-property: ' + JSON.stringify(data));
       form_property.open();
       form_property.set(data.response[0]);
     }
-    bus.subscribe('get-property', doGetSection);
+    bus.subscribe('get-property', doGetProperty);
   };
   $(window).load(init);
 </script>
