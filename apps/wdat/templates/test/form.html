@@ -22,7 +22,7 @@
 
     /* create and register handler for save events */
     function doSave(event, data) {
-      console.log('EVENT save: ' + JSON.stringify(data, null, 2));
+      console.log('EVENT save: ' + JSON.stringify(data));
     }
     bus.subscribe('save', doSave);
     
@@ -35,7 +35,7 @@
       api.get('get-section', {"id": id, "type": "section"});
     });
     function doGetSection(event, data) {
-      console.log('EVENT get-section: ' + JSON.stringify(data, null, 2));
+      console.log('EVENT get-section: ' + JSON.stringify(data));
       form_section.open();
       form_section.set(data.response[0]);
     }
