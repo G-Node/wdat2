@@ -357,6 +357,23 @@ if (!WDAT.api) WDAT.api = {};
   //-------------------------------------------------------------------------------------
   // Class: VPropertyForm
   //-------------------------------------------------------------------------------------
-  
+  WDAT.api.VPropertyForm = VPropertyForm;
+  inherit(VPropertyForm, VForm);
+  function VPropertyForm(name, bus, save, modal) {
+    var inputdefs = {
+      id: {type: 'hidden'},
+      name: {type: 'text', obligatory: true, min: 3, max: 100},
+      unit: {type: 'text', max: 10 },
+      uncertainty: {type: 'text'},
+      dtype: {type: 'text', label: 'Data Type'},
+      dependency: {type: 'text'},
+      dependency_value: {type: 'text'},
+      mapping: {type: 'text'},
+      definition: {type: 'ltext'},
+      comment: {type: 'ltext'},
+      date_created: {type: 'text', readonly: true}
+    };
+    this._init(name, 'Section', bus, inputdefs, save, modal);
+  }
 
 }());
