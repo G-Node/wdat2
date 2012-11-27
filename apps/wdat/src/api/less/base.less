@@ -141,7 +141,15 @@ input[type="checkbox"],input[type="radio"], textarea {
   box-shadow:         0px 0px 0px 0px @white;
 }
 
+input[readonly="readonly"] {
+  color: @fg-grey;
+}
+
 input[type="text"]:FOCUS, input[type="password"]:FOCUS, input[type="search"]:FOCUS,
 input[type="checkbox"]:FOCUS,input[type="radio"]:FOCUS, textarea:FOCUS {
   .border-high;
+}
+
+input[readonly="readonly"]:FOCUS {
+  .border-std;
 }

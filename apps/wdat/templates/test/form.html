@@ -5,36 +5,41 @@
 {% block extra_script %}
 <script type="text/javascript">
   var init = function() {
-    var actions = ['cancel', 'submit'];
+    var bus = new WDAT.api.EventBus();
+    var api = new WDAT.api.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+    /* Create test form with the VForm base class */
     var fields = {
+      'id': {type: 'hidden', value: '1'},
       'your-name': {type: 'text', min: 3, max: 10, obligatory: true},
-      'your-age': {type: 'int', min: 3, max: 10},
+      'your-age': {type: 'int', value: 10, readonly: true},
       'your-password': {type: 'password', min: 4, max: 12, obligatory: true},
       'day-of-birth': {type: 'date', obligatory: true},
       'satisfied': {type: 'boolean'},
       'vavorite-pizza' : {type: 'option', options: { funghi: "Pizza Funghi", salami: "Pizza Salami", vegi: "Vegi Pizza"}},
       'text': {type: 'ltext'}
     };
-    var bus = new WDAT.api.EventBus();
-    var form = new WDAT.api.VForm()
-    form._init($('#form01'), bus, fields, function() { console.log(JSON.stringify(form.get()));} );
+    var form = new WDAT.api.VForm($('#form01'), 'Test Form', bus, fields, 'save');
 
-    var form2 = new WDAT.api.VForm()
-    form2._init('form02', bus, fields, 'save', true);
+    /* create and register handler for save events */
+    function doSave(event, data) {
+      console.log('EVENT save: ' + JSON.stringify(data, null, 2));
+    }
+    bus.subscribe('save', doSave);
     
-    var form3 = new WDAT.api.VSectionForm('form03', bus, 'save', true);
-    
-    for (var i in form3) {
-      console.log('form3.' + i);
+    /* Create section form and edit a selectable section */
+    var form_section = new WDAT.api.VSectionForm('form-section', bus, 'save', true);
+    var btn_section  = $("#btn-section").button({text: true});
+    btn_section.click( function() {
+      var id = $('#input-section').val();
+      console.log('REQUEST section: ' + id);
+      api.get('get-section', {"id": id, "type": "section"});
+    });
+    function doGetSection(event, data) {
+      console.log('EVENT get-section: ' + JSON.stringify(data, null, 2));
+      form_section.open();
+      form_section.set(data.response[0]);
     }
-    for (var i in form3.prototype) {
-      console.log('form3.prototype.' + i);
-    }
-    for (var i in form3.parent) {
-      console.log('form3.parent.' + i);
-    }
-    var showbtn = $("#button01").button({text: true, label: "Show Form"});
-    showbtn.click(function() { form3.open(); console.log("show pushed") });
+    bus.subscribe('get-section', doGetSection);
   };
   $(window).load(init);
 </script>
@@ -43,8 +48,12 @@
 {% block body %}
 <h1>Form Test</h1>
 <div>
-<div id="form01" style="border: 1px solid grey"></div>
-<button id="button01"></button>
+  <div id="form01" style="border: 1px solid grey"></div>
+</div>
+<div>
+  <button id="btn-section">Show Section</button>
+  <span>/metadata/section/</span>
+  <input type="text" value="1" id="input-section">
 </div>
 <div class="event-log">
 </div>
