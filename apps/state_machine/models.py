@@ -693,11 +693,6 @@ class ObjectState(models.Model):
         """
         if not objects: return None
 
-        # .. exclude versioned FKs from total validation.. FIXME still needed??
-        #exclude = [ f.name for f in self._meta.local_fields if \
-        #    ( f.rel and isinstance(f.rel, models.ManyToOneRel) ) \
-        #        and ( 'local_id' in f.rel.to._meta.get_all_field_names() ) ]
-
         if update_kwargs or fk_dict:
             exist_objs = [x for x in objects if x.guid]
             new_objs = [x for x in objects if not x in exist_objs]
