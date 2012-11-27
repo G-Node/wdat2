@@ -68,7 +68,10 @@ if (!WDAT.api) WDAT.api = {};
     if (!modal) {
       // create buttons and actions
       var savebtn = $('<button>').button({text : true, label : "Save"});
-      savebtn.click(function() { this._bus.publish(this._save); });
+      var that = this;
+      savebtn.click(function() { 
+        var data = that.get(); 
+        if (data) that._bus.publish(that._save, data); });
       this._form.append($('<div class="form-btn"></div>').append(savebtn));
     }
   };
@@ -231,7 +234,7 @@ if (!WDAT.api) WDAT.api = {};
           value = parseInt(value);
         }
         var set = objSetRecursive(data, name, value, ['fields', 'parents', 'data']);
-        if (!set) data[name] = val;
+        if (!set) data[name] = value;
       }
       return data;
     } else {
