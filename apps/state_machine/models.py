@@ -130,6 +130,19 @@ def _get_url_base(model):
         url = url[:url.rfind('/')]
     return url.replace('1000000000', '')
 
+def create_hash_from( obj ):
+    """ computes the unique object identifier. We balance between two 
+    options of having a unique GUID:
+    - only across objects, not object versions
+    - across object versions too (every version has a different GUID)
+    For the moment the second option (full uniqueness) is implemented.
+    """
+    # option 1.
+    #return hashlib.sha1( obj.get_absolute_url() ).hexdigest()
+
+    # option 2.
+    return hashlib.sha1( pickle.dumps( obj ) ).hexdigest()
+
 
 #===============================================================================
 # Field and Descriptor subclasses for VERSIONED Reverse Single relationships
@@ -243,15 +256,21 @@ class BaseQuerySetExtension(object):
 
     def count(self):
         """ need to inject version time before executing against database """
+        # no tables in alias_refcount..
         raise NotImplementedError("Not implemented for versioned objects")
 
+    def all(self):
+        """ need to inject version time before executing against database """
+        # no tables in alias_refcount..
+        raise NotImplementedError("Not implemented for versioned objects")
 
     def delete(self):
         """ deletion for versioned objects means setting the 'ends_at' field 
         to the current datetime. Applied only for active versions, having 
         ends_at=NULL """
         now = datetime.now()
-        self.filter( ends_at__isnull = True).update( ends_at = now )
+        self.filter( ends_at__isnull = True)
+        super(BaseQuerySetExtension, self).update( ends_at = now )
 
     def in_bulk(self):
         raise NotImplementedError("Not implemented for versioned objects")
@@ -294,33 +313,53 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
                 obj._at_time = self._at_time
             yield obj
 
+    def bulk_create(self, objects):
+        """ wrapping around a usual bulk_create to provide version-specific 
+        information for all objects. As with original bulk creation, 
+        reverse relationships and M2Ms are not supported! """
+        now = datetime.now()
+        lid = self.model._get_new_local_id()
+
+        # step 1: validation + versioned objects update
+        guids_to_close = []
+        for obj in objects:
+            if obj.guid: # existing object, need to close old version later
+                guids_to_close.append( str( obj.guid ) )
+            else:  # new object
+                obj.local_id = lid
+                lid += 1
+            obj.guid = create_hash_from( obj ) # compute unique hash 
+            obj.date_created = obj.date_created or now
+            obj.starts_at = now
+            obj.full_clean()
+
+        # step 2: close old records
+        self.filter( guid__in = guids_to_close ).delete()
+
+        # step 3: create objects in bulk
+        return super(VersionedQuerySet, self).bulk_create( objects )
+
+
+    def update(self, **kwargs):
+        """ update objects with new attrs and FKs """
+        if kwargs and len(self) > 0:
+            for obj in objs:
+                for name, value in kwargs.items():
+                    setattr(obj, name, value)
+            return self.bulk_create( objs )
+        return self
+
+
     def create(self, **kwargs):
         """ this method cleans kwargs required to create versioned object(s) and 
-        proxies the request to the model.save_changes() function, that does the
+        proxies the request to the superclass.create() function, that does the
         physical creation. """
-        # all versioned objects must have owner
-        if not "owner" in kwargs.keys():
-            raise ValidationError("Please provide object owner.")
-        owner = kwargs.pop("owner")
-
-        # split params into different dicts for separate validation
-        update_kwargs, m2m_dict, fk_dict = {}, {}, {}
-        reserved = [ fi.name for fi in self.model._meta.local_fields if not fi.editable ]
-        simple = [ f for f in self.model._meta.local_fields if not f.name in reserved and not f.rel ]
-        fks = [ f for f in self.model._meta.local_fields if not f.name in reserved and f.rel ]
-        m2ms = [ f for f in self.model._meta.many_to_many ]
-
-        for key, value in kwargs.items():
-            if key in [ f.name for f in m2ms ]:
-                m2m_dict[ key ] = value
-            elif key in [ f.name for f in fks ]:
-                fk_dict[ key ] = value
-            elif key in [ f.name for f in simple ]:
-                update_kwargs[ key ] = value
-
-        obj = self.model( owner = owner )
-        self.model.save_changes( [obj], update_kwargs, m2m_dict, fk_dict, True)
-        return obj
+        now = datetime.now()
+        new_keys = {}
+        new_keys['lid'] = self.model._get_new_local_id()
+        new_keys['date_created'] = now
+        new_keys['guid'] = create_hash_from( **dict(new_keys, **kwargs) )
+        return super(VersionedQuerySet, self).create( **dict(new_keys, **kwargs) )
 
 
 class VersionManager(models.Manager):
@@ -604,19 +643,6 @@ class ObjectState(models.Model):
             attr._at_time = self._at_time
         return attr
 
-    def compute_hash(self):
-        """ computes the unique object identifier. We balance between two 
-        options of having a unique GUID:
-        - only across objects, not object versions
-        - across object versions too (every version has a different GUID)
-        For the moment the second option (full uniqueness) is implemented.
-        """
-        # option 1.
-        #return hashlib.sha1( self.get_absolute_url() ).hexdigest()
-
-        # option 2.
-        return hashlib.sha1( pickle.dumps(self) ).hexdigest()
-
     @property
     def obj_type(self):
         """ every object has a type defined as lowercase name of the class. """
@@ -651,8 +677,8 @@ class ObjectState(models.Model):
             upd.delete()
 
         # creates new version with updated values
-        self.guid = self.compute_hash() # compute unique hash 
         self.starts_at = now
+        self.guid = create_hash_from( self ) # compute unique hash 
         super(ObjectState, self).save()
 
     @classmethod
@@ -668,63 +694,21 @@ class ObjectState(models.Model):
         if not objects: return None
 
         # .. exclude versioned FKs from total validation.. FIXME still needed??
-        exclude = [ f.name for f in self._meta.local_fields if \
-            ( f.rel and isinstance(f.rel, models.ManyToOneRel) ) \
-                and ( 'local_id' in f.rel.to._meta.get_all_field_names() ) ]
+        #exclude = [ f.name for f in self._meta.local_fields if \
+        #    ( f.rel and isinstance(f.rel, models.ManyToOneRel) ) \
+        #        and ( 'local_id' in f.rel.to._meta.get_all_field_names() ) ]
 
-        do_bulk = 1 # for the moment we always do bulk updates, it's faster
+        if update_kwargs or fk_dict:
+            exist_objs = [x for x in objects if x.guid]
+            new_objs = [x for x in objects if not x in exist_objs]
 
-        if not do_bulk: # loop over objects, no bulk update
-            for obj in objects:
-                # update normal attrs
-                for name, value in update_kwargs.items():
+            for_update = self.objects.filter( guid__in = [x.guid for x in exist_objs] )
+            for_update.update( **dict(update_kwargs, **fk_dict) )
+
+            for obj in new_objs:
+                for name, value in dict(update_kwargs, **fk_dict).items():
                     setattr(obj, name, value)
-
-            # update versioned FKs in that way so the FK validation doesn't fail
-            for field_name, related_obj in fk_dict.items():
-                for obj in objects:
-                    oid = getattr( related_obj, 'local_id', related_obj.id )
-                    setattr(obj, field_name + '_id', oid)
-
-            if update_kwargs or fk_dict: # update only if something hb changed
-                for obj in objects:
-                    obj.full_clean( exclude = exclude )
-                    obj.save()
-
-        else:
-            if update_kwargs or fk_dict:
-                # step 1: update and clean one object
-                obj = objects[0]
-                for name, value in update_kwargs.items():
-                    setattr(obj, name, value)
-
-                # update versioned FKs in that way so the FK validation doesn't fail
-                for field_name, related_obj in fk_dict.items():
-                    setattr(obj, field_name + '_id', getattr(related_obj, 'pk', None))
-
-                # validate provided data
-                obj.full_clean( exclude = exclude )
-
-                # step 2: close old records
-                self.objects.filter( guid__in = [x.guid for x in objects] ).delete()
-
-                # step 3: create new objects
-                now = datetime.now()
-                for obj in objects:
-                    if not obj.local_id: # saving new object, not a new version
-                        # requires to hit the database, so not scalable
-                        obj.local_id = self._get_new_local_id()
-                        obj.date_created = now
-
-                    # update objects with new attrs and FKs
-                    for name, value in update_kwargs.items():
-                        setattr(obj, name, value)
-                    for field_name, related_obj in fk_dict.items():
-                        setattr(obj, field_name + '_id', getattr(related_obj, 'pk', None))
-
-                    obj.guid = obj.compute_hash() # compute unique hash 
-                    obj.starts_at = now
-                self.objects.bulk_create( objects )
+            self.objects.bulk_create( new_objs )
 
         # process versioned m2m relations separately, in bulk
         if m2m_dict:

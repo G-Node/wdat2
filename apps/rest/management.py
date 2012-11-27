@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError, FieldError
 from django.views.decorators.http import condition
 from django.utils import simplejson as json
-from django.db import models
+from django.db import models, IntegrityError
 from django.db.models.fields import FieldDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_unicode
@@ -218,7 +218,7 @@ class BaseHandler(object):
         # 3. All private direct shares
         dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
             object_type=self.model.acl_type())]
-        q3 = objects.filter(local_id__in=dir_acc)
+        q3 = objects.filter(pk__in=dir_acc)
 
         perm_filtered = q1 | q2 | q3
 
@@ -226,13 +226,13 @@ class BaseHandler(object):
             # 1. All private direct shares with 'edit' level
             dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
                 object_type=self.model.acl_type(), access_level=2)]
-            available = objects.filter(id__in=dir_acc)
+            available = objects.filter(pk__in=dir_acc)
 
             if self.options.has_key('mode') and not self.options['mode'] == 'ignore':
                 if not perm_filtered.count() == available.count():
                     raise ReferenceError("Some of the objects in your query are not available for an update.")
 
-            perm_filtered = objects.filter(id__in=dir_acc) # not to damage QuerySet
+            perm_filtered = objects.filter(pk__in=dir_acc) # not to damage QuerySet
 
         objects = perm_filtered | objects.filter(owner=user)
 
@@ -346,7 +346,7 @@ class BaseHandler(object):
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
-        except ValidationError, VE:
+        except (IntegrityError, ValidationError), VE:
             if hasattr(VE, 'message_dict'):
                 json_obj=VE.message_dict
             else:

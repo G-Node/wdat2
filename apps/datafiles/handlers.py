@@ -42,7 +42,7 @@ class FileHandler(BaseHandler):
 
                 return_code = 201
                 request.method = "GET"
-                return self.get( request, self.model.objects.get_related( id=datafile.id ), return_code )
+                return self.get( request, self.model.objects.get_related( pk=datafile.pk ), return_code )
 
             else:
                 return BadRequest(json_obj=form.errors, \
@@ -56,7 +56,7 @@ class FileHandler(BaseHandler):
     def run_validation(self, *args, **kwargs):
         """ start a task to check the file compatibility """
         datafile = kwargs['datafile']
-        extracted = extract_file_info.delay( datafile.id )
+        extracted = extract_file_info.delay( datafile.pk )
         task_id = str(extracted.task_id) # this line is required, due to short tasks
         datafile.last_task_id = task_id
         datafile.save()
@@ -159,7 +159,7 @@ class FileOperationsHandler(BaseHandler):
     def extract(self, request, datafile):
         """ Extract files/folders from the file if archive."""
         if datafile.is_archive: # start a task to extract from archive
-            extracted = extract_from_archive.delay(datafile.id)
+            extracted = extract_from_archive.delay(datafile.pk)
             task_id = str(extracted.task_id) # this line is required, due to short tasks
             datafile.last_task_id = task_id
             datafile.save()
@@ -176,7 +176,7 @@ class FileOperationsHandler(BaseHandler):
         }
         if datafile.convertible:
             method = CONVERSION_MAP[str(datafile.file_type)]
-            converted = method.delay(datafile.id)
+            converted = method.delay(datafile.pk)
             task_id = str(converted.task_id) # this line is required, due to short tasks
             datafile.last_task_id = task_id
             datafile.save()
