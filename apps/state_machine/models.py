@@ -176,7 +176,7 @@ class VersionedForeignKey( models.ForeignKey ):
         setattr(cls, self.name, VReverseSingleRelatedObjectDescriptor(self))
 
 #===============================================================================
-# VERSIONED QuerySets and object Managers
+# VERSIONED QuerySets
 #===============================================================================
 
 class BaseQuerySetExtension(object):
@@ -276,7 +276,8 @@ class BaseQuerySetExtension(object):
         raise NotImplementedError("Not implemented for versioned objects")
 
 
-
+class M2MQuerySet( BaseQuerySetExtension, QuerySet ):
+    pass
 
 class VersionedValuesQuerySet( BaseQuerySetExtension, ValuesQuerySet ):
     pass
@@ -322,6 +323,7 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
 
         # step 1: validation + versioned objects update
         guids_to_close = []
+        val_flag = False
         for obj in objects:
             if obj.guid: # existing object, need to close old version later
                 guids_to_close.append( str( obj.guid ) )
@@ -331,7 +333,9 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             obj.guid = create_hash_from( obj ) # compute unique hash 
             obj.date_created = obj.date_created or now
             obj.starts_at = now
-            obj.full_clean()
+            if not val_flag: # clean only one object for speed
+                obj.full_clean()
+                val_flag = True
 
         # step 2: close old records
         self.filter( guid__in = guids_to_close ).delete()
@@ -342,7 +346,8 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
 
     def update(self, **kwargs):
         """ update objects with new attrs and FKs """
-        if kwargs and len(self) > 0:
+        if kwargs:
+            objs = self._clone()
             for obj in objs:
                 for name, value in kwargs.items():
                     setattr(obj, name, value)
@@ -362,6 +367,10 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
         return super(VersionedQuerySet, self).create( **dict(new_keys, **kwargs) )
 
 
+#===============================================================================
+# VERSIONED Managers
+#===============================================================================
+
 class VersionManager(models.Manager):
     """ A special manager for versioned objects. By default it returns queryset 
     with filters on the 'ends_at' attribute = NULL (last version of an object). 
@@ -372,13 +381,6 @@ class VersionManager(models.Manager):
     use_for_related_fields = True
     _at_time = None
 
-    def get_query_set(self, **timeflt ):
-        """ init QuerySet that supports object versioning """
-        qs = VersionedQuerySet(self.model, using=self._db)
-        if timeflt.has_key('at_time'):
-            qs._at_time = timeflt['at_time']
-        return qs
-
     def filter(self, **kwargs):
         """ method is overriden to support object versions. If an object is 
         requested at a specific point in time here we split this time from 
@@ -387,22 +389,37 @@ class VersionManager(models.Manager):
         kwargs, timeflt = _split_time( **kwargs )
         return self.get_query_set( **timeflt ).filter( **kwargs )
 
-    def get_by_guid(self, guid):
-        """ every object has a global ID (basically it's a hash of it's JSON 
-        representation). As this ID is unique, one can request an object by it's
-        GUID directly."""
-        return super(VersionManager, self).get_query_set().get( guid = guid )
 
-    # TODO implement this for more flexibility
-    #def get_by_natural_key(self, **kwargs ):
-    #    return self.get(first_name=first_name, last_name=last_name)
+class VersionedM2MManager( VersionManager ):
+    """ A manager for versioned relations. Used to proxy a special subclass of 
+    the Queryset (M2MQuerySet) designed for M2M relations. """
+
+    def get_query_set(self, **timeflt ):
+        """ init QuerySet that supports m2m relations versioning """
+        qs = M2MQuerySet(self.model, using=self._db)
+        if timeflt.has_key('at_time'):
+            qs._at_time = timeflt['at_time']
+        return qs
 
 
-class RESTObjectsManager( VersionManager ):
+class VersionedObjectManager( VersionManager ):
     """ extends a normal manager for versioned objects with a 'get_related' 
     method, which is able to fetch objects together with permalinks to the 
     direct, reversed and m2m relatives. This type of query is needed for the 
     default Response behaviour """
+
+    def get_query_set(self, **timeflt ):
+        """ init QuerySet that supports object versioning """
+        qs = VersionedQuerySet(self.model, using=self._db)
+        if timeflt.has_key('at_time'):
+            qs._at_time = timeflt['at_time']
+        return qs
+
+    def get_by_guid(self, guid):
+        """ every object has a global ID (basically it's a hash of it's JSON 
+        representation). As this ID is unique, one can request an object by it's
+        GUID directly."""
+        return super(VersionedObjectManager, self).get_query_set().get( guid = guid )
 
     def fetch_fks(self, objects, timeflt={}):
         """ assigns permalinks of the reversed-related children to the list of 
@@ -562,7 +579,7 @@ class VersionedM2M( models.Model ):
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
     ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
-    objects = VersionManager()
+    objects = VersionedM2MManager()
 
     class Meta:
         abstract = True
@@ -607,7 +624,7 @@ class ObjectState(models.Model):
     date_created = models.DateTimeField(editable=False)
     starts_at = models.DateTimeField(serialize=False, default=datetime.now, editable=False)
     ends_at = models.DateTimeField(serialize=False, blank=True, null=True, editable=False)
-    objects = RESTObjectsManager()
+    objects = VersionedObjectManager()
     _at_time = None # indicates an older version for object instance
 
     class Meta:
@@ -684,12 +701,9 @@ class ObjectState(models.Model):
     @classmethod
     def save_changes(self, objects, update_kwargs, m2m_dict, fk_dict, m2m_append):
         """
-        the update is done in three steps. 1) we update one object with the new 
-        attrs and FKs, and run full_clean() on it to clean the new values from
-        the request. if no validation errors found, we do 2) close all old 
-        versions for versioned objects and then 3) create in bulk new objects 
-        with these new attrs and FKs. As objects are homogenious, this kind of 
-        validation should work ok.
+        the method saves changes to attributes (update_kwargs), FKs (fk_dict) 
+        and M2M relations (m2m_dict) to all provided objects, resolving 
+        versioning features.
         """
         if not objects: return None
 
@@ -730,10 +744,7 @@ class ObjectState(models.Model):
                     to_close = list( set(rel_m2ms.values_list( rev_name, flat=True )) - set(new_ids) )
                     filt = dict( [(own_name + '__in', local_ids), \
                         (rev_name + "__in", to_close)] )
-                    if is_versioned:
-                        m2m_class.objects.filter( **filt ).update( ends_at = now )
-                    else:
-                        m2m_class.objects.filter( **filt ).delete()
+                    m2m_class.objects.filter( **filt ).delete()
 
                 # create new m2m connections
                 to_create = {}
