@@ -1,0 +1,34 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Inherit Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function() {
+    
+    window.Animal = Animal;
+    function Animal(name, species) {
+      this.name = name;
+      this.species = species;
+    }
+    
+    Animal.prototype.toString = function() {
+      return "Name: " + this.name + " / Species: " + this.species;
+    };
+    
+    window.Dog = Dog;
+    inherit(Dog, Animal);
+    function Dog(name) {
+      Dog.parent.constructor.call(this, name, 'dog');
+    }
+    
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Inherit Test</h1>
+<div class="event-log">
+</div>
+{% endblock %}

@@ -18,7 +18,7 @@
       'vavorite-pizza' : {type: 'option', options: { funghi: "Pizza Funghi", salami: "Pizza Salami", vegi: "Vegi Pizza"}},
       'text': {type: 'ltext'}
     };
-    var form = new WDAT.api.VForm($('#form01'), 'Test Form', bus, fields, 'save');
+    var form = new WDAT.api.VForm($('#form01'), bus, 'save', false, fields);
 
     /* create and register handler for save events */
     function doSave(event, data) {
@@ -43,6 +43,8 @@
 
     /* Create property form and edit a selectable property */
     var form_property = new WDAT.api.VPropertyForm('form-property', bus, 'save', true);
+    form_property.setValue();
+    form_property.setValue();
     var btn_property  = $("#btn-property").button({text: true});
     btn_property.click( function() {
       var id = $('#input-property').val();

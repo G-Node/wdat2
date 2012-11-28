@@ -151,10 +151,9 @@ function objSetRecursive(obj, prop, val, children) {
  * Return value:
  *    None
  */
-function inherit(subclass, superclass) {
-  //var constr = subclass.prototype.constructor
-  subclass.prototype = superclass.prototype;
-  subclass.prototype.constructor = subclass;
-  subclass.parent = superclass.prototype;
+function inherit(Sub, Super) {
+  Sub.prototype = new Super();
+  Sub.prototype.constructor = Sub;
+  Sub.parent = Super.prototype;
 }
 

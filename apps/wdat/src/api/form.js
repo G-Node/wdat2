@@ -38,41 +38,39 @@ if (!WDAT.api) WDAT.api = {};
    *    jQuery, jQuery-UI, WDAT.api.EventBus
    */
   WDAT.api.VForm = VForm;
-  function VForm(name, title, bus, inputdefs, save, modal) {
-    this._init(name, title, bus, inputdefs, save, modal);
-  }
-
-  /* Method for form object initialisation. See VForm for documentation.
-   */
-  VForm.prototype._init = function(name, title, bus, inputdefs, save, modal) {
-    this._elem = null;        // the element showed in the form
-    this._bus = bus;          // an event bus 
-    this._modal = modal;      // true if this is a form for modal dialogs
-    this._inputdefs = {};     // definition of input elements
-    this._save  = save  || this.name + '-save';   // the event that is fired on save
-    this._title = title || 'Form';                // the title of the form
-    // create form and set name
-    if (typeof name === 'string') {               // name is a string
-      this._form = $('<div class="form-view">').attr('id', name);
-      this._name = name;
-    } else if (typeof name === 'object') {        // name is a jquery object
-      this._form = name.addClass('form-view');
-      this._name = name.attr('id');
-    }
-    this._form.append($('<fieldset>').addClass('form-fields'));
-    // create input fields
-    for (var i in inputdefs) {
-      this._addField(i, inputdefs[i]);
-    }
-    // if not modal create a save button
-    if (!modal) {
-      // create buttons and actions
-      var savebtn = $('<button>').button({text : true, label : "Save"});
-      var that = this;
-      savebtn.click(function() { 
-        var data = that.get(); 
-        if (data) that._bus.publish(that._save, data); });
-      this._form.append($('<div class="form-btn"></div>').append(savebtn));
+  function VForm(name, bus, save, modal, fields) {
+    // don't initialize if name and bus are undefined
+    if (name && bus) {
+      // create form and set name
+      if (typeof name === 'string') {               // name is a string
+        this._form = $('<div class="form-view">').attr('id', name);
+        this._name = name;
+      } else if (typeof name === 'object') {        // name is a jquery object
+        this._form = name.addClass('form-view');
+        this._name = name.attr('id');
+      }
+      this._form.append($('<div class="form-fields">'));
+      // initialize other properties
+      this._bus     = bus;                          // an event bus
+      this._save    = save || this._name + '-save'  // the save event
+      this._modal   = modal;                        // true if this is a form for modal dialogs
+      this._element = {};                           // the element showed in the form
+      this._fields  = {};                           // definition of input elements
+      // create input fields
+      for (var i in fields) {
+        this.addField(i, fields[i]);
+      }
+      // if not modal create a save button
+      if (!modal) {
+        // create buttons and actions
+        var savebtn = $('<button>').button({text : true, label : "Save"});
+        var that = this;
+        savebtn.click(function() { 
+          var data = that.get(); 
+          if (data) that._bus.publish(that._save, data); 
+        });
+        this._form.append($('<div class="form-btn"></div>').append(savebtn));
+      }
     }
   };
 
@@ -81,7 +79,7 @@ if (!WDAT.api) WDAT.api = {};
    * Parameter:
    *  - id: String      The id of the input.
    *
-   *  - inputdef: Obj   The definition object for the input, it has to specify a type
+   *  - field: Obj      The definition object for the input, it has to specify a type
    *                    and can have additionally the following fields: obligatory, min,
    *                    max, value and label, options, readonly.
    *                    Valid types are: text, file, email, ltext, num, int, password, 
@@ -90,61 +88,47 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    None
    */
-  VForm.prototype._addField = function(id, inputdef) {
+  VForm.prototype.addField = function(id, field) {
     // each form field has a label, an input and a place for error messages
     var label, input, error;
     // generate label
-    if (inputdef.label)
-      label = inputdef.label + ':';
-    else
-      label = strCapitalizeWords(id, /[_\-\ \.:]/) + ':'
-    label = $('<label class="field-label"></label>').text(label);
+    if (field.type !== 'hidden') {
+      label = field.label ? field.label+': ' : strCapitalizeWords(id, /[_\-\ \.:]/)+': ';
+      label = $('<label class="field-label">').text(label);
+    }
     // generate input
-    var type = inputdef.type;
-    if (_INPUT_TYPEDEF[type]) {
-      var def = _INPUT_TYPEDEF[type];
+    var type = field.type;
+    if (FIELD_TYPES[type]) {
+      var def = FIELD_TYPES[type];
       input = $('<input>').attr('type', def.type);
-      if (def.create)
-        def.create(input);
-      if (inputdef.value)
-        input.attr('value', inputdef.value);
-      if (!def.nowidth)
-        input.addClass('fixed-width');
+      if (def.create) def.create(input);
+      if (!def.nowidth) input.addClass('fixed-width');
+      if (field.value) input.attr('value', field.value);
     } else if (type === 'ltext' || type === 'textarea') {
       input = $('<textarea rows="6"></textarea>');
       input.addClass('fixed-width');
-      if (inputdef.value)
-        input.text(inputdef.value);
+      if (field.value) input.text(field.value);
     } else if (type === 'option') {
       input = $('<select size="1"></select>');
-      if (inputdef.options) {
-        for (var i in inputdef.options) {
-          input.append($('<option></option>').attr('value', i).text(inputdef.options[i]));
-        }
+      for (var i in field.options) {
+        input.append($('<option></option>').attr('value', i).text(field.options[i]));
       }
-    } else if (type === 'hidden'){ 
-      input = $('<input>').attr('type', 'hidden');
-      label = null;
-      if (inputdef.value)
-        input.attr('value', inputdef.value);
+      if (field.value) input.attr('value', inputdef.value);
     } else {
-      throw new Error('inputdef has no valid type: inputdef.type = ' + type)
+      throw new Error('field has no valid type: field.type = ' + type)
     }
-    if (inputdef.readonly) {
-      input.attr('readonly', 'readonly');
-    }
-    // add id and name to input
+    if (field.readonly) input.attr('readonly', 'readonly');
     input.attr('name', this._toId(id)).addClass('field-input');
     // define error field
     error = $('<div class="field-error"></div>');
     // add to input definitions
-    this._inputdefs[id] = inputdef;
+    this._fields[id] = field;
     // add label and input to fields
     var f = this._form.find('.form-fields');
     if (label)
-      f.append($('<div></div>').attr('id', this._toId(id)).append(label).append(input).append(error));
+      f.append($('<div>').attr('id', this._toId(id)).append(label, input, error));
     else
-      f.append($('<div></div>').attr('id', this._toId(id)).append(input));
+      f.append($('<div>').attr('id', this._toId(id)).append(input));
   };
 
   /* Validates the form and marks errors inside the form.
@@ -160,8 +144,8 @@ if (!WDAT.api) WDAT.api = {};
     var valid = true;
     $('.field-error').text('');
     // iterate over input definitions
-    for (var name in this._inputdefs) {
-      var inputdef = this._inputdefs[name];
+    for (var name in this._fields) {
+      var inputdef = this._fields[name];
       var field = $('#' + this._toId(name));
       var value = field.find('.field-input').val();
       // test if value is empty
@@ -175,7 +159,7 @@ if (!WDAT.api) WDAT.api = {};
         value = null;
       } else {  
         // get type definition an do type specific checks
-        var typedef = _INPUT_TYPEDEF[inputdef.type]
+        var typedef = VForm.FIELD_TYPES[inputdef.type]
         if (typedef && typedef.check && !value.match(typedef.check)) {
           field.find('.field-error').text(typedef.fail);
           valid = false;
@@ -221,9 +205,9 @@ if (!WDAT.api) WDAT.api = {};
    */
   VForm.prototype.get = function() {
     if (this.validate()) {
-      var data = this._elem || {};
-      for (var name in this._inputdefs) {
-        var def = this._inputdefs[name];
+      var data = this._element || {};
+      for (var name in this._fields) {
+        var def = this._fields[name];
         var input = this._form.find('#' + this._toId(name) + ' :input');
         var value = (input.val());
         if (value === '') {
@@ -242,7 +226,7 @@ if (!WDAT.api) WDAT.api = {};
     }
   };
 
-  /* Sets the values of a form.
+  /* Sets all the values of a form.
    *
    * Parameter:
    *  - elem: Obj       Object representing the data of the form. This can be a plain object
@@ -252,8 +236,8 @@ if (!WDAT.api) WDAT.api = {};
    *    None
    */
   VForm.prototype.set = function(elem) {
-    this._elem = elem;
-    for (var name in this._inputdefs) {
+    this._element = elem;
+    for (var name in this._fields) {
       // search for field in data
       var value = objGetRecursive(elem, name, ['fields', 'parents', 'data']);
       value = value.data || value;
@@ -275,14 +259,13 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    None
    */
-  VForm.prototype.open = function(save) {
+  VForm.prototype.open = function() {
     if (this._modal && this._form) {
-      if (!save)
-        save = this.save;
+      var title = this._title || 'Form';
       var that = this;
       this._form.dialog({               // jQuery-UI dialog
         autoOpen : true, width : 520, modal : true,
-        draggable: false, resizable: false, title: that._title,
+        draggable: false, resizable: false, title: title,
         buttons : {
           Cancel : function() {         // callback for cancel actions
             $(this).dialog('close');
@@ -316,9 +299,10 @@ if (!WDAT.api) WDAT.api = {};
   /* Internal constant that defines properties for several
    * input types.
    */
-  var _INPUT_TYPEDEF = {
+  var FIELD_TYPES = {
           text:   { type: 'text' },
           file:   { type: 'file' },
+          hidden: { type: 'hidden'},
           password: { type: 'password' },
           date:   { type: 'text', 
                     create: function(input) { input.datepicker({dateFormat : "yy/mm/dd"}); },
@@ -335,15 +319,17 @@ if (!WDAT.api) WDAT.api = {};
           boolean:  { type: 'checkbox', 
                       nowidth: true }
   };
-  
+  VForm.FIELD_TYPES = FIELD_TYPES;
+
   //-------------------------------------------------------------------------------------
   // Class: VSectionForm
   //-------------------------------------------------------------------------------------
   WDAT.api.VSectionForm = VSectionForm;
   inherit(VSectionForm, VForm);
   function VSectionForm(name, bus, save, modal) {
-    var inputdefs = {
-      id: {type: 'hidden'},
+    this._title = 'Section';
+    var fields = {
+      type: {type: 'hidden', value: 'section'},
       name: {type: 'text', obligatory: true, min: 3, max: 100},
       odml_type: {type: 'int', label: 'Type', obligatory: true, min: 0},
       tree_position: {type: 'int', label: 'Position', value: 0},
@@ -351,29 +337,50 @@ if (!WDAT.api) WDAT.api = {};
       safety_level: {type: 'option',  options: {'public': 'Public', 'friendly': 'Friendly', 'private': 'Private'}},
       date_created: {type: 'text', readonly: true}
     };
-    this._init(name, 'Section', bus, inputdefs, save, modal);
+    VSectionForm.parent.constructor.call(this, name, bus, save, modal, fields);
   }
   
   //-------------------------------------------------------------------------------------
   // Class: VPropertyForm
   //-------------------------------------------------------------------------------------
   WDAT.api.VPropertyForm = VPropertyForm;
-  inherit(VPropertyForm, VForm);
+  inherit(VPropertyForm, WDAT.api.VForm);
   function VPropertyForm(name, bus, save, modal) {
-    var inputdefs = {
-      id: {type: 'hidden'},
+    this._title = 'Property'
+    var fields = {
+      type: {type: 'hidden', value: 'property'},
       name: {type: 'text', obligatory: true, min: 3, max: 100},
       unit: {type: 'text', max: 10 },
       uncertainty: {type: 'text'},
       dtype: {type: 'text', label: 'Data Type'},
-      dependency: {type: 'text'},
-      dependency_value: {type: 'text'},
-      mapping: {type: 'text'},
+      //dependency: {type: 'text'},
+      //dependency_value: {type: 'text'},
+      //mapping: {type: 'text'},
       definition: {type: 'ltext'},
-      comment: {type: 'ltext'},
+      //comment: {type: 'ltext'},
       date_created: {type: 'text', readonly: true}
     };
-    this._init(name, 'Section', bus, inputdefs, save, modal);
+    VPropertyForm.parent.constructor.call(this, name, bus, save, modal, fields);
+    this._form.find('.form-fields').after($('<div class="property-values">'));
+    this._values = {};
   }
+  
+  VPropertyForm.prototype.setValue = function(value) {
+    value = value || {}
+    var id = 'val-' + this._bus.uid();
+    var input = $('<input type="text">').addClass('value-input field-input').attr('id', id);
+    if (value.name) 
+      input.attr('value', input.name);
+    var label = $('<label class="field-label">').text('Value: ');
+    var delbtn = $('<button>').button({ icons: { primary: "ui-icon-minusthick"}, text: false}).click(function () {
+      console.log('remove');
+    });
+    var addbtn = $('<button>').button({ icons: { primary: "ui-icon-plusthick"}, text: false}).click(function () {
+      console.log('add');
+    });
+    var v = this._form.find('.property-values');
+    v.append($('<div>').attr('id', this._toId(id)).append(label, input, addbtn, delbtn));
+  };
+
 
 }());
