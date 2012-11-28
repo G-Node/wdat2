@@ -232,13 +232,13 @@ class BaseQuerySetExtension(object):
             self.query.set_limits(low=low_mark, high=high_mark)
             self._time_injected = True
 
-    def filter(self, *args, **kwargs):
+    def _filter_or_exclude(self, negate, *args, **kwargs):
         """ versioned QuerySet supports 'at_time' parameter for filtering 
         versioned objects. """
         kwargs, timeflt = _split_time( **kwargs )
         if timeflt.has_key('at_time'):
             self._at_time = timeflt['at_time']
-        return super(BaseQuerySetExtension, self).filter(*args, **kwargs)
+        return super(BaseQuerySetExtension, self)._filter_or_exclude(negate, *args, **kwargs)
 
     def _clone(self, klass=None, setup=False, **kwargs):
         """ override _clone method to preserve 'at_time' attribute while cloning
@@ -246,6 +246,7 @@ class BaseQuerySetExtension(object):
         #kwargs['_at_time'] = self._at_time # an alternative way of saving time
         c = super(BaseQuerySetExtension, self)._clone(klass, setup, **kwargs)
         c._at_time = self._at_time
+        c._time_injected = self._time_injected
         return c
     
     def iterator(self):
@@ -254,23 +255,84 @@ class BaseQuerySetExtension(object):
         for obj in super(BaseQuerySetExtension, self).iterator():
             yield obj
 
+    def bulk_create(self, objects):
+        """ wrapping around a usual bulk_create to provide version-specific 
+        information for all objects. As with original bulk creation, 
+        reverse relationships and M2Ms are not supported! """
+        now = datetime.now()
+        lid = self.model._get_new_local_id()
+
+        # step 1: validation + versioned objects update
+        guids_to_close = []
+        val_flag = False
+        for obj in objects:
+            if obj.guid: # existing object, need to close old version later
+                guids_to_close.append( str( obj.guid ) )
+            else:  # new object
+                obj.local_id = lid
+                lid += 1
+            obj.guid = create_hash_from( obj ) # compute unique hash 
+            obj.date_created = obj.date_created or now
+            obj.starts_at = now
+            if not val_flag: # clean only one object for speed
+                obj.full_clean()
+                val_flag = True
+
+        # step 2: close old records
+        self.filter( guid__in = guids_to_close ).delete()
+
+        # step 3: create objects in bulk
+        return super(VersionedQuerySet, self).bulk_create( objects )
+
+    def update(self, **kwargs):
+        """ update objects with new attrs and FKs """
+        if kwargs:
+            objs = self._clone()
+            for obj in objs:
+                for name, value in kwargs.items():
+                    setattr(obj, name, value)
+            return self.bulk_create( objs )
+        return self
+
+    def create(self, **kwargs):
+        """ this method cleans kwargs required to create versioned object(s) and 
+        proxies the request to the superclass.create() function, that does the
+        physical creation. """
+        now = datetime.now()
+        new_keys = {}
+        new_keys['lid'] = self.model._get_new_local_id()
+        new_keys['date_created'] = now
+        new_keys['guid'] = create_hash_from( **dict(new_keys, **kwargs) )
+        return super(VersionedQuerySet, self).create( **dict(new_keys, **kwargs) )
+
     def count(self):
-        """ need to inject version time before executing against database """
-        # no tables in alias_refcount..
-        raise NotImplementedError("Not implemented for versioned objects")
+        """ need to inject version time (or ends_at = NULL) before executing 
+        against database. No tables are in alias_refcount if no other filters 
+        are set, so the time injection doesn't work.. workaround here: inject a 
+        meaningless filter, which doesn't change the *count* query. """
+        q = self.filter( pk__gt=0 )
+        q.inject_time()
+        return super(BaseQuerySetExtension, q).count()
 
     def all(self):
-        """ need to inject version time before executing against database """
-        # no tables in alias_refcount..
-        raise NotImplementedError("Not implemented for versioned objects")
+        """ need to inject version time (or ends_at = NULL) before executing 
+        against database. No tables are in alias_refcount if no other filters 
+        are set, so the time injection doesn't work.. workaround here: inject a 
+        meaningless filter, which doesn't change the *all* query. """
+        return self.filter( pk__gt=0 )
 
     def delete(self):
         """ deletion for versioned objects means setting the 'ends_at' field 
         to the current datetime. Applied only for active versions, having 
         ends_at=NULL """
         now = datetime.now()
-        self.filter( ends_at__isnull = True)
+        self.filter( ends_at__isnull = True )
         super(BaseQuerySetExtension, self).update( ends_at = now )
+
+    def exists(self):
+        """ exists if there is at least one record with ends_at = NULL """
+        q = self.filter( ends_at__isnull = True )
+        return super(BaseQuerySetExtension, q).exists()
 
     def in_bulk(self):
         raise NotImplementedError("Not implemented for versioned objects")
@@ -314,58 +376,6 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
                 obj._at_time = self._at_time
             yield obj
 
-    def bulk_create(self, objects):
-        """ wrapping around a usual bulk_create to provide version-specific 
-        information for all objects. As with original bulk creation, 
-        reverse relationships and M2Ms are not supported! """
-        now = datetime.now()
-        lid = self.model._get_new_local_id()
-
-        # step 1: validation + versioned objects update
-        guids_to_close = []
-        val_flag = False
-        for obj in objects:
-            if obj.guid: # existing object, need to close old version later
-                guids_to_close.append( str( obj.guid ) )
-            else:  # new object
-                obj.local_id = lid
-                lid += 1
-            obj.guid = create_hash_from( obj ) # compute unique hash 
-            obj.date_created = obj.date_created or now
-            obj.starts_at = now
-            if not val_flag: # clean only one object for speed
-                obj.full_clean()
-                val_flag = True
-
-        # step 2: close old records
-        self.filter( guid__in = guids_to_close ).delete()
-
-        # step 3: create objects in bulk
-        return super(VersionedQuerySet, self).bulk_create( objects )
-
-
-    def update(self, **kwargs):
-        """ update objects with new attrs and FKs """
-        if kwargs:
-            objs = self._clone()
-            for obj in objs:
-                for name, value in kwargs.items():
-                    setattr(obj, name, value)
-            return self.bulk_create( objs )
-        return self
-
-
-    def create(self, **kwargs):
-        """ this method cleans kwargs required to create versioned object(s) and 
-        proxies the request to the superclass.create() function, that does the
-        physical creation. """
-        now = datetime.now()
-        new_keys = {}
-        new_keys['lid'] = self.model._get_new_local_id()
-        new_keys['date_created'] = now
-        new_keys['guid'] = create_hash_from( **dict(new_keys, **kwargs) )
-        return super(VersionedQuerySet, self).create( **dict(new_keys, **kwargs) )
-
 
 #===============================================================================
 # VERSIONED Managers
@@ -380,6 +390,10 @@ class VersionManager(models.Manager):
     filter() method of this Manager. """
     use_for_related_fields = True
     _at_time = None
+
+    def all(self):
+        """ need to proxy all() to apply versioning filters """
+        return self.get_query_set().all()
 
     def filter(self, **kwargs):
         """ method is overriden to support object versions. If an object is 
