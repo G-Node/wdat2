@@ -362,10 +362,14 @@ WDAT.api.VTree = function(name, bus, events) {
   WDAT.api.VTree.prototype._toId = function(id) {
     var result = null;
     if (id != null && id != undefined) {
-      if (id['id'])
-        result = this.name + '-' + id.id.toString().replace(/\//g, '-');
-      else
+      if (typeof id == 'object') {
+        if (id['id'])
+          result = this.name + '-' + id.id.toString().replace(/\//g, '-');
+        else
+          result = this.bus.uid();
+      } else {
         result = this.name + '-' + id.toString().replace(/\//g, '-');
+      }
     } 
     return result;
   };

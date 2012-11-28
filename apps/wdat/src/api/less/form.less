@@ -1,0 +1,40 @@
+/* ---------- file: form.css -----------*/
+
+.form-view {
+  .vertical-padding(@cushioning);
+  width: 520px;
+}
+
+.form-view label {
+  text-align: right;
+  display: inline-block;
+  /*float: left;*/
+  margin: @smallcushion @smallcushion @smallcushion 0px;
+  width: 120px;
+}
+
+.form-view input, textarea {
+  display: inline-block;
+  margin: @smallcushion 0px;
+}
+
+.form-view input.fixed-width, textarea.fixed-width {
+  width: 360px;
+}
+
+.form-view .field-error {
+  color: red;
+  margin-left: @smallcushion + 120px;
+}
+
+.form-btn { 
+  text-align: right;
+  margin: @smallcushion;
+}
+
+/* property form */
+.property-values button {
+	vertical-align: middle;
+  margin: 0px 2px;
+}
+

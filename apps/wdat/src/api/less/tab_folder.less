@@ -14,27 +14,27 @@
 }
 
 .tab-folder div.selected {
+  .border-std;
   display: block;
-  border: 1px solid @bordercolor;
 }
 
 .tab-folder .tab-navigation li {
   .vertical-padding(@smallcushion);
   .horizontal-padding(@cushioning * 2);
-  border-top: 1px solid @bordercolor;
-  border-right: 1px solid @bordercolor;
-  border-bottom: 1px solid @bordercolor;
-  background-color: @lighter-grey;
+  border-top: 1px solid  @border-color-std;
+  border-right: 1px solid  @border-color-std;
+  border-bottom: 1px solid  @border-color-std;
+  background-color: @bg-grey;
   display: inline;
   cursor: pointer;
 }
 
 .tab-folder .tab-navigation li:FIRST-CHILD {
-  border-left: 1px solid @bordercolor;
+  border-left: 1px solid @border-color-std;
 }
 
 .tab-folder .tab-navigation li.selected {
-	border-bottom: 1px solid white;
+	border-bottom: 1px solid @white;
   background-color: white;
 }
 
