@@ -683,15 +683,16 @@ class ObjectState(models.Model):
         return self.owner == user
 
     def save(self, *args, **kwargs):
-        """ implements versioning by always saving new object """
+        """ implements versioning by always saving new object. This is not 100%
+        DRY: the 'bulk_create' method of the VersionedQuerySet work in a similar
+        way, however combining them in one function would be too ambiguous."""
         now = datetime.now()
         if not self.local_id: # saving new object, not a new version
             self.local_id = self._get_new_local_id() # must be first
             self.date_created = now
 
         else: # delete previous version, set ends_at to now()
-            upd = self.__class__.objects.filter( local_id = self.local_id )
-            upd.delete()
+            upd = self.__class__.objects.filter( pk = self.pk ).delete()
 
         # creates new version with updated values
         self.starts_at = now
@@ -708,19 +709,12 @@ class ObjectState(models.Model):
         if not objects: return None
 
         if update_kwargs or fk_dict:
-            exist_objs = [x for x in objects if x.guid]
-            new_objs = [x for x in objects if not x in exist_objs]
-
-            for_update = self.objects.filter( guid__in = [x.guid for x in exist_objs] )
-            for_update.update( **dict(update_kwargs, **fk_dict) )
-
-            for obj in new_objs:
+            for obj in objects:
                 for name, value in dict(update_kwargs, **fk_dict).items():
                     setattr(obj, name, value)
-            self.objects.bulk_create( new_objs )
+            self.objects.bulk_create( objects )
 
-        # process versioned m2m relations separately, in bulk
-        if m2m_dict:
+        if m2m_dict: # process versioned m2m relations separately, in bulk
             local_ids = [ x.local_id for x in objects ]
 
             for m2m_name, new_ids in m2m_dict.items():
