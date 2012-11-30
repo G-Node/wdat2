@@ -6,7 +6,7 @@
 <script type="text/javascript">
   var init = function() {
     var bus = new WDAT.api.EventBus(); 
-    var tree = new WDAT.api.VTree($('#tree-1'), bus, ['del', 'sel', 'edit', 'add', 'more']);
+    var tree = new WDAT.ui.Tree($('#tree-1'), bus, ['del', 'sel', 'edit', 'add', 'more']);
     bus.subscribe(tree.events.sel, tree.selectHandler());
     bus.subscribe(tree.events.more, tree.expandHandler());
     bus.subscribe(tree.events.del, tree.removeHandler());

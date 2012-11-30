@@ -8,7 +8,7 @@
     var selEvent = 'pmeta-select';
     var bus = new WDAT.api.EventBus(); 
     var api = new WDAT.api.DataAPI('NetworkResource', 'ResourceAdapter', bus);
-    var pmeta = new WDAT.api.PMetadataTree($('#tree-1'), api, bus, selEvent);
+    var pmeta = new WDAT.app.MetadataTree($('#tree-1'), api, bus, selEvent);
     bus.subscribe(selEvent, logSelection);
     pmeta.load();
     function logSelection(event, data) {

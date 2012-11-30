@@ -1,74 +1,70 @@
 // ------------ file: datepicker.js ----------- //
 
-// Initialize the module WDAT.widgets if it doesn't exist.
-if (!window.WDAT) window.WDAT = {};
-if (!window.WDAT.api) window.WDAT.api = {} ;
-
-/* A date-picker class.
- *
- * Usage: 
- *   var picker = WDAT.api.DatePicker(textbox);
- *
- *
- * Parameters: All are required
- *   textbox:  Since dates are usually bound to a textbox instance, this
- *   argument is a jQuery object representing a textbox.
- *
- * Note
- *  This class doesn't expose a toJQ() method because it is intended to be used
- *  directly on a textbox.
- *
- * Depends : jQuery, jquery.jdpicker.js, button.js, event_bus.js
- */
-WDAT.api.DatePicker = function (textbox) {
-  var that = this;
-
-  this.lBus = new WDAT.api.EventBus();
-  
-  this._textbox = textbox;
-  this._panel = $('<div class="datepicker"></div>');
-  this._container = $('<div class="datepicker-container"/>');
-  this._handle = $('<a class="calendar"></a>');
-  this._common = $('<div class="common"></div>');
-  this._specific = $('<div class="specific"></div>');
-
-  // Wrap the handle around the textbox
-  $(this._textbox).wrap(this._container);
-  $(this._textbox).after(this._handle);
-
-  // Fill up the common and specific options
-  this.fillCommon();
-  this.fillSpecific();
-
-  $(this._textbox).toggleClass('datepicker-target', true);
-  $(this._panel).append(this._common);
-  $(this._panel).append(this._specific);
-  $(this._textbox).after(this._panel);
-
-  this._panel.hide();
-
-  // Toggle widget display on clicking handle
-  $(this._handle).click(function() { 
-      that.toggle();
-  });
-};
-
 (function () {
-  /* Add prototypal methods */
-  var _proto = WDAT.api.DatePicker.prototype;
+  'use strict';
+
+  /* A date-picker class.
+   *
+   * Usage:
+   *   var picker = WDAT.ui.DatePicker(textbox);
+   *
+   *
+   * Parameters: All are required
+   *   textbox:  Since dates are usually bound to a textbox instance, this
+   *   argument is a jQuery object representing a textbox.
+   *
+   * Note
+   *  This class doesn't expose a toJQ() method because it is intended to be used
+   *  directly on a textbox.
+   *
+   * Depends : jQuery, jquery.jdpicker.js, button.js, event_bus.js
+   */
+  WDAT.ui.DatePicker = DatePicker;
+  function DatePicker(textbox) {
+    var that = this;
+
+    this.lBus = new WDAT.api.EventBus();
+
+    this._textbox = textbox;
+    this._panel = $('<div class="datepicker"></div>');
+    this._container = $('<div class="datepicker-container"/>');
+    this._handle = $('<a class="calendar"></a>');
+    this._common = $('<div class="common"></div>');
+    this._specific = $('<div class="specific"></div>');
+
+    // Wrap the handle around the textbox
+    $(this._textbox).wrap(this._container);
+    $(this._textbox).after(this._handle);
+
+    // Fill up the common and specific options
+    this.fillCommon();
+    this.fillSpecific();
+
+    $(this._textbox).toggleClass('datepicker-target', true);
+    $(this._panel).append(this._common);
+    $(this._panel).append(this._specific);
+    $(this._textbox).after(this._panel);
+
+    this._panel.hide();
+
+    // Toggle widget display on clicking handle
+    $(this._handle).click(function() {
+        that.toggle();
+    });
+  }
 
   /* Toggle the displaying of the datepicker widget.  Usually triggered when
    * the textbox is clicked.
    *
    * :optional param: forceShow - If true, then widget is shown.  If false,
    * hidden.
-   * */ 
-  _proto.toggle = function (forceShow) {
+   * */
+  DatePicker.prototype.toggle = function (forceShow) {
     if (forceShow !== undefined) {
       // If forceShow parameter supplied.
       if (forceShow) {
         this._panel.fadeIn();
-      } else { 
+      } else {
         this._panel.fadeOut();
       }
     } else {
@@ -76,16 +72,16 @@ WDAT.api.DatePicker = function (textbox) {
     }
   };
 
-  /* Update the textbox and close the datepicker. 
+  /* Update the textbox and close the datepicker.
    *
    * date is a Date() object, operator 'string' is either '<', '>' or '='
    */
-  _proto.update = function (date, operator) {
+  DatePicker.prototype.update = function (date, operator) {
     var normalize = function (num) {
       /* Return '08', if 8, '09' if 9 and '10' if 10 */
       if (num > 9) {
-        return num.toString(); 
-      } else { 
+        return num.toString();
+      } else {
         return '0' + num.toString();
       }
     };
@@ -103,11 +99,11 @@ WDAT.api.DatePicker = function (textbox) {
   };
 
   /* Fill up the common options */
-  _proto.fillCommon = function () {
+  DatePicker.prototype.fillCommon = function () {
     /* First prepare the dates */
     var today = new Date()
       , nextdate = new Date() // the date object on which to perform operations
-      , offset = 24*60*60*1000; 
+      , offset = 24*60*60*1000;
 
     var week  = new Date(today.getTime() - offset*7);
     var month = new Date(today.getTime() - offset*30);
@@ -119,7 +115,7 @@ WDAT.api.DatePicker = function (textbox) {
       , ul = $('<ul></ul')
       , TEMPLATE = '<li class="option"><a></a></li>'
       , common_options = [
-              ['Today', today, '='], 
+              ['Today', today, '='],
               ['Last seven days', week, '>'],
               ['Last thirty days', month, '>'],
               ['Last six months', half, '>'],
@@ -148,8 +144,8 @@ WDAT.api.DatePicker = function (textbox) {
   };
 
   /* Fill up the specific datepicker */
-  _proto.fillSpecific = function () {
-    var that = this 
+  DatePicker.prototype.fillSpecific = function () {
+    var that = this
       , spediv = this._specific
       , closebtn = $('<a class="close"></a>')
       , intdate  = $('<input type="hidden"></input>');
@@ -161,9 +157,9 @@ WDAT.api.DatePicker = function (textbox) {
     $(intdate).jdPicker();
 
     // Add finalizing buttons
-    var before = new WDAT.api.Button('Before', this.lBus, 'before', 'blue')
-      , on     = new WDAT.api.Button('On', this.lBus, 'on', 'blue')
-      , after  = new WDAT.api.Button('After', this.lBus, 'after', 'blue');
+    var before = new WDAT.ui.Button('Before', this.lBus, 'before', 'blue')
+      , on     = new WDAT.ui.Button('On', this.lBus, 'on', 'blue')
+      , after  = new WDAT.ui.Button('After', this.lBus, 'after', 'blue');
 
     $(spediv).append(before.toJQ());
     $(spediv).append(on.toJQ());
@@ -212,4 +208,6 @@ WDAT.api.DatePicker = function (textbox) {
 
     });
   };
-})();
+
+}());
+

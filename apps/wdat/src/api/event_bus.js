@@ -1,15 +1,10 @@
 // ---------- file: bus.js ---------- //
 
-// initialize the module WDAT.widgets if it doesn't exist.
-if (!WDAT) var WDAT = {};
-if (!WDAT.api) WDAT.api = {};
-
-// define everything in anonymous name space
 (function() {
 
-/* Constructor for the class EventBus. The event bus can be used to register and
- * fire events.
- */
+  /* Constructor for the class EventBus. The event bus can be used to register and
+   * fire events.
+   */
   WDAT.api.EventBus = EventBus
   function EventBus() {
     // used by the uid generator

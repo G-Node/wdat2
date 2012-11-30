@@ -7,7 +7,7 @@
   var init = function () {
     var b = new WDAT.api.EventBus()
       , d = $('input.date')
-      , dp = new WDAT.api.DatePicker(d, b);
+      , dp = new WDAT.ui.DatePicker(d, b);
   };
 
   $(window).load(init);

@@ -11,17 +11,23 @@ STATIC_JS = static
 STATIC_CSS = static
 
 # all js sources
-SRC_JS = $(wildcard src/main/*.js) $(wildcard src/api/*.js) $(wildcard src/api/data/*.js)
-# sources that are also needes as separate files
-SRC_JS_ADD = src/api/data/network_resource.js 
+SRC_JS = $(wildcard src/*.js) \
+	$(wildcard src/api/*.js) \
+	$(wildcard src/ui/*.js) \
+	$(wildcard src/app/*.js)
+
+# sources that are also needed as separate files
+SRC_JS_SEPARATE = src/api/network_resource.js 
 
 # web worker sources
-SRC_JS_WORK = src/api/data/data_api.js.worker
+SRC_JS_WORKER = src/api/data_api.js.worker
 
 # all less sources
-SRC_LESS = $(wildcard src/api/less/*.less)
+SRC_LESS = $(wildcard src/ui/*.less)
+
 # additonsal less sources
-SRC_LESS_ADD = $(wildcard src/main/*.less)
+SRC_LESS_MAIN = $(wildcard src/*.less)
+
 # compiled css sources
 SRC_CSS = $(wildcard $(STATIC_CSS)/*.less)
 
@@ -29,19 +35,19 @@ SRC_CSS = $(wildcard $(STATIC_CSS)/*.less)
 # make uncompressed js files
 wdat-api.js: $(SRC_JS) $(SRC_JS_ADD) $(SRC_JS_WORK)
 	cat $(SRC_JS) > $(STATIC_JS)/wdat-api.js
-	for i in $(SRC_JS_ADD); do cp $$i $(STATIC_JS)/ ; done
-	for i in $(SRC_JS_WORK); do cp $$i $(STATIC_JS)/ ; done
+	for i in $(SRC_JS_SEPARATE); do cp $$i $(STATIC_JS)/ ; done
+	for i in $(SRC_JS_WORKER); do cp $$i $(STATIC_JS)/ ; done
 
 # make compressed js files
 wdat-api-min.js: wdat-api.js $(SRC_JS_ADD) $(SRC_JS_WORK)
 	$(JSC) $(JSCARGS) $(STATIC_JS)/wdat-api.js > $(STATIC_JS)/wdat-api.min.js
-	for i in $(SRC_JS_ADD); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js`.min.js ; done
-	for i in $(SRC_JS_WORK); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js.worker`.min.js.worker ; done
+	for i in $(SRC_JS_SEPARATE); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js`.min.js ; done
+	for i in $(SRC_JS_WORKER); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js.worker`.min.js.worker ; done
 	
 # compile css files
 wdat-api.css: $(SRC_LESS)
 	cat $(SRC_LESS) > $(STATIC_CSS)/wdat-api.less
-	cat $(SRC_LESS_ADD) > $(STATIC_CSS)/main.less
+	cat $(SRC_LESS_MAIN) > $(STATIC_CSS)/main.less
 	$(CSSC) $(CSSCARGS) $(STATIC_CSS)/wdat-api.less > $(STATIC_CSS)/wdat-api.css
 	$(CSSC) $(CSSCARGS) $(STATIC_CSS)/main.less > $(STATIC_CSS)/main.css
 	rm $(STATIC_CSS)/wdat-api.less $(STATIC_CSS)/main.less

@@ -1,5 +1,15 @@
 // ---------- file: utils.js ---------- //
 
+//-------------------------------------------------------------------------------------
+// IMPORTANT: This file defines functions and name spaces that can and should be used
+// by every other part of the project. Make sure that the definitions in this file are
+// always available (see Makefile).
+//-------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------
+// Helper functions
+//-------------------------------------------------------------------------------------
+
 // deprecated
 String.prototype.startsWith = function (leader) {
   return this.substr(0, leader.length) === leader;
@@ -139,15 +149,13 @@ function objSetRecursive(obj, prop, val, children) {
   return found;
 }
 
-/* More expressive inheritance. Call this function inside the constructor of
- * the subclass with 'this' as first argument and the constructor of the 
- * superclass as second one.
- * 
+/* More expressive inheritance. 
+ *
  * Parameter:
- *  - subclass: Obj          Object of the subclass.
- *  
- *  - superclass: function   Constructor of the super class.
- * 
+ *  - subclass: function     Constructor of the subclass
+ *
+ *  - superclass: function   Constructor of the super class
+ *
  * Return value:
  *    None
  */
@@ -157,3 +165,10 @@ function inherit(Sub, Super) {
   Sub.parent = Super.prototype;
 }
 
+//-------------------------------------------------------------------------------------
+// Name spaces
+//-------------------------------------------------------------------------------------
+var WDAT = WDAT || {};
+WDAT.api = WDAT.api || {};    // name space related to the RESTfull API
+WDAT.app = WDAT.app || {};    // name space for application specific parts
+WDAT.ui  = WDAT.ui || {};     // name space for UI base classes

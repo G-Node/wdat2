@@ -6,7 +6,7 @@
 <script type="text/javascript">
   var init = function() {
     var bus = new WDAT.api.EventBus(); 
-    var bcn = new WDAT.api.VBreadCrumb($('#bcn-1'), bus);
+    var bcn = new WDAT.ui.BreadCrumb($('#bcn-1'), bus);
     bus.subscribe(bcn.event, function(event, data) { 
       $('.event-log').append(bcn.event + ': ' + data.id).append('<br>'); 
     });

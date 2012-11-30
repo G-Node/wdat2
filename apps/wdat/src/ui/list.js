@@ -1,85 +1,84 @@
 // ---------- file: list.js ---------- //
 
-if (!window.WDAT) window.WDAT = {};
-if (!window.WDAT.api) window.WDAT.api = {};
+(function() {
+  "use strict";
 
-/* Constructor for the class VList. VList implements view to a dynamic list. Elements can 
- * be added, removed, edited and selected. The list expects all elements to have at least
- * the attribute 'name'.
- * 
- * Minimal list element: 
- *   { name: <name> }
- * Complete list element:
- *   { id: <id>,       // The elements id, must be unique in the whole list.
- *     name: <name>,   // The name of the element (string)
- *     info: <info>,   // Some additional information (string)
- *     data: <data> }  // Data that is only visible on expanded elements (string or jQuery)
- * 
- * Elements can be grouped in different categories. Internally the list is represented by 
- * a table structure. This structure is created by the list view itself.
- * 
- * Parameters: 
- *  - name: String, Obj.  The name of the list or a jQuery object.
- *
- *  - bus: EventBus       Bus handling events.
- *   
- *  - events: Array       Array of event identifiers (optional).
- *  
- *  - categories: Array   Array of all categories / groups of the list (optional).
- * 
- * Depends on: 
- *    jQuery, WDAT.util.EventBus, WDAT.api.Button
- */
-WDAT.api.VList = function(name, bus, events, categories) {
-  // initialize name and the list body (_list)
-  if (typeof name === 'string') { // name is a string
-    this._list = $('<div class="list"></div>').attr('id', name);
-    this.name = name;
-  } else if (typeof name === 'object') { // name is a jquery object
-    this._list = name;
-    this._list.addClass('list')
-    this.name = name.attr('id');
-  }
-  this.bus = bus;
-  // create event identifier
-  this.events = {}
-  for ( var i in events) {
-    this.events[events[i]] = this.name + '-' + events[i];
-  }
-  // create list structure
-  this.categories = {};
-  if (categories) {
-    for ( var i in categories) {
-      var cat = categories[i];
-      var tab = $('<ul><lh class="list-cat"><span class="list-cat-name"></span>'
-                + '<span class="list-cat-btn"></span></lh></ul>');
-      tab.attr('id', this.name + '-' + cat);
-      tab.find('.list-cat-name').first().append(cat);
-      this._list.append(tab);
-      this.categories[cat] = tab;
-      // create add button if add event is present
-      if (this.events.add) {
-        var b = new WDAT.api.Button('add-small', this.bus, 
-                this.events.add, null, {name : cat,id : cat});
-        tab.find('.list-cat-btn').first().append(b.toJQ());
+  /* Constructor for the class VList. VList implements view to a dynamic list. Elements can 
+   * be added, removed, edited and selected. The list expects all elements to have at least
+   * the attribute 'name'.
+   * 
+   * Minimal list element: 
+   *   { name: <name> }
+   * Complete list element:
+   *   { id: <id>,       // The elements id, must be unique in the whole list.
+   *     name: <name>,   // The name of the element (string)
+   *     info: <info>,   // Some additional information (string)
+   *     data: <data> }  // Data that is only visible on expanded elements (string or jQuery)
+   * 
+   * Elements can be grouped in different categories. Internally the list is represented by 
+   * a table structure. This structure is created by the list view itself.
+   * 
+   * Parameters: 
+   *  - name: String, Obj.  The name of the list or a jQuery object.
+   *
+   *  - bus: EventBus       Bus handling events.
+   *   
+   *  - events: Array       Array of event identifiers (optional).
+   *  
+   *  - categories: Array   Array of all categories / groups of the list (optional).
+   * 
+   * Depends on: 
+   *    jQuery, WDAT.api.EventBus, WDAT.ui.Button
+   *
+   * TODO Replace buttons with jQuery-UI Buttons
+   */
+  WDAT.ui.List = List;
+  function List(name, bus, events, categories) {
+    // initialize name and the list body (_list)
+    if (typeof name === 'string') { // name is a string
+      this._list = $('<div class="list"></div>').attr('id', name);
+      this.name = name;
+    } else if (typeof name === 'object') { // name is a jquery object
+      this._list = name;
+      this._list.addClass('list')
+      this.name = name.attr('id');
+    }
+    this.bus = bus;
+    // create event identifier
+    this.events = {}
+    for ( var i in events) {
+      this.events[events[i]] = this.name + '-' + events[i];
+    }
+    // create list structure
+    this.categories = {};
+    if (categories) {
+      for ( var i in categories) {
+        var cat = categories[i];
+        var tab = $('<ul><lh class="list-cat"><span class="list-cat-name"></span>'
+                  + '<span class="list-cat-btn"></span></lh></ul>');
+        tab.attr('id', this.name + '-' + cat);
+        tab.find('.list-cat-name').first().append(cat);
+        this._list.append(tab);
+        this.categories[cat] = tab;
+        // create add button if add event is present
+        if (this.events.add) {
+          var b = new WDAT.ui.Button('add-small', this.bus, 
+                  this.events.add, null, {name : cat,id : cat});
+          tab.find('.list-cat-btn').first().append(b.toJQ());
+        }
       }
     }
+    tab = $('<ul></ul>');
+    tab.attr('id', this.name + '-default');
+    this._list.append(tab);
+    this.categories['default'] = tab;
   }
-  tab = $('<ul></ul>');
-  tab.attr('id', this.name + '-default');
-  this._list.append(tab);
-  this.categories['default'] = tab;
-};
 
-// Define the methods of in their own scope
-(function() {
   // Private template for new list elements
   var ELEM_TMPL = '<li class="list-elem"><div class="list-elem-btn"></div>' 
                 + '<div class="list-elem-content"><span class="list-elem-name"></span>' 
                 + '<span class="list-elem-info"></span></div>'
                 + '<div class="list-elem-data hidden"></div></li>';
-  
-  // method definition
 
   /* Add a new element to the list. If the element doesn't has id, a unique identifier
    * will be created.
@@ -96,7 +95,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *    The inserted element.
    */
-  WDAT.api.VList.prototype.add = function(element, category, position) {
+  List.prototype.add = function(element, category, position) {
     if (!this.has(element)) {
       // crate an id if necessary
       if (!element.id)
@@ -121,8 +120,8 @@ WDAT.api.VList = function(name, bus, events, categories) {
     }
     return element;
   };
-  
-  WDAT.api.VList.prototype.has = function(element) {
+
+  List.prototype.has = function(element) {
     if (element.id && this._list.find('#' + this._toId(element.id)).length > 0)
       return true;
     else
@@ -143,7 +142,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *    The elements added to the list.
    */
-  WDAT.api.VList.prototype.addAll = function(elements, category, position) {
+  List.prototype.addAll = function(elements, category, position) {
     // select category
     if (category && this.categories[category])
       category = this.categories[category];
@@ -184,7 +183,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *   None
    */
-  WDAT.api.VList.prototype.update = function(element, category) {
+  List.prototype.update = function(element, category) {
     var tab;
     // get category if present
     if (category && this.categories[category])
@@ -212,7 +211,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *   None
    */
-  WDAT.api.VList.prototype.edit = function(element, category) {
+  List.prototype.edit = function(element, category) {
     var cat;
     // get category if present
     if (category && this.categories[category])
@@ -262,7 +261,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *   None
    */
-  WDAT.api.VList.prototype.remove = function(element, category) {
+  List.prototype.remove = function(element, category) {
     var tab;
     // get category if present
     if (category && this.categories[category])
@@ -288,7 +287,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *    True if the element is now selected false otherwise. 
    */
-  WDAT.api.VList.prototype.select = function(element, category, single) {
+  List.prototype.select = function(element, category, single) {
     var tab = this._list;
     // set tab category if present
     if (category && this.categories[category])
@@ -320,7 +319,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *    True if the element is now expanded false otherwise. 
    */
-  WDAT.api.VList.prototype.expand = function(element, category, single) {
+  List.prototype.expand = function(element, category, single) {
     var tab = this._list;
     // set tab category if present
     if (category && this.categories[category])
@@ -339,7 +338,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
 
   /* Remove all elements from the list without removing the categories.
    */
-  WDAT.api.VList.prototype.clear = function() {
+  List.prototype.clear = function() {
     this._list.find('.list-elem').each(function() {
       $(this).remove();
     });
@@ -351,7 +350,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value: 
    *    The list (jQuery)
    */
-  WDAT.api.VList.prototype.toJQ = function() {
+  List.prototype.toJQ = function() {
     return this._list;
   };
 
@@ -360,7 +359,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *   A default handler.
    */
-  WDAT.api.VList.prototype.selectHandler = function() {
+  List.prototype.selectHandler = function() {
     var that = this;
     return function(event, data) {
       if (data.id)
@@ -373,7 +372,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *   A default handler.
    */
-  WDAT.api.VList.prototype.expandHandler = function() {
+  List.prototype.expandHandler = function() {
     var that = this;
     return function(event, data) {
       if (data.id)
@@ -386,7 +385,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *   A default handler.
    */
-  WDAT.api.VList.prototype.removeHandler = function() {
+  List.prototype.removeHandler = function() {
     var that = this;
     return function(event, data) {
       if (data.id)
@@ -399,7 +398,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
    * Return value:
    *   A default handler.
    */
-  WDAT.api.VList.prototype.editHandler = function() {
+  List.prototype.editHandler = function() {
     var that = this;
     return function(event, data) {
       if (data.id)
@@ -410,7 +409,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
   /* Helper function for the creation of buttons
    * matching the event list. For internal use only.
    */
-  WDAT.api.VList.prototype._buttons = function(element) {
+  List.prototype._buttons = function(element) {
     var btns = [];
     if (element.id) {
       for ( var i in this.events) {
@@ -418,7 +417,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
         if (i !== 'add') {
           if ($.inArray(label, ['del', 'sel', 'edit', 'more']) >= 0)
             label = label + '-small';
-          var b = new WDAT.api.Button(label, this.bus, this.events[i], null, element);
+          var b = new WDAT.ui.Button(label, this.bus, this.events[i], null, element);
           btns.push(b.toJQ());
         }
       }
@@ -429,7 +428,7 @@ WDAT.api.VList = function(name, bus, events, categories) {
   /* Helper function for the creation unique ids.
    * For internal use only.
    */
-  WDAT.api.VList.prototype._toId = function(id) {
+  List.prototype._toId = function(id) {
     if (id.id)
       return this.name + '-' + id.id;
     else

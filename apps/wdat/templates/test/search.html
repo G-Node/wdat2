@@ -6,7 +6,7 @@
 <script type="text/javascript">
   var init = function () {
     var bus = new WDAT.api.EventBus() 
-      , s = new WDAT.api.VSearchBar('search-1', bus)
+      , s = new WDAT.ui.SearchBar('search-1', bus)
       , log = function (event, args) {
         $('.event-log').first().append('<p>Event fired: ' + args + '</p>');
       };

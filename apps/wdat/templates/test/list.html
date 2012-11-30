@@ -6,7 +6,7 @@
 <script type="text/javascript">
 var init = function() {
   var bus = new WDAT.api.EventBus(); 
-  var list = new WDAT.api.VList($('#list-1'), bus, ['add', 'del', 'sel', 'edit', 'more'], ['Foo', 'Bar']);
+  var list = new WDAT.ui.List($('#list-1'), bus, ['add', 'del', 'sel', 'edit', 'more'], ['Foo', 'Bar']);
   bus.subscribe(list.events.sel, list.selectHandler());
   bus.subscribe(list.events.more, list.expandHandler());
   bus.subscribe(list.events.del, list.removeHandler());

@@ -1,13 +1,10 @@
 // ---------- file: list.js ---------- //
 
-if (!WDAT) var WDAT = {};
-if (!WDAT.api) WDAT.api = {};
-
 (function() {
   'use strict';
 
   //-------------------------------------------------------------------------------------
-  // Class: VForm
+  // Class: Form
   //-------------------------------------------------------------------------------------
 
   /* Constructor for the VForm base class.
@@ -37,8 +34,8 @@ if (!WDAT.api) WDAT.api = {};
    * Depends on
    *    jQuery, jQuery-UI, WDAT.api.EventBus
    */
-  WDAT.api.VForm = VForm;
-  function VForm(name, bus, save, modal, fields) {
+  WDAT.ui.Form = Form;
+  function Form(name, bus, save, modal, fields) {
     // don't initialize if name and bus are undefined
     if (name && bus) {
       // create form and set name
@@ -88,7 +85,7 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    None
    */
-  VForm.prototype.addField = function(id, field) {
+  Form.prototype.addField = function(id, field) {
     // each form field has a label, an input and a place for error messages
     var label, input, error;
     // generate label
@@ -139,7 +136,7 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    True if the form is valid false otherwise.
    */
-  VForm.prototype.validate = function() {
+  Form.prototype.validate = function() {
     // reset errors
     var valid = true;
     $('.field-error').text('');
@@ -203,7 +200,7 @@ if (!WDAT.api) WDAT.api = {};
    *    The data of the form as object or null if 
    *    the form is not valid. 
    */
-  VForm.prototype.get = function() {
+  Form.prototype.get = function() {
     if (this.validate()) {
       var data = this._element || {};
       for (var name in this._fields) {
@@ -235,8 +232,7 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    None
    */
-  VForm.prototype.set = function(elem) {
-    this._element = elem;
+  Form.prototype.set = function(elem) {
     for (var name in this._fields) {
       // search for field in data
       var value = objGetRecursive(elem, name, ['fields', 'parents', 'data']);
@@ -248,6 +244,7 @@ if (!WDAT.api) WDAT.api = {};
         input.val(value);
       }
     }
+    this._element = elem;
   };
 
   /* Opens the form in a modal window.
@@ -259,7 +256,7 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    None
    */
-  VForm.prototype.open = function() {
+  Form.prototype.open = function() {
     if (this._modal && this._form) {
       var title = this._title || 'Form';
       var that = this;
@@ -290,7 +287,7 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    An internal id string.
    */
-  VForm.prototype._toId = function(name) {
+  Form.prototype._toId = function(name) {
     if (!name)
       name = '';
     return this._name + '-' + name;
@@ -319,14 +316,14 @@ if (!WDAT.api) WDAT.api = {};
           boolean:  { type: 'checkbox', 
                       nowidth: true }
   };
-  VForm.FIELD_TYPES = FIELD_TYPES;
+  Form.FIELD_TYPES = FIELD_TYPES;
 
   //-------------------------------------------------------------------------------------
   // Class: VSectionForm
   //-------------------------------------------------------------------------------------
-  WDAT.api.VSectionForm = VSectionForm;
-  inherit(VSectionForm, VForm);
-  function VSectionForm(name, bus, save, modal) {
+  WDAT.ui.SectionForm = SectionForm;
+  inherit(SectionForm, Form);
+  function SectionForm(name, bus, save, modal) {
     this._title = 'Section';
     var fields = {
       type: {type: 'hidden', value: 'section'},
@@ -337,15 +334,15 @@ if (!WDAT.api) WDAT.api = {};
       safety_level: {type: 'option',  options: {'public': 'Public', 'friendly': 'Friendly', 'private': 'Private'}},
       date_created: {type: 'text', readonly: true}
     };
-    VSectionForm.parent.constructor.call(this, name, bus, save, modal, fields);
+    SectionForm.parent.constructor.call(this, name, bus, save, modal, fields);
   }
   
   //-------------------------------------------------------------------------------------
   // Class: VPropertyForm
   //-------------------------------------------------------------------------------------
-  WDAT.api.VPropertyForm = VPropertyForm;
-  inherit(VPropertyForm, WDAT.api.VForm);
-  function VPropertyForm(name, bus, save, modal) {
+  WDAT.ui.PropertyForm = PropertyForm;
+  inherit(PropertyForm, Form);
+  function PropertyForm(name, bus, save, modal) {
     this._title = 'Property'
     var fields = {
       type: {type: 'hidden', value: 'property'},
@@ -360,12 +357,12 @@ if (!WDAT.api) WDAT.api = {};
       //comment: {type: 'ltext'},
       date_created: {type: 'text', readonly: true}
     };
-    VPropertyForm.parent.constructor.call(this, name, bus, save, modal, fields);
+    PropertyForm.parent.constructor.call(this, name, bus, save, modal, fields);
     this._form.find('.form-fields').after($('<div class="property-values">'));
     this._values = {};
   }
   
-  VPropertyForm.prototype.setValue = function(value) {
+  PropertyForm.prototype.setValue = function(value) {
     value = value || {}
     var id = 'val-' + this._bus.uid();
     var input = $('<input type="text">').addClass('value-input field-input').attr('id', id);

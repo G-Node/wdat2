@@ -1,45 +1,43 @@
 // ---------- file: tab_folder.js ---------- //
 
-// Initialize the module WDAT.widgets if it doesn't exist.
-if (!window.WDAT) window.WDAT = {};
-if (!window.WDAT.api) window.WDAT.api = {};
-
-/* Constructor for the class VTabFolder. A tab folder can display one of multiple
- * contents (tabs) inside a defined area. The folder provides functionality to switch 
- * between all tabs and to remove and add tabs.
- * 
- * Parameters: 
- *  - namme: String, Obj.     The id of the list or a jQuery object.
- *  
- *  - bus: EventBus           Bus handling events.
- *  
- *  - hasControl: boolean     If true the tab folder shows controls that allow to switch
- *                            between tabs. 
- * 
- * Depends on: 
- *  - jQuery, WDAT.api.EventBus
- */
-WDAT.api.VTabFolder = function(name, bus, hasControl) {
-  // initialize name and tree body (_folder)
-  if (typeof name == 'string') { // name is a string
-    this._folder = $('<div class="tab-folder"></div>').attr('id', name);
-    this.name = name;
-  } else if (typeof name === 'object') { // name is a jQuery object
-    this._folder = name;
-    this._folder.addClass('tab-folder');
-    this.name = this._folder.attr('id');
-  }
-  this.bus = bus;
-  this.event = this.name + '-select'
-  // initialize tabs
-  if (hasControl) {
-    this._control = $('<ul class="tab-navigation"></ul>');
-    this._folder.append(this._control);
-  }
-};
-
-// define the tab folders methods in their own scope
 (function() {
+  "use strict";
+
+  /* Constructor for the class VTabFolder. A tab folder can display one of multiple
+   * contents (tabs) inside a defined area. The folder provides functionality to switch 
+   * between all tabs and to remove and add tabs.
+   * 
+   * Parameters: 
+   *  - namme: String, Obj.     The id of the list or a jQuery object.
+   *  
+   *  - bus: EventBus           Bus handling events.
+   *  
+   *  - hasControl: boolean     If true the tab folder shows controls that allow to switch
+   *                            between tabs. 
+   * 
+   * Depends on: 
+   *  - jQuery, WDAT.api.EventBus
+   */
+  WDAT.ui.TabFolder = TabFolder;
+  function TabFolder(name, bus, hasControl) {
+    // initialize name and tree body (_folder)
+    if (typeof name == 'string') { // name is a string
+      this._folder = $('<div class="tab-folder"></div>').attr('id', name);
+      this.name = name;
+    } else if (typeof name === 'object') { // name is a jQuery object
+      this._folder = name;
+      this._folder.addClass('tab-folder');
+      this.name = this._folder.attr('id');
+    }
+    this.bus = bus;
+    this.event = this.name + '-select'
+    // initialize tabs
+    if (hasControl) {
+      this._control = $('<ul class="tab-navigation"></ul>');
+      this._folder.append(this._control);
+    }
+  }
+
 
   /* Add a new tab to the folder. 
    * 
@@ -54,7 +52,7 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
    * Return value:
    *    The id of the new tab.
    */
-  WDAT.api.VTabFolder.prototype.add = function(tab, id, name) {
+  TabFolder.prototype.add = function(tab, id, name) {
     // check if id is already used
     if (id && this._folder.children('#' + this._toId(id)).length < 1) {
       // create id and name
@@ -93,7 +91,7 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
    * Return value:
    *    None
    */
-  WDAT.api.VTabFolder.prototype.update = function(tab, id, name) {
+  TabFolder.prototype.update = function(tab, id, name) {
     if (id && this._folder.children('#' + this._toId(id)).length > 0) {
       // get elem
       var elem = this._folder.children('#' + this._toId(id));
@@ -118,7 +116,7 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
    * Return value:
    *    None
    */
-  WDAT.api.VTabFolder.prototype.remove = function(id) {
+  TabFolder.prototype.remove = function(id) {
     if (id && this._folder.children('#' + this._toId(id)).length > 0) {
       // get and remove elem
       var elem = this._folder.children('#' + this._toId(id));
@@ -144,7 +142,7 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
    * Return value:
    *    None
    */
-  WDAT.api.VTabFolder.prototype.select = function(id) {
+  TabFolder.prototype.select = function(id) {
     // deselect all other tabs
     this._folder.children('.tab-content').removeClass('selected');
     this._folder.children('#' + this._toId(id)).addClass('selected');
@@ -160,7 +158,7 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
    *    None
    */
   var _shandler = null;
-  WDAT.api.VTabFolder.prototype.selectHandler = function() {
+  TabFolder.prototype.selectHandler = function() {
     if (_shandler === null) {
       var that = this;
       _shandler = function(event, data) {
@@ -173,7 +171,7 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
   /* Helper function for the creation of unique ids.
    * For internal use only.
    */
-  WDAT.api.VTabFolder.prototype._toId = function(id) {
+  TabFolder.prototype._toId = function(id) {
     var result = null;
     if (id != null && id != undefined) {
       if (id['id'])
@@ -187,7 +185,7 @@ WDAT.api.VTabFolder = function(name, bus, hasControl) {
   /* Helper function for the creation of unique ids.
    * For internal use only.
    */
-  WDAT.api.VTabFolder.prototype._toControlId = function(id) {
+  TabFolder.prototype._toControlId = function(id) {
     var result = null;
     if (id != null && id != undefined) {
       if (id['id'])

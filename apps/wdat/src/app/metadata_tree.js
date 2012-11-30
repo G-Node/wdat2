@@ -1,12 +1,10 @@
 // ---------- file: metadata_tree.js ---------- //
-if (!WDAT) var WDAT = {};
-if (!WDAT.api) WDAT.api = {};
 
-// define everything in its own scope
+
 (function(){
-  
-  /* Constructor for the presenter PMetadataTree. The presenter is the link
-   * between the DataAPI and the view VTree and populates the view and manages 
+  'use strict';
+  /* Constructor for the presenter MetadataTree. The presenter is the link
+   * between the DataAPI and the view Tree and populates the view and manages 
    * updates on the model.
    * 
    * Parameter:
@@ -24,11 +22,11 @@ if (!WDAT.api) WDAT.api = {};
    *                          optional, default 10.
    *
    * Depends on:
-   *    WDAT.api.EventBus, WDAT.api.VTree, WDAT.api.DataAPI
+   *    WDAT.api.EventBus, WDAT.ui.Tree, WDAT.api.DataAPI
    */
-  WDAT.api.PMetadataTree = PMetadataTree;
-  function PMetadataTree(name, api, bus, selEvent, cacheSize) {
-    this._tree = new WDAT.api.VTree(name, bus, ['sel', 'del', 'edit', 'add']);
+  WDAT.app.MetadataTree = MetadataTree;
+  function MetadataTree(name, api, bus, selEvent, cacheSize) {
+    this._tree = new WDAT.ui.Tree(name, bus, ['sel', 'del', 'edit', 'add']);
     // all events from the tree view
     this._events = this._tree.events;
     // event to notify external components of tree selections
@@ -44,18 +42,18 @@ if (!WDAT.api) WDAT.api = {};
     else
       this._cacheSize = 10;
   }
-  
+
   /* This method fetches initial data from DataAPI and initializes all 
    * events and event handlers. Call this method once on start of the 
    * Application.
    * 
    * Parameter:
    *    None
-   *    
+   *
    * Return value:
    *    None
    */
-  PMetadataTree.prototype.load = function() {
+  MetadataTree.prototype.load = function() {
     for (var node in _PREDEF_NODES) {
       node = _PREDEF_NODES[node];
       this._tree.add(node, node.parent_id, node.isleaf);
@@ -73,7 +71,7 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    A function that handles select events.
    */
-  PMetadataTree.prototype._selectionHandler = function() {
+  MetadataTree.prototype._selectionHandler = function() {
     var that = this;
     return function(event, data) {
       that._tree.select(data.id, true);
@@ -93,7 +91,7 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    A function that handles expand events.
    */
-  PMetadataTree.prototype._expandHandler = function() {
+  MetadataTree.prototype._expandHandler = function() {
     var that = this;
     return function(event, data) {
       var id = data.id;
@@ -122,7 +120,7 @@ if (!WDAT.api) WDAT.api = {};
    * Return value:
    *    A function that handles load events.
    */
-  PMetadataTree.prototype._loadHandler = function() {
+  MetadataTree.prototype._loadHandler = function() {
     var that = this;
     return function(event, data) {
       //console.log("\nloadHandler(): data = " + JSON.stringify(data, null, 2) + "\n\n");
@@ -164,7 +162,7 @@ if (!WDAT.api) WDAT.api = {};
   /*
    * Some predefined nodes that are loaded into the tree
    */
-  _PREDEF_NODES = [
+  var _PREDEF_NODES = [
           {id: 'own-metadata', name: 'Metadata', parent_id: null},
           {id: 'own-not-annotated', name: 'Not Annotated', parent_id: null, isleaf: true},
           {id: 'own-all', name: 'All Data', parent_id: null, isleaf: true},
