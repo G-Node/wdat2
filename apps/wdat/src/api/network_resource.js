@@ -390,7 +390,7 @@
    *    Object with url and request data
    */
   ResourceAdapter.prototype.adaptUpdate = function(data) {
-    var adapted = {}, url, type, cat, id = '/';
+    var adapted = {}, url, type, cat, id = '';
     // prepare url
     if (data.type && _getCategory(data.type)) {
       type = data.type;
@@ -411,7 +411,11 @@
       }
     }
     url = [cat, type, id].join('/');
+    if (url[0] !== '/')
+      url = '/' + url;
     // adapt data
+    objMerge(data, adapted, true, ['id', 'type', 'category', 'plotable','date_created', 
+        'owner', 'safety_level', 'name', 'fields', 'parents', 'data', 'children']);
     if (type === 'value')
       adapted.value = data.name;
     else
@@ -438,7 +442,7 @@
         adapted[i] = tmp[tmp.length - 1];
       }
     }
-    return {data: adapted, url: url};
+    return {'data': adapted, 'url': url};
   };
 
   /* Extracts only the path part of a URL.

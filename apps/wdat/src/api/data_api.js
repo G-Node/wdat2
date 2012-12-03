@@ -141,7 +141,7 @@
     if (this._worker && !WDAT.debug) { // if Worker is available just notify it
       this._notifyWorker(event, 'set', data, info);
     } else { // if Worker is not available we have to do this here
-      var tmp = this._adapter.adaptUpdate(msg.param);
+      var tmp = this._adapter.adaptUpdate(data);
       var result = this._resource.setByURL(tmp.url, tmp.data);
       if (!result.error) {
         result.response = this._adapter.adapt(result.response);
@@ -172,7 +172,7 @@
     if (this._worker && !WDAT.debug) { // if Worker is available just notify it
       this._notifyWorker(event, 'del', url, info);
     } else { // if Worker is not available we have to do this here
-      var result = this._resource.delByURL(tmp.url, tmp.data);
+      var result = this._resource.delByURL(url);
       result.action = 'del';
       result.param = url;
       result.info = info;
