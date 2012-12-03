@@ -8,24 +8,24 @@
   //-------------------------------------------------------------------------------------
 
   /* Constructor for the VForm base class.
-   * 
+   *
    * Input Definitions (inputdefs):
    *    Structure { field_name: { type: <type>, modifier: <mod>, ...}, ...}
    *
    *    Types: text, ltext, file, password, date, num, int, email, boolean,
    *           hidden and option.
    *
-   *    Modifiers: min (number), max (number), obligatory (true/false), 
+   *    Modifiers: min (number), max (number), obligatory (true/false),
    *               options ({id1: val1, ...}), readonly (true/false).
    *
    * Parameter:
    *  - name: String, Obj     Name of the form or jQuery object.
-   *  
+   *
    *  - title: Sting          The title of the form.
    *
    *  - bus: EventBus         Bus for events.
    *
-   *  - inputdefs: Obj        Describes all input fields that should be created automatically. 
+   *  - inputdefs: Obj        Describes all input fields that should be created automatically.
    *
    *  - save: String          An event for the handling of save events.
    *
@@ -62,9 +62,9 @@
         // create buttons and actions
         var savebtn = $('<button>').button({text : true, label : "Save"});
         var that = this;
-        savebtn.click(function() { 
-          var data = that.get(); 
-          if (data) that._bus.publish(that._save, data); 
+        savebtn.click(function() {
+          var data = that.get();
+          if (data) that._bus.publish(that._save, data);
         });
         this._form.append($('<div class="form-btn"></div>').append(savebtn));
       }
@@ -79,7 +79,7 @@
    *  - field: Obj      The definition object for the input, it has to specify a type
    *                    and can have additionally the following fields: obligatory, min,
    *                    max, value and label, options, readonly.
-   *                    Valid types are: text, file, email, ltext, num, int, password, 
+   *                    Valid types are: text, file, email, ltext, num, int, password,
    *                    option, boolean, hidden.
    *
    * Return value:
@@ -112,7 +112,7 @@
       }
       if (field.value) input.attr('value', inputdef.value);
     } else {
-      throw new Error('field has no valid type: field.type = ' + type)
+      throw new Error('field has no valid type: field.type = ' + type);
     }
     if (field.readonly) input.attr('readonly', 'readonly');
     input.attr('name', this._toId(id)).addClass('field-input');
@@ -129,10 +129,10 @@
   };
 
   /* Validates the form and marks errors inside the form.
-   * 
-   * Parameter: 
+   *
+   * Parameter:
    *    None
-   * 
+   *
    * Return value:
    *    True if the form is valid false otherwise.
    */
@@ -154,9 +154,9 @@
           continue;
         }
         value = null;
-      } else {  
+      } else {
         // get type definition an do type specific checks
-        var typedef = VForm.FIELD_TYPES[inputdef.type]
+        var typedef = FIELD_TYPES[inputdef.type]
         if (typedef && typedef.check && !value.match(typedef.check)) {
           field.find('.field-error').text(typedef.fail);
           valid = false;
@@ -192,13 +192,13 @@
   };
 
   /* Validates the form and read all data from the form.
-   * 
+   *
    * Parameter:
    *    None
    *
    * Return value:
-   *    The data of the form as object or null if 
-   *    the form is not valid. 
+   *    The data of the form as object or null if
+   *    the form is not valid.
    */
   Form.prototype.get = function() {
     if (this.validate()) {
@@ -248,11 +248,11 @@
   };
 
   /* Opens the form in a modal window.
-   * 
+   *
    * Parameters:
-   *  - save: String, function    Override the event or callback for save 
+   *  - save: String, function    Override the event or callback for save
    *                                events.
-   * 
+   *
    * Return value:
    *    None
    */
@@ -280,10 +280,10 @@
   };
 
   /* Transforms a name into a internal id.
-   * 
+   *
    * Parameters:
    *  - name: String      The name of an input element.
-   *  
+   *
    * Return value:
    *    An internal id string.
    */
@@ -301,10 +301,10 @@
           file:   { type: 'file' },
           hidden: { type: 'hidden'},
           password: { type: 'password' },
-          date:   { type: 'text', 
+          date:   { type: 'text',
                     create: function(input) { input.datepicker({dateFormat : "yy/mm/dd"}); },
                     nowidth: true },
-          num:    { type: 'text', 
+          num:    { type: 'text',
                     check: /^[-+]?[0-9]{1,16}\.?[0-9]{0,16}([eE][-+]?[0-9]+)?$/,
                     fail: 'is not a valid number (floeatingpoint)' },
           int:    { type: 'text',
@@ -313,7 +313,7 @@
           email:  { type: 'text',
                     check: /^[a-zA-Z][\w\.\-]{1,128}@[a-zA-Z][\w\.\-]{1,128}\.[a-zA-Z]{2,4}$/,
                     fail: 'is not a valid email address' },
-          boolean:  { type: 'checkbox', 
+          boolean:  { type: 'checkbox',
                       nowidth: true }
   };
   Form.FIELD_TYPES = FIELD_TYPES;
@@ -336,7 +336,7 @@
     };
     SectionForm.parent.constructor.call(this, name, bus, save, modal, fields);
   }
-  
+
   //-------------------------------------------------------------------------------------
   // Class: VPropertyForm
   //-------------------------------------------------------------------------------------
@@ -361,12 +361,12 @@
     this._form.find('.form-fields').after($('<div class="property-values">'));
     this._values = {};
   }
-  
+
   PropertyForm.prototype.setValue = function(value) {
     value = value || {}
     var id = 'val-' + this._bus.uid();
     var input = $('<input type="text">').addClass('value-input field-input').attr('id', id);
-    if (value.name) 
+    if (value.name)
       input.attr('value', input.name);
     var label = $('<label class="field-label">').text('Value: ');
     var delbtn = $('<button>').button({ icons: { primary: "ui-icon-minusthick"}, text: false}).click(function () {
@@ -381,3 +381,4 @@
 
 
 }());
+

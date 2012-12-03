@@ -1,16 +1,13 @@
 //---------- file: data_api.js.worker ----------//
 
-importScripts('network_resource.js');
+importScripts('utils.js', 'network_resource.js');
 
-// Define name space WDAT if not available (but it should be because of importScripts())
-if (!WDAT) var WDAT = {}; 
-if (!WDAT.work) WDAT.work = {};
 
 /* Create the worker routine that handles all messages send to the worker
  * The message is expected to have the following structure (see data_api.js):
- * 
+ *
  *    { event: <event>, action: <action>, data: <data> }
- *    
+ *
  * Parameters:
  *  - msg: Object     The message object produced by calling postMessge(data) on
  *                    the worker object in the main thread.
@@ -19,7 +16,7 @@ if (!WDAT.work) WDAT.work = {};
  *    The data object that will be passed to the onmessage() method of the worker
  *    object in the main thread. 
  */
-WDAT.work.worker_routine = function(msg) {
+WDAT.api.worker_routine = function(msg) {
   // the original message is wrapped in a message object and contained in msg.data
   msg = msg.data
   // crate a result
@@ -27,30 +24,32 @@ WDAT.work.worker_routine = function(msg) {
   switch (msg.action) {
     case 'init':
       // initialize network resource and resource adapter
-      WDAT.work.resource = new WDAT.api[msg.resource]();
-      WDAT.work.adapter  = new WDAT.api[msg.adapter]();
+      WDAT.api.resource = new WDAT.api[msg.resource]();
+      WDAT.api.adapter  = new WDAT.api[msg.adapter]();
       result.data = "Worker initialized!";
       break;
     case 'get':
       // handle get requests here
-      result.data = WDAT.work.resource.get(msg.param);
+      result.data = WDAT.api.resource.get(msg.param);
       if (!result.data.error)
-        result.data.response = WDAT.work.adapter.adapt(result.data.response);
+        result.data.response = WDAT.api.adapter.adapt(result.data.response);
       break;
     case 'get_by_url':
       // handle get requests here
-      result.data = WDAT.work.resource.getByURL(msg.param);
+      result.data = WDAT.api.resource.getByURL(msg.param);
       if (!result.data.error)
-        result.data.response = WDAT.work.adapter.adapt(result.data.response);
+        result.data.response = WDAT.api.adapter.adapt(result.data.response);
       break;
-    case 'update':
-      // handle update requests
-      break;
-    case 'save':
+    case 'set':
       // handle save requests
+      var tmp = WDAT.api.adapter.adaptUpdate(msg.param);
+      result.data = WDAT.api.resource.getByURL(tmp.url, tmp.data);
+      if (!result.data.error)
+        result.data.response = WDAT.api.adapter.adapt(result.data.response);
       break;
-    case 'delete':
+    case 'del':
       // handle delete requests
+      result.data = WDAT.api.resource.getByURL(msg.param);
       break;
     default:
       // just a test to see if web worker are ok
@@ -65,4 +64,4 @@ WDAT.work.worker_routine = function(msg) {
 };
 
 // Attach worker routine to message events and notify the main thread
-onmessage = function(msg) { postMessage(WDAT.work.worker_routine(msg)); };
+onmessage = function(msg) { postMessage(WDAT.api.worker_routine(msg)); };
