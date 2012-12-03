@@ -17,7 +17,8 @@ SRC_JS = $(wildcard src/*.js) \
 	$(wildcard src/app/*.js)
 
 # sources that are also needed as separate files
-SRC_JS_SEPARATE = src/api/network_resource.js 
+SRC_JS_SEPARATE = src/api/network_resource.js \
+	src/utils.js
 
 # web worker sources
 SRC_JS_WORKER = src/api/data_api.js.worker

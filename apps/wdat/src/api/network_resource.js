@@ -3,23 +3,19 @@
 /* WARNING!
  * This code section is tricky because this code may run inside the worker context
  * or if workers arn't available inside the normal window context of the application.
- * 
+ *
  * The worker context has some functions like importScripts() thar are not available in
  * the window context. So don't use them or you will break the code on systems without
  * workers.
  * On the other hand the worker context lacks several features that are available in the
  * window context. This is basically everything that is beyond the core JavaScript global
  * object especially everything that is related to the document and the dom tree. Thats the
- * reason why it's not possible to use jQuery inside this code. Even if it is part of the 
- * core JavaScript global object the console object is also missing in the worker context. 
- * 
- * But basically everything that is needed for AJAX calls and data handling like JSON, 
- * XMLHtpRequest, TypedArrays and so on can be used here. 
+ * reason why it's not possible to use jQuery inside this code. Even if it is part of the
+ * core JavaScript global object the console object is also missing in the worker context.
+ *
+ * But basically everything that is needed for AJAX calls and data handling like JSON,
+ * XMLHtpRequest, TypedArrays and so on can be used here.
  */
-
-// initialize modules
-if (!WDAT) var WDAT = {};
-if (!WDAT.api) WDAT.api = {};
 
 // create anonymous name space
 (function(){
@@ -28,9 +24,9 @@ if (!WDAT.api) WDAT.api = {};
   // Class: NetworkResource
   //-------------------------------------------------------------------------------------
 
-  /* Constructor of the class NetworkResource. NetworkResource provides methods to 
-   * access a web resource, in this case the G-Node RESTfull API. 
-   * 
+  /* Constructor of the class NetworkResource. NetworkResource provides methods to
+   * access a web resource, in this case the G-Node RESTfull API.
+   *
    * Parameter:
    *    None
    *
@@ -42,12 +38,12 @@ if (!WDAT.api) WDAT.api = {};
     this._xhr = new XMLHttpRequest();
   };
 
-  /* Get data from the G-Node RESTfull API by search specifiers. See DataAPI.get() for 
+  /* Get data from the G-Node RESTfull API by search specifiers. See DataAPI.get() for
    * further explanation.
-   * 
+   *
    * Parameter:
    *  - specifier: Obj.     An object containing multiple search specifier.
-   *  
+   *
    * Return value:
    *    The requested data as a JSON string as specified by the G-Node RESTfull API.
    */
@@ -57,49 +53,105 @@ if (!WDAT.api) WDAT.api = {};
   };
 
   /* Get data from the G-Node RESTfull API by URL.
-   * 
+   *
    * Parameter:
    *  - url: String         The URL to request from the API.
-   *  
+   *
    * Return value:
    *    The requested data as a JSON string as specified by the G-Node RESTfull API.
    */
   NetworkResource.prototype.getByURL = function(url) {
-    var result = {};
-    result.url = url;
+    var result = {url: url};
     // This is a synchronous call.
     this._xhr.open('GET', url, false);
     this._xhr.send();
 
     if (this._xhr.status === 200) {
+      result.status = 200;
+      result.response = this._xhr.responseText;
+    } else {
+      result.status = this._xhr.status;
+      result.error = true;
+      var errmsg = JSON.parse(this._xhr.responseText);
+      result.response = errmsg.details || errmsg.message || "Error during request: (" + this._xhr.status + ")";
+    }
+    return result;
+  };
+  
+  /* Creates or updates an object on the G-Node RESTfull API.
+   *
+   * Parameter:
+   *  - url: String      The url to an object or to the object type. The URL determines
+   *                     if the operation is an update or create operation.
+   *
+   *  - data: Obj        The object data. See G-Node API documentaion for further information.
+   *
+   * Return value:
+   *    The changed object.
+   */
+  NetworkResource.prototype.setByURL = function(url, data) {
+    var result = {url: url};
+    // Synchronous call to the data api
+    this._xhr.open('POST', url, false);
+    this._xhr.send(JSON.stringify(data));
+
+    if (this._xhr.status === 200 || this._xhr.status === 201) {
       result.status = this._xhr.status;
       result.response = this._xhr.responseText;
     } else {
       result.status = this._xhr.status;
       result.error = true;
-      result.response = 'Request failed (' + this._xhr.status + ')';
+      var errmsg = JSON.parse(this._xhr.responseText);
+      result.response = errmsg.details || errmsg.message || "Error while updating: (" + this._xhr.status + ")";
     }
     return result;
   };
   
+  /* Deletes one single object.
+   *
+   * Parameter:
+   *  - url: String       The url to the object to delete.
+   *
+   * Return value:
+   *    Resonse object with success or error message.
+   */
+  NetworkResource.prototype.delByURL = function(url) {
+    var result = {url: url};
+    // Synchronous call to the data api
+    this._xhr.open('DELETE', url, false);
+    this._xhr.send();
+
+    if (this._xhr.status === 200) {
+      result.status = 200;
+      var msg = JSON.parse(this._xhr.responseText);
+      result.response = msg.message;
+    } else {
+      result.status = this._xhr.status;
+      result.error = true;
+      var errmsg = JSON.parse(this._xhr.responseText);
+      result.response = errmsg.details || errmsg.message || "Error while deleting: (" + this._xhr.status + ")";
+    }
+    return result;
+  };
+
   /* Creates a URL from a set of given search specifiers. See NetworkResource.get()
    * for further explanation. This function is for internal use only.
-   * 
+   *
    * Parameter:
    *  - spec: Obj         A set of search specifiers
-   *  
+   *
    * Return value:
    *    A URL that performs a search as defined by the specifiers.
    */
   NetworkResource.prototype._specToURL = function(spec) {
     var url;
     if (spec.id || spec.permalink) {
-      // if id or permalink is specified all other parameters besides type and category 
+      // if id or permalink is specified all other parameters besides type and category
       // are ignored
       if (spec.permalink) spec.id = spec.permalink;
       // split id
       var split = spec.id.toString().split('/');
-      // remove empty strings from split 
+      // remove empty strings from split
       var tmp = []
       for (var i in split) {
         if (split[i] && split[i] != "") tmp.push(split[i]);
@@ -114,7 +166,7 @@ if (!WDAT.api) WDAT.api = {};
         spec.category = _getCategory(spec.type);
       }
       url = '/' + spec.category + '/' + spec.type + '/' + spec.id + '?q=full';
-    } else { 
+    } else {
       // if no id or permalink is specified additional parameters are evaluated
       if (!spec.category) {
         spec.category = _getCategory(spec.type);
@@ -129,26 +181,26 @@ if (!WDAT.api) WDAT.api = {};
     }
     return 'http://' + location.hostname + ':' + location.port + url;
   }
-  
-  /* Creates a string representing a component of a URI query string from a key, 
+
+  /* Creates a string representing a component of a URI query string from a key,
    * a value and an operator (optional). This is for internal use only.
-   * 
+   *
    * Example:
    *   'name', 'foo' --> name__icontains=foo&
-   * 
+   *
    * Parameter:
    *  - type: String        The type to search for
    *  - key: String         The key of the search specifier
    *  - value: Sting, Num   The value of the search specifier
    *  - op: String          The operator e.g. '=', '>', '<' (optional)
-   *  
+   *
    * Return value:
    *    A Sting representing a query component
    */
   NetworkResource.prototype._specToComp = function(type, key, value, op) {
     var result = '';
     var template = _getTemplate(type);
-    // Lambda that converts an operator to its equivalent in the URL
+    // local function that converts an operator to its equivalent in the URL
     var opToString = function(operator) {
       switch (operator) {
         case '>':
@@ -171,7 +223,7 @@ if (!WDAT.api) WDAT.api = {};
         break;
       case 'parent':  // search for objects with specific parent
         var split = value.toString().split('/');
-        // remove empty strings from split 
+        // remove empty strings from split
         var tmp = []
         for (var i in split) {
           if (split[i] && split[i] != "") tmp.push(split[i]);
@@ -208,15 +260,15 @@ if (!WDAT.api) WDAT.api = {};
     }
     return result;
   }
-  
+
   //-------------------------------------------------------------------------------------
   // Class: ResourceAdapter
   //-------------------------------------------------------------------------------------
 
-  /* Constuctor of the class ResourceAdapter. The Resource adapter is needed in order to 
-   * convert data from the G-Node RESTfull API specific format into a format used by 
+  /* Constuctor of the class ResourceAdapter. The Resource adapter is needed in order to
+   * convert data from the G-Node RESTfull API specific format into a format used by
    * the application and vice versa.
-   * 
+   *
    * Parameter:
    *    None
    *
@@ -228,11 +280,11 @@ if (!WDAT.api) WDAT.api = {};
     // nothing to do
   };
 
-  /* Converts data from NetworkResource into a format that can easily be used 
-   * inside the wdat application. The result is always an array of objects. Each object 
+  /* Converts data from NetworkResource into a format that can easily be used
+   * inside the wdat application. The result is always an array of objects. Each object
    * has the following form.
-   * 
-   * { 
+   *
+   * {
    *   id: <id>,                // path part of the permalink
    *   type: <type>,            // e.g. segment, block, section etc.
    *   category: <cat>,         // data or metadata
@@ -240,14 +292,14 @@ if (!WDAT.api) WDAT.api = {};
    *   date_created: <date>,
    *   owner: <str>,            // id of the owner profile
    *   safety_level: <level>,   // public, friendly or private
-   *   fields: {},              // other object specific attributes 
+   *   fields: {},              // other object specific attributes
    *   children: {},            // all child objects as a list of ids
    *   parents: {},             // all parent objects as a list of ids
    *   data: {},                // data as { unit: <unit>, data: <data> }
    * }
-   * 
+   *
    * Parameter:
-   *  - data: Obj, String       A response object as specified in the 
+   *  - data: Obj, String       A response object as specified in the
    *                            Documentation of the RESTfull api
    * Return value
    *    An array of converted objects
@@ -326,13 +378,79 @@ if (!WDAT.api) WDAT.api = {};
     }
     return adapted_data;
   };
-  
+
+  /* Adapts objects used inside the application to an object that can be used by the data
+   * api. The resule is an object with two fields 'url' contains a url for the update/create
+   * request and 'data' holds an object for the request body.
+   *
+   * Parameter:
+   *  - data: Obj         The data object to adapt.
+   *
+   * Return value:
+   *    Object with url and request data
+   */
+  ResourceAdapter.prototype.adaptUpdate = function(data) {
+    var adapted = {}, url, type, cat, id = '';
+    // prepare url
+    if (data.type && _getCategory(data.type)) {
+      type = data.type;
+      cat = _getCategory(data.type);
+    }
+    if (data.id) {
+      var tmp = data.id.split('/')
+      if (tmp.length == 1) {
+        id = data.id;
+      } else if (tmp.length == 3) {
+        id = tmp[2];
+        if (!type && !cat) {
+          cat = tmp[0];
+          type = tmp[1];
+        }
+      } else {
+        throw new Error('data has an invalid id: ' + id);
+      }
+    }
+    url = [cat, type, id].join('/');
+    if (url[0] !== '/')
+      url = '/' + url;
+    // adapt data
+    objMerge(data, adapted, true, ['id', 'type', 'category', 'plotable','date_created', 
+        'owner', 'safety_level', 'name', 'fields', 'parents', 'data', 'children']);
+    if (type === 'value')
+      adapted.value = data.name;
+    else
+      adapted.name  = data.name;
+    adapted.safety_level = data.safety_level || 'private';
+    switch (adapted.safety_level) {
+      case 'public':
+        adapted.safety_level = 1;
+        break;
+      case 'friendly':
+        adapted.safety_level = 2;
+        break;
+      default:
+        adapted.safety_level = 3;
+        break;
+    }
+    // merge fields and data into adapted
+    adapted = objMerge(data.fields, adapted);
+    adapted = objMerge(data.data, adapted);
+    // merge parents 
+    for (i in data.parents) {
+      if (data.parents.hasOwnProperty(i)) {
+        var tmp = data.parents[i].split('/');
+        adapted[i] = tmp[tmp.length - 1];
+      }
+    }
+    return {'data': adapted, 'url': url};
+  };
+
   /* Extracts only the path part of a URL.
    * For internal use only.
-   * 
+   *
    * Parameter:
    *  - url: String       The URL to strip
-   *  
+   *
    * Return value:
    *  - The path part of the URL without leading '/'
    */
@@ -348,7 +466,7 @@ if (!WDAT.api) WDAT.api = {};
     }
     // remove parameter
     return tmp.split('?')[0];
-  }
+  };
 
   //-------------------------------------------------------------------------------------
   // Helper functions and objects
@@ -356,10 +474,10 @@ if (!WDAT.api) WDAT.api = {};
   //-------------------------------------------------------------------------------------
 
   /* Find the matching category for specific type using _DATA_OBJECTS.
-   * 
+   *
    * Parameter:
    *  - type: String      The type of a data object e.g. section, segment or analogsignal
-   * 
+   *
    * Return value:
    *    The corresponding category e.g. metadata or electrophysiology
    */
@@ -375,10 +493,10 @@ if (!WDAT.api) WDAT.api = {};
   }
 
   /* Get the matching template for a specific type defined in _DATA_OBJECTS.
-   * 
+   *
    * Parameter:
    *  - type: String      The type of a data object e.g. section, segment or analogsignal
-   * 
+   *
    * Return value:
    *    The corresponding template object defined in _DATA_OBJECTS.
    */
@@ -393,12 +511,12 @@ if (!WDAT.api) WDAT.api = {};
       return null;
   }
 
-  /* Determine by its type if a data object is plotable, using the definitions 
+  /* Determine by its type if a data object is plotable, using the definitions
    * in _DATA_OBJECTS.
-   * 
+   *
    * Parameter:
    *  - type: String      The type of a data object e.g. section, segment or analogsignal
-   * 
+   *
    * Return value:
    *    true if the object is plotable, false otherwise
    */
@@ -416,48 +534,48 @@ if (!WDAT.api) WDAT.api = {};
         parents : ['parent_section']},
       property : {
         fields : ['name', 'definition', 'dependency', 'dependency_value', 'mapping',
-                'unit', 'dtype', 'uncertainty', 'comment'], 
+                'unit', 'dtype', 'uncertainty', 'comment'],
         children : ['value_set'],
         parents : ['section']},
       value : {
-        fields : ['data'], 
-        children : [], 
+        fields : ['data'],
+        children : [],
         parents : ['parent_property']}},
     data : {
       container : {
         block : {
           fields : ['name', 'index', 'description', 'file_origin', 'filedatetime',
                   'recdatetime'],
-          children : ['segment_set', 'recordingchannelgroup_set'], 
+          children : ['segment_set', 'recordingchannelgroup_set'],
           parents : ['']},
         segment : {
           fields : ['name', 'index', 'description', 'file_origin', 'filedatetime',
                   'recdatetime'],
           children : ['analogsignal_set', 'irsaanalogsignal_set',
                   'analogsignalarray_set', 'spiketrain_set', 'spike_set', 'event_set',
-                  'eventarray_set', 'epoch_set', 'epocharray_set'], 
+                  'eventarray_set', 'epoch_set', 'epocharray_set'],
           parents : ['block']},
         /* move to plotable ? */
         eventarray : {
           fields : ['name', 'labels', 'description', 'file_origin'],
-          data : ['times'], 
-          children : ['event_set'], 
+          data : ['times'],
+          children : ['event_set'],
           parents : ['segment']},
         /* move to plotable ? */
         epocharray : {
           fields : ['name', 'labels', 'description', 'file_origin'],
-          data : ['times', 'durations'], 
-          children : ['epoch_set'], 
+          data : ['times', 'durations'],
+          children : ['epoch_set'],
           parents : ['segment']},
         /* move to plotable ? */
         analogsignalarray : {
           fields : ['name', 'description', 'file_origin'],
           data : ['analogsignal_set', 'sampling_rate', 't_start'],
-          children : ['analogsignal_set'], 
+          children : ['analogsignal_set'],
           parents : ['segment']},
         unit : {
           fields : ['name', 'description', 'file_origin'],
-          children : ['spiketrain_set', 'spike_set'], 
+          children : ['spiketrain_set', 'spike_set'],
           parents : ['recordingchannel']},
         recordingchannel : {
           fields : ['name', 'description', 'file_origin', 'coordinate', 'index'],
@@ -471,34 +589,34 @@ if (!WDAT.api) WDAT.api = {};
       plotable : {
         spike : {
           fields : ['name', 'description', 'file_origin'],
-          data : ['time', 'waveform', 'sampling_rate', 'left_sweep'], 
+          data : ['time', 'waveform', 'sampling_rate', 'left_sweep'],
           children : [],
           parents : ['segment', 'unit']},
         spiketrain : {
           fields : ['name', 'description', 'file_origin'],
           data : ['times', 'waveforms', 'sampling_rate', 't_start', 't_stop',
-                  'left_sweep'], 
-          children : [], 
+                  'left_sweep'],
+          children : [],
           parents : ['segment', 'unit']},
         event : {
           fields : ['name', 'description', 'file_origin', 'label'],
-          data : ['time'], 
-          children : [], 
+          data : ['time'],
+          children : [],
           parents : ['segment', 'eventarray']},
         epoch : {
           fields : ['name', 'description', 'file_origin', 'label'],
-          data : ['duration', 'time'], 
-          children : [], 
+          data : ['duration', 'time'],
+          children : [],
           parents : ['segment', 'epocharray']},
         analogsignal : {
           fields : ['name', 'description', 'file_origin'],
-          data : ['signal', 'sampling_rate', 't_start'], 
+          data : ['signal', 'sampling_rate', 't_start'],
           children : [],
           parents : ['segment', 'analogsignalarray', 'recordingchannel']},
         irsaanalogsigal : {
           fields : ['name', 'description', 'file_origin'],
-          data : ['times', 'samples'], 
-          children : [], 
+          data : ['times', 'samples'],
+          children : [],
           parents : ['segment']
         }
       }
@@ -507,3 +625,5 @@ if (!WDAT.api) WDAT.api = {};
   // NetworkResource.DATA_OBJECTS = _DATA_OBJECTS;
   // ResourceAdapter.DATA_OBJECTS = _DATA_OBJECTS;
 }());
+
+
