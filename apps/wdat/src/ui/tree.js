@@ -83,15 +83,16 @@
   Tree.prototype.add = function(element, parent, isLeaf) {
     // check for existence
     if (!this.has(element)) {
-      // set element id and parent_id
+      // set element id
       if (!element.id)
         element.id = this.bus.uid();
-      element.parent_id = (parent != null && parent.id) ? parent.id : parent;
+      var id = this._toId(element);
       // create new representation of the element
       var elem = $(ELEM_TMPL);
-      elem.attr('id', this._toId(element));
+      elem.attr('id', id);
       elem.find('.node-name').first().text(element.name);
       elem.find('.node-btn').first().append(this._buttons(element));
+      elem.data(element);
       // is a leaf
       if (isLeaf)
         elem.addClass('leaf-node');
@@ -99,15 +100,17 @@
       if (this.events.more) {
         var that = this;
         elem.find('.node-icon').click(function() {
-          if (!elem.is('.leaf-node'))
-            that.bus.publish(that.events.more, element);
+          var e = $('#'+id);
+          if (!e.is('.leaf-node'))
+            that.bus.publish(that.events.more, e.data());
         });
       }
       // fire select event when clicking on the node content
       if (this.events.sel) {
         var that = this;
         elem.find('.node-name').click(function() {
-          that.bus.publish(that.events.sel, element);
+          var e = $('#'+id);
+          that.bus.publish(that.events.sel, e.data());
         });
       }
       // add element to the tree
@@ -118,6 +121,8 @@
       } else {
         this._tree.append(elem);
       }
+    } else {
+      this.update(element);
     }
     return element;
   };
@@ -131,8 +136,9 @@
    *    None
    */
   Tree.prototype.update = function(element) {
-    var elem = this._tree.find('#' + this._toId(element) + ' .node-name');
-    elem.text(element.name);
+    var elem = this._tree.find('#' + this._toId(element));
+    elem.data(element);
+    elem.children('.node-content').find('.node-name').text(element.name);
   };
 
   /* Edit the name of an existing list element.
@@ -185,7 +191,7 @@
   /* Remove a node and all his children from the tree.
    *
    * Parameter:
-   *  - element: String, Obj.  The elements to edit or the id of this
+   *  - element: String, Obj.  The elements to remove or the id of this
    *                           element.
    *
    * Return value:
@@ -194,6 +200,20 @@
   Tree.prototype.remove = function(element) {
     var elem = this._tree.find('#' + this._toId(element));
     elem.remove();
+  };
+
+  /* Remove all childs from a node.
+   *
+   * Parameter:
+   *  - element: String, Obj.  The parent node of all nodes to delete or the id of this
+   *                           node.
+   *
+   * Return value:
+   *    None
+   */
+  Tree.prototype.removeChildren = function(element) {
+    var elem = this._tree.find('#' + this._toId(element));
+    elem.children('.tree-node').remove();
   };
 
   /* Select a specific leaf of the tree. If the element is already selected
@@ -241,7 +261,7 @@
   Tree.prototype.expand = function(element, single) {
     // get the element and its selection status
     var elem = this._tree.find('#' + this._toId(element));
-    if (!elem.is('leaf-node')) {
+    if (!elem.is('.leaf-node')) {
       var collapsed = elem.is('.collapsed');
       // if single, then unselect all
       if (single) {
@@ -253,6 +273,16 @@
       return !collapsed;
     } else {
       return false;
+    }
+  };
+
+  Tree.prototype.isExpanded = function(element) {
+    // get the element and its selection status
+    var elem = this._tree.find('#' + this._toId(element));
+    if (elem.is('.leaf-node')) {
+      return false;
+    } else {
+      return !elem.is('.collapsed');
     }
   };
 
@@ -373,3 +403,4 @@
   };
 
 }());
+

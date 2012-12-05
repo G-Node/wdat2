@@ -147,7 +147,7 @@
         result.response = this._adapter.adapt(result.response);
       }
       result.action = 'set';
-      result.param = url;
+      result.param = tmp.url;
       result.info = info;
       this._bus.publish(event, result);
     }

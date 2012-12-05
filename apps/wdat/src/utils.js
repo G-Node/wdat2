@@ -89,7 +89,7 @@ function strTrim(str) {
  *    matching property was found.
  */
 function objGetRecursive(obj, prop, children) {
-  var found = false;
+  var found = null;
   var stack = [];
   stack.push(obj);
   while(stack.length > 0 && !found) {
@@ -187,5 +187,5 @@ WDAT.api = WDAT.api || {};    // name space related to the RESTfull API
 WDAT.app = WDAT.app || {};    // name space for application specific parts
 WDAT.ui  = WDAT.ui || {};     // name space for UI base classes
 
-WDAT.debug = true;
+WDAT.debug = false;
 

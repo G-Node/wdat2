@@ -1,4 +1,4 @@
-// ---------- file: list.js ---------- //
+// ---------- file: form.js ---------- //
 
 (function() {
   'use strict';
@@ -233,15 +233,20 @@
    *    None
    */
   Form.prototype.set = function(elem) {
+    $('.field-error').text('');
     for (var name in this._fields) {
       // search for field in data
       var value = objGetRecursive(elem, name, ['fields', 'parents', 'data']);
-      value = value.data || value;
+      value = (value != null && value.data) ? value.data : value;
       // if value has a value, get input element and set val
+      var input = this._form.find('#' + this._toId(name) + ' :input');
       if (value !== null) {
-        var input = this._form.find('#' + this._toId(name) + ' :input');
         value = strTrim(value.toString());
         input.val(value);
+      } else if (this._fields[name].value !== undefined) {
+        input.val(this._fields[name].value);
+      } else {
+        input.val('');
       }
     }
     this._element = elem;
@@ -327,9 +332,10 @@
     this._title = 'Section';
     var fields = {
       type: {type: 'hidden', value: 'section'},
+      parent_section: {type: 'hidden'},
       name: {type: 'text', obligatory: true, min: 3, max: 100},
-      odml_type: {type: 'int', label: 'Type', obligatory: true, min: 0},
-      tree_position: {type: 'int', label: 'Position', value: 0},
+      odml_type: {type: 'int', label: 'Type', obligatory: true, min: 0, value: 0},
+      tree_position: {type: 'int', label: 'Position', value: 1, obligatory: true},
       description: {type: 'ltext'},
       safety_level: {type: 'option',  options: {'public': 'Public', 'friendly': 'Friendly', 'private': 'Private'}},
       date_created: {type: 'text', readonly: true}
@@ -370,10 +376,8 @@
       input.attr('value', input.name);
     var label = $('<label class="field-label">').text('Value: ');
     var delbtn = $('<button>').button({ icons: { primary: "ui-icon-minusthick"}, text: false}).click(function () {
-      console.log('remove');
     });
     var addbtn = $('<button>').button({ icons: { primary: "ui-icon-plusthick"}, text: false}).click(function () {
-      console.log('add');
     });
     var v = this._form.find('.property-values');
     v.append($('<div>').attr('id', this._toId(id)).append(label, input, addbtn, delbtn));
