@@ -141,7 +141,10 @@ def create_hash_from( obj ):
     #return hashlib.sha1( obj.get_absolute_url() ).hexdigest()
 
     # option 2.
-    return hashlib.sha1( pickle.dumps( obj ) ).hexdigest()
+    return hashlib.sha1( ''.join([obj.get_absolute_url(), str(obj.starts_at)]) ).hexdigest()
+
+    # option 3.
+    #return hashlib.sha1( pickle.dumps( obj ) ).hexdigest()
 
 
 #===============================================================================
@@ -366,16 +369,6 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             return self.bulk_create( objs )
         return self
 
-    def create(self, **kwargs):
-        """ this method cleans kwargs required to create versioned object(s) and 
-        proxies the request to the superclass.create() function, that does the
-        physical creation. """
-        now = datetime.now()
-        new_keys = {}
-        new_keys['lid'] = self.model._get_new_local_id()
-        new_keys['date_created'] = now
-        new_keys['guid'] = create_hash_from( **dict(new_keys, **kwargs) )
-        return super(VersionedQuerySet, self).create( **dict(new_keys, **kwargs) )
 
 
 #===============================================================================
@@ -404,6 +397,13 @@ class VersionManager(models.Manager):
         kwargs, timeflt = _split_time( **kwargs )
         return self.get_query_set( **timeflt ).filter( **kwargs )
 
+    def proxy_time(self, proxy_to, **timeflt):
+        if timeflt.has_key('at_time'):
+            proxy_to._at_time = timeflt['at_time']
+        elif self._at_time:
+            proxy_to._at_time = self._at_time
+        return proxy_to
+
 
 class VersionedM2MManager( VersionManager ):
     """ A manager for versioned relations. Used to proxy a special subclass of 
@@ -412,8 +412,7 @@ class VersionedM2MManager( VersionManager ):
     def get_query_set(self, **timeflt ):
         """ init QuerySet that supports m2m relations versioning """
         qs = M2MQuerySet(self.model, using=self._db)
-        if timeflt.has_key('at_time'):
-            qs._at_time = timeflt['at_time']
+        self.proxy_time( qs, **timeflt )
         return qs
 
 
@@ -426,8 +425,7 @@ class VersionedObjectManager( VersionManager ):
     def get_query_set(self, **timeflt ):
         """ init QuerySet that supports object versioning """
         qs = VersionedQuerySet(self.model, using=self._db)
-        if timeflt.has_key('at_time'):
-            qs._at_time = timeflt['at_time']
+        self.proxy_time( qs, **timeflt )
         return qs
 
     def get_by_guid(self, guid):
@@ -686,6 +684,10 @@ class ObjectState(models.Model):
             "last_modified": self.starts_at,
             "guid": self.guid }
 
+    def get_absolute_url(self):
+        """ by default this should be similar to that """
+        return ''.join([ '/', self.obj_type, '/', str(self.local_id) ])
+
     def get_owner(self):
         """ required for filtering by owner in REST """
         return self.owner
@@ -696,6 +698,10 @@ class ObjectState(models.Model):
     def is_accessible(self, user):
         """ by default object is accessible for it's owner """
         return self.owner == user
+
+    def delete(self):
+        """ uses queryset delete() method to perform versioned deletion """
+        self.__class__.objects.filter( pk=self.pk ).delete()
 
     def save(self, *args, **kwargs):
         """ implements versioning by always saving new object. This is not 100%
@@ -712,7 +718,7 @@ class ObjectState(models.Model):
         # creates new version with updated values
         self.starts_at = now
         self.guid = create_hash_from( self ) # compute unique hash 
-        super(ObjectState, self).save()
+        super(ObjectState, self).save() # add force_insert?
 
     @classmethod
     def save_changes(self, objects, update_kwargs, m2m_dict, fk_dict, m2m_append):

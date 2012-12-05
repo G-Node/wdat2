@@ -25,7 +25,7 @@ class Section(SafetyLevel, ObjectState):
     non_cascade_rel = ("property",) # see REST JSON serializer
 
     name = models.CharField(_('name'), max_length=100)
-    description = models.TextField(_('description'), blank=True)
+    description = models.TextField(_('description'), blank=True, null=True)
     odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
     parent_section = VersionedForeignKey('self', blank=True, null=True) # link to itself to create a tree.
     # position in the list on the same level in the tree
