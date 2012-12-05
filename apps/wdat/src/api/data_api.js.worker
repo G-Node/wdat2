@@ -43,7 +43,7 @@ WDAT.api.worker_routine = function(msg) {
     case 'set':
       // handle save requests
       var tmp = WDAT.api.adapter.adaptUpdate(msg.param);
-      result.data = WDAT.api.resource.getByURL(tmp.url, tmp.data);
+      result.data = WDAT.api.resource.setByURL(tmp.url, tmp.data);
       if (!result.data.error)
         result.data.response = WDAT.api.adapter.adapt(result.data.response);
       break;

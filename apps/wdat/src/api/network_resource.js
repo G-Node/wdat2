@@ -116,6 +116,8 @@
    *    Resonse object with success or error message.
    */
   NetworkResource.prototype.delByURL = function(url) {
+    if (!strStartsWith(url, 'http://') && !strStartsWith(url, '/'))
+      url = '/' + url;
     var result = {url: url};
     // Synchronous call to the data api
     this._xhr.open('DELETE', url, false);
