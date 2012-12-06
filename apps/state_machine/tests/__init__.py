@@ -176,7 +176,8 @@ class TestObjectState(TestCase):
         for model in [FakeModel, FakeParentModel, FakeChildModel]:
             update_keys_for_model( model ) # could be done only once..
 
-    def test_relations(self):
+    def test_basic(self):
+        """ basic test to make sure versioned relationships working """
         owner = User.objects.get( pk = 1 )
 
         # 1. create 3 parent objects: P1, P2, P3
@@ -229,6 +230,52 @@ class TestObjectState(TestCase):
         P1_old = FakeParentModel.objects.filter(at_time = bp).get( pk=1 )
         self.assertEqual( getattr( P1_old, 'm2m').all().count(), 2 )
         self.assertEqual( getattr( P1_old, 'fakechildmodel_set').all().count(), 2 )
+
+    def test_fetch_related(self):
+        """ testing how the get_related() function works (fast fetching objects 
+        with relationships) """
+        owner = User.objects.get( pk = 1 )
+
+        # 1. create 2 parent objects: P1, P2
+        P1 = FakeParentModel.objects.create( test_attr = 1, owner = owner )
+        P2 = FakeParentModel.objects.create( test_attr = 2, owner = owner )
+
+        # 2. create 2 children for P1 and 1 for P2
+        C1 = FakeChildModel.objects.create( test_attr=1, owner=owner, test_ref=P1 )
+        C2 = FakeChildModel.objects.create( test_attr=2, owner=owner, test_ref=P1 )
+        C3 = FakeChildModel.objects.create( test_attr=3, owner=owner, test_ref=P2 )
+
+        # 3. create two M2M objects, referencing P1 and P2 respectively
+        m2m1 = FakeModel.objects.create( test_attr = 1, owner = owner )
+        m2m2 = FakeModel.objects.create( test_attr = 2, owner = owner )
+        m2m_ids = [x.pk for x in [m2m1, m2m2]]
+        FakeParentModel.save_changes( [P1], {}, {"m2m": m2m_ids}, {}, True )
+        FakeParentModel.save_changes( [P2], {}, {"m2m": m2m_ids}, {}, True )
+
+        bp = datetime.datetime.now()
+        time.sleep( 1 )
+
+        # assert object has 2 direct children and 2 M2M children
+        P1 = FakeParentModel.objects.filter( pk=1 ).get_related(fetch_children=True)[0]
+        self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 2)
+        self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 2)
+
+        import ipdb
+        ipdb.set_trace()
+        # delete some relatives
+        C2.delete()
+        m2m2.delete()
+
+
+        # assert object has now only 1 direct child and 1 M2M child
+        P1 = FakeParentModel.objects.filter( pk=1 ).get_related(fetch_children=True)[0]
+        self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 1)
+        self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 1)
+
+        # assert previous relations accessible back in time
+        P1 = FakeParentModel.objects.filter( at_time=bp, pk=1 ).get_related(fetch_children=True)[0]
+        self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 2)
+        self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 2)
 
 
     def tearDown(self):

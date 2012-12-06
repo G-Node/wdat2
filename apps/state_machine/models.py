@@ -369,70 +369,29 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             return self.bulk_create( objs )
         return self
 
-
-
-#===============================================================================
-# VERSIONED Managers
-#===============================================================================
-
-class VersionManager(models.Manager):
-    """ A special manager for versioned objects. By default it returns queryset 
-    with filters on the 'ends_at' attribute = NULL (last version of an object). 
-    If 'at_time' is provided, means the special version of an object is 
-    requested, this manager returns queryset tuned to the provided time. The 
-    'at_time' parameter should be provided to the manager at first call with the
-    filter() method of this Manager. """
-    use_for_related_fields = True
-    _at_time = None
-
-    def all(self):
-        """ need to proxy all() to apply versioning filters """
-        return self.get_query_set().all()
-
-    def filter(self, **kwargs):
-        """ method is overriden to support object versions. If an object is 
-        requested at a specific point in time here we split this time from 
-        kwargs to further proxy it to the QuerySet, so an appropriate version is
-        fetched. """
+    def get_related(self, *args, **kwargs):
+        """ returns a LIST (not a queryset) of objects with children permalinks. 
+        This should be faster than using any of standard django 'select_related'
+        or 'prefetch_related' methods which (unexpectedly) do not work as 
+        suggested. """
+        fetch_children = kwargs.pop('fetch_children', False)
+        if not kwargs.has_key('objects'):
+            objects = self.filter( **kwargs )
+        else:
+            objects = kwargs['objects']
         kwargs, timeflt = _split_time( **kwargs )
-        return self.get_query_set( **timeflt ).filter( **kwargs )
 
-    def proxy_time(self, proxy_to, **timeflt):
-        if timeflt.has_key('at_time'):
-            proxy_to._at_time = timeflt['at_time']
-        elif self._at_time:
-            proxy_to._at_time = self._at_time
-        return proxy_to
+        if not fetch_children:
+            return objects
 
+        if objects: # evaluates queryset, executes 1 SQL
+            # fetch reversed FKs (children)
+            objects = self.fetch_fks( objects, timeflt )
 
-class VersionedM2MManager( VersionManager ):
-    """ A manager for versioned relations. Used to proxy a special subclass of 
-    the Queryset (M2MQuerySet) designed for M2M relations. """
+            # fetch reversed M2Ms (m2m children)
+            objects = self.fetch_m2m( objects, timeflt )
 
-    def get_query_set(self, **timeflt ):
-        """ init QuerySet that supports m2m relations versioning """
-        qs = M2MQuerySet(self.model, using=self._db)
-        self.proxy_time( qs, **timeflt )
-        return qs
-
-
-class VersionedObjectManager( VersionManager ):
-    """ extends a normal manager for versioned objects with a 'get_related' 
-    method, which is able to fetch objects together with permalinks to the 
-    direct, reversed and m2m relatives. This type of query is needed for the 
-    default Response behaviour """
-
-    def get_query_set(self, **timeflt ):
-        """ init QuerySet that supports object versioning """
-        qs = VersionedQuerySet(self.model, using=self._db)
-        self.proxy_time( qs, **timeflt )
-        return qs
-
-    def get_by_guid(self, guid):
-        """ every object has a global ID (basically it's a hash of it's JSON 
-        representation). As this ID is unique, one can request an object by it's
-        GUID directly."""
-        return super(VersionedObjectManager, self).get_query_set().get( guid = guid )
+        return objects
 
     def fetch_fks(self, objects, timeflt={}):
         """ assigns permalinks of the reversed-related children to the list of 
@@ -548,29 +507,77 @@ class VersionedObjectManager( VersionManager ):
                     setattr( obj, field.name + '_buffer_ids', [] )
         return objects
 
-    def get_related(self, *args, **kwargs):
-        """ returns a LIST (not a queryset) of objects with children permalinks. 
-        This should be faster than using any of standard django 'select_related'
-        or 'prefetch_related' methods which (unexpectedly) do not work as 
-        suggested. """
-        fetch_children = kwargs.pop('fetch_children', False)
-        if not kwargs.has_key('objects'):
-            objects = self.filter( **kwargs )
-        else:
-            objects = kwargs['objects']
+    def get_by_guid(self, guid):
+        """ every object has a global ID (basically it's a hash of it's JSON 
+        representation). As this ID is unique, one can request an object by it's
+        GUID directly."""
+        return self.get( guid = guid )
+
+
+#===============================================================================
+# VERSIONED Managers
+#===============================================================================
+
+class VersionManager(models.Manager):
+    """ A special manager for versioned objects. By default it returns queryset 
+    with filters on the 'ends_at' attribute = NULL (last version of an object). 
+    If 'at_time' is provided, means the special version of an object is 
+    requested, this manager returns queryset tuned to the provided time. The 
+    'at_time' parameter should be provided to the manager at first call with the
+    filter() method of this Manager. """
+    use_for_related_fields = True
+    _at_time = None
+
+    def all(self):
+        """ need to proxy all() to apply versioning filters """
+        return self.get_query_set().all()
+
+    def filter(self, **kwargs):
+        """ method is overriden to support object versions. If an object is 
+        requested at a specific point in time here we split this time from 
+        kwargs to further proxy it to the QuerySet, so an appropriate version is
+        fetched. """
         kwargs, timeflt = _split_time( **kwargs )
+        return self.get_query_set( **timeflt ).filter( **kwargs )
 
-        if not fetch_children:
-            return objects
+    def proxy_time(self, proxy_to, **timeflt):
+        if timeflt.has_key('at_time'):
+            proxy_to._at_time = timeflt['at_time']
+        elif self._at_time:
+            proxy_to._at_time = self._at_time
+        return proxy_to
 
-        if objects: # evaluates queryset, executes 1 SQL
-            # fetch reversed FKs (children)
-            objects = self.fetch_fks( objects, timeflt )
 
-            # fetch reversed M2Ms (m2m children)
-            objects = self.fetch_m2m( objects, timeflt )
+class VersionedM2MManager( VersionManager ):
+    """ A manager for versioned relations. Used to proxy a special subclass of 
+    the Queryset (M2MQuerySet) designed for M2M relations. """
 
-        return objects
+    def get_query_set(self, **timeflt ):
+        """ init QuerySet that supports m2m relations versioning """
+        qs = M2MQuerySet(self.model, using=self._db)
+        self.proxy_time( qs, **timeflt )
+        return qs
+
+
+class VersionedObjectManager( VersionManager ):
+    """ extends a normal manager for versioned objects with a 'get_related' 
+    method, which is able to fetch objects together with permalinks to the 
+    direct, reversed and m2m relatives. This type of query is needed for the 
+    default Response behaviour """
+
+    def get_query_set(self, **timeflt ):
+        """ init QuerySet that supports object versioning """
+        qs = VersionedQuerySet(self.model, using=self._db)
+        self.proxy_time( qs, **timeflt )
+        return qs
+
+    def get_by_guid(self, guid):
+        """ proxy get_by_guid() method to QuerySet """
+        return self.get_query_set().get_by_guid( guid )
+
+    def get_related(self, *args, **kwargs):
+        """ proxy get_related() method to QuerySet """
+        return self.get_query_set( **kwargs ).get_related(*args, **kwargs)
 
     def get(self, *args, **kwargs):
         """ same as get_related but always returns one object or throws an error
