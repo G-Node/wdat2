@@ -256,24 +256,24 @@ class TestObjectState(TestCase):
         time.sleep( 1 )
 
         # assert object has 2 direct children and 2 M2M children
-        P1 = FakeParentModel.objects.filter( pk=1 ).get_related(fetch_children=True)[0]
+        P1 = FakeParentModel.objects.filter( pk=1 ).get_related()[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 2)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 2)
 
-        import ipdb
-        ipdb.set_trace()
         # delete some relatives
         C2.delete()
         m2m2.delete()
 
 
+        import ipdb
+        ipdb.set_trace()
         # assert object has now only 1 direct child and 1 M2M child
-        P1 = FakeParentModel.objects.filter( pk=1 ).get_related(fetch_children=True)[0]
+        P1 = FakeParentModel.objects.filter( pk=1 ).get_related()[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 1)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 1)
 
         # assert previous relations accessible back in time
-        P1 = FakeParentModel.objects.filter( at_time=bp, pk=1 ).get_related(fetch_children=True)[0]
+        P1 = FakeParentModel.objects.filter( at_time=bp, pk=1 ).get_related()[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 2)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 2)
 

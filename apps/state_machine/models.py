@@ -198,6 +198,12 @@ class BaseQuerySetExtension(object):
             else:
                 node[0].alias = table
 
+        def extract_rel_tables( nodes, extracted ):
+            for name, inside in nodes.items():
+                extracted.append( name )
+                if inside:
+                    extract_rel_tables( inside, extracted )
+
         if not self._time_injected:
             # 1. save limits
             high_mark, low_mark = self.query.high_mark, self.query.low_mark
@@ -215,9 +221,24 @@ class BaseQuerySetExtension(object):
             else:
                 qry.add_q( Q(ends_at__isnull = True) )
 
+
+            # cheating here: if there is no filter requested (like all() or just
+            # empty filter() some dummy filter needed so to have at least one
+            # table in self.query.alias_refcount
+            if not self.query.alias_refcount:
+                q = self.model.objects.filter( pk__gt=0 ) # this gives just one table
+                self.query.alias_refcount = q.query.alias_refcount
+
+            # some tables could be in the select_related, if requested
+            sel_rel_tables = []
+            if type(self.query.select_related) == type({}):
+                extract_rel_tables( self.query.select_related, sel_rel_tables )
+
+            tables = [tb for tb, rcount in self.query.alias_refcount.items() if rcount]
+            tables += sel_rel_tables # join filtered and sel_related tables
+
             # - build map of models with tables: {<table name>: <model>}
             vmodel_map = {}
-            tables = [tb for tb, rcount in self.query.alias_refcount.items() if rcount]
             for model in connection.introspection.installed_models( tables ):
                 vmodel_map[ model._meta.db_table ] = model
 
@@ -266,13 +287,6 @@ class BaseQuerySetExtension(object):
         q = self.filter( pk__gt=0 )
         q.inject_time()
         return super(BaseQuerySetExtension, q).count()
-
-    def all(self):
-        """ need to inject version time (or ends_at = NULL) before executing 
-        against database. No tables are in alias_refcount if no other filters 
-        are set, so the time injection doesn't work.. workaround here: inject a 
-        meaningless filter, which doesn't change the *all* query. """
-        return self.filter( pk__gt=0 )
 
     def delete(self):
         """ deletion for versioned objects means setting the 'ends_at' field 
@@ -329,7 +343,6 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
                 obj._at_time = self._at_time
             yield obj
 
-
     def bulk_create(self, objects):
         """ wrapping around a usual bulk_create to provide version-specific 
         information for all objects. As with original bulk creation, 
@@ -372,28 +385,25 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
     def get_related(self, *args, **kwargs):
         """ returns a LIST (not a queryset) of objects with children permalinks. 
         This should be faster than using any of standard django 'select_related'
-        or 'prefetch_related' methods which (unexpectedly) do not work as 
-        suggested. """
-        fetch_children = kwargs.pop('fetch_children', False)
-        if not kwargs.has_key('objects'):
-            objects = self.filter( **kwargs )
-        else:
-            objects = kwargs['objects']
-        kwargs, timeflt = _split_time( **kwargs )
-
-        if not fetch_children:
-            return objects
+        or 'prefetch_related' methods which (unexpectedly) do not work exactly 
+        as suggested. """
+        #if not kwargs.has_key('objects'):
+        objects = self.filter( **kwargs )
+        #else:
+        #    objects = kwargs['objects']
+        #kwargs, timeflt = _split_time( **kwargs )
+        #self._at_time = timeflt['_at_time']
 
         if objects: # evaluates queryset, executes 1 SQL
             # fetch reversed FKs (children)
-            objects = self.fetch_fks( objects, timeflt )
+            objects = self.fetch_fks( objects )
 
             # fetch reversed M2Ms (m2m children)
-            objects = self.fetch_m2m( objects, timeflt )
+            objects = self.fetch_m2m( objects )
 
         return objects
 
-    def fetch_fks(self, objects, timeflt={}):
+    def fetch_fks(self, objects):
         """ assigns permalinks of the reversed-related children to the list of 
         objects given. Expects list of objects, uses reversed FKs to fetch 
         children and their ids. Returns same list of objects, each having new  
@@ -422,7 +432,7 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             # fetching reverse relatives of type rel_name:
             filt = { rel_field_name + '__in': ids }
             # relmap is a list of pairs (<child_id>, <parent_ref_id>)
-            relmap = rel_model.objects.filter( **dict(filt, **timeflt) ).values_list(id_attr, rel_field_name)
+            relmap = rel_model.objects.filter( **filt ).values_list(id_attr, rel_field_name)
 
             if relmap:
                 # preparing fk maps: preparing dicts with keys as parent 
@@ -451,7 +461,7 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
                     setattr( obj, rel_name + "_buffer_ids", [] )
         return objects
 
-    def fetch_m2m(self, objects, timeflt={}):
+    def fetch_m2m(self, objects):
         """ assigns permalinks of the related m2m children to the list of 
         objects given. Expects list of objects, uses m2m to fetch children with 
         their ids. Returns same list of objects, each having new attribute WITH 
@@ -460,12 +470,13 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
         """
         if not objects: return []
 
-        id_attr = _get_id_attr_name( self.model )
-        ids = [ getattr(obj, id_attr) for obj in objects ]
+        ids = [ obj.pk for obj in objects ]
 
         for field in self.model._meta.many_to_many:
             m2m_class = field.rel.through
-            is_versioned = issubclass(m2m_class, VersionedM2M)
+            # proxy time for m2m / manager class
+            setattr(m2m_class, '_at_time', self._at_time)
+            #is_versioned = issubclass(m2m_class, VersionedM2M)
             own_name = field.m2m_field_name()
             rev_name = field.m2m_reverse_field_name()
             filt = dict( [(own_name + '__in', ids)] )
@@ -473,10 +484,15 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
 
             # select all related m2m connections (not reversed objects!) of 
             # a specific type, one SQL
-            if is_versioned:
-                rel_m2ms = m2m_class.objects.filter( **dict(filt, **timeflt) )
-            else:
-                rel_m2ms = m2m_class.objects.filter( **filt )
+            #if is_versioned:
+            #    rel_m2ms = m2m_class.objects.filter( **dict(filt, **timeflt) )
+            #else:
+            #    rel_m2ms = m2m_class.objects.filter( **filt )
+
+            import ipdb
+            ipdb.set_trace()
+
+            rel_m2ms = m2m_class.objects.filter( **filt ).select_related(rev_name)
 
             # get evaluated m2m conn queryset:
             rel_m2m_map = [ ( getattr(r, own_name + "_id"), \
@@ -494,9 +510,8 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
 
                 for obj in objects: # parse children into attrs
                     try:
-                        lid = getattr(obj, id_attr)
-                        setattr( obj, field.name + '_buffer', m2m_map_plinks[lid] )
-                        setattr( obj, field.name + '_buffer_ids', m2m_map_ids[lid] )
+                        setattr( obj, field.name + '_buffer', m2m_map_plinks[ obj.pk ] )
+                        setattr( obj, field.name + '_buffer_ids', m2m_map_ids[ obj.pk ] )
                     except KeyError: # no children, but that's ok
                         setattr( obj, field.name + '_buffer', [] )
                         setattr( obj, field.name + '_buffer_ids', [] )
