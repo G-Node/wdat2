@@ -6,65 +6,58 @@
   var init = function() {
     var bus = new WDAT.api.EventBus();
     var log = function(event, args) {
-      $(".event-log").first().append("<p>event fired: " + args + "</p>");
-    };
-
-    var log_toggle = function(event, evData) {
-      $(".event-log").first().append("<p>toggled: from " +
-          (evData.state) + "; eventData:</p>");
+      $(".event-log").first().append("<p>event fired: " + args.data() + "</p>");
     };
 
     bus.subscribe('foo', log);
-    bus.subscribe('toggle_foo', log_toggle);
 
     var h = $('<h3></h3>').text('Predefined buttons');
     $(".button-container").append(h);
 
-    var b = new WDAT.ui.Button('add', bus, 'foo', null, 'Adding');
-    $(".button-container").append(b.toJQ());
-    b = new WDAT.ui.Button('del', bus, 'foo', null, 'Deleting');
-    $(".button-container").append(b.toJQ());
-    b = new WDAT.ui.Button('sel', bus, 'foo', null, 'Selecting');
-    $(".button-container").append(b.toJQ());
-    b = new WDAT.ui.Button('edit', bus, 'foo', null, 'Editing');
-    $(".button-container").append(b.toJQ());
+    var b = new WDAT.ui.Button2(null, 'add', bus, 'foo', 'Adding');
+    $(".button-container").append(b.jq());
+    b = new WDAT.ui.Button2(null, 'del', bus, 'foo', 'Deleting');
+    $(".button-container").append(b.jq());
+    b = new WDAT.ui.Button2(null, 'sel', bus, 'foo', 'Selecting');
+    $(".button-container").append(b.jq());
+    b = new WDAT.ui.Button2(null, 'edit', bus, 'foo', 'Editing');
+    $(".button-container").append(b.jq());
 
 
     h = $('<h3></h3>').text('Predefined small buttons');
     $(".button-container").append(h);
 
-    var b = new WDAT.ui.Button('add-small', bus, 'foo', null, 'Small adding');
-    $(".button-container").append(b.toJQ());
-    b = new WDAT.ui.Button('del-small', bus, 'foo', null, 'Small deleting');
-    $(".button-container").append(b.toJQ());
-    b = new WDAT.ui.Button('sel-small', bus, 'foo', null, 'Small selecting');
-    $(".button-container").append(b.toJQ());
-    b = new WDAT.ui.Button('edit-small', bus, 'foo', null, 'Small editing');
-    $(".button-container").append(b.toJQ());
+    var b = new WDAT.ui.Button2(null, 'add_small', bus, 'foo', 'Small adding');
+    $(".button-container").append(b.jq());
+    b = new WDAT.ui.Button2(null, 'del_small', bus, 'foo', 'Small deleting');
+    $(".button-container").append(b.jq());
+    b = new WDAT.ui.Button2(null, 'sel_small', bus, 'foo', 'Small selecting');
+    $(".button-container").append(b.jq());
+    b = new WDAT.ui.Button2(null, 'edit_small', bus, 'foo', 'Small editing');
+    $(".button-container").append(b.jq());
 
     h = $('<h3></h3>').text('Event system checks');
     $(".button-container").append(h);
 
-    b = new WDAT.ui.Button('Should create an alert', bus, function() {
+    b = new WDAT.ui.Button2(null, 'Should create an alert', bus, function() {
         alert('And, it does!');
       }, 'blue');
-    $('.button-container').append(b.toJQ());
+    $('.button-container').append(b.jq());
 
-    b = new WDAT.ui.Button('Should publish an event', bus, 'foo', 'green', 
+    b = new WDAT.ui.Button2(null, 'Should publish an event', bus, 'foo', 'green', 
         'And it does!');
-    $('.button-container').append(b.toJQ());
+    $('.button-container').append(b.jq());
 
-    b = new WDAT.ui.Button('Should do nothing', bus, null);
-    $('.button-container').append(b.toJQ());
+    b = new WDAT.ui.Button2(null, 'Should do nothing', bus, null);
+    $('.button-container').append(b.jq());
 
 
     h = $('<h3></h3>').text('Toggle buttons');
     $(".button-container").append(h);
 
-    b = new WDAT.ui.Button('more-small', bus, 'toggle_foo', null); 
-    $('.button-container').append(b.toJQ());
-    b = new WDAT.ui.Button('less-small', bus, 'toggle_foo', null);
-    $('.button-container').append(b.toJQ());
+    b = new WDAT.ui.Button2(null, 'more', bus, 'foo', 'More/Less'); 
+    $('.button-container').append(b.jq());
+
   };
   $(window).load(init);
 </script>
