@@ -4,9 +4,9 @@
 
 /* Colors moderate*/
 @red   : #BF2219;
-@green : #24850C; 
+@green : #24850C;
 @blue  : #0461C4;
-@orange: #DB5318; 
+@orange: #DB5318;
 
 /* Light colors */
 @light-red   : #E35149;
@@ -45,9 +45,12 @@
 @bordercolor  : @light-grey;  */
 
 /* Font configuration */
-@baseFontFamily : "HelveticaNeue", Helvetica, Arial, sans-serif;
-@baseFontSize   : 12px;
-@baseLineHeight : 18px;
+@baseFontFamily  : "HelveticaNeue", Helvetica, Arial, sans-serif;
+@baseFontSize    : 12px;
+@mediumFontSize  : 14px;
+@largeFontSize   : 18px;
+@baseLineHeight  : 18px;
+@largeLineHeight : 20px;
 
 body {
   font-family : @baseFontFamily;
@@ -153,3 +156,47 @@ input[type="checkbox"]:FOCUS,input[type="radio"]:FOCUS, textarea:FOCUS {
 input[readonly="readonly"]:FOCUS {
   .border-std;
 }
+
+.hidden {
+  display: none;
+}
+
+/*
+ * Styles for WDAT.ui.container
+ */
+.wdat-container {
+  padding: @smallcushion;
+}
+
+.wdat-container .buttons {
+  float: right;
+  height: 22px;
+  vertical-align: middle;
+}
+
+.wdat-container .primary {
+  height: 22px;
+  vertical-align: middle;
+}
+
+.wdat-container .head {
+  font-size: @mediumFontSize;
+}
+
+.wdat-container .head-add {
+  color: @fg-grey;
+  margin-left: @smallcushion;
+}
+
+wdat-container .secondary {
+  padding-top: @cushioning;
+}
+
+.wdat-container .key {
+  font-weight: bold;
+}
+
+.wdat-container .val {
+  margin-left: @smallcushion;
+}
+
