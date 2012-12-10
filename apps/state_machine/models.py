@@ -221,21 +221,9 @@ class BaseQuerySetExtension(object):
             else:
                 qry.add_q( Q(ends_at__isnull = True) )
 
-
-            # cheating here: if there is no filter requested (like all() or just
-            # empty filter() some dummy filter needed so to have at least one
-            # table in self.query.alias_refcount
-            if not self.query.alias_refcount:
-                q = self.model.objects.filter( pk__gt=0 ) # this gives just one table
-                self.query.alias_refcount = q.query.alias_refcount
-
-            # some tables could be in the select_related, if requested
-            sel_rel_tables = []
-            if type(self.query.select_related) == type({}):
-                extract_rel_tables( self.query.select_related, sel_rel_tables )
-
-            tables = [tb for tb, rcount in self.query.alias_refcount.items() if rcount]
-            tables += sel_rel_tables # join filtered and sel_related tables
+            cp = self.query.get_compiler(using=self.db)
+            cp.pre_sql_setup() # thanks god I found that
+            tables = [table for table, rc in cp.query.alias_refcount.items() if rc]
 
             # - build map of models with tables: {<table name>: <model>}
             vmodel_map = {}
@@ -244,10 +232,18 @@ class BaseQuerySetExtension(object):
 
             # - add node with time filters to all versioned models (tables)
             for table in tables:
+                # find real table name, not alias
+                real_name = table
+                for mod_name, aliases in self.query.table_map.items():
+                    if table in aliases:
+                        real_name = mod_name
+
                 # skip non-versioned models, like User: no need to filter by time
-                if vmodel_map.has_key( table ):
-                    if not ObjectState in vmodel_map[ table ].mro():
+                if vmodel_map.has_key( real_name ):
+                    superclasses = vmodel_map[ real_name ].mro()
+                    if not (ObjectState in superclasses or VersionedM2M in superclasses):
                         continue
+
                 cloned_node = qry.where.__deepcopy__(memodict=None)
                 update_constraint( cloned_node, table )
                 self.query.where.add( cloned_node, AND )
@@ -387,12 +383,7 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
         This should be faster than using any of standard django 'select_related'
         or 'prefetch_related' methods which (unexpectedly) do not work exactly 
         as suggested. """
-        #if not kwargs.has_key('objects'):
         objects = self.filter( **kwargs )
-        #else:
-        #    objects = kwargs['objects']
-        #kwargs, timeflt = _split_time( **kwargs )
-        #self._at_time = timeflt['_at_time']
 
         if objects: # evaluates queryset, executes 1 SQL
             # fetch reversed FKs (children)
@@ -412,8 +403,7 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
         permalinks and ids respectively. """
         if not objects: return []
 
-        id_attr = _get_id_attr_name( self.model )
-        ids = [ getattr(x, id_attr) for x in objects ]
+        ids = [ x.pk for x in objects ]
 
         flds = [f for f in self.model._meta.get_all_related_objects() if not \
             issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
@@ -426,13 +416,14 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             rel_manager = getattr(self.model, rel_name)
             rel_field_name = rel_manager.related.field.name
             rel_model = rel_manager.related.model
-            id_attr = _get_id_attr_name( rel_model )
             url_base = _get_url_base( rel_model )
 
             # fetching reverse relatives of type rel_name:
             filt = { rel_field_name + '__in': ids }
+            if self._at_time and issubclass(rel_model, ObjectState): # proxy time if requested
+                filt = dict(filt, **{"at_time": self._at_time})
             # relmap is a list of pairs (<child_id>, <parent_ref_id>)
-            relmap = rel_model.objects.filter( **filt ).values_list(id_attr, rel_field_name)
+            relmap = rel_model.objects.filter( **filt ).values_list('pk', rel_field_name)
 
             if relmap:
                 # preparing fk maps: preparing dicts with keys as parent 
@@ -447,9 +438,8 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
 
                 for obj in objects: # parse children into attrs
                     try:
-                        lid = getattr(obj, id_attr)
-                        setattr( obj, rel_name + "_buffer", fk_map_plinks[lid] )
-                        setattr( obj, rel_name + "_buffer_ids", fk_map_ids[lid] )
+                        setattr( obj, rel_name + "_buffer", fk_map_plinks[obj.pk] )
+                        setattr( obj, rel_name + "_buffer_ids", fk_map_ids[obj.pk] )
                     except KeyError: # no children, but that's ok
                         setattr( obj, rel_name + "_buffer", [] )
                         setattr( obj, rel_name + "_buffer_ids", [] )
@@ -474,24 +464,17 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
 
         for field in self.model._meta.many_to_many:
             m2m_class = field.rel.through
-            # proxy time for m2m / manager class
-            setattr(m2m_class, '_at_time', self._at_time)
-            #is_versioned = issubclass(m2m_class, VersionedM2M)
             own_name = field.m2m_field_name()
             rev_name = field.m2m_reverse_field_name()
             filt = dict( [(own_name + '__in', ids)] )
             url_base = _get_url_base( field.rel.to )
 
+            # proxy time if requested
+            if self._at_time and issubclass(m2m_class, VersionedM2M):
+                filt = dict(filt, **{"at_time": self._at_time})
+
             # select all related m2m connections (not reversed objects!) of 
             # a specific type, one SQL
-            #if is_versioned:
-            #    rel_m2ms = m2m_class.objects.filter( **dict(filt, **timeflt) )
-            #else:
-            #    rel_m2ms = m2m_class.objects.filter( **filt )
-
-            import ipdb
-            ipdb.set_trace()
-
             rel_m2ms = m2m_class.objects.filter( **filt ).select_related(rev_name)
 
             # get evaluated m2m conn queryset:
@@ -620,7 +603,7 @@ class VersionedM2M( models.Model ):
         abstract = True
 
 
-class ObjectState(models.Model):
+class ObjectState( models.Model ):
     """
     A base class for a versioned G-Node object. An object can be Active, Deleted
      and Archived, usually with the following cycle:

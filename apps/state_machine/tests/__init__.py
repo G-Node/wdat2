@@ -264,9 +264,6 @@ class TestObjectState(TestCase):
         C2.delete()
         m2m2.delete()
 
-
-        import ipdb
-        ipdb.set_trace()
         # assert object has now only 1 direct child and 1 M2M child
         P1 = FakeParentModel.objects.filter( pk=1 ).get_related()[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 1)
