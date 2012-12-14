@@ -106,9 +106,6 @@ class BaseHandler(object):
 
             if not create:
                 q = self.options.get("q", self.mode)
-                if q == 'full' or q == 'beard':
-                    kwargs["fetch_children"] = True
-
                 all_ids = objects.values_list( "guid", flat=True )
                 if len(all_ids) > 0: # evaluate pre-QuerySet here, hits database
                     kwargs["guid__in"] = self.secondary_filtering(all_ids)
@@ -346,13 +343,15 @@ class BaseHandler(object):
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
-        except (IntegrityError, ValidationError), VE:
-            if hasattr(VE, 'message_dict'):
-                json_obj=VE.message_dict
-            else:
-                json_obj={"details": ", ".join(VE.messages)}
-            return BadRequest(json_obj=json_obj, \
-                message_type="bad_parameter", request=request)
+        #except (IntegrityError, ValidationError), VE:
+        #    if hasattr(VE, 'message_dict'):
+        #        json_obj=VE.message_dict
+        #    elif hasattr(VE, 'messages'):
+        #        json_obj={"details": ", ".join(VE.messages)}
+        #    else:
+        #        json_obj={"details": str( VE )}
+        #    return BadRequest(json_obj=json_obj, \
+        #        message_type="bad_parameter", request=request)
         except (AssertionError, AttributeError, KeyError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="post_data_invalid", request=request)
@@ -364,12 +363,7 @@ class BaseHandler(object):
             update_kwargs=update_kwargs, m2m_dict=m2m_dict, fk_dict=fk_dict )
 
         request.method = "GET"
-        if 'local_id' in self.model._meta.get_all_field_names():
-            id_attr = 'local_id'
-        else:
-            id_attr = 'id'
-        ids = [ getattr(obj, id_attr) for obj in objects ]
-        filt = { id_attr + '__in': ids }
+        filt = { 'pk__in': [ obj.pk for obj in objects ] }
         # need refresh the QuerySet, f.e. in case of a bulk update
         return self.get(request, self.model.objects.get_related( **filt ), return_code)
 

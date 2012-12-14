@@ -33,8 +33,6 @@ import numpy as np
 import settings
 import time
 
-SERVER_NAME = "testserver"
-
 TEST_VALUES = [1, 0, 1.5, "this is a test", None]
 # TODO make the test with ALL django field types!!
 

@@ -192,24 +192,16 @@ class Serializer(PythonSerializer):
                 else:
                     field = model._meta.get_field(field_name)
 
-                    # Handle versioned M2M relations
-                    #if field_name in versioned_m2m_names:
-                    #    m2m_data = []
-                    #    mgr = getattr( model(), field_name )
-                    #    for m2m in field_value: # we support both ID and permalinks
-                    #        m2m_data.append( self._resolve_ref(mgr.rel_model, m2m, user) )
-                    #        m2m_dict[ field_name ] = [int(x.local_id) for x in m2m_data]
-
                     # Handle M2M relations
                     if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
                         m2m_data = []
 
                         for m2m in field_value: # we support both ID and permalinks
                             m2m_data.append( self._resolve_ref(field.rel.to, m2m, user) )
-                        if 'local_id' in field.rel.to._meta.get_all_field_names():
-                            m2m_dict[field.name] = [int(x.local_id) for x in m2m_data]
-                        else:
-                            m2m_dict[field.name] = [int(x.id) for x in m2m_data]
+                        #if 'local_id' in field.rel.to._meta.get_all_field_names():
+                        m2m_dict[field.name] = [int( x.pk ) for x in m2m_data]
+                        #else:
+                        #    m2m_dict[field.name] = [int(x.id) for x in m2m_data]
 
                     # Handle FK fields (taken from django.core.Deserializer)
                     elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
@@ -229,38 +221,6 @@ class Serializer(PythonSerializer):
 #-------------------------------------------------------------------------------
 # Field handlers
 
-    def handle_fk_field(self, obj, field):
-        related = getattr(obj, field.name)
-        if related:
-
-            """ use natural keys defines the level of FKs serialization:
-            - 1: natural key / id for non-versioned
-            - 2: permalink or just id for objects without permalink
-            - other: local_id or just id for non-versioned objects """
-
-            if self.use_natural_keys == 1 and hasattr(related, 'natural_key'):
-                related = related.natural_key()
-
-            elif self.use_natural_keys not in [1, 2] and hasattr(related, 'get_absolute_url'):
-                related = self.resolve_permalink( related )
-
-            else:
-                if field.rel.field_name == related._meta.pk.name:
-                    # Related to remote object via primary key
-
-                    # if object is versioned, return local_id
-                    if hasattr(related, 'local_id'):
-                        related = related.local_id
-
-                    else: # else just an id
-                        related = related._get_pk_val()
-                else:
-                    # Related to remote object via other field
-                    related = smart_unicode(getattr(related, field.rel.field_name), \
-                        strings_only=True)
-        self._current[field.name] = related
-
-
     def handle_data_field(self, obj, field):
         """ serialize data field """
         data = field._get_val_from_obj(obj)
@@ -279,11 +239,6 @@ class Serializer(PythonSerializer):
         # prefetched m2m data in _buffer
         self._current[field.name] = [ self.resolve_permalink(related) 
             for related in getattr(obj, field.name + '_buffer', []) ]
-
-
-    def handle_versioned_m2m_field(self, mgr):
-        self._current[ mgr.local_field ] = [ self.resolve_permalink(related) \
-            for related in getattr(obj, mgr.local_field).iterator() ]
 
     def is_data_field_json(self, attr_name, value):
         """ determines if a given field has units and requires special proc."""

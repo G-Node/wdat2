@@ -355,9 +355,10 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             else:  # new object
                 obj.local_id = lid
                 lid += 1
-            obj.guid = create_hash_from( obj ) # compute unique hash 
             obj.date_created = obj.date_created or now
             obj.starts_at = now
+            # compute unique hash (after updating object and starts_at)
+            obj.guid = create_hash_from( obj )
             if not val_flag: # clean only one object for speed
                 obj.full_clean()
                 val_flag = True
