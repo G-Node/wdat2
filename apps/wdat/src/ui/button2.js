@@ -76,7 +76,7 @@
         this._jq.click(click);
       } else {
         var that = this;
-        this._click = function() { that._bus.publish(click.toString(), that); };
+        this._click = function() { that._bus.publish(click.toString(), that.data()); };
         this._jq.click(this._click);
       }
     }

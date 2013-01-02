@@ -291,7 +291,7 @@
     var that = this;
     return function(event, data) {
       if (data.id)
-        that.remove(data.id);
+        that.remove(data);
     };
   };
 
