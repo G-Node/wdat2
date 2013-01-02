@@ -7,11 +7,11 @@
   var init = function() {
     var bus = new WDAT.api.EventBus(); 
     var tree = new WDAT.ui.Tree($('#tree-1'), bus, ['del', 'sel', 'edit', 'add', 'more']);
-    bus.subscribe(tree.events.sel, tree.selectHandler());
-    bus.subscribe(tree.events.more, tree.expandHandler());
-    bus.subscribe(tree.events.del, tree.removeHandler());
-    bus.subscribe(tree.events.edit, tree.editHandler());
-    bus.subscribe(tree.events.add, function(event, data) {
+    bus.subscribe(tree.event('sel'), tree.selectHandler());
+    bus.subscribe(tree.event('expand'), tree.expandHandler());
+    bus.subscribe(tree.event('del'), tree.removeHandler());
+    bus.subscribe(tree.event('edit'), tree.editHandler());
+    bus.subscribe(tree.event('add'), function(event, data) {
       var elem = {name: 'Test Node', type: 'section'};
       tree.add(elem, data);
     });

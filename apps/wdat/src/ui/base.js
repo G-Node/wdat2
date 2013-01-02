@@ -16,9 +16,11 @@
   /* A base class for all kinds of UI dataents. Each widget has a private property
    * _jq representing a jQuery object and a property _id, that is also used as
    * the id of the HTML dataent (_jq.attr('id')).
+   * A key feature of a Widget is the facht that it adds itself to ists own jQuery
+   * object (widget.jq().data() === widget).
    *
    * Parameters:
-   *  - id: String, jQuery      A id or and jQuery object, that defines the widget.
+   *  - id: String, jQuery        A id or and jQuery object, that defines the widget.
    *
    *  - template: String          HTML code that is used to instantiate the structure
    *                              of the widget (optional). If unsed the template is '<div>'
@@ -37,12 +39,13 @@
         this._jq = id;
         this._id = this._jq.attr('id');
       }
-      if (clazz)
-        this._jq.addClass(clazz);
     } else {
       this._id = '';
       this._jq = template ? $(template) : $('<div>');
     }
+    if (clazz)
+        this._jq.addClass(clazz);
+    this._jq.data(this);
   }
 
   /* Returns the id of the widget.
@@ -73,8 +76,8 @@
   Widget.prototype.toID = function(data, suffix) {
     var id = null;
     if (data) {
-      if (typeof data === 'object' && data.id) {
-        id = this._id + '-' + data.id.toString().replace(/[\.\\\/_]+/g, '-');
+      if (typeof data === 'object') {
+        if (data.id) id = this._id + '-' + data.id.toString().replace(/[\.\\\/_]+/g, '-');
       } else {
         id = this._id + '-' + data.toString().replace(/[\.\\\/_]+/g, '-');
       }

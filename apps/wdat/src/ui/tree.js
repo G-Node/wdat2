@@ -7,27 +7,15 @@
    * the tree can be expanded and collapsed. Further nodes can be appended and removed from
    * the tree.
    *
-   * Internally the tree is represented by nested div elements.
-   *
-   * <div class="tree-node [collapsed]">
-   *    <div class="node-content [selected]">'
-   *        <div class="node-icon"></div>
-   *        <div class="node-btn"></div>
-   *        <div class="node-name"></div>
-   *    </div>
-   *    [children]
-   * </div>
-   *
    * Parameters:
-   *  - name: String/Obj    Name/ID for this individual tree or a jQuery object representing
+   *  - id: String/Obj      Name/ID for this individual tree or a jQuery object representing
    *                        an empty div that will be used as the container for the tree.
    *
    *  - bus: EventBus       A bus handling events.
    *
-   *  - select: Array       Array with event names that the tree will provide.
+   *  - actions: Array      Array with event names that the tree will provide.
    *                        Common events are 'del', 'add', 'edit' and 'sel'.
-   *                        Events for changes ('changed') and expand/collapse ('more')
-   *                        will be added if not present in the event array.
+   *                        An action 'expand' will be created automatically.
    *
    * Depends on:
    *  - jQuery, WDAT.api.EventBus, WDAT.ui.Button
@@ -35,30 +23,23 @@
    * TODO Replace buttons with jQuery-UI buttons
    */
   WDAT.ui.Tree = Tree;
-  function Tree(name, bus, events) {
-    // initialize name and tree body (_tree)
-    if (typeof name == 'string') { // name is a string
-      this._tree = $('<div class="tree"></div>').attr('id', name);
-      this.name = name;
-    } else if (typeof name === 'object') { // name is a jQuery object
-      this._tree = name;
-      this._tree.addClass('tree');
-      this.name = this._tree.attr('id');
-    }
-    this.bus = bus;
-    // event IDs
-    this.events = {}
-    for (var i in events) {
-      this.events[events[i]] = this.name + '-' + events[i].toString();
+  inherit(Tree, WDAT.ui.Widget);
+  function Tree(id, bus, actions) {
+    Tree.parent.constructor.call(this, id, '<div>', 'wdat-tree');
+    this._bus = bus;
+    // create events
+    this._actions = {}
+    for (var i in actions) {
+      var act = actions[i];
+      if ($.inArray(act, WDAT.ui.Container.ACTIONS)) {
+        this._actions[act] = this._id + act;
+      }
     }
     // add mandatory events
-    if (!events['changed'])
-      this.events['changed'] = this.name + '-changed';
-    if (!events['more'])
-      this.events['more'] = this.name + '-more';
+    this._actions.expand = this._id + '-expand';
   }
 
-
+  // TODO change and use this template var
   var ELEM_TMPL = '<div class="tree-node collapsed"><div class="node-content">'
                 + '<div class="node-icon"></div><div class="node-btn"></div>'
                 + '<div class="node-name"></div></div></div>';
@@ -69,7 +50,7 @@
    * id will be chosen.
    *
    * Parameter:
-   *  - element: Obj        The element to add to the tree.
+   *  - data: Obj           The element to add to the tree.
    *
    *  - parent: String/Obj  The is of the parent or the parent object. When null the
    *                        new element will be added to the root of the tree (optional).
@@ -78,113 +59,58 @@
    *                        Leaf nodes don't fire expand/collapse events.
    *
    * Return value:
-   *    The element added to the tree.
+   *    The data of the element added to the tree.
    */
-  Tree.prototype.add = function(element, parent, isLeaf) {
+  Tree.prototype.add = function(data, parent, isLeaf) {
     // check for existence
-    if (!this.has(element)) {
-      // set element id
-      if (!element.id)
-        element.id = this.bus.uid();
-      var id = this._toId(element);
-      // create new representation of the element
-      var elem = $(ELEM_TMPL);
-      elem.attr('id', id);
-      elem.find('.node-name').first().text(element.name);
-      elem.find('.node-btn').first().append(this._buttons(element));
-      elem.data(element);
-      // is a leaf
-      if (isLeaf)
-        elem.addClass('leaf-node');
+    if (!this.has(data)) {
+      // set data id
+      if (!data.id) data.id = this._bus.uid();
+      var id = this.toID(data);
+      // create a node and a container
+      var node = $('<div class="tree-node collapsed"><div class="node-icon"></div></div>)').attr('id', id);
+      var cont = new WDAT.ui.Container(null, this._bus, data, ['name'], null, this._actions);
+      node.append(cont.jq());
+      if (isLeaf) node.addClass()
       // fire expand events on click
-      if (this.events.more) {
+      if (this._actions.expand) {
         var that = this;
-        elem.find('.node-icon').click(function() {
-          var e = $('#'+id);
-          if (!e.is('.leaf-node'))
-            that.bus.publish(that.events.more, e.data());
+        node.children('.node-icon').click(function() {
+            that._bus.publish(that._actions.expand, cont.data());
         });
       }
       // fire select event when clicking on the node content
-      if (this.events.sel) {
+      if (this._actions.sel) {
         var that = this;
-        elem.find('.node-name').click(function() {
-          var e = $('#'+id);
-          that.bus.publish(that.events.sel, e.data());
+        node.find('.node-name').click(function() {
+          that._bus.publish(that._actions.sel, cont.data());
         });
       }
-      // add element to the tree
+      // add data to the tree
       if (this.has(parent)) {
-        var p = this._tree.find('#' + this._toId(parent)).first();
-        p.append(elem);
-        p.removeClass('leaf-node');
+        var p = this._jq.find('#' + this.toID(parent));
+        p.append(node).removeClass('leaf-node');
       } else {
-        this._tree.append(elem);
+        this._jq.append(node);
       }
     } else {
-      this.update(element);
+      this.update(data);
     }
-    return element;
+    return data;
   };
 
   /* Update the textual representation of a node.
    *
    * Parameter:
-   *  - element: Obj      The element to update.
+   *  - data: Obj      The element to update.
    *
    * Return value:
    *    None
    */
-  Tree.prototype.update = function(element) {
-    var elem = this._tree.find('#' + this._toId(element));
-    elem.data(element);
-    elem.children('.node-content').find('.node-name').text(element.name);
-  };
-
-  /* Edit the name of an existing list element.
-   *
-   * Parameter:
-   *  - element: String, Obj.  The elements to edit or the id of this
-   *                           element.
-   *
-   * Return value:
-   *    None
-   */
-  Tree.prototype.edit = function(element) {
-    // find element by id
-    if (this.has(element)) {
-      var elem = $('#' + this._toId(element));
-      elem = elem.children('.node-content');
-      // save old element
-      var namediv = elem.children('.node-name').first();
-      var name = namediv.text();
-      namediv.empty();
-      var buttons = elem.children('.node-btn').first();
-      buttons.detach();
-      // create input and replace old content
-      var input = $('<input />').attr('type', 'text').attr('value', name);
-      namediv.append(input);
-      input.focus().select();
-      // listen on key events
-      var that = this;
-      input.keyup(function(e) {
-        if (e.keyCode == 13) {
-          // ENTER: submit changes
-          var newname = input.val();
-          namediv.empty().text(newname);
-          elem.prepend(buttons);
-          if (element.id)
-            element.name = newname;
-          else
-            element = {id: element, name: newname};
-          that.bus.publish(that.events.changed, element);
-        }
-        if (e.keyCode == 27) {
-          // ESC: restore old text
-          namediv.empty().text(name);
-          elem.prepend(buttons);
-        }
-      });
+  Tree.prototype.update = function(data) {
+    var cont = this._jq.find('#'+this.toID(data)).children('.wdat-container');
+    if (cont.length > 0) {
+      cont.data().data(data);
     }
   };
 
@@ -260,7 +186,7 @@
    */
   Tree.prototype.expand = function(element, single) {
     // get the element and its selection status
-    var elem = this._tree.find('#' + this._toId(element));
+    var elem = this._jq.find('#' + this.toID(element));
     if (!elem.is('.leaf-node')) {
       var collapsed = elem.is('.collapsed');
       // if single, then unselect all
@@ -278,7 +204,7 @@
 
   Tree.prototype.isExpanded = function(element) {
     // get the element and its selection status
-    var elem = this._tree.find('#' + this._toId(element));
+    var elem = this._jq.find('#' + this._toID(element));
     if (elem.is('.leaf-node')) {
       return false;
     } else {
@@ -296,21 +222,23 @@
    * Return value:
    *    True if the element or the id exists in that tree, false otherwise.
    */
-  Tree.prototype.has = function(element) {
-    if (element != null && this._tree.find('#' + this._toId(element)).length > 0) {
+  Tree.prototype.has = function(data) {
+    if (data != null && this._jq.find('#' + this.toID(data)).length > 0) {
       return true;
     } else {
       return false;
     }
   };
-
-  /* Returns the element that contains the tree as a jQuery object.
+  
+  /* Returns the event used for a specific action.
    *
-   * Return value:
-   *    The tree as a jQuery object.
    */
-  Tree.prototype.toJQ = function() {
-    return this._tree;
+  Tree.prototype.event = function(action) {
+    var e = this._actions[action];
+    if (typeof e === 'function')
+      return null;
+    else
+      return e;
   };
 
   /* Crates a default handler function for select events.
@@ -363,43 +291,6 @@
       if (data.id)
         that.edit(data.id);
     };
-  };
-
-  /* Helper function for the creation of buttons
-   * matching the event list. For internal use only.
-   */
-  Tree.prototype._buttons = function(element) {
-    var btns = [];
-    if (element.id) {
-      for ( var i in this.events) {
-        var label = i.toString();
-        if ($.inArray(label, ['more', 'sel', 'changed']) < 0) {
-          if ($.inArray(label, ['del', 'add', 'edit']) >= 0)
-            label = label + '-small';
-          var b = new WDAT.ui.Button(label, this.bus, this.events[i], null, element);
-          btns.push(b.toJQ());
-        }
-      }
-    }
-    return btns;
-  };
-
-  /* Helper function for the creation unique ids.
-   * For internal use only.
-   */
-  Tree.prototype._toId = function(id) {
-    var result = null;
-    if (id != null && id != undefined) {
-      if (typeof id == 'object') {
-        if (id['id'])
-          result = this.name + '-' + id.id.toString().replace(/\//g, '-');
-        else
-          result = this.bus.uid();
-      } else {
-        result = this.name + '-' + id.toString().replace(/\//g, '-');
-      }
-    }
-    return result;
   };
 
 }());

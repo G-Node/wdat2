@@ -1,43 +1,38 @@
 /* ---------- file: tree.less ---------- */
 
-.tree .tree-node .tree-node {
+.wdat-tree .tree-node {
   margin-left: 20px;
 }
 
-.tree .collapsed .tree-node {
+.wdat-tree .collapsed .tree-node {
   display: none;
 }
 
-.tree .node-content {
+.wdat-tree .wdat-container {
   cursor: pointer;
 }
 
-.tree .node-content:HOVER {
+.wdat-tree .wdat-container .buttons {display: none;}
+
+.wdat-tree .wdat-container:HOVER {
   .rounded;
   background: @light-grey !important;
 }
 
-.tree .selected {
+.wdat-tree .wdat-container:HOVER .buttons {
+    display: block !important;
+}
+
+.wdat-tree .selected {
   .rounded;
   background: @light-blue;
 }
 
-.tree .node-icon, .node-name {
+.wdat-tree .node-icon, .node-name {
   padding: @smallcushion;
 }
 
-.tree .node-btn {
-  padding: @smallcushion / 4;
-  float: right;
-  text-align: right;
-  display: none;
-}
-
-.tree .node-content:HOVER .node-btn {
-  display: block;
-}
-
-.tree .node-icon {
+.wdat-tree .node-icon {
   float: left;
   background-image: url(/site_media/static/tni-open.png);
   background-position: center;
@@ -46,14 +41,14 @@
   height: 18px;
 }
 
-.tree .collapsed .node-icon { background-image: url(/site_media/static/tni-closed.png); }
+.wdat-tree .collapsed .node-icon { background-image: url(/site_media/static/tni-closed.png); }
 
-.tree .leaf-node .node-icon { background-image: url(/site_media/static/tni-leaf.png); }
+.wdat-tree .leaf-node .node-icon { background-image: url(/site_media/static/tni-leaf.png); }
 
-.tree .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-open.png); }
+.wdat-tree .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-open.png); }
 
-.tree .collapsed .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-closed.png); }
+.wdat-tree .collapsed .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-closed.png); }
 
-.tree .leaf-node .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-leaf.png); }
+.wdat-tree .leaf-node .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-leaf.png); }
 
-.tree button { margin-right: @smallcushion / 4; }
+.wdat-tree button { margin-right: @smallcushion / 4; }
