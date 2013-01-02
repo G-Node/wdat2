@@ -82,7 +82,7 @@
       // fire select event when clicking on the node content
       if (this._actions.sel) {
         var that = this;
-        node.find('.node-name').click(function() {
+        cont.jq().children('.primary').click(function() {
           that._bus.publish(that._actions.sel, cont.data());
         });
       }
@@ -157,13 +157,14 @@
    */
   Tree.prototype.select = function(element, single) {
     // get the element and its selection status
-    var elem = this._tree.find('#' + this._toId(element));
-    elem = elem.children('.node-content');
+    var elem = this._jq.find('#' + this.toID(element));
+    elem = elem.children('.wdat-container');
     var selected = elem.is('.selected');
     // if single, then unselect all
     if (single) {
-      this._tree.find('.node-content').each(function() {
-        $(this).removeClass('selected');
+      this._jq.find('.tree-node').each(function() {
+        var other = $(this).children('.wdat-container');
+        other.removeClass('selected');
       });
     }
     elem.toggleClass('selected', !selected);
