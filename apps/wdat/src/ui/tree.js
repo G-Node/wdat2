@@ -18,7 +18,7 @@
    *                        An action 'expand' will be created automatically.
    *
    * Depends on:
-   *  - jQuery, WDAT.api.EventBus, WDAT.ui.Button
+   *  - jQuery, WDAT.api.EventBus, WDAT.ui.Button, WDAT.ui.Container
    *
    * TODO Replace buttons with jQuery-UI buttons
    */
@@ -31,8 +31,8 @@
     this._actions = {}
     for (var i in actions) {
       var act = actions[i];
-      if ($.inArray(act, WDAT.ui.Container.ACTIONS)) {
-        this._actions[act] = this._id + act;
+      if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0) {
+        this._actions[act] = this._id + '-' + act;
       }
     }
     // add mandatory events
