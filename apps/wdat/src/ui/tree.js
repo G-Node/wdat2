@@ -124,7 +124,7 @@
    *    None
    */
   Tree.prototype.remove = function(element) {
-    var elem = this._tree.find('#' + this._toId(element));
+    var elem = this._jq.find('#' + this.toID(element));
     elem.remove();
   };
 
@@ -138,7 +138,7 @@
    *    None
    */
   Tree.prototype.removeChildren = function(element) {
-    var elem = this._tree.find('#' + this._toId(element));
+    var elem = this._jq.find('#' + this.toID(element));
     elem.children('.tree-node').remove();
   };
 
@@ -203,6 +203,14 @@
     }
   };
 
+  /* Checks if a node is expanded.
+   *
+   * Parameter:
+   *  - element: String, Obj.   The element to check or the id of the element.
+   *
+   * Return value:
+   *    True if the element is expanded, false otherwise.
+   */
   Tree.prototype.isExpanded = function(element) {
     // get the element and its selection status
     var elem = this._jq.find('#' + this._toID(element));
@@ -233,6 +241,12 @@
   
   /* Returns the event used for a specific action.
    *
+   * Parameter:
+   *  - action: String      The action.
+   *
+   * Return value:
+   *    The event name, that is used for a specific action or null if no event
+   *    was specified.
    */
   Tree.prototype.event = function(action) {
     var e = this._actions[action];
