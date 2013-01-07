@@ -1,54 +1,50 @@
 /* ---------- file: tree.less ---------- */
 
-.wdat-tree .tree-node {
-  margin-left: 20px;
+.wdat-tree {
+
+  .tree-node .tree-node { margin-left: 20px; }
+  .collapsed .tree-node { display: none; }
+
+  .wdat-container {
+    cursor: pointer;
+    .buttons { display: none; }
+  }
+
+  .wdat-container:HOVER  {
+    .rounded;
+    background: @light-grey !important;
+    .buttons { display: block !important; }
+  }
+
+  button { margin-right: @smallcushion / 4; }
+
+  .selected {
+    .rounded;
+    background: @light-blue;
+  }
+
+  .node-icon, .node-name {
+    padding: @smallcushion;
+  }
+
+  .node-icon {
+    float: left;
+    background-image: url(/site_media/static/tni-open.png);
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 18px;
+    height: 18px;
+  }
+
+  .collapsed .node-icon { background-image: url(/site_media/static/tni-closed.png); }
+
+  .leaf-node .node-icon { background-image: url(/site_media/static/tni-leaf.png); }
+
+  .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-open.png); }
+
+  .collapsed .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-closed.png); }
+
+  .leaf-node .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-leaf.png); }
+
 }
 
-.wdat-tree .collapsed .tree-node {
-  display: none;
-}
-
-.wdat-tree .wdat-container {
-  cursor: pointer;
-}
-
-.wdat-tree .wdat-container .buttons {display: none;}
-
-.wdat-tree .wdat-container:HOVER {
-  .rounded;
-  background: @light-grey !important;
-}
-
-.wdat-tree .wdat-container:HOVER .buttons {
-    display: block !important;
-}
-
-.wdat-tree .selected {
-  .rounded;
-  background: @light-blue;
-}
-
-.wdat-tree .node-icon, .node-name {
-  padding: @smallcushion;
-}
-
-.wdat-tree .node-icon {
-  float: left;
-  background-image: url(/site_media/static/tni-open.png);
-  background-position: center;
-  background-repeat: no-repeat;
-  width: 18px;
-  height: 18px;
-}
-
-.wdat-tree .collapsed .node-icon { background-image: url(/site_media/static/tni-closed.png); }
-
-.wdat-tree .leaf-node .node-icon { background-image: url(/site_media/static/tni-leaf.png); }
-
-.wdat-tree .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-open.png); }
-
-.wdat-tree .collapsed .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-closed.png); }
-
-.wdat-tree .leaf-node .node-icon:HOVER { background-image: url(/site_media/static/tni-hover-leaf.png); }
-
-.wdat-tree button { margin-right: @smallcushion / 4; }
