@@ -46,11 +46,6 @@
     this._actions.expand = this._id + '-expand';
   }
 
-  // TODO change and use this template var
-  var ELEM_TMPL = '<div class="tree-node collapsed"><div class="node-content">'
-                + '<div class="node-icon"></div><div class="node-btn"></div>'
-                + '<div class="node-name"></div></div></div>';
-
   /* Add a new node to the tree. Elements of the tree are represented as a
    * object that must at least contain a property 'name'. If this object has
    * also a property 'id' this will be used as an identifier. Otherwise a unique
