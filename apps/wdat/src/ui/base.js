@@ -149,6 +149,7 @@
     this._primary = primary || ['name'];
     this._secondary = secondary;
     this._actions = actions;
+    this._jq.data(this);
     if (data) this.data(data);
   }
 

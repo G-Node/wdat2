@@ -35,6 +35,13 @@
         this._actions[act] = this._id + '-' + act;
       }
     }
+    this._buttonactions = {}
+    for (var i in actions) {
+      var act = actions[i];
+      if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0 && act != 'sel') {
+        this._buttonactions[act] = this._id + '-' + act;
+      }
+    }
     // add mandatory events
     this._actions.expand = this._id + '-expand';
   }
@@ -69,9 +76,9 @@
       var id = this.toID(data);
       // create a node and a container
       var node = $('<div class="tree-node collapsed"><div class="node-icon"></div></div>)').attr('id', id);
-      var cont = new WDAT.ui.Container(null, this._bus, data, ['name'], null, this._actions);
+      var cont = new WDAT.ui.Container(null, this._bus, data, ['name'], null, this._buttonactions);
       node.append(cont.jq());
-      if (isLeaf) node.addClass()
+      // TODO hmpf?? if (isLeaf) node.addClass()
       // fire expand events on click
       if (this._actions.expand) {
         var that = this;
@@ -110,7 +117,8 @@
   Tree.prototype.update = function(data) {
     var cont = this._jq.find('#'+this.toID(data)).children('.wdat-container');
     if (cont.length > 0) {
-      cont.data().data(data);
+      cont = cont.data();
+      cont.data(data);
     }
   };
 
@@ -213,7 +221,7 @@
    */
   Tree.prototype.isExpanded = function(element) {
     // get the element and its selection status
-    var elem = this._jq.find('#' + this._toID(element));
+    var elem = this._jq.find('#' + this.toID(element));
     if (elem.is('.leaf-node')) {
       return false;
     } else {
@@ -238,7 +246,7 @@
       return false;
     }
   };
-  
+
   /* Returns the event used for a specific action.
    *
    * Parameter:

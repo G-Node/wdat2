@@ -187,5 +187,5 @@ WDAT.api = WDAT.api || {};    // name space related to the RESTfull API
 WDAT.app = WDAT.app || {};    // name space for application specific parts
 WDAT.ui  = WDAT.ui || {};     // name space for UI base classes
 
-WDAT.debug = false;
+WDAT.debug = true;
 
