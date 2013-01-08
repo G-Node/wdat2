@@ -113,7 +113,7 @@ class Datafile(SafetyLevel, ObjectState):
 
     @property
     def has_array(self):
-        return self.file_type == 5
+        return self.file_type in [0, 5] # change to just 5 after debugging!
 
     def get_slice(self, start_index=0, end_index=10**9, downsample=None, **kwargs):
         """ returns a slice of the array data.
