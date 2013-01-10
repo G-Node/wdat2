@@ -3,436 +3,291 @@
 (function() {
   "use strict";
 
-  /* Constructor for the class VList. VList implements view to a dynamic list. Elements can 
-   * be added, removed, edited and selected. The list expects all elements to have at least
+  /* Constructor for the class List. List implements view to a dynamic list. Elements can
+   * be added, removed and selected. The list expects all elements to have at least
    * the attribute 'name'.
-   * 
-   * Minimal list element: 
+   *
+   * Minimal list element:
    *   { name: <name> }
-   * Complete list element:
-   *   { id: <id>,       // The elements id, must be unique in the whole list.
-   *     name: <name>,   // The name of the element (string)
-   *     info: <info>,   // Some additional information (string)
-   *     data: <data> }  // Data that is only visible on expanded elements (string or jQuery)
-   * 
-   * Elements can be grouped in different categories. Internally the list is represented by 
+   *
+   * Elements can be grouped in different categories. Internally the list is represented by
    * a table structure. This structure is created by the list view itself.
-   * 
-   * Parameters: 
-   *  - name: String, Obj.  The name of the list or a jQuery object.
+   *
+   * Parameters:
+   *  - id: String, Obj.    The id of the list or a jQuery object.
    *
    *  - bus: EventBus       Bus handling events.
-   *   
-   *  - events: Array       Array of event identifiers (optional).
-   *  
-   *  - categories: Array   Array of all categories / groups of the list (optional).
-   * 
-   * Depends on: 
-   *    jQuery, WDAT.api.EventBus, WDAT.ui.Button
    *
-   * TODO Replace buttons with jQuery-UI Buttons
+   *  - events: Obj.        Set of actions with their respective events or callbacks.
+   *
+   *  - categories: Array   Array of all categories / groups of the list (optional).
+   *
+   * Depends on:
+   *    jQuery, WDAT.api.EventBus, WDAT.ui.Button, WDAT.ui.Widget, WDAT.ui.Container
    */
   WDAT.ui.List = List;
-  function List(name, bus, events, categories) {
-    // initialize name and the list body (_list)
-    if (typeof name === 'string') { // name is a string
-      this._list = $('<div class="list"></div>').attr('id', name);
-      this.name = name;
-    } else if (typeof name === 'object') { // name is a jquery object
-      this._list = name;
-      this._list.addClass('list')
-      this.name = name.attr('id');
+  inherit(List, WDAT.ui.Widget);
+  function List(id, bus, actions, categories) {
+    List.parent.constructor.call(this, id, '<div>', 'wdat-list');
+    this._bus = bus;
+    // actions and events
+    this._actions = {}
+    for ( var i in actions) {
+      this._actions[actions[i]] = this._id + '-' + actions[i];
     }
-    this.bus = bus;
-    // create event identifier
-    this.events = {}
-    for ( var i in events) {
-      this.events[events[i]] = this.name + '-' + events[i];
+    this._buttonactions = {}
+    for (var i in actions) {
+      var act = actions[i];
+      if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0 && act != 'add') {
+        this._buttonactions[act] = this._id + '-' + act;
+      }
     }
     // create list structure
-    this.categories = {};
+    this._categories = {};
     if (categories) {
       for ( var i in categories) {
         var cat = categories[i];
-        var tab = $('<ul><lh class="list-cat"><span class="list-cat-name"></span>'
-                  + '<span class="list-cat-btn"></span></lh></ul>');
-        tab.attr('id', this.name + '-' + cat);
-        tab.find('.list-cat-name').first().append(cat);
-        this._list.append(tab);
-        this.categories[cat] = tab;
+        var tab = $('<ul><lh class="category"><span class="category-name"></span></lh></ul>');
+        tab.attr('id', this.toID(cat));
+        tab.find('.category-name').text(cat);
+        this._jq.append(tab);
+        this._categories[cat] = tab;
         // create add button if add event is present
-        if (this.events.add) {
-          var b = new WDAT.ui.Button('add-small', this.bus, 
-                  this.events.add, null, {name : cat,id : cat});
-          tab.find('.list-cat-btn').first().append(b.toJQ());
+        if (this._actions.add) {
+          var b = new WDAT.ui.Button2(null, 'add_small', this._bus,
+                  this._actions.add, {name : cat,id : cat});
+          tab.find('.category').first().append(b.jq());
         }
       }
     }
     tab = $('<ul></ul>');
-    tab.attr('id', this.name + '-default');
-    this._list.append(tab);
-    this.categories['default'] = tab;
+    tab.attr('id', this._id + '-default');
+    this._jq.append(tab);
+    this._categories['default'] = tab;
   }
-
-  // Private template for new list elements
-  var ELEM_TMPL = '<li class="list-elem"><div class="list-elem-btn"></div>' 
-                + '<div class="list-elem-content"><span class="list-elem-name"></span>' 
-                + '<span class="list-elem-info"></span></div>'
-                + '<div class="list-elem-data hidden"></div></li>';
 
   /* Add a new element to the list. If the element doesn't has id, a unique identifier
    * will be created.
-   * 
+   *
    * Parameter:
-   *  - element: Object    The element to add to the list.
-   *  
+   *  - data: Object       The element to add to the list.
+   *
    *  - category: String   The category (optional).
-   *  
-   *  - position: Number   The elements position (optional). If a category is given
-   *                       this is the position inside this category.
    *                       TODO implement inserts at a position.
-   * 
+   *
    * Return value:
    *    The inserted element.
    */
-  List.prototype.add = function(element, category, position) {
-    if (!this.has(element)) {
+  List.prototype.add = function(data, category) {
+    if (!this.has(data)) {
       // crate an id if necessary
-      if (!element.id)
-        element.id = this.bus.uid();
-      var id = this._toId(element);
-      // Create a new representation of the element e
-      var elem = $(ELEM_TMPL);
-      elem.attr('id', id);
-      elem.find('.list-elem-name').first().text(element.name);
-      if (element.info)
-        elem.find('.list-elem-info').first().text(element.info);
-      if (element.data)
-        elem.find('.list-elem-data').first().append(element.data);
-      // add buttons
-      elem.find('.list-elem-btn').first().append(this._buttons(element))
-      // Add element e to the list 
-      if (category && this.categories[category]) {
-        this.categories[category].append(elem);
-      } else {
-        this.categories['default'].append(elem);
-      }
+      if (!data.id)
+        data.id = this._bus.uid();
+      var id = this.toID(data);
+      // Create a new Container
+      var prim = _getPrimary(data);     // primary container attributes
+      var sec  = _getSecondary(data);   // secondary container attributes
+      var cont = new WDAT.ui.Container(id, this._bus, data, prim, sec, this._buttonactions);
+      // add the container to the list
+      var cat = this._categories[category] || this._categories['default'];
+      cat.append(cont.jq());
+    } else {
+      this.update(data);
     }
-    return element;
+    return data;
   };
 
-  List.prototype.has = function(element) {
-    if (element.id && this._list.find('#' + this._toId(element.id)).length > 0)
-      return true;
-    else
-      return false;
-  };
-
-  /* Add new items to the list. 
-   * 
+  /* Add new items to the list.
+   *
    * Parameter:
-   *  - elements: Array    The elements to add to the list.
-   *  
+   *  - datasets: Array    The elements to add to the list.
+   *
    *  - category: String   The category (optional).
-   *  
-   *  - position: Number   The elements position (optional). If a category is given
-   *                       this is the position inside this category.
    *                       TODO implement inserts at a position.
-   * 
+   *
    * Return value:
    *    The elements added to the list.
    */
-  List.prototype.addAll = function(elements, category, position) {
+  List.prototype.addAll = function(datasets, category) {
     // select category
-    if (category && this.categories[category])
-      category = this.categories[category];
-    else
-      category = categories['default'];
+    var cat = this._categories[category] || this._categories['default'];
     // iterate over elements
-    for ( var i in elements) {
-      var element = elements[i];
-      if (!this.has(element)) {
+    var id, prim, sec, cont;
+    for (var data in datasets) {
+      data = datasets[data];
+      if (!this.has(data)) {
         // crate an id if necessary
-        if (!element.id)
-          element.id = this.bus.uid();
-        var id = this._toId(element);
-        // Create a new representation of the element e
-        var elem = $(ELEM_TMPL);
-        elem.attr('id', id);
-        elem.find('.list-elem-name').first().text(element.name);
-        if (element.info)
-          elem.find('.list-elem-info').first().text(element.info);
-        if (element.data)
-          elem.find('.list-elem-data').first().append(element.data);
-        // add buttons
-        elem.find('.list-elem-btn').first().append(this._buttons(element))
-        // Add element e to the category 
-        category.append(elem)
+        if (!data.id)
+          data.id = this._bus.uid();
+        id = this.toID(data);
+        // Create a new Container
+        prim = _getPrimary(data);     // primary container attributes
+        sec  = _getSecondary(data);   // secondary container attributes
+        cont = new WDAT.ui.Container(id, this._bus, data, prim, sec, this._buttonactions);
+        // add the container to the list
+        cat.append(cont.jq());
+      } else {
+        this.update(data);
       }
     }
-    return elements;
+    return datasets;
   };
 
   /* Update the content of an existing list element.
-   * 
-   * Parameter:
-   *  - element: Object    The element to update.
-   *  
-   *  - category: String   The category containing the element to update.
-   *  
-   * Return value:
-   *   None
-   */
-  List.prototype.update = function(element, category) {
-    var tab;
-    // get category if present
-    if (category && this.categories[category])
-      tab = this.categories[category];
-    else
-      tab = this._list;
-    // get the element and do update
-    var e = tab.find('#' + this._toId(element)).first();
-    if (element.name)
-      e.find('.list-elem-name').first().text(element.name);
-    if (element.info)
-      e.find('.list-elem-info').first().text(element.info);
-    if (element.data)
-      e.find('.list-elem-data').empty().append(element.data);
-  };
-
-  /* Edit the name of an existing list element.
-   * 
-   * Parameter:
-   *  - element: String, Obj.  The elements to edit or the id of this 
-   *                           element.
    *
-   *  - category: String       The category containing the element to edit.
-   * 
+   * Parameter:
+   *  - data: Object    The element to update.
+   *
    * Return value:
-   *   None
+   *   The updated element or null if no such element was found.
    */
-  List.prototype.edit = function(element, category) {
-    var cat;
-    // get category if present
-    if (category && this.categories[category])
-      cat = this.categories[category];
-    else
-      cat = this._list;
-    // find element by id
-    var elem = cat.find('#' + this._toId(element));
-    // save old element
-    var btndiv = elem.children('.list-elem-btn');
-    btndiv.detach();
-    var contdiv = elem.children('.list-elem-content');
-    var name = contdiv.children('.list-elem-name').text();
-    contdiv.detach();
-    // create input and replace old content
-    var indiv = $('<div><input type="text" value="" /></div>');
-    var input = indiv.children('input').attr('value', name);
-    elem.prepend(indiv);
-    input.focus().select();
-    // listen on key events
-    input.keyup(function(e) {
-      if (e.keyCode == 13) {
-        // ENTER: submit changes
-        name = input.val();
-        contdiv.children('.list-elem-name').text(name);
-        indiv.remove();
-        elem.prepend(contdiv);
-        elem.prepend(btndiv);
-      }
-      if (e.keyCode == 27) {
-        // ESC: restore old text
-        indiv.remove();
-        elem.prepend(contdiv);
-        elem.prepend(btndiv);
-      }
-    });
+  List.prototype.update = function(data) {
+    var elem = this._jq.find('#' + this.toID(data));
+    if (elem.length > 0) {
+      var cont = elem.data();
+      cont.data(data);
+      return data;
+    } else {
+      return null;
+    }
   };
 
   /* Remove an element from the list.
-   * 
+   *
    * Parameter:
-   *  - element: String, Obj.  The elements to remove or the id of this 
+   *  - data: String, Obj.     The element to remove or the id of this
    *                           element.
    *
-   *  - category: String       The category containing the element to remove.
-   * 
    * Return value:
-   *   None
+   *   The removed element or null if no such element was found.
    */
-  List.prototype.remove = function(element, category) {
-    var tab;
-    // get category if present
-    if (category && this.categories[category])
-      tab = this.categories[category];
-    else
-      tab = this._list;
-    // get the element to remove
-    tab.find('#' + this._toId(element)).first().remove();
+  List.prototype.remove = function(data) {
+    var elem = this._jq.find('#' + this.toID(data));
+    if (elem.length > 0) {
+      data = elem.data().data();
+      elem.remove();
+      return data;
+    } else {
+      return null;
+    }
   };
 
-  /* Select an element in the list. If the element is already selected 
+  /* Select an element in the list. If the element is already selected
    * the selection will be removed (toggle).
-   * 
+   *
    * Parameter:
-   *  - element: String, Obj.  The elements to select or the id of this 
+   *  - data: String, Obj.     The elements to select or the id of this
    *                           element.
    *
-   *  - category: String       The category containing the element to select.
-   *
-   *  - single: Bool           Set to true if the selected element should be the 
+   *  - single: Bool           Set to true if the selected element should be the
    *                           only selected element in the whole list.
    *
    * Return value:
-   *    True if the element is now selected false otherwise. 
+   *    True if the element is now selected false otherwise.
    */
-  List.prototype.select = function(element, category, single) {
-    var tab = this._list;
-    // set tab category if present
-    if (category && this.categories[category])
-      tab = this.categories[category];
-    // get element and toggle selected
-    var elem = tab.find('#' + this._toId(element));
-    var selected = elem.is('.selected');
-    if (single) {
-      this._list.find('.list-elem').each(function() {
-        $(this).removeClass('selected');
-      });
+  List.prototype.select = function(data, single) {
+    var selected = false;
+    var elem = this._jq.find('#' + this.toID(data));
+    if (elem.length > 0) {
+      selected = elem.is('.selected');
+      if (single) {
+        this._jq.find('.wdat-container').removeClass('selected');
+      }
+      elem.toggleClass('selected', !selected);
+      selected = !selected;
     }
-    elem.toggleClass('selected', !selected);
-    return !selected;
-  };
-
-  /* Expand an element in the list. If the element is already expanded 
-   * it will be collapsed again.
-   * 
-   * Parameter:
-   *  - element: String, Obj.  The elements to expand or the id of this 
-   *                           element.
-   * 
-   *  - category: String       The category containing the element to expand.
-   *  
-   *  - single: Bool           Set to true if the expanded element should be the 
-   *                           only expanded element in the whole list.
-   *  
-   * Return value:
-   *    True if the element is now expanded false otherwise. 
-   */
-  List.prototype.expand = function(element, category, single) {
-    var tab = this._list;
-    // set tab category if present
-    if (category && this.categories[category])
-      tab = this.categories[category];
-    // get element and toggle hidden
-    var elem = tab.find('#' + this._toId(element) + ' .list-elem-data');
-    var hidden = elem.is('.hidden');
-    if (single) {
-      this._list.find('.list-elem-data').each(function() {
-        $(this).addClass('hidden');
-      });
-    }
-    elem.toggleClass('hidden', !hidden);
-    return hidden;
+    return selected;
   };
 
   /* Remove all elements from the list without removing the categories.
+   *
+   * Return value:
+   *    None
    */
   List.prototype.clear = function() {
-    this._list.find('.list-elem').each(function() {
-      $(this).remove();
-    });
+    this._jq.children('.wdat-container').remove();
   };
 
-  /* Returns the list as a jQuery object.
-   * Use this method to include the list into your document.
-   * 
-   * Return value: 
-   *    The list (jQuery)
+  /* Returns the event used for a specific action.
+   *
+   * Parameter:
+   *  - action: String      The action.
+   *
+   * Return value:
+   *    The event name, that is used for a specific action or null if no event
+   *    was specified.
    */
-  List.prototype.toJQ = function() {
-    return this._list;
+  List.prototype.event = function(action) {
+    var e = this._actions[action];
+    if (typeof e === 'function')
+      return null;
+    else
+      return e;
   };
 
-  /* Crates a default handler function for select events. 
-   * 
+  /* Checks if an element is present
+   *
+   * Parameter:
+   *  - data: String, Obj.     The element to check or its id.
+   *
+   * Return value:
+   *   True if the element is present, false otherwise.
+   */
+  List.prototype.has = function(data) {
+    return (data.id && this._jq.find('#' + this.toID(data.id)).length > 0);
+  };
+
+  /* Crates a default handler function for select events.
+   *
    * Return value:
    *   A default handler.
    */
   List.prototype.selectHandler = function() {
     var that = this;
     return function(event, data) {
-      if (data.id)
-        that.select(data.id);
+        that.select(data, true);
     };
   };
 
-  /* Crates a default handler function for expand events. 
-   * 
-   * Return value:
-   *   A default handler.
-   */
-  List.prototype.expandHandler = function() {
-    var that = this;
-    return function(event, data) {
-      if (data.id)
-        that.expand(data.id, null, false);
-    };
-  };
-
-  /* Crates a default handler function for delete events. 
-   * 
+  /* Crates a default handler function for delete events.
+   *
    * Return value:
    *   A default handler.
    */
   List.prototype.removeHandler = function() {
     var that = this;
     return function(event, data) {
-      if (data.id)
-        that.remove(data.id);
+        that.remove(data);
     };
   };
 
-  /* Crates a default handler function for edit events. 
-   * 
-   * Return value:
-   *   A default handler.
+  /* Helper that determines the primary attributes for
+   * a continer used as a list element. For internal use only.
    */
-  List.prototype.editHandler = function() {
-    var that = this;
-    return function(event, data) {
-      if (data.id)
-        that.edit(data.id);
-    };
-  };
+  function _getPrimary(data) {
+    return ['name'];
+  }
 
-  /* Helper function for the creation of buttons
-   * matching the event list. For internal use only.
+  /* Helper that determines the secondary attributes for
+   * a continer used as a list element. For internal use only.
    */
-  List.prototype._buttons = function(element) {
-    var btns = [];
-    if (element.id) {
-      for ( var i in this.events) {
-        var label = i.toString();
-        if (i !== 'add') {
-          if ($.inArray(label, ['del', 'sel', 'edit', 'more']) >= 0)
-            label = label + '-small';
-          var b = new WDAT.ui.Button(label, this.bus, this.events[i], null, element);
-          btns.push(b.toJQ());
+  function _getSecondary(data) {
+    var secondary = [];
+    if (data.hasOwnProperty('fields')) {
+      for (var i in data.fields) {
+        if (i !== 'name' && data.fields.hasOwnProperty(i)) {
+          secondary.push(i);
         }
       }
     }
-    return btns;
-  };
-
-  /* Helper function for the creation unique ids.
-   * For internal use only.
-   */
-  List.prototype._toId = function(id) {
-    if (id.id)
-      return this.name + '-' + id.id;
-    else
-      return this.name + '-' + id;
-  };
+    if (data.hasOwnProperty('date_created')) {
+      secondary.push('date_created');
+    }
+    if (data.hasOwnProperty('safety_level')) {
+      secondary.push('safety_level');
+    }
+    return secondary;
+  }
 
 }());
+

@@ -140,6 +140,8 @@
    *
    * Depends on:
    *    WDAT.api.EventBus, WDAT.ui.Widget, WDAT.ui.Button2, jQuery, jQuery-UI button
+   *
+   * TODO don''t show collapse/expand button when there are no secondary data
    */
   WDAT.ui.Container = Container;
   inherit(Container, WDAT.ui.Widget);
@@ -149,6 +151,7 @@
     this._primary = primary || ['name'];
     this._secondary = secondary;
     this._actions = actions;
+    this._jq.data(this);
     if (data) this.data(data);
   }
 

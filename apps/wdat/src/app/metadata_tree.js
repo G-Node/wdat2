@@ -45,12 +45,12 @@
     this._bus.subscribe(this._events.update, this._updateHandler());
     this._bus.subscribe(this._events.load, this._loadHandler());
     // subscribe handlers for tree events
-    this._bus.subscribe(this._tree.events.del, this._deleteHandler());
-    this._bus.subscribe(this._tree.events.edit, this._editHandler());
-    this._bus.subscribe(this._tree.events.add, this._editHandler());
-    this._bus.subscribe(this._tree.events.more, this._expandHandler());
+    this._bus.subscribe(this._tree.event('del'), this._deleteHandler());
+    this._bus.subscribe(this._tree.event('edit'), this._editHandler());
+    this._bus.subscribe(this._tree.event('add'), this._editHandler());
+    this._bus.subscribe(this._tree.event('expand'), this._expandHandler());
     // publish tree selections as external event
-    this._bus.subscribe(this._tree.events.sel, this._selectHandler());
+    this._bus.subscribe(this._tree.event('sel'), this._selectHandler());
   }
 
   /* This method fetches initial data from DataAPI and initializes all
@@ -126,10 +126,10 @@
     var that = this;
     return function(event, data) {
       var f = that._form;
-      if (event.type == that._tree.events.add) {
+      if (event.type == that._tree.event('add')) {
         var parent = data.id.split('/');
         f.set({parent_section: parent[parent.length - 1]});
-      } else if (event.type == that._tree.events.edit) {
+      } else if (event.type == that._tree.event('edit')) {
         f.set(data);
       }
       f.open();

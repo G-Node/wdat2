@@ -1,61 +1,41 @@
 /* ---------- file: list.css -----------*/
 
-.list .hidden {
-  display: none;
-}
 
-.list { 
+.wdat-list {
   overflow-y: auto;
   width: 100%;
   border-spacing: 0px;
+
+  ul {
+    list-style-type: none;
+    margin: @cushioning 0;
+    padding: 0;
+  }
+
+  .wdat-container {
+    .border-std-round;
+    margin: @smallcushion / 2;
+    .buttons { display: none; }
+  }
+
+  .wdat-container:HOVER {
+    background: @light-grey !important;
+    .buttons { display: block !important; }
+  }
+
+  .selected {
+    background: @light-blue;
+  }
+
+  .category {
+    display: block;
+    padding: 0;
+
+    .category-name {
+      margin: 0px 10px 0px 0px;
+      font-size: @baseFontSize + 2px;
+      font-weight: bold;
+    }
+  }
 }
 
-.list ul {
-  padding: 0;
-  margin: 0;
-}
-
-.list .list-elem {
-  .border-std-round;
-  margin: @smallcushion / 2;
-  list-style-type: none;
-  vertical-align: middle;
-}
-
-.list .list-cat-name, .list-elem-content, .list-elem-data {
-  padding: @smallcushion;
-  list-style-type: none;
-  vertical-align: middle;
-}
-
-.list .list-cat {
-  font-size: @baseFontSize + 2px;
-  font-weight: bold;
-}
-
-.list div.list-elem-btn, div.list-cat-btn {
-  padding: @smallcushion / 2;
-  display: none;
-  float: right;
-}
-
-.list .list-elem-info {
-  font-size: @baseFontSize - 2px;
-  font-style: italic;
-  color: @dark-grey;
-  padding-left: 4px;
-}
-
-.list .list-elem:HOVER {
-  .rounded;
-  background: @light-grey !important;
-  .list-elem-btn { display: block !important; }
-}
-
-.list .selected {
-  background: @light-blue;
-}
-
-.list button {
-  margin-right: @smallcushion / 2;
-}

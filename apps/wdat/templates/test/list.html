@@ -6,28 +6,25 @@
 <script type="text/javascript">
 var init = function() {
   var bus = new WDAT.api.EventBus(); 
-  var list = new WDAT.ui.List($('#list-1'), bus, ['add', 'del', 'sel', 'edit', 'more'], ['Foo', 'Bar']);
-  bus.subscribe(list.events.sel, list.selectHandler());
-  bus.subscribe(list.events.more, list.expandHandler());
-  bus.subscribe(list.events.del, list.removeHandler());
-  bus.subscribe(list.events.edit, list.editHandler());
-  list.add({name: 'Test1', info: 'Some information 1', data: 'Some data 1'}, 'Foo');
-  list.add({name: 'Test2', info: 'Some information 2', data: 'Some data 2'}, 'Foo');
-  list.add({name: 'Test3', info: 'Some information 3', data: 'Some data 3'}, 'Bar');
-  list.add({name: 'Test4', info: 'Some information 4', data: 'Some data 4'}, 'Bar');
-  list.add({name: 'Test5', info: 'Some information 5', data: 'Some data 5'});
-  bus.subscribe(list.events.add, function(event, data) {
-    var elements = [{name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'},
-                    {name: 'Test', info: 'Info', data: 'Data'}];
+  var list = new WDAT.ui.List($('#list-1'), bus, ['add', 'del', 'sel', 'more'], ['Foo', 'Bar']);
+  bus.subscribe(list.event('sel'), list.selectHandler());
+  bus.subscribe(list.event('del'), list.removeHandler());
+  list.add({name: 'Test1', fields: {info: 'Some information 1', data: 'Some data 1'}}, 'Foo');
+  list.add({name: 'Test2', fields: {info: 'Some information 2', data: 'Some data 2'}}, 'Foo');
+  list.add({name: 'Test3', fields: {info: 'Some information 3', data: 'Some data 3'}}, 'Bar');
+  list.add({name: 'Test4', fields: {info: 'Some information 4', data: 'Some data 4'}}, 'Bar');
+  list.add({name: 'Test5', fields: {info: 'Some information 5', data: 'Some data 5'}});
+  bus.subscribe(list.event('add'), function(event, data) {
+    var elements = [{name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}},
+                    {name: 'Test', fields: {info: 'Some information', data: 'Some data'}}];
     list.addAll(elements, data.id);
   });
 };

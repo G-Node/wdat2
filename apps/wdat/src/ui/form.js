@@ -49,7 +49,7 @@
       this._form.append($('<div class="form-fields">'));
       // initialize other properties
       this._bus     = bus;                          // an event bus
-      this._save    = save || this._name + '-save'  // the save event
+      this._save    = save || this._name + '-save'; // the save event
       this._modal   = modal;                        // true if this is a form for modal dialogs
       this._element = {};                           // the element showed in the form
       this._fields  = {};                           // definition of input elements
