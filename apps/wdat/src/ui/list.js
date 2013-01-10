@@ -3,38 +3,27 @@
 (function() {
   "use strict";
 
-  /* Constructor for the class VList. VList implements view to a dynamic list. Elements can
-   * be added, removed, edited and selected. The list expects all elements to have at least
+  /* Constructor for the class List. List implements view to a dynamic list. Elements can
+   * be added, removed and selected. The list expects all elements to have at least
    * the attribute 'name'.
    *
    * Minimal list element:
    *   { name: <name> }
-   * Complete list element:
-   *   { id: <id>,       // The elements id, must be unique in the whole list.
-   *     name: <name>,   // The name of the element (string)
-   *     info: <info>,   // Some additional information (string)
-   *     data: <data> }  // Data that is only visible on expanded elements (string or jQuery)
    *
    * Elements can be grouped in different categories. Internally the list is represented by
    * a table structure. This structure is created by the list view itself.
    *
    * Parameters:
-   *  - name: String, Obj.  The name of the list or a jQuery object.
+   *  - id: String, Obj.    The id of the list or a jQuery object.
    *
    *  - bus: EventBus       Bus handling events.
    *
-   *  - events: Array       Array of event identifiers (optional).
+   *  - events: Obj.        Set of actions with their respective events or callbacks.
    *
    *  - categories: Array   Array of all categories / groups of the list (optional).
    *
    * Depends on:
-   *    jQuery, WDAT.api.EventBus, WDAT.ui.Button
-   *
-   * TODO Make list a Widget and remove unused Methods
-   * TODO Use Container for list elements
-   * TODO Make interface more similar to tree
-   * TODO Update code documentation
-   * TODO Cleanup CSS code
+   *    jQuery, WDAT.api.EventBus, WDAT.ui.Button, WDAT.ui.Widget, WDAT.ui.Container
    */
   WDAT.ui.List = List;
   inherit(List, WDAT.ui.Widget);
@@ -58,18 +47,16 @@
     if (categories) {
       for ( var i in categories) {
         var cat = categories[i];
-        var tab = $('<ul><lh class="list-cat"><span class="list-cat-name"></span>'
-                  + '<span class="list-cat-btn"></span></lh></ul>');
+        var tab = $('<ul><lh class="category"><span class="category-name"></span></lh></ul>');
         tab.attr('id', this.toID(cat));
-        tab.find('.list-cat-name').first().append(cat);
+        tab.find('.category-name').text(cat);
         this._jq.append(tab);
         this._categories[cat] = tab;
         // create add button if add event is present
         if (this._actions.add) {
-          // TODO use jquery ui button here
-          var b = new WDAT.ui.Button('add-small', this._bus,
-                  this._actions.add, null, {name : cat,id : cat});
-          tab.find('.list-cat-btn').first().append(b.toJQ());
+          var b = new WDAT.ui.Button2(null, 'add_small', this._bus,
+                  this._actions.add, {name : cat,id : cat});
+          tab.find('.category').first().append(b.jq());
         }
       }
     }
@@ -83,12 +70,9 @@
    * will be created.
    *
    * Parameter:
-   *  - element: Object    The element to add to the list.
+   *  - data: Object       The element to add to the list.
    *
    *  - category: String   The category (optional).
-   *
-   *  - position: Number   The elements position (optional). If a category is given
-   *                       this is the position inside this category.
    *                       TODO implement inserts at a position.
    *
    * Return value:
@@ -116,12 +100,9 @@
   /* Add new items to the list.
    *
    * Parameter:
-   *  - elements: Array    The elements to add to the list.
+   *  - datasets: Array    The elements to add to the list.
    *
    *  - category: String   The category (optional).
-   *
-   *  - position: Number   The elements position (optional). If a category is given
-   *                       this is the position inside this category.
    *                       TODO implement inserts at a position.
    *
    * Return value:
@@ -133,6 +114,7 @@
     // iterate over elements
     var id, prim, sec, cont;
     for (var data in datasets) {
+      data = datasets[data];
       if (!this.has(data)) {
         // crate an id if necessary
         if (!data.id)
@@ -154,10 +136,10 @@
   /* Update the content of an existing list element.
    *
    * Parameter:
-   *  - element: Object    The element to update.
+   *  - data: Object    The element to update.
    *
    * Return value:
-   *   None
+   *   The updated element or null if no such element was found.
    */
   List.prototype.update = function(data) {
     var elem = this._jq.find('#' + this.toID(data));
@@ -173,13 +155,11 @@
   /* Remove an element from the list.
    *
    * Parameter:
-   *  - element: String, Obj.  The elements to remove or the id of this
+   *  - data: String, Obj.     The element to remove or the id of this
    *                           element.
    *
-   *  - category: String       The category containing the element to remove.
-   *
    * Return value:
-   *   None
+   *   The removed element or null if no such element was found.
    */
   List.prototype.remove = function(data) {
     var elem = this._jq.find('#' + this.toID(data));
@@ -211,7 +191,7 @@
     if (elem.length > 0) {
       selected = elem.is('.selected');
       if (single) {
-        this._jq.children('.wdat-container').removeClass('selected');
+        this._jq.find('.wdat-container').removeClass('selected');
       }
       elem.toggleClass('selected', !selected);
       selected = !selected;
@@ -220,6 +200,9 @@
   };
 
   /* Remove all elements from the list without removing the categories.
+   *
+   * Return value:
+   *    None
    */
   List.prototype.clear = function() {
     this._jq.children('.wdat-container').remove();
@@ -242,7 +225,14 @@
       return e;
   };
 
-  /* Checks if a ´n element is present */
+  /* Checks if an element is present
+   *
+   * Parameter:
+   *  - data: String, Obj.     The element to check or its id.
+   *
+   * Return value:
+   *   True if the element is present, false otherwise.
+   */
   List.prototype.has = function(data) {
     return (data.id && this._jq.find('#' + this.toID(data.id)).length > 0);
   };
@@ -255,7 +245,7 @@
   List.prototype.selectHandler = function() {
     var that = this;
     return function(event, data) {
-        that.select(data);
+        that.select(data, true);
     };
   };
 
@@ -272,14 +262,14 @@
   };
 
   /* Helper that determines the primary attributes for
-   * a continer used as a list element.
+   * a continer used as a list element. For internal use only.
    */
   function _getPrimary(data) {
     return ['name'];
   }
 
   /* Helper that determines the secondary attributes for
-   * a continer used as a list element.
+   * a continer used as a list element. For internal use only.
    */
   function _getSecondary(data) {
     var secondary = [];
