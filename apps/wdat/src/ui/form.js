@@ -32,42 +32,33 @@
    *  - modal: Boolean        If true then this form can be shown in a modal window.
    *
    * Depends on
-   *    jQuery, jQuery-UI, WDAT.api.EventBus
+   *    jQuery, jQuery-UI, WDAT.api.EventBus, WDAT.ui.Widget
    */
   WDAT.ui.Form = Form;
-  function Form(name, bus, save, modal, fields) {
-    // don't initialize if name and bus are undefined
-    if (name && bus) {
-      // create form and set name
-      if (typeof name === 'string') {               // name is a string
-        this._form = $('<div class="form-view">').attr('id', name);
-        this._name = name;
-      } else if (typeof name === 'object') {        // name is a jquery object
-        this._form = name.addClass('form-view');
-        this._name = name.attr('id');
-      }
-      this._form.append($('<div class="form-fields">'));
-      // initialize other properties
-      this._bus     = bus;                          // an event bus
-      this._save    = save || this._name + '-save'; // the save event
-      this._modal   = modal;                        // true if this is a form for modal dialogs
-      this._element = {};                           // the element showed in the form
-      this._fields  = {};                           // definition of input elements
-      // create input fields
-      for (var i in fields) {
-        this.addField(i, fields[i]);
-      }
-      // if not modal create a save button
-      if (!modal) {
-        // create buttons and actions
-        var savebtn = $('<button>').button({text : true, label : "Save"});
-        var that = this;
-        savebtn.click(function() {
-          var data = that.get();
-          if (data) that._bus.publish(that._save, data);
-        });
-        this._form.append($('<div class="form-btn"></div>').append(savebtn));
-      }
+  inherit(Form, WDAT.ui.Widget);
+  function Form(id, bus, save, modal, fields) {
+    Form.parent.constructor.call(this, id, '<div>', 'wdat-form');
+    this._jq.append('<div class="form-fields"></div>');
+    // initialize other properties
+    this._bus     = bus;                          // an event bus
+    this.action   = save || this._id + '-save';   // the save event
+    this._modal   = modal;                        // true if this is a form for modal dialogs
+    this._element = {};                           // the element showed in the form
+    this._fields  = {};                           // definition of input elements
+    // create input fields
+    for (var i in fields) {
+      this.addField(i, fields[i]);
+    }
+    // if not modal create a save button
+    if (!modal) {
+      // create buttons and actions
+      var savebtn = $('<button>').button({text : true, label : "Save"});
+      var that = this;
+      savebtn.click(function() {
+        var data = that.get();
+        if (data) that._bus.publish(that.action, data);
+      });
+      this._jq.append($('<div class="form-btn"></div>').append(savebtn));
     }
   };
 
@@ -115,17 +106,17 @@
       throw new Error('field has no valid type: field.type = ' + type);
     }
     if (field.readonly) input.attr('readonly', 'readonly');
-    input.attr('name', this._toId(id)).addClass('field-input');
+    input.attr('name', this.toID(id)).addClass('field-input');
     // define error field
     error = $('<div class="field-error"></div>');
     // add to input definitions
     this._fields[id] = field;
     // add label and input to fields
-    var f = this._form.find('.form-fields');
+    var f = this._jq.find('.form-fields');
     if (label)
-      f.append($('<div>').attr('id', this._toId(id)).append(label, input, error));
+      f.append($('<div>').attr('id', this.toID(id)).append(label, input, error));
     else
-      f.append($('<div>').attr('id', this._toId(id)).append(input));
+      f.append($('<div>').attr('id', this.toID(id)).append(input));
   };
 
   /* Validates the form and marks errors inside the form.
@@ -143,7 +134,7 @@
     // iterate over input definitions
     for (var name in this._fields) {
       var inputdef = this._fields[name];
-      var field = $('#' + this._toId(name));
+      var field = $('#' + this.toID(name));
       var value = field.find('.field-input').val();
       // test if value is empty
       if (value.match(/^\s*$/)) {
@@ -205,7 +196,7 @@
       var data = this._element || {};
       for (var name in this._fields) {
         var def = this._fields[name];
-        var input = this._form.find('#' + this._toId(name) + ' :input');
+        var input = this._jq.find('#' + this.toID(name) + ' :input');
         var value = (input.val());
         if (value === '') {
           value = null;
@@ -239,7 +230,7 @@
       var value = objGetRecursive(elem, name, ['fields', 'parents', 'data']);
       value = (value != null && value.data) ? value.data : value;
       // if value has a value, get input element and set val
-      var input = this._form.find('#' + this._toId(name) + ' :input');
+      var input = this._jq.find('#' + this.toID(name) + ' :input');
       if (value !== null) {
         value = strTrim(value.toString());
         input.val(value);
@@ -262,10 +253,10 @@
    *    None
    */
   Form.prototype.open = function() {
-    if (this._modal && this._form) {
+    if (this._modal && this._jq) {
       var title = this._title || 'Form';
       var that = this;
-      this._form.dialog({               // jQuery-UI dialog
+      this._jq.dialog({               // jQuery-UI dialog
         autoOpen : true, width : 520, modal : true,
         draggable: false, resizable: false, title: title,
         buttons : {
@@ -275,27 +266,13 @@
           Save : function() {           // callback for save actions
             var data = that.get();
             if (data !== null) {
-              that._bus.publish(that._save, data);
+              that._bus.publish(that.action, data);
               $(this).dialog('close');
             }
           }
         }
       });
     }
-  };
-
-  /* Transforms a name into a internal id.
-   *
-   * Parameters:
-   *  - name: String      The name of an input element.
-   *
-   * Return value:
-   *    An internal id string.
-   */
-  Form.prototype._toId = function(name) {
-    if (!name)
-      name = '';
-    return this._name + '-' + name;
   };
 
   /* Internal constant that defines properties for several
@@ -364,7 +341,7 @@
       date_created: {type: 'text', readonly: true}
     };
     PropertyForm.parent.constructor.call(this, name, bus, save, modal, fields);
-    this._form.find('.form-fields').after($('<div class="property-values">'));
+    this._jq.find('.form-fields').after($('<div class="property-values">'));
     this._values = {};
   }
 
@@ -379,8 +356,8 @@
     });
     var addbtn = $('<button>').button({ icons: { primary: "ui-icon-plusthick"}, text: false}).click(function () {
     });
-    var v = this._form.find('.property-values');
-    v.append($('<div>').attr('id', this._toId(id)).append(label, input, addbtn, delbtn));
+    var v = this._jq.find('.property-values');
+    v.append($('<div>').attr('id', this.toID(id)).append(label, input, addbtn, delbtn));
   };
 
 
