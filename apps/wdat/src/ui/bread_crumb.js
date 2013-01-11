@@ -3,85 +3,84 @@
 (function() {
   'use strict';
 
-  /* Constructor for the class VBreadCrumb. VBreadCrumb implements a bread crumb 
-   * navigation bar. Elements can be added to the navigation bar. Each element 
+  /* Constructor for the class BreadCrumb. BreadCrumb implements a bread crumb
+   * navigation bar. Elements can be added to the navigation bar. Each element
    * is represented by a button which sends a selection event when clicked.
-   * 
+   *
    * Elements are Objects with the following properties:
-   * 
+   *
    *  - Minimal element: {id: <id>, name: <name>}
    *
-   *    If the the id is missing a unique identifier will be created. If the 
-   *    name is missing the id will be used as a name. 
-   * 
-   * Parameters: 
-   *  - name: String, Obj.      The id of the list or a jQuery object.
-   *  
-   *  - bus: EventBus           Bus for handling events.
-   * 
-   * Depends on: 
-   *  - jQuery, WDAT.api.EventBus, WDAT.ui.Button
+   * Parameters:
+   *  - id: String, Obj.        The id of the list or a jQuery object.
    *
-   * TODO Replace buttons with jQuery-UI buttons
+   *  - bus: EventBus           Bus for handling events.
+   *
+   *  - action: Sting, Func.    Event name or callback function for selection events (click)
+   *
+   * Depends on:
+   *  - jQuery, jQuery-UI, WDAT.api.EventBus, WDAT.ui.Widget
    */
   WDAT.ui.BreadCrumb = BreadCrumb;
-  function BreadCrumb(name, bus) {
-    // initialize name and and jQuery object as _navi
-    if (typeof name === 'string') { // name is a string
-      this._navi = $('<div class="bread-crumb"></div>').attr('id', name);
-      this.name = name;
-    } else if (typeof name === 'object') { // name is a jQuery object
-      this._navi = name;
-      this._navi.addClass('bread-crumb');
-      this.name = this._navi.attr('id');
-    }
-    this.bus = bus;
-    this.event = this.name + '-select';
+  inherit(BreadCrumb, WDAT.ui.Widget);
+  function BreadCrumb(id, bus, action) {
+    BreadCrumb.parent.constructor.call(this, id, '<div>', 'wdat-bread-crumb');
+    this._bus = bus;
+    this.action = action || this._id + '-select';
+    this._datasets  = [];
+    this._jq.data(this);
+    this._jq.buttonset();
     var that = this;
-    this.bus.subscribe(this.event, function(event, data) {
-      that._navi.children().removeClass('selected');
-      that._navi.children('#' + that._toId(data)).addClass('selected');
-    });
+    this._selectHandler = function() {
+      var d = that.selected();
+      if (typeof that.action  === 'function') {
+        that.action(d);
+      } else {
+        that._bus.publish(that.action, d);
+      }
+    };
   };
 
 
 
   /* Add a new element to the navigation bar. If pos is not set the element will
-   * be appended to the end of the navigation bar. If the position is specified 
-   * all elements beginning at this position will be removed and the element 
+   * be appended after the currentlx selected element. If the position is specified
+   * all elements beginning at this position will be removed and the element
    * will be appended to the end of the navigation bar.
-   * 
-   * Parameter:
-   *  - tab: Object       Object representing the navigation bar element.
    *
-   *  - pos: Number       The position where to add the new element. All elements after the 
-   *                      specified position will be deleted.
-   * 
+   * Parameter:
+   *  - data: Object      Object representing the navigation bar element.
+   *
+   *  - pos: Number       The position where to add the new element. All elements after the
+   *                      specified position will be deleted (optional).
+   *
    * Return value:
    *    The inserted element or null if nothing has been inserted.
    */
-  BreadCrumb.prototype.add = function(elem, pos) {
-    // generate an id if not present
-    if (!elem.id) elem.id = this.bus.uid();
-    if (!elem.name) elem.name = elem.id;
-    // check if id is already used
-    if (!this.has(elem)) {
-      // remove all elements after the given position
-      if (pos != null) this.remove(pos);
-      // add new element
-      var button = new WDAT.ui.Button(elem.name, this.bus, this.event, null, elem);
-      button.toJQ().attr('id', this._toId(elem));
-      button.toJQ().addClass('selected');
-      this._navi.children().removeClass('selected');
-      this._navi.append(button.toJQ());
-      return elem;
-    } else {
-      return null;
+  BreadCrumb.prototype.add = function(data, pos) {
+    pos = pos || this.selectedPos() + 1;
+    if (!data.id) data.id = this._bus.uid();
+    // prepare datasets
+    this._datasets.splice(pos, this._datasets.length);
+    this._datasets.push(data);
+    // remove old radio buttons
+    this._jq.empty();
+    // create new ratio buttons
+    for (var i in this._datasets) {
+      var d = this._datasets[i];
+      var input = $('<input type="radio">').attr('name', this._id).attr('id', this.toID(d));
+      var label = $('<label>').attr('for', this.toID(d)).text(d.name);
+      if (i == (this._datasets.length - 1))
+        label.addClass('ui-state-active');
+      this._jq.append(input).append(label);
     }
+    this._jq.buttonset('refresh');
+    this._jq.children('input').click(this._selectHandler);
+    return data;
   }
 
-  /* Remove all elements from the bread crumb bar beginning at the given position. 
-   * 
+  /* Remove all elements from the bread crumb bar beginning at the given position.
+   *
    * Parameter:
    *  - pos: Number        The position from where to delete all elements.
    *
@@ -89,59 +88,77 @@
    *    None
    */
   BreadCrumb.prototype.remove = function(pos) {
-    var elements = this._navi.children();
-    if (!pos)
-      pos = 0;
-    if (pos < elements.length) {
-      elements.each(function(i) {
-        if (i >= pos)
-          $(this).remove();
-      });
+    pos = pos || 0;
+    // prepare datasets
+    this._datasets.splice(pos, this._datasets.length);
+    // remove old radio buttons
+    this._jq.empty();
+    // create new ratio buttons
+    for (var i in this._datasets) {
+      var d = this._datasets[i];
+      var input = $('<input type="radio">').attr('name', this._id).attr('id', this.toID(d));
+      var label = $('<label>').attr('for', this.toID(d)).text(d.name);
+      if (i == (this._datasets.length - 1))
+        label.addClass('ui-state-active');
+      this._jq.append(input).append(label);
     }
+    this._jq.buttonset('refresh');
+    this._jq.children('input').click(this._selectHandler);
   };
 
   /* Checks if an element is in the bread crumb bar.
-   * 
+   *
    * Parameter:
-   *  - elem: String, Obj.    The id of an element or the element itself.
+   *  - data: String, Obj.    The id of an element or the element itself.
    *
    * Return value:
    *    True if the element is in the bread crumb bar, false otherwise.
    */
-  BreadCrumb.prototype.has = function(elem) {
-    return (elem && this._navi.children('#' + this._toId(elem)).length > 0);
+  BreadCrumb.prototype.has = function(data) {
+    return (data && this._navi.children('#' + this._toId(data)).length > 0);
   };
 
   /* Get the position of an element inside the bread crumb bar.
-   * 
+   *
    * Parameter:
-   *  - elem: String, Obj     The id of an element or the element itself.
+   *  - data: String, Obj     The id of an element or the element itself.
    *
    * Return value:
    *    The position of the element inside the bar or -1 if not found.
    */
-  BreadCrumb.prototype.pos = function(elem) {
+  BreadCrumb.prototype.pos = function(data) {
     var pos = -1;
-    if (elem) {
-      var id = this._toId(elem);
-      this._navi.children().each(function(i) {
-        if (pos < 0 && $(this).attr('id') == id) 
-          pos = i;
+    if (data) {
+      var id = this.toID(data);
+      this._jq.children('input').each(function(i) {
+        if (pos < 0 && $(this).attr('id') == id) pos = i;
       });
     }
     return pos;
   };
 
-  /* Helper function for the creation of unique ids.
-   * For internal use only.
+  /* Get the position of the selected element.
+   *
+   * Return value:
+   *    The position of the element inside the bar or -1 if not found.
    */
-  BreadCrumb.prototype._toId = function(id) {
-    var result;
-    if (id.id)
-      result = this.name + '-' + id.id.toString();
-    else
-      result = this.name + '-' + id.toString();
-    return result;
+  BreadCrumb.prototype.selectedPos = function() {
+    var pos = (this._datasets.length - 1);
+    this._jq.children('label').each(function(i) {
+      if (pos > i && $(this).is('.ui-state-active')) pos = i;
+    });
+    return pos;
+  };
+
+  /* Get the currently selected element.
+   *
+   * Return value:
+   *    The currently selected element.
+   */
+  BreadCrumb.prototype.selected = function() {
+    return this._datasets[this.selectedPos()];
   };
 
 }());
+
+

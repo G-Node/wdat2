@@ -7,13 +7,12 @@
   var init = function() {
     var bus = new WDAT.api.EventBus(); 
     var bcn = new WDAT.ui.BreadCrumb($('#bcn-1'), bus);
-    bus.subscribe(bcn.event, function(event, data) { 
-      $('.event-log').append(bcn.event + ': ' + data.id).append('<br>'); 
+    bus.subscribe(bcn.action, function(event, data) { 
+      $('.event-log').append(bcn.action + ': ' + JSON.stringify(data)).append('<br>'); 
     });
     bcn.add({id: 'one', name: 'One'});
     bcn.add({id: 'two', name: 'Two'});
     bcn.add({id: 'three', name: 'Three'});
-    bcn.add({id: 'four', name: 'Four'}, bcn.pos('two'));
   };
   $(window).load(init);
 </script>
