@@ -1,3 +1,3 @@
 // ----------- file: version.js ------------- //
 
-WDAT.version = '0.13.2';
+WDAT.version = '0.13.3';

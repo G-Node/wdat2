@@ -5,7 +5,7 @@
 {% block extra_script %}
 <script type="text/javascript">
   var init = function() {
-    var bus = new WDAT.api.EventBus(); 
+    var bus = new WDAT.api.EventBus();
     var folder1 = new WDAT.ui.TabFolder($('#tf-1'), bus, true);
     folder1.add($('<div>One</div>'), 'one', 'Tab One');
     folder1.add($('<div>Two</div>'), 'two', 'Tab Two');
@@ -13,8 +13,8 @@
     folder1.add($('<div>Foo</div>'), 'foo', 'Tab Foo');
     folder1.update($('<div>Foo2</div>'), 'three', 'Tab Three v2');
     folder1.remove('foo');
-    bus.subscribe(folder1.event, folder1.selectHandler());
-    
+    bus.subscribe(folder1.action, folder1.selectHandler());
+
     var folder2 = new WDAT.ui.TabFolder($('#tf-2'), bus, false);
     folder2.add($('<div>One</div>'), 'one', 'Tab One');
     folder2.add($('<div>Two</div>'), 'two', 'Tab Two');
@@ -29,8 +29,9 @@
 {% endblock %}
 
 {% block body %}
-  <h1>Tab Folder Test</h1>
-  <div id="tf-1"></div><br>
-  <div id="tf-2"></div><br>
-  <div class="event-log"></div>
+<h1>Tab Folder Test</h1>
+<div id="tf-1"></div><br>
+<div id="tf-2"></div><br>
+<div class="event-log"></div>
 {% endblock %}
+
