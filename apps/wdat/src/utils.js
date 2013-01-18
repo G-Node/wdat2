@@ -11,7 +11,7 @@
 //-------------------------------------------------------------------------------------
 
 // deprecated
-String.prototype.startsWith = function (leader) {
+String.prototype.startsWith = function(leader) {
   return this.substr(0, leader.length) === leader;
 };
 
@@ -53,9 +53,9 @@ function strCapitalizeWords(str, sep) {
   } else {
     tmp = [str];
   }
-  for (var i in tmp) {
+  for ( var i in tmp) {
     var s = tmp[i];
-    tmp[i] = s[0].toUpperCase()+s.slice(1);
+    tmp[i] = s[0].toUpperCase() + s.slice(1);
   }
   return tmp.join(' ');
 }
@@ -88,18 +88,18 @@ function strTrim(str) {
  *    The value of the first found property with the given name or null if no
  *    matching property was found.
  */
-function objGetRecursive(obj, prop, children) {
+function objGetRecursive(object, prop, children) {
   var found = null;
   var stack = [];
-  stack.push(obj);
-  while(stack.length > 0 && !found) {
-    obj = stack.pop();
-    for (var i in obj) {
+  stack.push(object);
+  while (stack.length > 0 && !found) {
+    var obj = stack.pop();
+    for ( var i in obj) {
       if (obj.hasOwnProperty(i)) {
         if (i === prop) {
           found = obj[i];
           break;
-        } else if (children && children.indexOf(i) > -1 && typeof obj[i] === 'object' ) {
+        } else if (children && children.indexOf(i) > -1 && typeof obj[i] === 'object') {
           stack.push(obj[i]);
         } else if (!children && typeof obj[i] === 'object') {
           stack.push(obj[i]);
@@ -127,18 +127,18 @@ function objGetRecursive(obj, prop, children) {
  * Return value:
  *    The number of properties found with the given name.
  */
-function objSetRecursive(obj, prop, val, children) {
+function objSetRecursive(object, prop, val, children) {
   var found = 0;
   var stack = [];
-  stack.push(obj);
-  while(stack.length > 0) {
-    obj = stack.pop();
-    for (var i in obj) {
+  stack.push(object);
+  while (stack.length > 0) {
+    var obj = stack.pop();
+    for ( var i in obj) {
       if (obj.hasOwnProperty(i)) {
         if (i === prop) {
           obj[i] = val;
           found++;
-        } else if (children && children.indexOf(i) > -1 && typeof obj[i] === 'object' ) {
+        } else if (children && children.indexOf(i) > -1 && typeof obj[i] === 'object') {
           stack.push(obj[i]);
         } else if (!children && typeof obj[i] === 'object') {
           stack.push(obj[i]);
@@ -150,13 +150,14 @@ function objSetRecursive(obj, prop, val, children) {
 }
 
 /* Merges the properties of the first object into the second one.
- * Sideeffect! Changes the object passed as the second parameter.
+ * Side effect! Changes the object passed as the second parameter.
  */
 function objMerge(from, to, override, blacklist) {
   if (from) {
-    for (var i in from) {
-      if (from.hasOwnProperty(i) && (!blacklist || blacklist.indexOf(i) == -1))  {
-        if (override || !to.hasOwnProperty(i)) to[i] = from[i];
+    for ( var i in from) {
+      if (from.hasOwnProperty(i) && (!blacklist || blacklist.indexOf(i) == -1)) {
+        if (override || !to.hasOwnProperty(i))
+          to[i] = from[i];
       }
     }
   }
@@ -183,9 +184,8 @@ function inherit(Sub, Super) {
 // Name spaces
 //-------------------------------------------------------------------------------------
 var WDAT = WDAT || {};
-WDAT.api = WDAT.api || {};    // name space related to the RESTfull API
-WDAT.app = WDAT.app || {};    // name space for application specific parts
-WDAT.ui  = WDAT.ui || {};     // name space for UI base classes
+WDAT.api = WDAT.api || {}; // name space related to the RESTfull API
+WDAT.app = WDAT.app || {}; // name space for application specific parts
+WDAT.ui = WDAT.ui || {}; // name space for UI base classes
 
 WDAT.debug = true;
-

@@ -50,7 +50,8 @@
       };
       // callback for errors inside the worker
       this._worker.onerror = function(err) {
-        console.log("Error in Worker at: " + err.filename + ": " + err.lineno + ": " + err.message + ".");
+        console.log("Error in Worker at: " + err.filename + ": " + err.lineno + ": "
+                + err.message + ".");
       };
     } else { // if web workers are not available
       this._worker = false;
@@ -212,4 +213,3 @@
   };
 
 }());
-

@@ -6,7 +6,7 @@
  * other classes in the WDAT.ui name space.
  */
 
-(function(){
+(function() {
   'use strict';
 
   //-------------------------------------------------------------------------------------
@@ -30,21 +30,23 @@
    */
   WDAT.ui.Widget = Widget;
   function Widget(id, template, clazz) {
+    var tmpl = template || '<div>';
     if (id) {
-      if (typeof id == 'string') {        // id is a string
-        this._jq = template ? $(template) : $('<div>');
+      if (typeof id == 'string') { // id is a string
+        this._jq = $(tmpl);
         this._jq.attr('id', id);
         this._id = id;
       } else if (typeof id === 'object') { // id is a jQuery object
         this._jq = id;
         this._id = this._jq.attr('id');
+        this._jq.empty().append($(tmpl).html());
       }
     } else {
       this._id = '';
-      this._jq = template ? $(template) : $('<div>');
+      this._jq = $(tmpl);
     }
     if (clazz)
-        this._jq.addClass(clazz);
+      this._jq.addClass(clazz);
     this._jq.data(this);
   }
 
@@ -77,18 +79,20 @@
     var id = null;
     if (data) {
       if (typeof data === 'object') {
-        if (data.id) id = this._id + '-' + data.id.toString().replace(/[\.\\\/_]+/g, '-');
+        if (data.id)
+          id = this._id + '-' + data.id.toString().replace(/[\.\\\/_]+/g, '-');
       } else {
         id = this._id + '-' + data.toString().replace(/[\.\\\/_]+/g, '-');
       }
     }
     if (id && suffix)
-      id += '-'+suffix;
+      id += '-' + suffix;
     return id;
   };
 
   /* Remove the widget from the DOM tree (side effect).
    * Don't reatach the wiget after calling this method.
+   * FIXME name collides with method in Tree and List!!
    *
    * Parameter:
    *    None
@@ -145,61 +149,180 @@
    */
   WDAT.ui.Container = Container;
   inherit(Container, WDAT.ui.Widget);
-  function Container(id, bus, data, primary, secondary, actions) {
-    Container.parent.constructor.call(this, id, Container.TEMPLATE, 'wdat-container');
+  function Container(id, bus, actions, attrconf, clazz, template) {
+    var tmpl = template || Container.TEMPLATE;
+    Container.parent.constructor.call(this, id, tmpl, 'wdat-container');
+    if (clazz)
+      this._jq.addClass(clazz);
     this._bus = bus;
-    this._primary = primary || ['name'];
-    this._secondary = secondary;
-    this._actions = actions;
+    this._actions = actions || {};
+    if (attrconf) {
+      this._attrconf = {};
+      this._attrconf.prim = attrconf.prim || ['name'];
+      this._attrconf.sec = attrconf.sec || [];
+      this._attrconf.child_prim = attrconf.child_prim || [];
+      this._attrconf.child_sec = attrconf.child_sec || [];
+    } else {
+      this._attrconf = {prim : ['name'], sec : [], child_prim : [], child_sec : []};
+    }
+    this._data = {};
+    this._children = [];
     this._jq.data(this);
-    if (data) this.data(data);
   }
 
-  /* Getter and setter for the data object shown by the container.
+  /*
    *
-   * Parameter:
-   *  - data: Obj       The data object to show inside the container.
-   *
-   * Return value:
-   *    The data object shown by the container.
    */
-  Container.prototype.data = function(data) {
-    if (data) {
-      this._data = data;
-      this._jq.children('div').empty();
-      var prim = this._jq.children('.primary');
-      for (var i in this._primary) {
-        var val = objGetRecursive(data, this._primary[i]);
-        if (i == 0)
-          prim.append($('<span class="head">').text(val));
-        else if (i == 1)
-          prim.append($('<span class="head-add">').text(' '+val));
-        else if (i > 1)
-          prim.children('.head-add').append(', '+val);
-      }
-      var buttons = this._jq.children('.buttons');
-      if (this._secondary) {
-        var sec = this._jq.children('.secondary');
-        for (var i in this._secondary) {
-          var key = this._secondary[i];
-          var val = objGetRecursive(data, key);
-          sec.append($('<span class="key">').text(strCapitalizeWords(key, /[\ \-_]/) + ':'));
-          sec.append($('<span class="val">').text(val)).append('<br>');
+  Container.prototype.set = function(data) {
+    var d = data || {};
+    if (d.id && d.id == this._data.id) {
+      this._data = d;
+    } else {
+      this._data = d;
+      this._children.splice(0, this._children.length);
+    }
+    this.refresh();
+  };
+
+  /*
+   *
+   */
+  Container.prototype.setChildren = function(data) {
+    if (data instanceof Array) {
+      this._children = data;
+    } else {
+      var index = -1;
+      for ( var i in this._children) {
+        if (this._children[i].id == data.id) {
+          index = i;
+          break;
         }
-        var btn = new WDAT.ui.Button2(null, 'more', this._bus, this._expandHandler());
-        buttons.append(btn.jq());
       }
-      if (this._actions) {
-        for (var i in Container.ACTIONS) {
-          i = Container.ACTIONS[i];
-          if (this._actions.hasOwnProperty(i)) {
-            var btn = new WDAT.ui.Button2(null, i + '_small', this._bus, this._actions[i], data);
-            buttons.append(btn.jq());
-          }
+      if (index >= 0) {
+        this._children[index] = data;
+      } else {
+        this._children.push(data);
+      }
+    }
+    this.refresh();
+  };
+
+  /*
+   *
+   */
+  Container.prototype.get = function() {
+    return this._data;
+  };
+
+  /*
+   *
+   */
+  Container.prototype.getChildren = function(data) {
+    var result = this._children;
+    if (data) {
+      var id = data.id || data;
+      var index = -1;
+      for ( var i in this._children) {
+        if (this._children[i].id == id) {
+          index = i;
+          break;
+        }
+      }
+      if (index >= 0) {
+        result = this._children[i];
+      }
+    }
+    return result;
+  };
+
+  /*
+   *
+   */
+  Container.prototype.setAttr = function(type, attr) {
+    if (this._attrconf.hasOwnProperty(type)) {
+      var conf = this._attrconf[type];
+      var attradd = function(a) {
+        if (conf.indexOf(a) < 0) {
+          conf.push(a);
+        }
+      };
+      if (attr instanceof Array) {
+        for ( var i in attr) {
+          attradd(attr[i]);
+        }
+      } else {
+        attradd(attr);
+      }
+    }
+  };
+
+  /*
+   * 
+   */
+  Container.prototype.delAttr = function(type, attr) {
+    if (this._attrconf.hasOwnProperty(type)) {
+      var conf = this._attrconf[type];
+      var attrdel = function(a) {
+        if (conf.indexOf(a) < 0) {
+          conf.splice(conf.indexOf(a), 1);
+        }
+      };
+      if (attr instanceof Array) {
+        for ( var i in attr) {
+          attrdel(attr[i]);
+        }
+      } else {
+        attrdel(attr);
+      }
+    }
+  };
+
+  /*
+   *
+   */
+  Container.prototype.refresh = function() {
+    // create primary content
+    var html = this._jq.children('.primary').empty();
+    var count = 0;
+    for ( var i in this._attrconf.prim) {
+      var val = objGetRecursive(this._data, this._attrconf.prim[i]);
+      if (val) {
+        switch (count) {
+          case 0:
+            html.append($('<span class="head">').text(val));
+            break;
+          case 1:
+            html.append($('<span class="head-add">').text(val));
+            break;
+          default:
+            html.children('.head-add').append(', ' + val);
+            break;
         }
       }
     }
-    return this._data;
+    // create secondary content
+    html = this._jq.children('.secondary').empty();
+    for ( var i in this._attrconf.sec) {
+      var key = this._attrconf.sec[i];
+      var val = objGetRecursive(this._data, key) || 'n.a.';
+      key = strCapitalizeWords(key, /[_\-\ \.:]/) + ':';
+      html.append($('<dt>').text(key)).append($('<dd>').text(val));
+    }
+    // create buttons
+    html = this._jq.children('.buttons').empty();
+    var btn;
+    if (this._attrconf.sec.length > 0) {
+      btn = new WDAT.ui.Button2(null, 'more', this._bus, this._expandHandler());
+      html.append(btn.jq());
+    }
+    for ( var i in Container.ACTIONS) {
+      var act = Container.ACTIONS[i];
+      if (this._actions.hasOwnProperty(act)) {
+        var click = this._actions[act];
+        btn = new WDAT.ui.Button2(null, act + '_small', this._bus, click, this._data);
+        html.append(btn.jq());
+      }
+    }
   };
 
   /* Returns a handler for expand events (for internal use only) */
@@ -212,11 +335,10 @@
   };
 
   /* HTML template for container */
-  Container.TEMPLATE = '<div><div class="buttons"></div><div class="primary"></div>' +
-                       '<div class="secondary hidden"></div></div>';
+  Container.TEMPLATE = '<div><div class="buttons"></div><div class="primary"></div>'
+          + '<dl class="secondary hidden"></dl></div>';
 
   /* Possible actions */
   Container.ACTIONS = ['add', 'del', 'sel', 'edit'];
 
 }());
-

@@ -28,15 +28,15 @@
     Tree.parent.constructor.call(this, id, '<div>', 'wdat-tree');
     this._bus = bus;
     // create events
-    this._actions = {}
-    for (var i in actions) {
+    this._actions = {};
+    for ( var i in actions) {
       var act = actions[i];
       if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0) {
         this._actions[act] = this._id + '-' + act;
       }
     }
-    this._buttonactions = {}
-    for (var i in actions) {
+    this._buttonactions = {};
+    for ( var i in actions) {
       var act = actions[i];
       if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0 && act != 'sel') {
         this._buttonactions[act] = this._id + '-' + act;
@@ -67,25 +67,29 @@
     // check for existence
     if (!this.has(data)) {
       // set data id
-      if (!data.id) data.id = this._bus.uid();
+      if (!data.id)
+        data.id = this._bus.uid();
       var id = this.toID(data);
       // create a node and a container
-      var node = $('<div class="tree-node collapsed"><div class="node-icon"></div></div>)').attr('id', id);
-      var cont = new WDAT.ui.Container(null, this._bus, data, ['name'], null, this._buttonactions);
+      var node = $(
+              '<div class="tree-node collapsed"><div class="node-icon"></div></div>)')
+              .attr('id', id);
+      var cont = new WDAT.ui.Container(null, this._bus, this._buttonactions);
+      cont.set(data);
       node.append(cont.jq());
       // TODO hmpf?? if (isLeaf) node.addClass()
       // fire expand events on click
       if (this._actions.expand) {
         var that = this;
         node.children('.node-icon').click(function() {
-            that._bus.publish(that._actions.expand, cont.data());
+          that._bus.publish(that._actions.expand, cont.get());
         });
       }
       // fire select event when clicking on the node content
       if (this._actions.sel) {
         var that = this;
         cont.jq().children('.primary').click(function() {
-          that._bus.publish(that._actions.sel, cont.data());
+          that._bus.publish(that._actions.sel, cont.get());
         });
       }
       // add data to the tree
@@ -110,10 +114,10 @@
    *    None
    */
   Tree.prototype.update = function(data) {
-    var cont = this._jq.find('#'+this.toID(data)).children('.wdat-container');
+    var cont = this._jq.find('#' + this.toID(data)).children('.wdat-container');
     if (cont.length > 0) {
       cont = cont.data();
-      cont.data(data);
+      cont.set(data);
     }
   };
 
@@ -174,7 +178,6 @@
     return !selected;
   };
 
-
   /* Expand a specific leaf of the tree. If the element is already expanded it will
    * be collapsed.
    *
@@ -201,8 +204,6 @@
       }
       elem.toggleClass('collapsed', !collapsed);
       return !collapsed;
-    } else {
-      return false;
     }
   };
 
@@ -217,13 +218,10 @@
   Tree.prototype.isExpanded = function(element) {
     // get the element and its selection status
     var elem = this._jq.find('#' + this.toID(element));
-    if (elem.is('.leaf-node')) {
-      return false;
-    } else {
+    if (!elem.is('.leaf-node')) {
       return !elem.is('.collapsed');
     }
   };
-
 
   /* Returns true if the tree contains the given element or an element with
    * the same ID.
@@ -235,11 +233,8 @@
    *    True if the element or the id exists in that tree, false otherwise.
    */
   Tree.prototype.has = function(data) {
-    if (data != null && this._jq.find('#' + this.toID(data)).length > 0) {
+    if (data != null && this._jq.find('#' + this.toID(data)).length > 0)
       return true;
-    } else {
-      return false;
-    }
   };
 
   /* Returns the event used for a specific action.
@@ -253,9 +248,7 @@
    */
   Tree.prototype.event = function(action) {
     var e = this._actions[action];
-    if (typeof e === 'function')
-      return null;
-    else
+    if (typeof e != 'function')
       return e;
   };
 
@@ -312,4 +305,3 @@
   };
 
 }());
-

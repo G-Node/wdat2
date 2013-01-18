@@ -31,12 +31,12 @@
     List.parent.constructor.call(this, id, '<div>', 'wdat-list');
     this._bus = bus;
     // actions and events
-    this._actions = {}
+    this._actions = {};
     for ( var i in actions) {
       this._actions[actions[i]] = this._id + '-' + actions[i];
     }
-    this._buttonactions = {}
-    for (var i in actions) {
+    this._buttonactions = {};
+    for ( var i in actions) {
       var act = actions[i];
       if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0 && act != 'add') {
         this._buttonactions[act] = this._id + '-' + act;
@@ -54,8 +54,8 @@
         this._categories[cat] = tab;
         // create add button if add event is present
         if (this._actions.add) {
-          var b = new WDAT.ui.Button2(null, 'add_small', this._bus,
-                  this._actions.add, {name : cat,id : cat});
+          var b = new WDAT.ui.Button2(null, 'add_small', this._bus, this._actions.add, {
+            name : cat, id : cat});
           tab.find('.category').first().append(b.jq());
         }
       }
@@ -64,6 +64,8 @@
     tab.attr('id', this._id + '-default');
     this._jq.append(tab);
     this._categories['default'] = tab;
+    // configure container attributes
+    this._attrconf = {};
   }
 
   /* Add a new element to the list. If the element doesn't has id, a unique identifier
@@ -85,9 +87,39 @@
         data.id = this._bus.uid();
       var id = this.toID(data);
       // Create a new Container
-      var prim = _getPrimary(data);     // primary container attributes
-      var sec  = _getSecondary(data);   // secondary container attributes
-      var cont = new WDAT.ui.Container(id, this._bus, data, prim, sec, this._buttonactions);
+      var attr = {prim : _getPrimary(data), sec : _getSecondary(data)};
+      var cont = new WDAT.ui.Container(id, this._bus, this._buttonactions, attr);
+      cont.set(data);
+      // add the container to the list
+      var cat = this._categories[category] || this._categories['default'];
+      cat.append(cont.jq());
+    } else {
+      this.update(data);
+    }
+    return data;
+  };
+
+  /* Add a new element to the list. 
+   * TODO documentation
+   *
+   * Parameter:
+   *  - cont: Container     The element to add to the list.
+   *
+   *  - category: String    The category (optional).
+   *                        TODO implement inserts at a position.
+   *
+   * Return value:
+   *    The inserted element.
+   */
+  List.prototype.addContainer = function(cont, category) {
+    var data = cont.get();
+    if (!this.has(data)) {
+      // generate id if necessary
+      if (!data.id) {
+        data.id = this._bus.uid();
+        cont.set();
+      }
+      cont.jq().attr('id', this.toID(data));
       // add the container to the list
       var cat = this._categories[category] || this._categories['default'];
       cat.append(cont.jq());
@@ -112,18 +144,17 @@
     // select category
     var cat = this._categories[category] || this._categories['default'];
     // iterate over elements
-    var id, prim, sec, cont;
-    for (var data in datasets) {
+    var id;
+    for ( var data in datasets) {
       data = datasets[data];
       if (!this.has(data)) {
         // crate an id if necessary
         if (!data.id)
           data.id = this._bus.uid();
         id = this.toID(data);
-        // Create a new Container
-        prim = _getPrimary(data);     // primary container attributes
-        sec  = _getSecondary(data);   // secondary container attributes
-        cont = new WDAT.ui.Container(id, this._bus, data, prim, sec, this._buttonactions);
+        var attr = {prim : _getPrimary(data), sec : _getSecondary(data)};
+        var cont = new WDAT.ui.Container(id, this._bus, this._buttonactions, attr);
+        cont.set(data);
         // add the container to the list
         cat.append(cont.jq());
       } else {
@@ -145,10 +176,8 @@
     var elem = this._jq.find('#' + this.toID(data));
     if (elem.length > 0) {
       var cont = elem.data();
-      cont.data(data);
+      cont.set(data);
       return data;
-    } else {
-      return null;
     }
   };
 
@@ -164,11 +193,9 @@
   List.prototype.remove = function(data) {
     var elem = this._jq.find('#' + this.toID(data));
     if (elem.length > 0) {
-      data = elem.data().data();
+      var d = elem.data().get();
       elem.remove();
-      return data;
-    } else {
-      return null;
+      return d;
     }
   };
 
@@ -219,9 +246,7 @@
    */
   List.prototype.event = function(action) {
     var e = this._actions[action];
-    if (typeof e === 'function')
-      return null;
-    else
+    if (typeof e != 'function')
       return e;
   };
 
@@ -245,7 +270,7 @@
   List.prototype.selectHandler = function() {
     var that = this;
     return function(event, data) {
-        that.select(data, true);
+      that.select(data, true);
     };
   };
 
@@ -257,7 +282,7 @@
   List.prototype.removeHandler = function() {
     var that = this;
     return function(event, data) {
-        that.remove(data);
+      that.remove(data);
     };
   };
 
@@ -274,7 +299,7 @@
   function _getSecondary(data) {
     var secondary = [];
     if (data.hasOwnProperty('fields')) {
-      for (var i in data.fields) {
+      for ( var i in data.fields) {
         if (i !== 'name' && data.fields.hasOwnProperty(i)) {
           secondary.push(i);
         }
@@ -290,4 +315,3 @@
   }
 
 }());
-

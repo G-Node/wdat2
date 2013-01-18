@@ -20,3 +20,8 @@ apps/wdat/static/*.js
 apps/wdat/static/*.js.worker
 apps/wdat/static/*.css
 apps/wdat/static/*.less
+
+# Eclipse project settings
+.project
+.settings/
+.externalToolBuilders
