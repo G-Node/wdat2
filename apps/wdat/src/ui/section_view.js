@@ -17,8 +17,6 @@
    *
    * Depends on:
    *  - jQuery, WDAT.api.EventBus, WDAT.ui.Button, WDAT.ui.Container
-   *
-   * TODO documentation
    */
   WDAT.ui.SectionView = SectionView;
   inherit(SectionView, WDAT.ui.Container);
@@ -37,52 +35,7 @@
     this.refresh();
   }
 
-  /*
-  * [{property: <p>, values: []}]
-  */
-  SectionView.prototype.setChildren = function(data) {
-    if (data instanceof Array) {
-      this._children = data;
-    } else {
-      var index = -1;
-      for ( var i in this._children) {
-        if (this._children[i].id == data.property.id) {
-          index = i;
-          break;
-        }
-      }
-      if (index >= 0) {
-        this._children[index] = data;
-      } else {
-        this._children.push(data);
-      }
-    }
-    this.refresh();
-  };
-
-  /*
-   *
-   */
-  SectionView.prototype.getChildren = function(data) {
-    var result = this._children;
-    if (data) {
-      var id = data.property.id || data;
-      var index = -1;
-      for ( var i in this._children) {
-        if (this._children[i].id == id) {
-          index = i;
-          break;
-        }
-      }
-      if (index >= 0) {
-        result = this._children[i];
-      }
-    }
-    return result;
-  };
-
-  /*
-   *
+  /* Refresh the content (see WDAT.ui.Container).
    */
   SectionView.prototype.refresh = function() {
     // section overview
@@ -99,6 +52,13 @@
     html.append($('<dt>').text('Savety Level:')).append($('<dd>').text(val));
     val = objGetRecursive(this._data, 'date_created') || 'n.a.';
     html.append($('<dt>').text('Date Created:')).append($('<dd>').text(val));
+    // create property list
+    this.refreshChildren();
+  };
+
+  /* Refresh the content (see WDAT.ui.Container).
+   */
+  SectionView.prototype.refreshChildren = function() {
     // create property list
     this._list.clear();
     for ( var i in this._children) {
@@ -118,9 +78,16 @@
   // Class: PropertyContainer (private)
   //-------------------------------------------------------------------------------------
 
-  /* Constructor for the class SectionView.
-   *
-   * TODO documentation
+  /* Constructor for the class PropertyContainer.
+  *
+  * Parameters:
+  *  - id: String/Obj      Name/ID for this property container or a jQuery object representing
+  *                        an empty div that will be used as the container for the view.
+  *
+  *  - bus: EventBus       A bus handling events.
+  *
+  * Depends on:
+  *  - jQuery, WDAT.api.EventBus, WDAT.ui.Button, WDAT.ui.Container
    */
   inherit(PropertyContainer, WDAT.ui.Container);
   function PropertyContainer(id, bus) {
@@ -128,13 +95,15 @@
     PropertyContainer.parent.constructor.call(this, id, bus, act);
   }
 
+  /* Refresh the content (see WDAT.ui.Container).
+   */
   PropertyContainer.prototype.refresh = function() {
     // create primary content
     var html = this._jq.children('.primary').empty();
     var val = this._data.name;
     html.append($('<span class="head">').text(val));
     html.append($('<span class="head-add">').text(' = '));
-    for (i in this._children) {
+    for ( var i in this._children) {
       val = this._children[i].name;
       html.children('.head-add').append(i == 0 ? val : ', ' + val);
     }
@@ -144,7 +113,7 @@
     // create secondary content
     html = this._jq.children('.secondary').empty();
     val = '';
-    for (i in this._children) {
+    for ( var i in this._children) {
       val += (i == 0 ? this._children[i].name : ', ' + this._children[i].name);
     }
     html.append($('<dt>').text('Values:')).append($('<dd>').text(val || 'n.a.'));

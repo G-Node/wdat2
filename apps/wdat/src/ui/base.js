@@ -75,6 +75,17 @@
     return this._jq;
   };
 
+  /* Generates an ID within the name space of the widget. This ID should be used 
+   * in order to avoid multiple identical IDs in one HTML document.
+   *
+   * Parameter:
+   *  - id: String, Obj.      ID string or an object with the property 'id'.
+   *
+   *  - suffix: String        Suffix, that will be appended to the id.
+   *
+   * Return value:
+   *    The generated id string
+   */
   Widget.prototype.toID = function(data, suffix) {
     var id = null;
     if (data) {
@@ -120,32 +131,29 @@
   // Class: Container
   //-------------------------------------------------------------------------------------
 
-  /* A container that displays an object returned by the DataAPI.
-   * A container has primary attributes that are allwasy visible. The visibility of secondary 
-   * attributes can be toggled on and of. Primary and secondary attributes are defined by
-   * simple arrays of names.
-   * Further more each container can have multiple actions (see Container.ACTIONS). For each 
-   * action passed to the constructor, a button will be created, that fires the given action
-   * when clicked. Actions are defined by an object with the actions name as attribute name and
-   * the event name or callback function as its value.
-   *
+  /* A container element, that displays objects returned by the DataAPI. The container
+   * distinguishes between primary and secondary attributes. Primary attributes of
+   * the presented object are shown permanently whereas secondary attributes are only visible
+   * when the container is expanded.
+   * Primary and secondary attributes can be configured using the setAttr() method or the
+   * attrconf parameter of the constructor.
+   * 
    * Parameters:
    *  - id: String, Obj         String or jQuery object that represents the container.
    * 
    *  - bus: EventBus           Bus for handling events.
    * 
-   *  - data: Obj               The data object to show inside the container.
-   *
-   *  - primary: Array          Definition of primary attributes.
-   * 
-   *  - secondary: Array        Definition of secondary attributes.
-   *
    *  - actions: Obj            Definitions of all actions.
+   *  
+   *  - attrconf: Obj           Definition of primary and secondary attributes.
+   *  
+   *  - clazz: String           Class used for the containers HTML representation.
+   *  
+   *  - template: String        Template for the container. If a custom template is used
+   *                            the refresh method has to be overridden.
    *
-   * Depends on:
+   * Depends on: 
    *    WDAT.api.EventBus, WDAT.ui.Widget, WDAT.ui.Button2, jQuery, jQuery-UI button
-   *
-   * TODO don''t show collapse/expand button when there are no secondary data
    */
   WDAT.ui.Container = Container;
   inherit(Container, WDAT.ui.Widget);
@@ -170,8 +178,13 @@
     this._jq.data(this);
   }
 
-  /*
+  /* Set the data object of the container.
+   * 
+   * Parameters:
+   *  - data: Obj       The data object of the container.
    *
+   * Return value:
+   *    The data object
    */
   Container.prototype.set = function(data) {
     var d = data || {};
@@ -184,8 +197,17 @@
     this.refresh();
   };
 
-  /*
+  /* Set child objects for the data object represented by the container.
+   * If the data parameter is an Array, all children will be replaced by 
+   * the objects contained in data. If data is an Object the object will 
+   * be added to the list of existing children.
+   * 
+   * Parameters:
+   *  - data: Array, Obj     Child objects of the main data object represented by 
+   *                         the container.
    *
+   * Return value:
+   *    None
    */
   Container.prototype.setChildren = function(data) {
     if (data instanceof Array) {
@@ -204,18 +226,28 @@
         this._children.push(data);
       }
     }
-    this.refresh();
+    this.refreshChildren();
   };
 
-  /*
+  /* Get the main data object of the container.
+   * 
+   * Parameter:
+   *    None
    *
+   * Return value:
+   *    The main data object of the container.
    */
   Container.prototype.get = function() {
     return this._data;
   };
 
-  /*
-   *
+  /* Get the child objects of the main data object of the container.
+   * 
+   * Parameter:
+   *  - data: String, Obj   The object to fetch or the id of this object.
+   *  
+   * Return value:
+   *    The selected child object or all children if no child was specified.
    */
   Container.prototype.getChildren = function(data) {
     var result = this._children;
@@ -235,50 +267,31 @@
     return result;
   };
 
-  /*
-   *
-   */
-  Container.prototype.setAttr = function(type, attr) {
-    if (this._attrconf.hasOwnProperty(type)) {
-      var conf = this._attrconf[type];
-      var attradd = function(a) {
-        if (conf.indexOf(a) < 0) {
-          conf.push(a);
-        }
-      };
-      if (attr instanceof Array) {
-        for ( var i in attr) {
-          attradd(attr[i]);
-        }
-      } else {
-        attradd(attr);
-      }
-    }
-  };
-
-  /*
+  /* Configure the primary or secondary attributes for the main data object or 
+   * its children. 
    * 
+   * Parameters:
+   *  - type: String      The type of attributes ('prim', 'sec', 'child_prim' 
+   *                      or 'child_sec').
+   *
+   *  - attrlist: Array   Array with attributes that replaces the existing list
+   *                      of attributes.
+   *
+   * Return value:
+   *    None
    */
-  Container.prototype.delAttr = function(type, attr) {
+  Container.prototype.attrconf = function(type, attrlist) {
     if (this._attrconf.hasOwnProperty(type)) {
-      var conf = this._attrconf[type];
-      var attrdel = function(a) {
-        if (conf.indexOf(a) < 0) {
-          conf.splice(conf.indexOf(a), 1);
-        }
-      };
-      if (attr instanceof Array) {
-        for ( var i in attr) {
-          attrdel(attr[i]);
-        }
-      } else {
-        attrdel(attr);
-      }
+      this._attrconf[type] = attrlist;
     }
   };
 
-  /*
+  /* Refresh or create the whole content of the container.
+   * In the default implementation children and their attribute configurations
+   * are ignored.
    *
+   * Return value:
+   *    None
    */
   Container.prototype.refresh = function() {
     // create primary content
@@ -323,6 +336,16 @@
         html.append(btn.jq());
       }
     }
+  };
+
+  /* Refresh only the part of the container, that displays the children. In this 
+   * implementation this is just an alias for refresh().
+   * 
+   * Return value:
+   *    None
+   */
+  Container.prototype.refreshChildren = function() {
+    this.refresh();
   };
 
   /* Returns a handler for expand events (for internal use only) */
