@@ -24,7 +24,8 @@ SRC_JS_SEPARATE = src/api/network_resource.js \
 SRC_JS_WORKER = src/api/data_api.js.worker
 
 # all less sources
-SRC_LESS = $(wildcard src/ui/*.less)
+SRC_LESS = $(wildcard src/ui/*.less) \
+	$(wildcard src/app/*.less)
 
 # additonsal less sources
 SRC_LESS_MAIN = $(wildcard src/*.less)

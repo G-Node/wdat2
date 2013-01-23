@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>WDAT</title>
+
+<link rel="stylesheet" href="{{ STATIC_URL }}main.css" />
+<link rel="stylesheet" href="{{ STATIC_URL }}jquery-ui/jquery-ui.min.css" />
+<link rel="stylesheet" href="{{ STATIC_URL }}wdat-api.css" />
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}jquery-ui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}wdat-api.js"></script>
+
+<style type="text/css"></style>
+
+<script type="text/javascript">
+  $(window).load(WDAT.app.initialize);
+  window.onresize = WDAT.app.adjustLayout
+</script>
+
+</head>
+<body>
+
+<div class="head">head</div>
+<div class="nav">
+  <div id="nav-buttons">nav-buttons</div>
+</div>
+<div class="main">
+  <div class="left">
+    <div id="metadata-tree">metadata-tree</div>
+  </div>
+  <div class="right">
+    <div id="property-list">property-list</div>
+    <div id="data-list">data-list</div>
+  </div>
+  <div class="center">
+    <div id="search-bar">search-bar</div>
+    <div id="main-content">main-content</div>
+  </div>
+</div>
+</body>
+</html>
