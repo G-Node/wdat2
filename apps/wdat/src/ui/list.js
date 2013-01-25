@@ -232,7 +232,7 @@
    *    None
    */
   List.prototype.clear = function() {
-    this._jq.children('.wdat-container').remove();
+    this._jq.find('.wdat-container').remove();
   };
 
   /* Returns the event used for a specific action.
