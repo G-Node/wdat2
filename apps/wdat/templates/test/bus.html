@@ -4,8 +4,9 @@
 
 {% block extra_script %}
 <script type="text/javascript">
+  "use strict";
   var init = function() {
-    var bus = new WDAT.api.EventBus();
+    var bus = new WDAT.Bus();
     var log = $(".event-log").first();
 
     var fn = function(event, args){ log.append("<p>event fired: " + args + "</p>"); };

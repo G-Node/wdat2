@@ -18,12 +18,12 @@
    *                        An action 'expand' will be created automatically.
    *
    * Depends on:
-   *  - jQuery, WDAT.api.EventBus, WDAT.ui.Button, WDAT.ui.Container
+   *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
    *
    * TODO Replace buttons with jQuery-UI buttons
    */
   WDAT.ui.Tree = Tree;
-  inherit(Tree, WDAT.ui.Widget);
+  inherit(Tree, WDAT.Widget);
   function Tree(id, bus, actions) {
     Tree.parent.constructor.call(this, id, '<div>', 'wdat-tree');
     this._bus = bus;
@@ -31,14 +31,14 @@
     this._actions = {};
     for ( var i in actions) {
       var act = actions[i];
-      if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0) {
+      if (WDAT.Container.ACTIONS.indexOf(act) >= 0) {
         this._actions[act] = this._id + '-' + act;
       }
     }
     this._buttonactions = {};
     for ( var i in actions) {
       var act = actions[i];
-      if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0 && act != 'sel') {
+      if (WDAT.Container.ACTIONS.indexOf(act) >= 0 && act != 'sel') {
         this._buttonactions[act] = this._id + '-' + act;
       }
     }
@@ -74,7 +74,7 @@
       var node = $(
               '<div class="tree-node collapsed"><div class="node-icon"></div></div>)')
               .attr('id', id);
-      var cont = new WDAT.ui.Container(null, this._bus, this._buttonactions);
+      var cont = new WDAT.Container(null, this._bus, this._buttonactions);
       cont.set(data);
       node.append(cont.jq());
       // TODO hmpf?? if (isLeaf) node.addClass()

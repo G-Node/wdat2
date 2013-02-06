@@ -19,10 +19,10 @@
    *  - action: Sting, Func.    Event name or callback function for selection events (click)
    *
    * Depends on:
-   *  - jQuery, jQuery-UI, WDAT.api.EventBus, WDAT.ui.Widget
+   *  - jQuery, jQuery-UI, WDAT.api.EventBus, WDAT.Widget
    */
   WDAT.ui.BreadCrumb = BreadCrumb;
-  inherit(BreadCrumb, WDAT.ui.Widget);
+  inherit(BreadCrumb, WDAT.Widget);
   function BreadCrumb(id, bus, action) {
     BreadCrumb.parent.constructor.call(this, id, '<div>', 'wdat-bread-crumb');
     this._bus = bus;
@@ -39,7 +39,7 @@
         that._bus.publish(that.action, d);
       }
     };
-  };
+  }
 
 
 
@@ -57,8 +57,8 @@
    * Return value:
    *    The inserted element or null if nothing has been inserted.
    */
-  BreadCrumb.prototype.add = function(data, pos) {
-    pos = pos || this.selectedPos() + 1;
+  BreadCrumb.prototype.add = function(data, position) {
+    var pos = position || this.selectedPos() + 1;
     if (!data.id) data.id = this._bus.uid();
     // prepare datasets
     this._datasets.splice(pos, this._datasets.length);
@@ -77,7 +77,7 @@
     this._jq.buttonset('refresh');
     this._jq.children('input').click(this._selectHandler);
     return data;
-  }
+  };
 
   /* Remove all elements from the bread crumb bar beginning at the given position.
    *
@@ -87,8 +87,8 @@
    * Return value:
    *    None
    */
-  BreadCrumb.prototype.remove = function(pos) {
-    pos = pos || 0;
+  BreadCrumb.prototype.remove = function(position) {
+    var pos = position || 0;
     // prepare datasets
     this._datasets.splice(pos, this._datasets.length);
     // remove old radio buttons

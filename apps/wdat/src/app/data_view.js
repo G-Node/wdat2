@@ -4,10 +4,10 @@
   "use strict";
 
   //-------------------------------------------------------------------------------------
-  // Class: SectionView
+  // Class: DataView
   //-------------------------------------------------------------------------------------
 
-  /* Constructor for the class SectionView.
+  /* Constructor for the class DataView.
    *
    * Parameters:
    *  - id: String/Obj      Name/ID for this individual section view or a jQuery object representing
@@ -18,67 +18,24 @@
    * Depends on:
    *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
    */
-  WDAT.ui.SectionView = SectionView;
-  inherit(SectionView, WDAT.Container);
-  function SectionView(id, bus) {
-    var act = {};
-    var attrconf = {};
-    var clazz = 'wdat-section-view';
-    SectionView.parent.constructor.call(this, id, bus, act, attrconf, clazz,
-            SectionView.TEMPLATE);
+  WDAT.app.DataView = DataView;
+  inherit(DataView, WDAT.Widget);
+  function DataView(id, api, bus, selSection) {
+    DataView.parent.constructor.call(this, id);
     this._bus = bus;
-    this._data = {};
-    this._children = [];
-    var l = this._jq.children('.properties').attr('id', this._id + '-properties');
-    this._list = new WDAT.ui.List(l, bus, ['del', 'sel', 'edit']);
-    this._jq.data(this);
-    this.refresh();
+    this._nav = new WDAT.ui.BreadCrumb(this.toID('bread-crumb'), bus);
+    this._jq.append(this._nav.jq());
+    this._list = new WDAT.ui.List(this.toID('list'), bus, ['']);
   }
 
-  /* Refresh the content (see WDAT.Container).
-   */
-  SectionView.prototype.refresh = function() {
-    // section overview
-    var html = this._jq.children('.section').empty();
-    var val = objGetRecursive(this._data, 'name') || 'n.a.';
-    html.append($('<dt>').text('Name:')).append($('<dd>').text(val));
-    val = objGetRecursive(this._data, 'odml_type') || 'n.a.';
-    html.append($('<dt>').text('Type:')).append($('<dd>').text(val));
-    val = objGetRecursive(this._data, 'tree_position') || 'n.a.';
-    html.append($('<dt>').text('Position:')).append($('<dd>').text(val));
-    val = objGetRecursive(this._data, 'description') || 'n.a.';
-    html.append($('<dt>').text('Description:')).append($('<dd>').text(val));
-    val = objGetRecursive(this._data, 'safety_level') || 'n.a.';
-    html.append($('<dt>').text('Savety Level:')).append($('<dd>').text(val));
-    val = objGetRecursive(this._data, 'date_created') || 'n.a.';
-    html.append($('<dt>').text('Date Created:')).append($('<dd>').text(val));
-    // create property list
-    this.refreshChildren();
-  };
-
-  /* Refresh the content (see WDAT.Container).
-   */
-  SectionView.prototype.refreshChildren = function() {
-    // create property list
-    this._list.clear();
-    for ( var i in this._children) {
-      var p = this._children[i].property;
-      var v = this._children[i].values;
-      var cont = new PropertyContainer(p.id, this._bus);
-      cont.set(p);
-      cont.setChildren(v);
-      this._list.addContainer(cont);
-    }
-  };
-
-  SectionView.TEMPLATE = '<div><h2>Section</h2><dl class="section"></dl>'
-          + '<h3>Properties</h3><div class="properties"></div></div>';
+  DataView.TEMPLATE = '<div><div class="data-bread-crumb"></div>' +
+                      '<div class="data-list"></div></div>';
 
   //-------------------------------------------------------------------------------------
-  // Class: PropertyContainer (private)
+  // Class: DataContainer (private)
   //-------------------------------------------------------------------------------------
 
-  /* Constructor for the class PropertyContainer.
+  /* Constructor for the class DataContainer.
   *
   * Parameters:
   *  - id: String/Obj      Name/ID for this property container or a jQuery object representing
@@ -89,15 +46,15 @@
   * Depends on:
   *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
    */
-  inherit(PropertyContainer, WDAT.Container);
-  function PropertyContainer(id, bus) {
+  inherit(DataContainer, WDAT.Container);
+  function DataContainer(id, bus) {
     var act = {sel : 'property-select', del : 'property-delete', edit : 'property-edit'};
-    PropertyContainer.parent.constructor.call(this, id, bus, act);
+    DataContainer.parent.constructor.call(this, id, bus, act);
   }
 
   /* Refresh the content (see WDAT.Container).
    */
-  PropertyContainer.prototype.refresh = function() {
+  DataContainer.prototype.refresh = function() {
     // create primary content
     var html = this._jq.children('.primary').empty();
     var val = this._data.name;

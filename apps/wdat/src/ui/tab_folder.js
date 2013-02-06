@@ -19,7 +19,7 @@
    *  - jQuery, WDAT.api.EventBus
    */
   WDAT.ui.TabFolder = TabFolder;
-  inherit(TabFolder, WDAT.ui.Widget);
+  inherit(TabFolder, WDAT.Widget);
   function TabFolder(id, bus, hasControl) {
     TabFolder.parent.constructor.call(this, id, '<div>', 'wdat-tab-folder');
     this.bus = bus;

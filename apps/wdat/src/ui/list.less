@@ -3,7 +3,6 @@
 
 .wdat-list {
   overflow-y: auto;
-  width: 100%;
   border-spacing: 0px;
 
   ul {
@@ -30,11 +29,19 @@
   .category {
     display: block;
     padding: 0;
+    height: 22px;
 
     .category-name {
-      margin: 0px 10px 0px 0px;
+      margin: 0px 0px 0px 2px;
+      height: 20px;
       font-size: @baseFontSize + 2px;
       font-weight: bold;
+    }
+    
+    .wdat-button {
+      margin: 0px 8px 0px 0px;
+      display: block;
+      float: right;
     }
   }
 }

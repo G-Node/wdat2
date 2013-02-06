@@ -32,10 +32,10 @@
    *  - modal: Boolean        If true then this form can be shown in a modal window.
    *
    * Depends on
-   *    jQuery, jQuery-UI, WDAT.api.EventBus, WDAT.ui.Widget
+   *    jQuery, jQuery-UI, WDAT.api.EventBus, WDAT.Widget
    */
   WDAT.ui.Form = Form;
-  inherit(Form, WDAT.ui.Widget);
+  inherit(Form, WDAT.Widget);
   function Form(id, bus, save, modal, fields) {
     Form.parent.constructor.call(this, id, '<div>', 'wdat-form');
     this._jq.append('<div class="form-fields"></div>');

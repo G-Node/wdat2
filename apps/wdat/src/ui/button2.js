@@ -1,31 +1,25 @@
 // ---------- file: button2.js ---------- //
 
-// TODO Replace: replace Button by Button2 project wide
-// TODO Refactoring: rename Button2 to Button and replace names project wide
 
 (function(){
 
-  /* A button widget. This is basically a wrapper for a jQuery UI button
+  /**
+   * A button widget. This is basically a wrapper for a jQuery UI button
    * object.
-   * 
-   * Parameter:
-   *  - id: String, Obj     Id or jQuery object that represents the button (optional).
    *
-   *  - label: String       The label for the button. This might also be a name of a
-   *                        predefined button class (see PREDEF_BUTTONS).
+   * @param id (String, Obj)          Id or jQuery object that represents the button (optional).
+   * @param label (String)            The label for the button. This might also be a name of a
+   *                                  predefined button class (see PREDEF_BUTTONS).
+   * @param bus (Bus)                 Bus for events.
+   * @param click (String, Function)  Event string or function that is propagated by clicks.
+   *                                  If click is an event the whole button object is passed
+   *                                  to the event.
+   * @param data (Any)                Some data that is passed along with events.
    *
-   *  - bus: EventBus       Bus for events.
-   *
-   *  - click: Sting, Func  Event string or function that is propagated by clicks.
-   *                        If click is an event the whole button object is passed to the event.
-   *
-   *  - data: Any           Some data that is passed along with events.
-   *
-   * Depends on:
-   *    WDAT.ui.Widget, WDAT.api.EventBus, jQuery, jQuery UI
+   * Depends on: WDAT.Widget, WDAT.Bus, jQuery, jQuery UI
    */
-  WDAT.ui.Button2 = Button;
-  inherit(Button, WDAT.ui.Widget);
+  WDAT.Button = Button;
+  inherit(Button, WDAT.Widget);
   function Button(id, label, bus, click, data) {
     Button.parent.constructor.call(this, id, '<button>', 'wdat-button');
     this._bus = bus;
@@ -33,21 +27,19 @@
     if (Button.PREDEF_BUTTONS.hasOwnProperty(label)) {
       var pre = Button.PREDEF_BUTTONS[label];
       this._jq.button(pre.def);
-      click = click || this._id;
       if (pre.click) this._jq.click(pre.click);
     } else {
       this._jq.button({text: true, label: label});
     }
-    this.click(click);
+    this.click(click || this._id);
   }
 
-  /* Getter and setter for data, that is associated with the button.
+  /**
+   * Getter and setter for data, that is associated with the button.
    *
-   * Parameter:
-   *  - data:         New data (optional).
+   * @param data (Any)    New data (optional).
    *
-   * Return value:
-   *    The data associated with the button
+   * @return The data associated with the button.
    */
   Button.prototype.data = function(data) {
     var tmp = this._data;
@@ -56,15 +48,14 @@
     return tmp;
   };
 
-  /* Getter or setter for click events.
+  /**
+   * Getter or setter for click events.
    *
-   * Parameter:
-   *  - click: Sting, Func  Event string or function that is propagated by 
-   *                        clicks. If click is an event the whole button 
-   *                        object is passed to the event.
+   * @param click (String, Function)    Event string or function that is propagated by
+   *                                    clicks. If click is an event the whole button
+   *                                    object is passed to the event.
    *
-   * Return value:
-   *    The function that handles the click event.
+   * @return The function that handles the click event.
    */
   Button.prototype.click = function(click) {
     if (click) {
@@ -96,11 +87,16 @@
     ok:         {def: {text: true, label: "OK"}},
     save:       {def: {text: true, label: "Save"}},
     quit:       {def: {text: true, label: "Cancel"}},
-    more:       {def: {text: false, icons: { primary: "ui-icon-triangle-1-s"}}, 
+    more:       {def: {text: false, icons: { primary: "ui-icon-triangle-1-s"}},
                  click: _toggleimg("ui-icon-triangle-1-s", "ui-icon-triangle-1-n")}
   };
 
-  /* Toggle images. For internal use only */
+  /**
+   * Toggle images. For internal use only
+   *
+   * @param fist (String)     CSS identifier (jQuery UI button) for the first image.
+   * @param second (String)   CSS identifier (jQuery UI button) for the second image.
+   */
   function _toggleimg(first, second) {
     return function() {
       var b = $(this);
