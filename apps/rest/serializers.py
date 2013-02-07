@@ -38,7 +38,7 @@ class Serializer(PythonSerializer):
 
     @property
     def serialize_rel(self):
-        return self.q == 'full' or self.q == 'beard'
+        return (self.q == 'full' or self.q == 'beard') and self.show_kids
 
     def serialize(self, queryset, options={}):
         """
@@ -150,8 +150,7 @@ class Serializer(PythonSerializer):
                             rel_name).filter(current_state=10), options=options)
                     """
 
-                    if self.show_kids and self.serialize_rel and rel_name[:-4] not\
-                        in self.excluded_permalink:
+                    if rel_name[:-4] not in self.excluded_permalink:
                         children = []
                         for child in getattr(obj, rel_name + "_buffer", []):
                             if hasattr(child, 'get_absolute_url'):
