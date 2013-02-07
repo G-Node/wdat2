@@ -169,7 +169,7 @@
         if (i === 'prim')
           this._attrconf[i] = attrconf[i] || ['name'];
         else
-          this._attrcong[i] = attrconf[i];
+          this._attrconf[i] = attrconf[i];
       }
     } else {
       this._attrconf = {prim : ['name']};
@@ -556,13 +556,16 @@
   /**
    * Get an existing element by its id.
    *
-   * @param id (String)     The id of the element to get.
+   * @param data (String)     The id of the element to get.
    *
    * @returns The element matching the id or undefined.
    */
-  MultiContainer.prototype.get = function(id) {
-    if (this.has(id)) {
-      return this._data[id].data;
+  MultiContainer.prototype.get = function(data) {
+    if (data) {
+      var id = data.id || data;
+      if (this._data.hasOwnProperty(id)) {
+        return this._data[id].data;
+      }
     }
   };
 
@@ -574,8 +577,10 @@
    * @returns True if the element exists, false otherwise.
    */
   MultiContainer.prototype.has = function(data) {
-    var id = data.id || data;
-    return (id && this._data.hasOwnProperty(id));
+    if (data) {
+      var id = data.id || data;
+      return (id && this._data.hasOwnProperty(id));
+    }
   };
 
   /**

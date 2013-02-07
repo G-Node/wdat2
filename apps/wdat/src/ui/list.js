@@ -289,7 +289,7 @@
    *
    * @return A default handler.
    */
-  List.prototype.selectHandler = function() {
+  List.prototype.selHandler = function() {
     var that = this;
     return function(event, data) {
       that.select(data, true);
@@ -301,7 +301,7 @@
    *
    * @return A default handler.
    */
-  List.prototype.removeHandler = function() {
+  List.prototype.delHandler = function() {
     var that = this;
     return function(event, data) {
       that.del(data);

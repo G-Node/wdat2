@@ -3,88 +3,75 @@
 (function() {
   "use strict";
 
-  /* Constructor for the class Tree. Tree implements view to a dynamic tree. Each node of
+  /**
+   * Constructor for the class Tree. Tree implements view to a dynamic tree. Each node of
    * the tree can be expanded and collapsed. Further nodes can be appended and removed from
    * the tree.
    *
-   * Parameters:
-   *  - id: String/Obj      Name/ID for this individual tree or a jQuery object representing
-   *                        an empty div that will be used as the container for the tree.
+   * Minimal list element:
+   *   { name: <name> }
    *
-   *  - bus: EventBus       A bus handling events.
+   * @param id (String, Obj)      The id of the list or a jQuery object.
+   * @param bus (Bus)             Bus handling events.
+   * @param actions (Obj, Array)  Set of actions with their respective events or callbacks.
+   *                              Common events are 'del', 'add', 'edit' and 'sel'.
+   *                              An action 'expand' will be created automatically.
    *
-   *  - actions: Array      Array with event names that the tree will provide.
-   *                        Common events are 'del', 'add', 'edit' and 'sel'.
-   *                        An action 'expand' will be created automatically.
-   *
-   * Depends on:
-   *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
-   *
-   * TODO Replace buttons with jQuery-UI buttons
+   * Depends on: jQuery, WDAT.Bus, WDAT.Button, WDAT.MultiContainer, WDAT.Container
    */
-  WDAT.ui.Tree = Tree;
-  inherit(Tree, WDAT.Widget);
+  WDAT.Tree = Tree;
+  inherit(Tree, WDAT.MultiContainer);
   function Tree(id, bus, actions) {
-    Tree.parent.constructor.call(this, id, '<div>', 'wdat-tree');
-    this._bus = bus;
-    // create events
-    this._actions = {};
+    Tree.parent.constructor.call(this, id, bus, actions, 'wdat-tree', '<div>');
+    // actions for container elements
+    this._contActions = {};
     for ( var i in actions) {
       var act = actions[i];
-      if (WDAT.Container.ACTIONS.indexOf(act) >= 0) {
-        this._actions[act] = this._id + '-' + act;
-      }
-    }
-    this._buttonactions = {};
-    for ( var i in actions) {
-      var act = actions[i];
-      if (WDAT.Container.ACTIONS.indexOf(act) >= 0 && act != 'sel') {
-        this._buttonactions[act] = this._id + '-' + act;
+      if (WDAT.Container.ACTIONS.indexOf(act) >= 0 && act != 'add') {
+        this._contActions[act] = this._id + '-' + act;
       }
     }
     // add mandatory events
-    this._actions.expand = this._id + '-expand';
+    this._actions.expand = this.toID('expand');
   }
 
-  /* Add a new node to the tree. Elements of the tree are represented as a
+  /**
+   * Add a new node to the tree. Elements of the tree are represented as a
    * object that must at least contain a property 'name'. If this object has
    * also a property 'id' this will be used as an identifier. Otherwise a unique
    * id will be chosen.
    *
-   * Parameter:
-   *  - data: Obj           The element to add to the tree.
+   * @param data (Obj)            The element to add to the tree.
+   * @param parent (String, Obj)  The is of the parent or the parent object. When
+   *                              null the new element will be added to the root of
+   *                              the tree (optional).
+   * @param Boolean               Indicates if the element should be displayed as a leaf
+   *                              node. Leaf nodes don't fire expand/collapse events.
    *
-   *  - parent: String/Obj  The is of the parent or the parent object. When null the
-   *                        new element will be added to the root of the tree (optional).
-   *
-   *  - isLeaf: Boolean     Indicates if the element should be displayed as a leaf node.
-   *                        Leaf nodes don't fire expand/collapse events.
-   *
-   * Return value:
-   *    The data of the element added to the tree.
+   * @return The data of the element added to the tree.
    */
   Tree.prototype.add = function(data, parent, isLeaf) {
-    // check for existence
-    if (!this.has(data)) {
-      // set data id
-      if (!data.id)
-        data.id = this._bus.uid();
+    var parent_id = null;
+    if (this.has(parent)) {
+      if (typeof parent ==  'object')
+        parent_id = parent.id;
+      else
+        parent_id = parent;
+    }
+    var elem = Tree.parent.add.call(this, data, parent_id);
+    if (elem) {
       var id = this.toID(data);
-      // create a node and a container
-      var node = $(
-              '<div class="tree-node collapsed"><div class="node-icon"></div></div>)')
-              .attr('id', id);
-      var cont = new WDAT.Container(null, this._bus, this._buttonactions);
-      cont.set(data);
-      node.append(cont.jq());
-      // TODO hmpf?? if (isLeaf) node.addClass()
+      var html = $(Tree.NODE_TEMPLATE).attr('id', id);
+      var cont = new WDAT.Container(null, this._bus, this._contActions, null, null, null, {prim: ['name'], sec: []});
+      cont.set(elem);
+      html.append(cont.jq());
+      if (isLeaf)
+        html.addClass('leaf-node');
       // fire expand events on click
-      if (this._actions.expand) {
-        var that = this;
-        node.children('.node-icon').click(function() {
-          that._bus.publish(that._actions.expand, cont.get());
-        });
-      }
+      var that = this;
+      html.children('.node-icon').click(function() {
+        that._bus.publish(that._actions.expand, cont.get());
+      });
       // fire select event when clicking on the node content
       if (this._actions.sel) {
         var that = this;
@@ -95,213 +82,225 @@
       // add data to the tree
       if (this.has(parent)) {
         var p = this._jq.find('#' + this.toID(parent));
-        p.append(node).removeClass('leaf-node');
+        p.append(html).removeClass('leaf-node');
       } else {
-        this._jq.append(node);
+        this._jq.append(html);
       }
-    } else {
-      this.update(data);
+      // return element
+      return elem;
     }
-    return data;
   };
 
-  /* Update the textual representation of a node.
+  /**
+   * Update the textual representation of a node.
    *
-   * Parameter:
-   *  - data: Obj      The element to update.
+   * @param data (Obj)            The element to update.
+   * @param parent (String, Obj)  The is of the parent or the parent object (optional).
+   *                              This can be used to move a node/subtree.
    *
-   * Return value:
-   *    None
+   * @return The updated data object or undefined if no such object was found.
    */
-  Tree.prototype.update = function(data) {
-    var cont = this._jq.find('#' + this.toID(data)).children('.wdat-container');
-    if (cont.length > 0) {
-      cont = cont.data();
+  Tree.prototype.set = function(data, parent) {
+    var oldparent = this._data[data.id].position;
+    var parent_id = null;
+    if (this.has(parent)) {
+      if (typeof parent ==  'object')
+        parent_id = parent.id;
+      else
+        parent_id = parent;
+    }
+    var elem = Tree.parent.set.call(this, data, parent_id);
+    if (elem) {
+      var newparent = this._data[data.id].position;
+      var node = this._jq.find('#' + this.toID(data));
+      var cont = node.children('.wdat-container').data();
       cont.set(data);
+      if (parent && oldparent != newparent) {
+        node.detach();
+        var parentnode = this._jq.find('#' + this.toID(newparent));
+        parentnode.append(node).removeClass('leaf-node');
+      }
+      return elem;
     }
   };
 
-  /* Remove a node and all his children from the tree.
+  /**
+   * Remove a node and all his children from the tree.
    *
-   * Parameter:
-   *  - element: String, Obj.  The elements to remove or the id of this
-   *                           element.
+   * @param data (Obj., String)   The element to delete or the id of this element.
    *
-   * Return value:
-   *    None
+   * @returns True if the element was deleted, false otherwise.
    */
-  Tree.prototype.remove = function(element) {
-    var elem = this._jq.find('#' + this.toID(element));
-    elem.remove();
+  Tree.prototype.del = function(data) {
+    if (this.has(data)) {
+      var removed = this.get(data);
+      var node = this._jq.find('#' + this.toID(removed));
+      var subtree = this._subtree(removed);
+      for (var i in subtree) {
+        delete this._data[subtree[i].id];
+      }
+      node.remove();
+      return removed;
+    }
   };
 
-  /* Remove all childs from a node.
+  /**
+   * Remove all children of a node from the tree.
    *
-   * Parameter:
-   *  - element: String, Obj.  The parent node of all nodes to delete or the id of this
-   *                           node.
+   * @param data (Obj., String)   The element to delete or the id of this element.
    *
-   * Return value:
-   *    None
+   * @returns The number of removed children.
    */
-  Tree.prototype.removeChildren = function(element) {
-    var elem = this._jq.find('#' + this.toID(element));
-    elem.children('.tree-node').remove();
+  Tree.prototype.delChildren = function(data) {
+    var children = [];
+    if (this.has(data)) {
+      var elem = this.get(data);
+      for (var i in this._data) {
+        if (this._data[i].position == elem.id) {
+          children.push(this._data[i].data);
+        }
+      }
+      for (var i in children) {
+        this.del(children[i]);
+      }
+    }
+    return children.length;
   };
 
-  /* Select a specific leaf of the tree. If the element is already selected
+  /**
+   * Select a specific leaf of the tree. If the element is already selected
    * it will be deselected.
    *
-   * Parameter:
-   *  - element: String, Obj.  The elements to select or the id of this
-   *                           element.
+   * @param data (String, Obj)      The elements to select or the id of this
+   *                                element.
+   * @param single (Boolean)        If true all other currently selected nodes are
+   *                                deselected.
    *
-   *  - single: Boolean        If true all other currently selected nodes are
-   *                           deselected.
-   *
-   * Return value:
-   *    True if now selected, false otherwise.
+   * @return True if now selected, false otherwise.
    */
-  Tree.prototype.select = function(element, single) {
-    // get the element and its selection status
-    var elem = this._jq.find('#' + this.toID(element));
-    elem = elem.children('.wdat-container');
-    var selected = elem.is('.selected');
-    // if single, then unselect all
-    if (single) {
-      this._jq.find('.tree-node').each(function() {
-        var other = $(this).children('.wdat-container');
-        other.removeClass('selected');
-      });
+  Tree.prototype.select = function(data, single) {
+    if (this.has(data)) {
+      var node = this._jq.find('#' + this.toID(data));
+      var cont = node.children('.wdat-container');
+      var selected = cont.is('.selected');
+      if (single) {
+        this._jq.find('.tree-node').each(function() {
+          var other = $(this).children('.wdat-container');
+          other.removeClass('selected');
+        });
+      }
+      cont.toggleClass('selected', !selected);
+      return !selected;
     }
-    elem.toggleClass('selected', !selected);
-    return !selected;
   };
 
-  /* Expand a specific leaf of the tree. If the element is already expanded it will
+  /**
+   * Expand a specific leaf of the tree. If the element is already expanded it will
    * be collapsed.
    *
-   * Parameter:
-   *  - element: String, Obj.  The elements to expand or the id of this
-   *                           element.
+   * @param data (String, Obj)  The elements to expand or the id of this
+   *                            element.
+   * @param single (Boolean)    If true all other currently expanded nodes are
+   *                            collapsed.
    *
-   *  - single: Boolean        If true all other currently expanded nodes are
-   *                           collapsed.
-   *
-   * Return value:
-   *    True if now expanded false otherwise.
+   * @return True if now expanded false otherwise.
    */
-  Tree.prototype.expand = function(element, single) {
-    // get the element and its selection status
-    var elem = this._jq.find('#' + this.toID(element));
-    if (!elem.is('.leaf-node')) {
-      var collapsed = elem.is('.collapsed');
+  Tree.prototype.expand = function(data, single) {
+    // get the data and its selection status
+    var node = this._jq.find('#' + this.toID(data));
+    if (!node.is('.leaf-node')) {
+      var collapsed = node.is('.collapsed');
       // if single, then unselect all
       if (single) {
         this._tree.find('.tree-node').each(function() {
           $(this).addClass('collapsed');
         });
       }
-      elem.toggleClass('collapsed', !collapsed);
+      node.toggleClass('collapsed', !collapsed);
       return !collapsed;
     }
   };
 
-  /* Checks if a node is expanded.
+  /**
+   * Checks if a node is expanded.
    *
-   * Parameter:
-   *  - element: String, Obj.   The element to check or the id of the element.
+   * @param data String, Obj.   The element to check or the id of the element.
    *
-   * Return value:
-   *    True if the element is expanded, false otherwise.
+   * @return True if the element is expanded, false otherwise.
    */
-  Tree.prototype.isExpanded = function(element) {
-    // get the element and its selection status
-    var elem = this._jq.find('#' + this.toID(element));
-    if (!elem.is('.leaf-node')) {
-      return !elem.is('.collapsed');
+  Tree.prototype.isExpanded = function(data) {
+    // get the data and its selection status
+    var node = this._jq.find('#' + this.toID(data));
+    if (!node.is('.leaf-node')) {
+      return !node.is('.collapsed');
     }
   };
 
-  /* Returns true if the tree contains the given element or an element with
-   * the same ID.
+  /**
+   * Get a list of data objects/nodes that are in the subtree of another
+   * data object/node (for internal use only).
    *
-   * Parameter:
-   *  - element: String, Obj.   The element or the id of an element.
+   * @param data (String, Obj)    The root elements of the subtree or the id of this
+   *                              element.
    *
-   * Return value:
-   *    True if the element or the id exists in that tree, false otherwise.
+   * @return An array of data objects.
    */
-  Tree.prototype.has = function(data) {
-    if (data != null && this._jq.find('#' + this.toID(data)).length > 0)
-      return true;
+  Tree.prototype._subtree = function(data) {
+    var subtree = [];
+    if (this.has(data)) {
+      var root_id = data.id || data;
+      var elem = this._data[root_id].data;
+      var stack = [elem];
+      while (stack.length > 0) {
+        elem = stack.pop();
+        for (var i in this._data) {
+          if (this._data[i].position == elem.id) {
+            stack.push(this._data[i].data);
+          }
+        }
+        subtree.push(elem);
+      }
+    }
+    return subtree;
   };
 
-  /* Returns the event used for a specific action.
+  /**
+   * Crates a default handler function for select events.
    *
-   * Parameter:
-   *  - action: String      The action.
-   *
-   * Return value:
-   *    The event name, that is used for a specific action or null if no event
-   *    was specified.
+   * @return A default handler.
    */
-  Tree.prototype.event = function(action) {
-    var e = this._actions[action];
-    if (typeof e != 'function')
-      return e;
-  };
-
-  /* Crates a default handler function for select events.
-   *
-   * Return value:
-   *   A default handler.
-   */
-  Tree.prototype.selectHandler = function() {
+  Tree.prototype.selHandler = function() {
     var that = this;
     return function(event, data) {
-      if (data.id)
-        that.select(data.id, true);
+      that.select(data, true);
     };
   };
 
-  /* Crates a default handler function for expand events.
+  /**
+   * Crates a default handler function for expand events.
    *
-   * Return value:
-   *   A default handler.
+   * @return A default handler.
    */
   Tree.prototype.expandHandler = function() {
     var that = this;
     return function(event, data) {
-      if (data.id)
-        that.expand(data.id);
+      that.expand(data);
     };
   };
 
-  /* Crates a default handler function for delete events.
+  /**
+   * Crates a default handler function for delete events.
    *
-   * Return value:
-   *   A default handler.
+   * @remove A default handler.
    */
-  Tree.prototype.removeHandler = function() {
+  Tree.prototype.delHandler = function() {
     var that = this;
     return function(event, data) {
-      if (data.id)
-        that.remove(data);
+      that.del(data);
     };
   };
 
-  /* Crates a default handler function for edit events.
-   *
-   * Return value:
-   *   A default handler.
-   */
-  Tree.prototype.editHandler = function() {
-    var that = this;
-    return function(event, data) {
-      if (data.id)
-        that.edit(data.id);
-    };
-  };
+  Tree.NODE_TEMPLATE = '<div class="tree-node collapsed">' +
+                       '<div class="node-icon"></div></div>';
 
 }());
