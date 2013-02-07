@@ -16,7 +16,9 @@ from friends.models import Friendship
 from tagging.fields import TagField
 from django.utils.translation import ugettext_lazy as _
 from metadata.models import Section
-from scipy import signal as spsignal
+
+
+#from scipy import signal as spsignal
 
 import settings
 
@@ -124,8 +126,12 @@ class Datafile(SafetyLevel, ObjectState):
         with tb.openFile(self.raw_file.path, 'r') as f:
             l = f.listNodes( "/" )[0][ start_index : end_index ]
 
-        if downsample and downsample < len( l ):
-            dataslice = spsignal.resample(l, downsample)
+        """ FIXME!! downsampling is temporarily switched off. This is made due 
+        to the scipy library that can't be used in the current context. A new
+        algorithm should be used, or the scipy should be compiled using the 
+        local numpy having a different version. """
+        #if downsample and downsample < len( l ):
+        #    dataslice = spsignal.resample(l, downsample)
 
         return l # this is a [sliced] array
 
