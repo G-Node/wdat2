@@ -13,7 +13,7 @@ from datetime import datetime
 import settings
 import hashlib
 
-from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M
+from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M, ObjectState
 from rest.common import *
 from rest.meta import *
 
@@ -49,6 +49,13 @@ class BaseHandler(object):
         self.mode = settings.DEFAULT_RESPONSE_MODE
         #self.excluded_bulk_update = () # error when bulk update on these fields
 
+    @property
+    def is_versioned(self):
+        return issubclass(self.model, ObjectState)
+
+    @property
+    def is_multiuser(self):
+        return ("owner" in [x.name for x in self.model._meta.local_fields])
 
     @auth_required
     def __call__(self, request, obj_id=None, *args, **kwargs):
@@ -68,7 +75,8 @@ class BaseHandler(object):
         """
         kwargs = {}
         create = False
-        if self.options.has_key('at_time'): # to fetch a particular version
+        if self.options.has_key('at_time') and self.is_versioned:
+            # to fetch a particular version
             kwargs['at_time'] = self.options['at_time']
 
         if request.method in self.actions.keys():
@@ -106,15 +114,19 @@ class BaseHandler(object):
 
             if not create:
                 q = self.options.get("q", self.mode)
-                all_ids = objects.values_list( "guid", flat=True )
-                if len(all_ids) > 0: # evaluate pre-QuerySet here, hits database
-                    kwargs["guid__in"] = self.secondary_filtering(all_ids)
-                    if request.method == 'DELETE':
-                        objects = kwargs["guid__in"] # just pass [guid's]
+
+                if self.is_versioned:
+                    all_ids = objects.values_list( "guid", flat=True )
+                    if len(all_ids) > 0: # evaluate pre-QuerySet here, hits database
+                        kwargs["guid__in"] = self.secondary_filtering(all_ids)
+                        if request.method == 'DELETE':
+                            objects = kwargs["guid__in"] # just pass [guid's]
+                        else:
+                            objects = self.model.objects.get_related( **kwargs )
                     else:
-                        objects = self.model.objects.get_related( **kwargs )
+                        objects = []
                 else:
-                    objects = []
+                    pass # FIXME secondary filtering!!
 
             return self.actions[request.method](request, objects)
         else:
@@ -203,35 +215,37 @@ class BaseHandler(object):
 
             objects = objects.filter(**self.attr_filters)
 
-        # permissions filter:
-        # 1. all public objects 
-        q1 = objects.filter(safety_level=1).exclude(owner=user)
+        # permissions filter, if object interfaces multi-user access
+        if self.is_multiuser:
 
-        # 2. all *friendly*-shared objects
-        friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
-            + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
-        q2 = objects.filter(safety_level=2, owner__in=friends)
+            # 1. all public objects 
+            q1 = objects.filter(safety_level=1).exclude(owner=user)
 
-        # 3. All private direct shares
-        dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
-            object_type=self.model.acl_type())]
-        q3 = objects.filter(pk__in=dir_acc)
+            # 2. all *friendly*-shared objects
+            friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
+                + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
+            q2 = objects.filter(safety_level=2, owner__in=friends)
 
-        perm_filtered = q1 | q2 | q3
+            # 3. All private direct shares
+            dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
+                object_type=self.model.acl_type())]
+            q3 = objects.filter(pk__in=dir_acc)
 
-        if update:
-            # 1. All private direct shares with 'edit' level
-            dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
-                object_type=self.model.acl_type(), access_level=2)]
-            available = objects.filter(pk__in=dir_acc)
+            perm_filtered = q1 | q2 | q3
 
-            if self.options.has_key('mode') and not self.options['mode'] == 'ignore':
-                if not perm_filtered.count() == available.count():
-                    raise ReferenceError("Some of the objects in your query are not available for an update.")
+            if update:
+                # 1. All private direct shares with 'edit' level
+                dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
+                    object_type=self.model.acl_type(), access_level=2)]
+                available = objects.filter(pk__in=dir_acc)
 
-            perm_filtered = objects.filter(pk__in=dir_acc) # not to damage QuerySet
+                if self.options.has_key('mode') and not self.options['mode'] == 'ignore':
+                    if not perm_filtered.count() == available.count():
+                        raise ReferenceError("Some of the objects in your query are not available for an update.")
 
-        objects = perm_filtered | objects.filter(owner=user)
+                perm_filtered = objects.filter(pk__in=dir_acc) # not to damage QuerySet
+
+            objects = perm_filtered | objects.filter(owner=user)
 
         return objects
 
