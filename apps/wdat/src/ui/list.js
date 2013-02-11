@@ -97,7 +97,7 @@
 
   /**
    * Add a new element to the list that is already wrapped into a container
-   * FIXME call parent add!!!
+   * TODO check call of parent add!
    *
    * @param cont (Container)   The element to add to the list.
    * @param category (String)  The category (optional).
@@ -106,12 +106,8 @@
    */
   List.prototype.addContainer = function(cont, category) {
     var data = cont.get();
-    if (data && !this.has(data)) {
-      // generate id if necessary
-      if (!data.id) {
-        data.id = this._bus.uid();
-        cont.set();
-      }
+    data = List.parent.add.call(this, data, category);
+    if (data) {
       cont.jq().attr('id', this.toID(data));
       // get the right category
       var cat = undefined;

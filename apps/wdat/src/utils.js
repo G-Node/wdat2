@@ -91,7 +91,6 @@ function objGetRecursive(object, prop, children) {
       if (obj.hasOwnProperty(i)) {
         if (i === prop) {
           found = obj[i];
-          break;
         } else if (children && children.indexOf(i) > -1 && typeof obj[i] === 'object') {
           stack.push(obj[i]);
         } else if (!children && typeof obj[i] === 'object') {
@@ -645,5 +644,37 @@ function modChildren(type) {
 function modPlotable(type) {
   var t = type.toString().toLowerCase();
   return WDAT.model.data.plotable.hasOwnProperty(t);
+}
+
+/**
+ * Crates a new object from a certain type with all the defaults set.
+ *
+ * @param type (String)     The type of a data object e.g. section, segment or analogsignal
+ *
+ * @return A new object from a certain type, or indefined if no such type was found.
+ */
+function modCreate(type) {
+  var template = modTemplate(type);
+  if (template) {
+    var obj = {
+            safety_level: "private",
+            type: type,
+            category: modCategory(type),
+            id: null
+    };
+    obj.fields = {};
+    for (var i in template.fields) {
+      obj.fields[i] = template.fields[i].value;
+    }
+    obj.parents = {};
+    for (var i in template.parents) {
+      obj.parents[i] = null;
+    }
+    obj.children = {};
+    for (var i in template.children) {
+      obj.children[i] = [];
+    }
+    return obj;
+  }
 }
 

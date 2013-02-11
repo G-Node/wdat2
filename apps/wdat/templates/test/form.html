@@ -5,8 +5,8 @@
 {% block extra_script %}
 <script type="text/javascript">
   var init = function() {
-    var bus = new WDAT.api.EventBus();
-    var api = new WDAT.api.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+    var bus = new WDAT.Bus();
+    var api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
     /* Create test form with the VForm base class */
     var fields = {
       'id': {type: 'hidden', value: '1'},
@@ -18,16 +18,15 @@
       'vavorite-pizza' : {type: 'option', options: { funghi: "Pizza Funghi", salami: "Pizza Salami", vegi: "Vegi Pizza"}},
       'text': {type: 'ltext'}
     };
-    var form = new WDAT.ui.Form($('#form01'), bus, 'save', false, fields);
-
+    var form = new WDAT.Form($('#form01'), null, bus, ['save'], fields);
+    form.set({});
     /* create and register handler for save events */
     function doSave(event, data) {
       console.log('EVENT save: ' + JSON.stringify(data));
     }
-    bus.subscribe('save', doSave);
+    bus.subscribe(form.event('save'), doSave);
 
-    /* Create section form and edit a selectable section */
-    var form_section = new WDAT.ui.SectionForm('form-section', bus, 'save', true);
+    var form_section = new WDAT.Form('form-section', null, bus, ['save'], 'section', true);
     var btn_section  = $("#btn-section").button({text: true});
     btn_section.click( function() {
       var id = $('#input-section').val();
@@ -36,15 +35,12 @@
     });
     function doGetSection(event, data) {
       console.log('EVENT get-section: ' + JSON.stringify(data));
-      form_section.open();
       form_section.set(data.response[0]);
+      form_section.open();
     }
     bus.subscribe('get-section', doGetSection);
 
-    /* Create property form and edit a selectable property */
-    var form_property = new WDAT.ui.PropertyForm('form-property', bus, 'save', true);
-    form_property.setValue();
-    form_property.setValue();
+    var form_property = new WDAT.Form('form-property', null, bus, ['save'], 'property', true);
     var btn_property  = $("#btn-property").button({text: true});
     btn_property.click( function() {
       var id = $('#input-property').val();
@@ -53,8 +49,8 @@
     });
     function doGetProperty(event, data) {
       console.log('EVENT get-property: ' + JSON.stringify(data));
-      form_property.open();
       form_property.set(data.response[0]);
+      form_property.open();
     }
     bus.subscribe('get-property', doGetProperty);
   };

@@ -188,6 +188,7 @@
   Container.prototype.set = function(data) {
     this._data = data;
     this.refresh();
+    return data;
   };
 
   /**
