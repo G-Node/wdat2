@@ -79,7 +79,7 @@
    *
    * @param pos (Number)    The position from where to delete all elements.
    */
-  BreadCrumb.prototype.remove = function(position) {
+  BreadCrumb.prototype.del = function(position) {
     var pos = position || 0;
     // prepare datasets
     this._datasets.splice(pos, this._datasets.length);

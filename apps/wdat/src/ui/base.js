@@ -621,12 +621,5 @@
       return act;
   };
 
-  /**
-   * Refresh the representation of the content. In this case the implementation is
-   * empty.
-   */
-  MultiContainer.prototype.refresh = function() {
-    // nothing to do
-  };
 
 }());
