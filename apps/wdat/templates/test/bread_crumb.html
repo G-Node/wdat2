@@ -5,8 +5,8 @@
 {% block extra_script %}
 <script type="text/javascript">
   var init = function() {
-    var bus = new WDAT.api.EventBus(); 
-    var bcn = new WDAT.ui.BreadCrumb($('#bcn-1'), bus);
+    var bus = new WDAT.Bus(); 
+    var bcn = new WDAT.BreadCrumb($('#bcn-1'), bus);
     bus.subscribe(bcn.action, function(event, data) { 
       $('.event-log').append(bcn.action + ': ' + JSON.stringify(data)).append('<br>'); 
     });
