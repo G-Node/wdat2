@@ -24,7 +24,7 @@
    */
   WDAT.Form = Form;
   inherit(Form, WDAT.Container);
-  function Form(id, title, bus, actions, model, isModal) {
+  function Form(id, bus, actions, model, isModal) {
     Form.parent.constructor.call(this, id, bus, actions, 'wdat-form', Form.FORM_TEMPLATE);
     this._isModal = isModal;                      // true if this is a form for modal dialogs
     // get model and type
@@ -229,7 +229,7 @@
       }
     } else {
       if (this._type) {
-        newdata = modCreate(type);
+        newdata = modCreate(this._type);
       } else {
         newdata = {};
       }

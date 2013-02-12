@@ -29,7 +29,6 @@
    * Depends on: jQuery
    */
   WDAT.Widget = Widget;
-  WDAT.ui.Widget = Widget; // FIXME remove this after refactoring
   function Widget(id, template, clazz) {
     var tmpl = template || '<div>';
     if (id) {
@@ -97,8 +96,6 @@
   /**
    * Remove the widget from the DOM tree (side effect).
    * Don't reatach the wiget after calling this method.
-   *
-   * FIXME name collides with method in Tree and List!!
    */
   Widget.prototype.remove = function() {
     this._jq.remove();

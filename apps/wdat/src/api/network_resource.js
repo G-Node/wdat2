@@ -232,7 +232,7 @@
           result = '';
           if (!value || vlaue == "") {
             for (var i in template.parents) {
-              result += encodeURIComponent(template.parents[i]) + '__isnull=1&';
+              result += encodeURIComponent(i) + '__isnull=1&';
             }
           }
         }

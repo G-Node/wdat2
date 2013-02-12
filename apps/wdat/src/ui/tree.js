@@ -27,7 +27,7 @@
     this._contActions = {};
     for ( var i in actions) {
       var act = actions[i];
-      if (WDAT.Container.ACTIONS.indexOf(act) >= 0 && act != 'add') {
+      if (WDAT.Container.ACTIONS.indexOf(act) >= 0) {
         this._contActions[act] = this._id + '-' + act;
       }
     }

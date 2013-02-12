@@ -18,7 +18,7 @@
       'vavorite-pizza' : {type: 'option', options: { funghi: "Pizza Funghi", salami: "Pizza Salami", vegi: "Vegi Pizza"}},
       'text': {type: 'ltext'}
     };
-    var form = new WDAT.Form($('#form01'), null, bus, ['save'], fields);
+    var form = new WDAT.Form($('#form01'), bus, ['save'], fields);
     form.set({});
     /* create and register handler for save events */
     function doSave(event, data) {
@@ -26,7 +26,7 @@
     }
     bus.subscribe(form.event('save'), doSave);
 
-    var form_section = new WDAT.Form('form-section', null, bus, ['save'], 'section', true);
+    var form_section = new WDAT.Form('form-section', bus, ['save'], 'section', true);
     var btn_section  = $("#btn-section").button({text: true});
     btn_section.click( function() {
       var id = $('#input-section').val();
@@ -40,7 +40,7 @@
     }
     bus.subscribe('get-section', doGetSection);
 
-    var form_property = new WDAT.Form('form-property', null, bus, ['save'], 'property', true);
+    var form_property = new WDAT.Form('form-property', bus, ['save'], 'property', true);
     var btn_property  = $("#btn-property").button({text: true});
     btn_property.click( function() {
       var id = $('#input-property').val();
