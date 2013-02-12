@@ -58,7 +58,7 @@ urlpatterns = patterns('',
 )
 
 urlpatterns += patterns('',
-    url(r'^users/', 'profiles.views.users', name="users"),
+    url(r'^user/', include('profiles.api_urls')),
     url(r'^captcha/', include('captcha.urls')),
     url(r'^datafiles/', include('datafiles.urls')),
     url(r'^metadata/', include('metadata.urls')),

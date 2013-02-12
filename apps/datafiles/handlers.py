@@ -38,7 +38,8 @@ class FileHandler(BaseHandler):
 
                 self.model.save_changes( objects=[datafile], update_kwargs={}, \
                     m2m_dict={}, fk_dict={}, m2m_append=True )
-                self.run_validation( datafile = datafile )
+                #self.run_validation( datafile = datafile )
+                datafile.save()
 
                 return_code = 201
                 request.method = "GET"

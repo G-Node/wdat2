@@ -1,5 +1,7 @@
+import urlparse
 from rest.serializers import Serializer
 from rest.meta import meta_objects
+from django.utils.encoding import smart_unicode
 
 class UserSerializer(Serializer):
     """ do not show all relations with NEO data objects. Deserialize reverse m2m
@@ -13,3 +15,12 @@ class UserSerializer(Serializer):
         """ ignore these fields """
         pass
 
+    def end_object(self, obj):
+        serialized = {
+            "model"     : smart_unicode(obj._meta),
+            "fields"    : self._current,
+            "permalink" : urlparse.urljoin( self.host, \
+                ''.join(['user/', str(obj.pk), '/']) )
+        }
+        self.objects.append(serialized)
+        self._current = None

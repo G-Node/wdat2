@@ -83,15 +83,17 @@ class BaseHandler(object):
 
             if obj_id: # single object case, GET, UPDATE or DELETE
                 objects = self.model.objects.filter( **kwargs )
-                objects = objects.filter( local_id = obj_id )
+                objects = objects.filter( pk = obj_id )
                 if not objects: # object does not exist?
                     return NotFound(message_type="does_not_exist", request=request)
-                if request.method == 'GET': # get single object
-                    if not objects[0].is_accessible(request.user):
-                        return Forbidden(message_type="not_authorized", request=request)
 
-                elif not objects[0].is_editable(request.user): # modify single
-                    return Forbidden(message_type="not_authorized", request=request)
+                if self.is_versioned: # validate permissions for multi-user objs
+                    if request.method == 'GET': # get single object
+                        if not objects[0].is_accessible(request.user):
+                            return Forbidden(message_type="not_authorized", request=request)
+
+                    elif not objects[0].is_editable(request.user): # modify single
+                        return Forbidden(message_type="not_authorized", request=request)
 
             else: # a category case, GET, CREATE, DELETE or BULK UPDATE
                 update = self.options.has_key('bulk_update')
@@ -126,7 +128,7 @@ class BaseHandler(object):
                     else:
                         objects = []
                 else:
-                    pass # FIXME secondary filtering!!
+                    pass # FIXME secondary filtering for non-versioned objs!!
 
             return self.actions[request.method](request, objects)
         else:
@@ -357,15 +359,15 @@ class BaseHandler(object):
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
-        #except (IntegrityError, ValidationError), VE:
-        #    if hasattr(VE, 'message_dict'):
-        #        json_obj=VE.message_dict
-        #    elif hasattr(VE, 'messages'):
-        #        json_obj={"details": ", ".join(VE.messages)}
-        #    else:
-        #        json_obj={"details": str( VE )}
-        #    return BadRequest(json_obj=json_obj, \
-        #        message_type="bad_parameter", request=request)
+        except (IntegrityError, ValidationError), VE:
+            if hasattr(VE, 'message_dict'):
+                json_obj=VE.message_dict
+            elif hasattr(VE, 'messages'):
+                json_obj={"details": ", ".join(VE.messages)}
+            else:
+                json_obj={"details": str( VE )}
+            return BadRequest(json_obj=json_obj, \
+                message_type="bad_parameter", request=request)
         except (AssertionError, AttributeError, KeyError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="post_data_invalid", request=request)
@@ -504,7 +506,7 @@ class ACLHandler(BaseHandler):
 
 def get_obj_attr(request, obj_id=None, handler=None, *args, **kwargs):
     """ computes etag / last_modified for a single object """
-    if not handler or not obj_id:
+    if not handler or not obj_id or not handler.is_versioned:
         return None
     try:
         try: # try to get object by local ID (+ at_time)

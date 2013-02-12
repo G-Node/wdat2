@@ -5,6 +5,8 @@ from state_machine.models import _get_url_base
 from meta import meta_messages
 from StringIO import StringIO
 
+import urlparse
+
 #===============================================================================
 # here we implement REST API supporting functions
 
@@ -44,10 +46,13 @@ class BasicJSONResponse(HttpResponse):
     def __init__(self, json_obj={}, message_type=None, request=None):
         self.stream = StringIO()
         if request: 
-            if request.user: 
-                #json_obj["logged_in_as"] = request.user.username
-                json_obj["logged_in_as"] = get_host_for_permalink( request ) + \
-                    _get_url_base( request.user.__class__ ) + str( request.user.id )
+            if request.user:
+                u = request.user
+                json_obj["logged_in_as"] = {
+                    "username": u.username,
+                    "permalink": urlparse.urljoin( get_host_for_permalink( request ), \
+                        ''.join(['user/', str(u.pk), '/']) )
+                    }
         if message_type:
             json_obj["message_type"] = message_type
             json_obj["message"] = meta_messages[message_type]
