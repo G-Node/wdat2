@@ -14,7 +14,7 @@ import settings
 import django_access
 
 """
-NOTE. Loading fixtures data is possible using:
+NOTE. Loading data from fixtures is possible using:
 
 >>> from django.core.management import call_command
 >>> call_command('loaddata', 'users.json')

@@ -1,34 +1,6 @@
 [
     {
         "pk": 1,
-        "model": "datafiles.Datafile",
-        "fields": {
-            "name": "some data array",
-            "raw_file": "data/array.h5",
-            "file_type": 5,
-            "owner": 1,
-            "date_created": "2011-10-05 19:11:56",
-            "local_id": 1,
-            "guid": "e003e26a7273867bad4c3d0260f476c5762130ab",
-            "starts_at": "2011-10-05 19:11:56"
-        }
-    },
-    {
-        "pk": 2,
-        "model": "datafiles.Datafile",
-        "fields": {
-            "name": "some data array",
-            "raw_file": "data/array.h5",
-            "file_type": 5,
-            "owner": 1,
-            "date_created": "2011-10-05 19:11:56",
-            "local_id": 2,
-            "guid": "e003e26a7273867bad4c3d0110f476c5762130ab",
-            "starts_at": "2011-10-05 19:11:56"
-        }
-    },
-    {
-        "pk": 1,
         "model": "neo_api.Block",
         "fields": {
             "file_origin": 1,

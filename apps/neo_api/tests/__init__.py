@@ -103,7 +103,7 @@ class TestUnauthorized(TestCase):
 
 
 class TestGeneric(TestCase):
-    fixtures = ["users.json", "samples.json"]
+    fixtures = ["users.json", "datafiles.json", "neo.json"]
     ser = NEOSerializer()
     sample_objects = None
     ids = {}
