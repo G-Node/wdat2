@@ -30,8 +30,10 @@
     html.addClass('wdat-metadata-tree');
     var treeId = id += '-mdata-tree';
     this._jq = html;
+    // create tree
     this._tree = new WDAT.Tree(treeId, bus, ['sel', 'del', 'edit', 'add']);
     this._jq.append(this._tree.jq());
+    // create buttons
     // define names for internal and external events
     this._actions = {
       sel:    selEvent,                     // selection events to notify external comonents
@@ -81,7 +83,8 @@
     var that = this;
     return function(event, data) {
       that._tree.select(data.id, true);
-      that._bus.publish(that._actions.sel, data);
+      var selected = that._tree.selected();
+      that._bus.publish(that._actions.sel, selected);
     };
   };
 
@@ -131,8 +134,7 @@
       f.set();
       if (!_isPredefNode(id)) {
         if (event.type == that._tree.event('add')) {
-          var p = data.id.split('/');
-          f.set({parent_section: parent[p.length - 1]});
+          f.set({parents: {parent_section: id}, type: 'section'});
         } else if (event.type == that._tree.event('edit')) {
           f.set(data);
         }

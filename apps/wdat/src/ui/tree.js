@@ -194,6 +194,14 @@
     }
   };
 
+  Tree.prototype.selected = function() {
+    var html = this._jq.find('.tree-node > .selected');
+    if (html.is('.wdat-container')) {
+      var cont = html.data().get();
+      return cont;
+    }
+  };
+
   /**
    * Expand a specific leaf of the tree. If the element is already expanded it will
    * be collapsed.

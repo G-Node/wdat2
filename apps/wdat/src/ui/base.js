@@ -66,6 +66,7 @@
    * @returns The jQuery object that represents the widget
    */
   Widget.prototype.jq = function() {
+    this._jq.data(this);
     return this._jq;
   };
 
