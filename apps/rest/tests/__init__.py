@@ -109,7 +109,7 @@ class TestGeneric( object ):
                         self.assertEqual(str(rdata['selected'][0]['fields'][field.name]),\
                             str( v ), "Object: %s, field: %s" % (obj_type, field.name) )
                     except ValidationError:
-                        # test value is outside of the possible range. ignore
+                        # test value is outside of the possible range. ignore?
                         pass
 
 
