@@ -19,8 +19,10 @@
     // used by the uid generator
     this._counter = 1;
     this.onerror = function(event, data) {
-      if (data && data.error && console)
+      if (data && data.error && console) {
         console.log('Bus (ERROR): event = ' + event.type + ' // error' + data.response || data.error);
+        return false;
+      }
       return true;
     };
   }

@@ -115,31 +115,26 @@
         ftype.create(input);
       if (!ftype.nowidth)
         input.addClass('fixed-width');
-      if (value)
-        input.attr('value', value);
-      else if (def.value)
-        input.attr('value', def.value);
     } else if (def.type === 'ltext' || def.type === 'textarea') {
       input = $('<textarea rows="6"></textarea>');
       input.addClass('fixed-width');
-      if (value)
-        input.attr('value', value);
-      else if (def.value)
         input.attr('value', def.value);
     } else if (def.type === 'option') {
       input = $('<select size="1"></select>');
       for (var i in def.options) {
         input.append($('<option></option>').attr('value', i).text(def.options[i]));
       }
-      if (value)
-        input.attr('value', value);
-      else if (def.value)
-        input.attr('value', def.value);
     } else {
       throw new Error('field has no valid type: field.type = ' + type);
     }
-    if (def.readonly)
+    if (value) {
+      input.attr('value', value);
+    } else if (def.value != undefined && def.value != null) {
+      input.attr('value', def.value);
+    }
+    if (def.readonly) {
       input.attr('readonly', 'readonly');
+    }
     input.attr('name', this.toID(name));
     htmlInput.append(input);
     return html;
@@ -236,8 +231,8 @@
     }
     if (newdata) {
       this._data = newdata;
-      this.refresh();
     }
+    this.refresh();
     return newdata;
   };
 

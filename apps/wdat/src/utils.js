@@ -664,7 +664,10 @@ function modCreate(type) {
     };
     obj.fields = {};
     for (var i in template.fields) {
-      obj.fields[i] = template.fields[i].value;
+      if (i == 'name')
+        obj.name = template.fields[i].value;
+      else
+        obj.fields[i] = template.fields[i].value;
     }
     obj.parents = {};
     for (var i in template.parents) {

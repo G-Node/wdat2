@@ -27,7 +27,7 @@
     this._contActions = {};
     for ( var i in actions) {
       var act = actions[i];
-      if (WDAT.Container.ACTIONS.indexOf(act) >= 0) {
+      if (WDAT.Container.ACTIONS.indexOf(act) >= 0 && act != 'sel') {
         this._contActions[act] = this._id + '-' + act;
       }
     }
@@ -80,8 +80,8 @@
         });
       }
       // add data to the tree
-      if (this.has(parent)) {
-        var p = this._jq.find('#' + this.toID(parent));
+      if (parent_id) {
+        var p = this._jq.find('#' + this.toID(parent_id));
         p.append(html).removeClass('leaf-node');
       } else {
         this._jq.append(html);

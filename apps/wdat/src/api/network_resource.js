@@ -192,8 +192,8 @@
     var result = '';
     var template = modTemplate(type);
     // local function that converts an operator to its equivalent in the URL
-    var opToString = function(operator) {
-      switch (operator) {
+    var opToString = function(op) {
+      switch (op) {
         case '>':
           return '__gt=';
         case '<':
@@ -411,8 +411,8 @@
     adapted = objMerge(data.fields, adapted);
     adapted = objMerge(data.data, adapted);
     // merge parents
-    for (i in data.parents) {
-      if (data.parents.hasOwnProperty(i)) {
+    for (var i in data.parents) {
+      if (data.parents[i]) {
         var tmp = data.parents[i].split('/');
         adapted[i] = tmp[tmp.length - 1];
       }
