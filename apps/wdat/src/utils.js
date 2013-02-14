@@ -199,7 +199,7 @@ WDAT.model.metadata = {
     children : {
       property_set: {type: 'property', label: 'Properties'},
       block_set: {type: 'block', label: 'Properties'},
-      datafile_set: {type: 'file', label: 'Files'},
+//      datafile_set: {type: 'file', label: 'Files'},
       section_set: {type: 'section', label: 'Sections'}
     },
     parents : {

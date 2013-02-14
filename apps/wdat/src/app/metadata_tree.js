@@ -30,6 +30,8 @@
     html.addClass('wdat-metadata-tree');
     var treeId = id += '-mdata-tree';
     this._jq = html;
+    // create header
+    this._jq.append('<h1>Metadata Browser</h1>');
     // create tree
     this._tree = new WDAT.Tree(treeId, bus, ['sel', 'del', 'edit', 'add']);
     this._jq.append(this._tree.jq());

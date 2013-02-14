@@ -1,0 +1,68 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}SectionContainer Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function() {
+    var bus = new WDAT.Bus();
+    var api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+    var sec = new WDAT.SectionContainer($('#secv-01'), bus, 'secv-select');
+
+    /* create and register handler for save events */
+    function doSave(event, data) {
+      console.log('EVENT save: ' + JSON.stringify(data));
+    }
+    bus.subscribe('save', doSave);
+
+    /* Create section form and edit a selectable section */
+    var btn_section  = $("#btn-section").button({text: true});
+    btn_section.click( function() {
+      var id = $('#input-section').val();
+      api.get('get-section', {id: id, type: "section", depth: 2});
+    });
+    bus.subscribe('get-section', handleRequestEvents);
+
+    function handleRequestEvents(event, data) {
+      var section;
+      var properties = [];
+      for (var i in data.response) {
+        var elem = data.response[i];
+        if (elem.type == 'section') {
+          section = elem;
+        } else if (elem.type == 'property') {
+          var p = {property: elem, values: []};
+          for (var j in elem.children.value_set) {
+            var v = elem.children.value_set[j]
+            p.values.push(data.response[v]);
+          }
+          properties.push(p);
+        }
+      }
+      if (section) {
+        sec.set(section);
+        sec.setChildren(properties);
+      }
+      log(properties);
+    }
+    
+    function log(d) {
+      var l = $('.event-log');
+      l.empty();
+      l.text(JSON.stringify(d, null, 4));
+    }
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>SectionContainer Test</h1>
+<div>
+  <button id="btn-section">Show Section</button>
+  <span>/metadata/section/</span>
+  <input type="text" value="12" id="input-section">
+</div>
+<div id="secv-01" style="border: 1px solid grey"></div>
+<pre class="event-log"></pre>
+{% endblock %}

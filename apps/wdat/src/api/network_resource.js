@@ -28,6 +28,8 @@
   /**
    * Constructor of the class NetworkResource. NetworkResource provides methods to
    * access a web resource, in this case the G-Node RESTfull API.
+   *
+   * FIXME results in object by id and not as array
    */
   WDAT.NetworkResource = NetworkResource;
   function NetworkResource() {
@@ -43,8 +45,71 @@
    * @return The requested data as a JSON string as specified by the G-Node RESTfull API.
    */
   NetworkResource.prototype.get = function(specifier) {
-    var url = this._specToURL(specifier);
-    return this.getByURL(url);
+    // check for depth specifier
+    var result;
+    if (specifier.depth) {
+      // get depth and delete it from specifiers
+      var depth = parseInt(specifier.depth);
+      depth = (depth > 2) ? 2 : depth;
+      delete specifier.depth;
+      // do first request
+      var url = this._specToURL(specifier);
+      result = this.getByURL(url);
+      if (!result.error) {
+        // parse response
+        var response = JSON.parse(result.response);
+        var subrequest_error = undefined;
+        var other_responses = [];
+        var stack = [];             // stack with elements to process
+        for (var i in response.selected) {
+          stack.push({data: response.selected[i], depth: 0});
+        }
+        while(stack.length > 0 && !subrequest_error) {
+          var elem = stack.pop();
+          if (elem.depth < depth) {
+            var type = elem.data.model.split('.');
+            type = type[type.length - 1];
+            var childfields = modChildren(type);
+            var id = _stripURL(elem.data.permalink);
+            for (var i in childfields) {
+              var field = childfields[i];
+              if (field.type && elem.data.fields[i].length > 0) {
+                var tmp = this.get({type: field.type, parent: id});
+                if (!tmp.error) {
+                  var children = JSON.parse(tmp.response);
+                  other_responses.push(children);
+                  for (var j in children.selected) {
+                    if (elem.depth + 1 < depth) {
+                      stack.push({data: children.selected[j], depth: elem.depth + 1});
+                    }
+                  }
+                } else {
+                  subrequest_error = tmp.response;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        // collect results
+        if (!subrequest_error) {
+          for (var i in other_responses) {
+            var resp = other_responses[i];
+            response.selected = response.selected.concat(resp.selected);
+          }
+          result.response = response;
+        } else {
+          // TODO more generous error handling??
+          result.response = subrequest_error;
+          result.error = true;
+        }
+        //console.log(JSON.stringify(response, null, 4));
+      }
+    } else {
+      var url = this._specToURL(specifier);
+      result = this.getByURL(url);
+    }
+    return result;
   };
 
   /**
@@ -63,6 +128,10 @@
     if (this._xhr.status === 200) {
       result.status = 200;
       result.response = this._xhr.responseText;
+    } else if (this._xhr.status === 404) {
+      result.status = this._xhr.status;
+      result.error = true;
+      result.response = "Not found (404)";
     } else {
       result.status = this._xhr.status;
       result.error = true;
@@ -287,7 +356,7 @@
    * @return An array of converted objects
    */
   ResourceAdapter.prototype.adapt = function(data) {
-    var adapted_data = [], raw_data = data;
+    var adapted_data = {}, raw_data = data;
     if (typeof raw_data  === 'string') raw_data = JSON.parse(raw_data);
     // iterate over results
     for (var index in raw_data.selected) {
@@ -295,13 +364,13 @@
       // the adapted result
       var adapted = {};
       // adapt general data
-      var tmp = this._stripURL(element.permalink).split('/');
+      var tmp = _stripURL(element.permalink).split('/');
       adapted.id = tmp.join('/');
       adapted.type = tmp[1];
       adapted.category = modCategory(adapted.type);
       adapted.plotable = modPlotable(adapted.type);
       adapted.date_created = element.fields.date_created;
-      adapted.owner = this._stripURL(element.fields.owner);
+      adapted.owner = _stripURL(element.fields.owner);
       switch (element.fields.safety_level) {
         case 1:
           adapted.safety_level = 'public';
@@ -319,8 +388,12 @@
         // adapt fields
         adapted.fields = {};
         for (var f in template.fields) {
-          if (f === 'name' || (f === 'data' && adapted.type === 'value')) {
-            adapted.name = element.fields[f];
+          if (f === 'name') {
+            if (adapted.type === 'value') {
+              adapted.name = element.fields.data;
+            } else {
+              adapted.name = element.fields.name;
+            }
           } else {
             adapted.fields[f] = element.fields[f];
           }
@@ -331,7 +404,7 @@
           if (element.fields[c] && element.fields[c].length > 0) {
             adapted.children[c] = [];
             for (var i in element.fields[c]) {
-              adapted.children[c][i] = this._stripURL(element.fields[c][i]);
+              adapted.children[c][i] = _stripURL(element.fields[c][i]);
             }
           }
         }
@@ -339,7 +412,7 @@
         adapted.parents = {};
         for (var p in template.parents) {
           if (element.fields[p]) {
-            adapted.parents[p] = this._stripURL(element.fields[p]);
+            adapted.parents[p] = _stripURL(element.fields[p]);
           }
         }
         // adapt data
@@ -350,7 +423,7 @@
           }
         }
       }
-      adapted_data.push(adapted);
+      adapted_data[adapted.id] = adapted;
     }
     return adapted_data;
   };
@@ -392,7 +465,7 @@
     objMerge(data, adapted, true, ['id', 'type', 'category', 'plotable','date_created',
         'owner', 'safety_level', 'name', 'fields', 'parents', 'data', 'children']);
     if (type === 'value')
-      adapted.value = data.name;
+      adapted.name = data.data;
     else
       adapted.name  = data.name;
     adapted.safety_level = data.safety_level || 'private';
@@ -428,7 +501,7 @@
    *
    * @return The path part of the URL without leading '/'
    */
-  ResourceAdapter.prototype._stripURL = function(url) {
+  function _stripURL(url) {
     var tmp = url.split('://');
     // remove protocol host and port if present
     if (tmp.length > 1) {
@@ -440,7 +513,7 @@
     }
     // remove parameter
     return tmp.split('?')[0];
-  };
+  }
 
 }());
 

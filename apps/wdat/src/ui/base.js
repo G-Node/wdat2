@@ -358,7 +358,7 @@
   function ParentContainer(id, bus, actions, clazz, template, empty, attrconf) {
     // prepare container structure
     var tmpl = template || ParentContainer.TEMPLATE;
-    ParentContainer.parent.constructor.call(id, bus, actions, clazz, tmpl, empty, attrconf);
+    ParentContainer.parent.constructor.call(this, id, bus, actions, clazz, tmpl, empty, attrconf);
     // array with children
     this._children = [];
     // add this to html container
