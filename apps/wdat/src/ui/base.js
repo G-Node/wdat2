@@ -150,13 +150,15 @@
     this._actions = {};
     if (actions) {
       if (actions instanceof Array) {
-        for ( var i in actions) {
-          var act = actions[i];
-          this._actions[act] = this.toID(act);
+        for (var i in actions) {
+          this._actions[actions[i]] = this.toID(actions[i]);
         }
       } else if (typeof actions === 'object') {
-        for ( var i in actions) {
-          this._actions[i] = actions[i];
+        for (var i in actions) {
+          if (actions[i])
+            this._actions[i] = actions[i];
+          else
+            this._actions[i] = this.toID(i);
         }
       }
     }

@@ -7,97 +7,69 @@
   // Class: SectionContainer
   //-------------------------------------------------------------------------------------
 
-  /* Constructor for the class SectionContainer.
+  /**
+   * Constructor for the class SectionContainer.
    *
-   * Parameters:
-   *  - id: String/Obj      Name/ID for this individual section view or a jQuery object representing
-   *                        an empty div that will be used as the container for the view.
+   * @param id (String, Obj)  Name/ID for this individual section view or a jQuery object representing
+   *                          an empty div that will be used as the container for the view.
+   * @param bus (Bus)         A bus handling events.
    *
-   *  - bus: EventBus       A bus handling events.
-   *
-   * Depends on:
-   *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
+   * Depends on: jQuery, WDAT.Bus, WDAT.Button, WDAT.Container
    */
   WDAT.SectionContainer = SectionContainer;
-  inherit(SectionContainer, WDAT.ParentContainer);
+  inherit(SectionContainer, WDAT.Container);
   function SectionContainer(id, bus) {
-    var act = ['prop_add', 'prop_del', 'prop_edit', 'val_sel'];
-    SectionContainer.parent.constructor.call(this, id, bus, act, 'section-container',
-                                             SectionContainer.TEMPLATE);
-    // define property list actions
-    this._cont_actions = {
-//            add: this.event('prop_add'),
-            del: this.event('prop_del'),
-//            sel: this.event('prop_sel'),
-            edit: this.event('prop_edit'),
-            val_sel: this.event('val_sel')
-    };
-    // create a list for properties
-    var l = this._jq.children('.properties').attr('id', this._id + '-properties');
-    this._list = new WDAT.List(l, bus, {add: this.event('prop_add')}, ['properties']);
-    // add self to dom an refresh
-    this._jq.data(this);
-    this.refresh();
+    var empty = "No section selected";
+    SectionContainer.parent.constructor.call(this, id, bus, null, 'section-container',
+                                             SectionContainer.TEMPLATE, empty);
   }
 
-  /* Refresh the content (see WDAT.Container).
+  /**
+   * Refresh the content (see WDAT.Container).
    */
   SectionContainer.prototype.refresh = function() {
     // section overview
     var html = this._jq.children('.section').empty();
+    if (this._data) {
+      var val = objGetRecursive(this._data, 'name') || 'n.a.';
+      var field = $(SectionContainer.FIELD_TEMPLATE);
+      field.children('.field-name').text('Name:');
+      field.children('.field-val').text(val);
+      html.append(field);
 
-    var val = objGetRecursive(this._data, 'name') || 'n.a.';
-    var field = $(SectionContainer.FIELD_TEMPLATE);
-    field.children('.field-name').text('Name:');
-    field.children('.field-val').text(val);
-    html.append(field);
+      val = objGetRecursive(this._data, 'odml_type') || 'n.a.';
+      field = $(SectionContainer.FIELD_TEMPLATE);
+      field.children('.field-name').text('Type:');
+      field.children('.field-val').text(val);
+      html.append(field);
 
-    val = objGetRecursive(this._data, 'odml_type') || 'n.a.';
-    field = $(SectionContainer.FIELD_TEMPLATE);
-    field.children('.field-name').text('Type:');
-    field.children('.field-val').text(val);
-    html.append(field);
+      val = objGetRecursive(this._data, 'tree_position') || 'n.a.';
+      field = $(SectionContainer.FIELD_TEMPLATE);
+      field.children('.field-name').text('Position:');
+      field.children('.field-val').text(val);
+      html.append(field);
 
-    val = objGetRecursive(this._data, 'tree_position') || 'n.a.';
-    field = $(SectionContainer.FIELD_TEMPLATE);
-    field.children('.field-name').text('Position:');
-    field.children('.field-val').text(val);
-    html.append(field);
+      val = objGetRecursive(this._data, 'description') || 'n.a.';
+      field = $(SectionContainer.FIELD_TEMPLATE);
+      field.children('.field-name').text('Description:');
+      field.children('.field-val').text(val);
+      html.append(field);
 
-    val = objGetRecursive(this._data, 'description') || 'n.a.';
-    field = $(SectionContainer.FIELD_TEMPLATE);
-    field.children('.field-name').text('Description:');
-    field.children('.field-val').text(val);
-    html.append(field);
+      val = objGetRecursive(this._data, 'safety_level') || 'n.a.';
+      field = $(SectionContainer.FIELD_TEMPLATE);
+      field.children('.field-name').text('Savety Level:');
+      field.children('.field-val').text(val);
+      html.append(field);
 
-    val = objGetRecursive(this._data, 'safety_level') || 'n.a.';
-    field = $(SectionContainer.FIELD_TEMPLATE);
-    field.children('.field-name').text('Savety Level:');
-    field.children('.field-val').text(val);
-    html.append(field);
-
-    val = objGetRecursive(this._data, 'date_created') || 'n.a.';
-    field = $(SectionContainer.FIELD_TEMPLATE);
-    field.children('.field-name').text('Date Created:');
-    field.children('.field-val').text(val);
-    html.append(field);
-    // create property list
-    this.refreshChildren();
-  };
-
-  /* Refresh the content (see WDAT.Container).
-   */
-  SectionContainer.prototype.refreshChildren = function() {
-    // create property list
-    this._list.clear();
-    for ( var i in this._children) {
-      var p = this._children[i].property;
-      var v = this._children[i].values;
-      var cont = new PropertyContainer(p.id, this._bus, this._cont_actions);
-      cont.set(p);
-      cont.setChildren(v);
-      cont.refresh();
-      this._list.addContainer(cont, 'properties');
+      val = objGetRecursive(this._data, 'date_created') || 'n.a.';
+      field = $(SectionContainer.FIELD_TEMPLATE);
+      field.children('.field-name').text('Date Created:');
+      field.children('.field-val').text(val);
+      html.append(field);
+    } else {
+      var field = $(SectionContainer.FIELD_TEMPLATE);
+      field.children('.field-val').text(this._empty);
+      html.append(field);
     }
   };
 
@@ -111,23 +83,23 @@
   // Class: PropertyContainer (private)
   //-------------------------------------------------------------------------------------
 
-  /* Constructor for the class PropertyContainer.
-  *
-  * Parameters:
-  *  - id: String/Obj      Name/ID for this property container or a jQuery object representing
-  *                        an empty div that will be used as the container for the view.
-  *
-  *  - bus: EventBus       A bus handling events.
-  *
-  * Depends on:
-  *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
+  /**
+   * Constructor for the class PropertyContainer.
+   *
+   * @param id(String, Obj)   Name/ID for this property container or a jQuery object representing
+   *                          an empty div that will be used as the container for the view.
+   * @param bus (Bus)         A bus handling events.
+   *
+   * Depends on: jQuery, WDAT.Bus, WDAT.Button, WDAT.Container
    */
+  WDAT.PropertyContainer = PropertyContainer;
   inherit(PropertyContainer, WDAT.ParentContainer);
   function PropertyContainer(id, bus, act) {
     PropertyContainer.parent.constructor.call(this, id, bus, act, 'property-container');
   }
 
-  /* Refresh the content (see WDAT.Container).
+  /**
+   * Refresh the content (see WDAT.ParentContainer).
    */
   PropertyContainer.prototype.refresh = function() {
     // create primary content
@@ -197,6 +169,13 @@
         html.append(btn.jq());
       }
     }
+  };
+
+  /**
+   * Refresh the content (see WDAT.ParentContainer).
+   */
+  PropertyContainer.prototype.refreshChildren = function() {
+    this.refresh();
   };
 
 }());

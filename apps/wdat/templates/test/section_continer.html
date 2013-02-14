@@ -7,7 +7,11 @@
   var init = function() {
     var bus = new WDAT.Bus();
     var api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
-    var sec = new WDAT.SectionContainer($('#secv-01'), bus, 'secv-select');
+    var sec = new WDAT.SectionContainer($('#sec'), bus, 'secv-select');
+    sec.refresh();
+    var list = new WDAT.List($('#proplist'), bus, ['add'], ['properties']);
+    list.refresh();
+    var contActions = ['del', 'edit', 'del', 'value-select'];
 
     /* create and register handler for save events */
     function doSave(event, data) {
@@ -41,7 +45,14 @@
       }
       if (section) {
         sec.set(section);
-        sec.setChildren(properties);
+        for (var j in properties) {
+          var p = properties[j].property;
+          var v = properties[j].values
+          var cont = new WDAT.PropertyContainer(p.id, bus, contActions);
+          cont.set(p);
+          cont.setChildren(v);
+          list.addContainer(cont, 'properties');
+        }
       }
       log(properties);
     }
@@ -63,6 +74,9 @@
   <span>/metadata/section/</span>
   <input type="text" value="12" id="input-section">
 </div>
-<div id="secv-01" style="border: 1px solid grey"></div>
+<div style="border: 1px solid grey">
+  <div id="sec"></div>
+  <div id="proplist"></div>
+</div>
 <pre class="event-log"></pre>
 {% endblock %}
