@@ -7,25 +7,14 @@
   var init = function() {
     var bus = new WDAT.Bus();
     var api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
-    var sec = new WDAT.SectionContainer($('#sec'), bus, 'secv-select');
-    sec.refresh();
-    var list = new WDAT.List($('#proplist'), bus, ['add'], ['properties']);
-    list.refresh();
-    var contActions = ['del', 'edit', 'del', 'value-select'];
-
-    /* create and register handler for save events */
-    function doSave(event, data) {
-      console.log('EVENT save: ' + JSON.stringify(data));
-    }
-    bus.subscribe('save', doSave);
+    var sec = new WDAT.MetadataView($('#sec'), api, bus, 'select-section');
 
     /* Create section form and edit a selectable section */
     var btn_section  = $("#btn-section").button({text: true});
     btn_section.click( function() {
       var id = $('#input-section').val();
-      api.get('get-section', {id: id, type: "section", depth: 2});
+      bus.publish('select-section', {id: id});
     });
-    bus.subscribe('get-section', handleRequestEvents);
 
     function handleRequestEvents(event, data) {
       var section;
@@ -56,7 +45,7 @@
       }
       log(properties);
     }
-    
+
     function log(d) {
       var l = $('.event-log');
       l.empty();
@@ -76,7 +65,6 @@
 </div>
 <div style="border: 1px solid grey">
   <div id="sec"></div>
-  <div id="proplist"></div>
 </div>
 <pre class="event-log"></pre>
 {% endblock %}

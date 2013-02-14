@@ -18,7 +18,7 @@
    * @param changeEvent(String) The presenter will listen on this event for changes in
    *                            the metadata tree.
    *
-   * Depends on: WDAT.Bus, WDAT.Tree, WDAT.DataAPI
+   * Depends on: WDAT.Bus, WDAT.Tree, WDAT.DataAPI, WDAT.Form
    *
    * FIXME maybe add a addContainer method to tree
    * FIXME create new edit delete button on bottom of the presenter.
