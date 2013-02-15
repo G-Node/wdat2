@@ -5,11 +5,11 @@
 (function() {
   'use strict';
 
-  /* A button class. 
+  /* A button class.
    *
    * Signature:
-   *   var button = WDAT.api.Button(label, bus, click [, className, eventData]); 
-   * 
+   *   var button = WDAT.api.Button(label, bus, click [, className, eventData]);
+   *
    * Parameters:
    *  - label: String  (required)
    *      The label for the button element.  If this label matches criteria
@@ -23,19 +23,19 @@
    *      Function : A callback for the click event on this button.  No events
    *      are published if this callback is defined.  You can however easily
    *      circumvent that by publishing an event in your callback function.
-   *        
+   *
    *        Signature of callback: function(){}
    *
-   *      String : Name of the event to publish when clicked. 
+   *      String : Name of the event to publish when clicked.
    *
    *        Signature of subscribers: function(event, eventData);
    *
    *        Signature of subscribers for toggle functions:
    *            function(event, eventData);
-   *            
+   *
    *            Here, eventData.state is a string.  Either 'more' or 'less'
    *            depending on which action the user intended.
-   *            
+   *
    *      null:  Do nothing when clicked.
    *
    *      Additional notes:  A toggle button (label = 'more-small' or
@@ -90,20 +90,20 @@
    * | default      | label        | -            | click        | button-big   |
    * +--------------+--------------+--------------+--------------+--------------+
    *
-   * 
+   *
    * Depends On:
    *  - jQuery, WDAT.api.EventBus
    */
-  WDAT.ui.Button = Button;
+  //WDAT.ui.Button = Button;
   function Button(label, bus, click, className, eventData) {
     this.button = $('<button></button>');
-  
+
     // determine the type
     var typecmp = label.toLowerCase();
-  
+
     // add a reference to current instance
     var that = this;
-  
+
     // Add labels and classes based solely on the type
     if (typecmp === 'add') {
       this._type = 'add';
@@ -132,13 +132,13 @@
     }
     else if (typecmp === 'more-small' || typecmp === 'less-small') {
       var state = typecmp.split('-')[0];
-  
+
       // Flag to check whether currently in more condition or not.  This flag is
       // important since it is the only thing that separates a toggle button from
       // a normal button.  Used later in the event handlers to figure out the
       // state of the button.
       this.more_state = (state === 'more');
-  
+
       this.button.addClass('button-' + state + '-small');
     }
     else if (typecmp === 'ok') {
@@ -153,11 +153,11 @@
       // Default case
       this.button.text(label).addClass('button-big');
     }
-  
+
     // If class specified, use it instead of anything else
     if (className) {
       var validation_re = /(red|blue|green|default)/;
-  
+
       if (validation_re.test(className)) {
         this.button.removeClass();
         this.button.addClass(className);
@@ -166,12 +166,12 @@
         // to the button style definition.
       }
     }
-  
+
     // register events
     this._bus = bus;
     this._click = click;
     this._eventData = eventData;
-  
+
     if (bus) {
       if (typeof this._click === "function") {
         // This is a callback
@@ -183,31 +183,31 @@
           if (this._eventData === undefined) {
             this._eventData = {};
           }
-        } 
-  
-        this.button.click(function() { 
+        }
+
+        this.button.click(function() {
           /* Within this function, 'that' represents a reference to the Button
            * object for this button */
           if (that.more_state !== undefined) {
             that._eventData.state = (that.more_state === true) ? 'more' : 'less';
-  
+
             // Update the model
             that.more_state = !that.more_state;
-  
+
             // Update the UI
             that.button.toggleClass('button-more-small', that.more_state);
             that.button.toggleClass('button-less-small', !that.more_state);
-  
+
           }
-  
+
           that._bus.publish(click, that._eventData);
         });
       }
-    } 
+    }
   }
 
   /* Returns the button as a jQuery object.
-   * 
+   *
    * Return value:
    *  - The button (jQuery)
    */
@@ -216,7 +216,7 @@
   };
 
   /* Returns the button as a string.
-   * 
+   *
    * Return value:
    *  - the button as a string.
    */
@@ -226,7 +226,7 @@
 
   /* Unregister the event used by the button from the event
    * bus.
-   * 
+   *
    * Return value:
    *  - None
    */

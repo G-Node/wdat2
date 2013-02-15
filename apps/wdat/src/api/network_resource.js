@@ -19,46 +19,105 @@
 
 // create anonymous name space
 (function(){
+  "use strict";
 
   //-------------------------------------------------------------------------------------
   // Class: NetworkResource
   //-------------------------------------------------------------------------------------
 
-  /* Constructor of the class NetworkResource. NetworkResource provides methods to
+  /**
+   * Constructor of the class NetworkResource. NetworkResource provides methods to
    * access a web resource, in this case the G-Node RESTfull API.
    *
-   * Parameter:
-   *    None
-   *
-   * Depends on:
-   *    Nothing
+   * FIXME results in object by id and not as array
    */
-  WDAT.api.NetworkResource = NetworkResource;
+  WDAT.NetworkResource = NetworkResource;
   function NetworkResource() {
     this._xhr = new XMLHttpRequest();
-  };
+  }
 
-  /* Get data from the G-Node RESTfull API by search specifiers. See DataAPI.get() for
+  /**
+   * Get data from the G-Node RESTfull API by search specifiers. See DataAPI.get() for
    * further explanation.
    *
-   * Parameter:
-   *  - specifier: Obj.     An object containing multiple search specifier.
+   * @param specifier (Obj)   An object containing multiple search specifier.
    *
-   * Return value:
-   *    The requested data as a JSON string as specified by the G-Node RESTfull API.
+   * @return The requested data as a JSON string as specified by the G-Node RESTfull API.
    */
   NetworkResource.prototype.get = function(specifier) {
-    var url = this._specToURL(specifier);
-    return this.getByURL(url);
+    // check for depth specifier
+    var result;
+    if (specifier.depth) {
+      // get depth and delete it from specifiers
+      var depth = parseInt(specifier.depth);
+      depth = (depth > 2) ? 2 : depth;
+      delete specifier.depth;
+      // do first request
+      var url = this._specToURL(specifier);
+      result = this.getByURL(url);
+      if (!result.error) {
+        // parse response
+        var response = JSON.parse(result.response);
+        var subrequest_error = undefined;
+        var other_responses = [];
+        var stack = [];             // stack with elements to process
+        for (var i in response.selected) {
+          stack.push({data: response.selected[i], depth: 0});
+        }
+        while(stack.length > 0 && !subrequest_error) {
+          var elem = stack.pop();
+          if (elem.depth < depth) {
+            var type = elem.data.model.split('.');
+            type = type[type.length - 1];
+            var childfields = modChildren(type);
+            var id = _stripURL(elem.data.permalink);
+            for (var i in childfields) {
+              var field = childfields[i];
+              if (field.type && elem.data.fields[i].length > 0) {
+                var tmp = this.get({type: field.type, parent: id});
+                if (!tmp.error) {
+                  var children = JSON.parse(tmp.response);
+                  other_responses.push(children);
+                  for (var j in children.selected) {
+                    if (elem.depth + 1 < depth) {
+                      stack.push({data: children.selected[j], depth: elem.depth + 1});
+                    }
+                  }
+                } else {
+                  subrequest_error = tmp.response;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        // collect results
+        if (!subrequest_error) {
+          for (var i in other_responses) {
+            var resp = other_responses[i];
+            response.selected = response.selected.concat(resp.selected);
+          }
+          result.response = response;
+        } else {
+          // TODO more generous error handling??
+          result.response = subrequest_error;
+          result.error = true;
+        }
+        //console.log(JSON.stringify(response, null, 4));
+      }
+    } else {
+      var url = this._specToURL(specifier);
+      result = this.getByURL(url);
+    }
+    return result;
   };
 
-  /* Get data from the G-Node RESTfull API by URL.
+  /**
+   * Get data from the G-Node RESTfull API by URL.
    *
-   * Parameter:
-   *  - url: String         The URL to request from the API.
+   * @param url (String)    The URL to request from the API.
    *
-   * Return value:
-   *    The requested data as a JSON string as specified by the G-Node RESTfull API.
+   * @return The requested data as a JSON string as specified by the G-Node RESTfull API.
    */
   NetworkResource.prototype.getByURL = function(url) {
     var result = {url: url};
@@ -69,6 +128,10 @@
     if (this._xhr.status === 200) {
       result.status = 200;
       result.response = this._xhr.responseText;
+    } else if (this._xhr.status === 404) {
+      result.status = this._xhr.status;
+      result.error = true;
+      result.response = "Not found (404)";
     } else {
       result.status = this._xhr.status;
       result.error = true;
@@ -77,17 +140,15 @@
     }
     return result;
   };
-  
-  /* Creates or updates an object on the G-Node RESTfull API.
+
+  /**
+   * Creates or updates an object on the G-Node RESTfull API.
    *
-   * Parameter:
-   *  - url: String      The url to an object or to the object type. The URL determines
-   *                     if the operation is an update or create operation.
+   * @param url (String)    The url to an object or to the object type. The URL determines
+   *                        if the operation is an update or create operation.
+   * @param data (Obj)      The object data. See G-Node API documentaion for further information.
    *
-   *  - data: Obj        The object data. See G-Node API documentaion for further information.
-   *
-   * Return value:
-   *    The changed object.
+   * @return The changed object.
    */
   NetworkResource.prototype.setByURL = function(url, data) {
     var result = {url: url};
@@ -106,14 +167,13 @@
     }
     return result;
   };
-  
-  /* Deletes one single object.
+
+  /**
+   * Deletes one single object.
    *
-   * Parameter:
-   *  - url: String       The url to the object to delete.
+   * @param url (String)  The url to the object to delete.
    *
-   * Return value:
-   *    Resonse object with success or error message.
+   * @return Response object with success or error message.
    */
   NetworkResource.prototype.delByURL = function(url) {
     if (!strStartsWith(url, 'http://') && !strStartsWith(url, '/'))
@@ -136,14 +196,13 @@
     return result;
   };
 
-  /* Creates a URL from a set of given search specifiers. See NetworkResource.get()
+  /**
+   * Creates a URL from a set of given search specifiers. See NetworkResource.get()
    * for further explanation. This function is for internal use only.
    *
-   * Parameter:
-   *  - spec: Obj         A set of search specifiers
+   * @param spec (Obj)     A set of search specifiers
    *
-   * Return value:
-   *    A URL that performs a search as defined by the specifiers.
+   * @return A URL that performs a search as defined by the specifiers.
    */
   NetworkResource.prototype._specToURL = function(spec) {
     var url;
@@ -154,7 +213,7 @@
       // split id
       var split = spec.id.toString().split('/');
       // remove empty strings from split
-      var tmp = []
+      var tmp = [];
       for (var i in split) {
         if (split[i] && split[i] != "") tmp.push(split[i]);
       }
@@ -165,16 +224,16 @@
         spec.id = split[2];
       }
       if (!spec.category) {
-        spec.category = _getCategory(spec.type);
+        spec.category = modCategory(spec.type);
       }
       url = '/' + spec.category + '/' + spec.type + '/' + spec.id + '?q=full';
     } else {
       // if no id or permalink is specified additional parameters are evaluated
       if (!spec.category) {
-        spec.category = _getCategory(spec.type);
+        spec.category = modCategory(spec.type);
       }
       // TODO maybe handle errors when category and type are unset
-      url = '/' + spec.category + '/' + spec.type + '/?q=full&'
+      url = '/' + spec.category + '/' + spec.type + '/?q=full&';
       for (var i in spec) {
         if (i !== 'type' && i !== 'category') {
           url += this._specToComp(spec.type, i, spec[i], '='); // TODO other operators
@@ -182,40 +241,35 @@
       }
     }
     return 'http://' + location.hostname + ':' + location.port + url;
-  }
+  };
 
-  /* Creates a string representing a component of a URI query string from a key,
+  /**
+   * Creates a string representing a component of a URI query string from a key,
    * a value and an operator (optional). This is for internal use only.
    *
-   * Example:
-   *   'name', 'foo' --> name__icontains=foo&
+   *  Example:
+   *   'name', 'foo' ==> name__icontains=foo&
    *
-   * Parameter:
-   *  - type: String        The type to search for
-   *  - key: String         The key of the search specifier
-   *  - value: Sting, Num   The value of the search specifier
-   *  - op: String          The operator e.g. '=', '>', '<' (optional)
+   * @param type (String)         The type to search for
+   * @param key (String)          The key of the search specifier
+   * @param value (String, Num)   The value of the search specifier
+   * @param operator (String)     The operator e.g. '=', '>', '<' (optional)
    *
-   * Return value:
-   *    A Sting representing a query component
+   * @return A String representing a query component
    */
-  NetworkResource.prototype._specToComp = function(type, key, value, op) {
+  NetworkResource.prototype._specToComp = function(type, key, value, operator) {
     var result = '';
-    var template = _getTemplate(type);
+    var template = modTemplate(type);
     // local function that converts an operator to its equivalent in the URL
-    var opToString = function(operator) {
-      switch (operator) {
+    var opToString = function(op) {
+      switch (op) {
         case '>':
-          operator =  '__gt=';
-          break;
+          return '__gt=';
         case '<':
-          operator = '__le=';
-          break;
+          return '__le=';
         default:
-          operator = '__icontains=';
-          break;
+          return '__icontains=';
       }
-      return operator;
     };
     // handle different types of key specifiers
     switch (key) {
@@ -226,7 +280,7 @@
       case 'parent':  // search for objects with specific parent
         var split = value.toString().split('/');
         // remove empty strings from split
-        var tmp = []
+        var tmp = [];
         for (var i in split) {
           if (split[i] && split[i] != "") tmp.push(split[i]);
         }
@@ -236,7 +290,7 @@
           var parent_id = split[2];
           var parent_name;
           for (var i in template.parents) {
-            i = template.parents[i];
+            //i = template.parents[i];
             if (i.match(parent_type)) {
               parent_name = i;
               break;
@@ -247,42 +301,38 @@
           result = '';
           if (!value || vlaue == "") {
             for (var i in template.parents) {
-              result += encodeURIComponent(template.parents[i]) + '__isnull=1&';
+              result += encodeURIComponent(i) + '__isnull=1&';
             }
           }
         }
         break;
       default:
-        op = opToString(op)
+        var op = opToString(operator);
         if (value && value != "")
           result = encodeURIComponent(key) + op + encodeURIComponent(value) + '&';
         else
-          result = encodeURIComponent(key) + '__isnull=1&'
+          result = encodeURIComponent(key) + '__isnull=1&';
         break;
     }
     return result;
-  }
+  };
 
   //-------------------------------------------------------------------------------------
   // Class: ResourceAdapter
   //-------------------------------------------------------------------------------------
 
-  /* Constuctor of the class ResourceAdapter. The Resource adapter is needed in order to
+  /**
+   * Constuctor of the class ResourceAdapter. The Resource adapter is needed in order to
    * convert data from the G-Node RESTfull API specific format into a format used by
    * the application and vice versa.
-   *
-   * Parameter:
-   *    None
-   *
-   * Depends on:
-   *    Nothing
    */
-  WDAT.api.ResourceAdapter = ResourceAdapter;
+  WDAT.ResourceAdapter = ResourceAdapter;
   function ResourceAdapter() {
     // nothing to do
-  };
+  }
 
-  /* Converts data from NetworkResource into a format that can easily be used
+  /**
+   * Converts data from NetworkResource into a format that can easily be used
    * inside the wdat application. The result is always an array of objects. Each object
    * has the following form.
    *
@@ -300,48 +350,50 @@
    *   data: {},                // data as { unit: <unit>, data: <data> }
    * }
    *
-   * Parameter:
-   *  - data: Obj, String       A response object as specified in the
-   *                            Documentation of the RESTfull api
-   * Return value
-   *    An array of converted objects
+   * @param data (Obj, String)    A response object as specified in the
+   *                              Documentation of the RESTfull api
+   *
+   * @return An array of converted objects
    */
   ResourceAdapter.prototype.adapt = function(data) {
-    var adapted_data = [];
-    if (typeof data  === 'string') data = JSON.parse(data);
+    var adapted_data = {}, raw_data = data;
+    if (typeof raw_data  === 'string') raw_data = JSON.parse(raw_data);
     // iterate over results
-    for (var index in data.selected) {
-      var element = data.selected[index];
+    for (var index in raw_data.selected) {
+      var element = raw_data.selected[index];
       // the adapted result
-      var adapted = {}
+      var adapted = {};
       // adapt general data
-      var tmp = this._stripURL(element.permalink).split('/');
+      var tmp = _stripURL(element.permalink).split('/');
       adapted.id = tmp.join('/');
       adapted.type = tmp[1];
-      adapted.category = _getCategory(adapted.type);
-      adapted.plotable = _isPlotable(adapted.type);
+      adapted.category = modCategory(adapted.type);
+      adapted.plotable = modPlotable(adapted.type);
       adapted.date_created = element.fields.date_created;
-      adapted.owner = this._stripURL(element.fields.owner);
+      adapted.owner = _stripURL(element.fields.owner);
       switch (element.fields.safety_level) {
         case 1:
-          adapted.safety_level = 'public'
+          adapted.safety_level = 'public';
           break;
         case 2:
-          adapted.safety_level = 'friendly'
+          adapted.safety_level = 'friendly';
           break;
         default:
-          adapted.safety_level = 'private'
+          adapted.safety_level = 'private';
           break;
       }
       // set template
-      var template = _getTemplate(adapted.type);
+      var template = modTemplate(adapted.type);
       if (template) {
         // adapt fields
-        adapted.fields = {}
+        adapted.fields = {};
         for (var f in template.fields) {
-          f = template.fields[f];
-          if (f === 'name' || (f === 'data' && adapted.type === 'value')) {
-            adapted.name = element.fields[f];
+          if (f === 'name') {
+            if (adapted.type === 'value') {
+              adapted.name = element.fields.data;
+            } else {
+              adapted.name = element.fields.name;
+            }
           } else {
             adapted.fields[f] = element.fields[f];
           }
@@ -349,57 +401,51 @@
         // adapt children
         adapted.children = {};
         for (var c in template.children) {
-          c = template.children[c];
           if (element.fields[c] && element.fields[c].length > 0) {
             adapted.children[c] = [];
             for (var i in element.fields[c]) {
-              adapted.children[c][i] = this._stripURL(element.fields[c][i]);
+              adapted.children[c][i] = _stripURL(element.fields[c][i]);
             }
           }
         }
         // adapt parents
         adapted.parents = {};
         for (var p in template.parents) {
-          p = template.parents[p];
           if (element.fields[p]) {
-            adapted.parents[p] = this._stripURL(element.fields[p]);
+            adapted.parents[p] = _stripURL(element.fields[p]);
           }
         }
         // adapt data
-        adapted.data = {}
+        adapted.data = {};
         for (var d in template.data) {
-          d = template.data[d];
           if (element.fields[d]) {
             adapted.data[d] = element.fields[d];
-            if (adapted.data[d].data && typeof adapted.data[d].data === 'string')
-              adapted.data[d].data = this._stripURL(adapted.data[d].data);
           }
         }
       }
-      adapted_data.push(adapted);
+      adapted_data[adapted.id] = adapted;
     }
     return adapted_data;
   };
 
-  /* Adapts objects used inside the application to an object that can be used by the data
+  /**
+   * Adapts objects used inside the application to an object that can be used by the data
    * api. The resule is an object with two fields 'url' contains a url for the update/create
    * request and 'data' holds an object for the request body.
    *
-   * Parameter:
-   *  - data: Obj         The data object to adapt.
+   * @param data (Obj)      The data object to adapt.
    *
-   * Return value:
-   *    Object with url and request data
+   * @return Object with url and request data.
    */
   ResourceAdapter.prototype.adaptUpdate = function(data) {
-    var adapted = {}, url, type, cat, id = '';
+    var adapted = {}, url, type = null, cat = null, id = '';
     // prepare url
-    if (data.type && _getCategory(data.type)) {
+    if (data.type && modCategory(data.type)) {
       type = data.type;
-      cat = _getCategory(data.type);
+      cat = modCategory(data.type);
     }
     if (data.id) {
-      var tmp = data.id.split('/')
+      var tmp = data.id.split('/');
       if (tmp.length == 1) {
         id = data.id;
       } else if (tmp.length == 3) {
@@ -416,10 +462,10 @@
     if (url[0] !== '/')
       url = '/' + url;
     // adapt data
-    objMerge(data, adapted, true, ['id', 'type', 'category', 'plotable','date_created', 
+    objMerge(data, adapted, true, ['id', 'type', 'category', 'plotable','date_created',
         'owner', 'safety_level', 'name', 'fields', 'parents', 'data', 'children']);
     if (type === 'value')
-      adapted.value = data.name;
+      adapted.name = data.data;
     else
       adapted.name  = data.name;
     adapted.safety_level = data.safety_level || 'private';
@@ -437,9 +483,9 @@
     // merge fields and data into adapted
     adapted = objMerge(data.fields, adapted);
     adapted = objMerge(data.data, adapted);
-    // merge parents 
-    for (i in data.parents) {
-      if (data.parents.hasOwnProperty(i)) {
+    // merge parents
+    for (var i in data.parents) {
+      if (data.parents[i]) {
         var tmp = data.parents[i].split('/');
         adapted[i] = tmp[tmp.length - 1];
       }
@@ -447,16 +493,15 @@
     return {'data': adapted, 'url': url};
   };
 
-  /* Extracts only the path part of a URL.
+  /**
+   * Extracts only the path part of a URL.
    * For internal use only.
    *
-   * Parameter:
-   *  - url: String       The URL to strip
+   * @param url (String)       The URL to strip
    *
-   * Return value:
-   *  - The path part of the URL without leading '/'
+   * @return The path part of the URL without leading '/'
    */
-  ResourceAdapter.prototype._stripURL = function(url) {
+  function _stripURL(url) {
     var tmp = url.split('://');
     // remove protocol host and port if present
     if (tmp.length > 1) {
@@ -468,164 +513,8 @@
     }
     // remove parameter
     return tmp.split('?')[0];
-  };
-
-  //-------------------------------------------------------------------------------------
-  // Helper functions and objects
-  // For internal use only
-  //-------------------------------------------------------------------------------------
-
-  /* Find the matching category for specific type using _DATA_OBJECTS.
-   *
-   * Parameter:
-   *  - type: String      The type of a data object e.g. section, segment or analogsignal
-   *
-   * Return value:
-   *    The corresponding category e.g. metadata or electrophysiology
-   */
-  function _getCategory(type) {
-    if (_DATA_OBJECTS.metadata.hasOwnProperty(type))
-      return 'metadata';
-    else if (_DATA_OBJECTS.data.container.hasOwnProperty(type))
-      return 'electrophysiology';
-    else if (_DATA_OBJECTS.data.plotable.hasOwnProperty(type))
-      return 'electrophysiology';
-    else
-      return null;
   }
 
-  /* Get the matching template for a specific type defined in _DATA_OBJECTS.
-   *
-   * Parameter:
-   *  - type: String      The type of a data object e.g. section, segment or analogsignal
-   *
-   * Return value:
-   *    The corresponding template object defined in _DATA_OBJECTS.
-   */
-  function _getTemplate(type) {
-    if (_DATA_OBJECTS.metadata.hasOwnProperty(type))
-      return _DATA_OBJECTS.metadata[type];
-    else if (_DATA_OBJECTS.data.container.hasOwnProperty(type))
-      return _DATA_OBJECTS.data.container[type];
-    else if (_DATA_OBJECTS.data.plotable.hasOwnProperty(type))
-      return _DATA_OBJECTS.data.plotable[type];
-    else
-      return null;
-  }
-
-  /* Determine by its type if a data object is plotable, using the definitions
-   * in _DATA_OBJECTS.
-   *
-   * Parameter:
-   *  - type: String      The type of a data object e.g. section, segment or analogsignal
-   *
-   * Return value:
-   *    true if the object is plotable, false otherwise
-   */
-  function _isPlotable(type) {
-    return _DATA_OBJECTS.data.plotable.hasOwnProperty(type);
-  }
-
-  /* Specification of all objects managed by the G-Node RESTfull API
-   */
-  _DATA_OBJECTS = {
-    metadata : {
-      section : {
-        fields : ['name', 'description', 'odml_type', 'tree_position'],
-        children : ['property_set', 'block_set', 'datafile_set', 'section_set'],
-        parents : ['parent_section']},
-      property : {
-        fields : ['name', 'definition', 'dependency', 'dependency_value', 'mapping',
-                'unit', 'dtype', 'uncertainty', 'comment'],
-        children : ['value_set'],
-        parents : ['section']},
-      value : {
-        fields : ['data'],
-        children : [],
-        parents : ['parent_property']}},
-    data : {
-      container : {
-        block : {
-          fields : ['name', 'index', 'description', 'file_origin', 'filedatetime',
-                  'recdatetime'],
-          children : ['segment_set', 'recordingchannelgroup_set'],
-          parents : ['']},
-        segment : {
-          fields : ['name', 'index', 'description', 'file_origin', 'filedatetime',
-                  'recdatetime'],
-          children : ['analogsignal_set', 'irsaanalogsignal_set',
-                  'analogsignalarray_set', 'spiketrain_set', 'spike_set', 'event_set',
-                  'eventarray_set', 'epoch_set', 'epocharray_set'],
-          parents : ['block']},
-        /* move to plotable ? */
-        eventarray : {
-          fields : ['name', 'labels', 'description', 'file_origin'],
-          data : ['times'],
-          children : ['event_set'],
-          parents : ['segment']},
-        /* move to plotable ? */
-        epocharray : {
-          fields : ['name', 'labels', 'description', 'file_origin'],
-          data : ['times', 'durations'],
-          children : ['epoch_set'],
-          parents : ['segment']},
-        /* move to plotable ? */
-        analogsignalarray : {
-          fields : ['name', 'description', 'file_origin'],
-          data : ['analogsignal_set', 'sampling_rate', 't_start'],
-          children : ['analogsignal_set'],
-          parents : ['segment']},
-        unit : {
-          fields : ['name', 'description', 'file_origin'],
-          children : ['spiketrain_set', 'spike_set'],
-          parents : ['recordingchannel']},
-        recordingchannel : {
-          fields : ['name', 'description', 'file_origin', 'coordinate', 'index'],
-          children : ['unit_set', 'analogsignal_set', 'irsaanalogsignal_set'],
-          parents : ['recordingchannelgroup']},
-        recordingchannelgroup : {
-          fields : ['name', 'description', 'file_origin', 'channel_names',
-                  'channel_indexes'],
-          children : ['recordingchannel_set', 'analogsignalarray_set'],
-          parents : ['block']}},
-      plotable : {
-        spike : {
-          fields : ['name', 'description', 'file_origin'],
-          data : ['time', 'waveform', 'sampling_rate', 'left_sweep'],
-          children : [],
-          parents : ['segment', 'unit']},
-        spiketrain : {
-          fields : ['name', 'description', 'file_origin'],
-          data : ['times', 'waveforms', 'sampling_rate', 't_start', 't_stop',
-                  'left_sweep'],
-          children : [],
-          parents : ['segment', 'unit']},
-        event : {
-          fields : ['name', 'description', 'file_origin', 'label'],
-          data : ['time'],
-          children : [],
-          parents : ['segment', 'eventarray']},
-        epoch : {
-          fields : ['name', 'description', 'file_origin', 'label'],
-          data : ['duration', 'time'],
-          children : [],
-          parents : ['segment', 'epocharray']},
-        analogsignal : {
-          fields : ['name', 'description', 'file_origin'],
-          data : ['signal', 'sampling_rate', 't_start'],
-          children : [],
-          parents : ['segment', 'analogsignalarray', 'recordingchannel']},
-        irsaanalogsigal : {
-          fields : ['name', 'description', 'file_origin'],
-          data : ['times', 'samples'],
-          children : [],
-          parents : ['segment']
-        }
-      }
-    }
-  }; // end of _DATA_OBJECTS
-  // NetworkResource.DATA_OBJECTS = _DATA_OBJECTS;
-  // ResourceAdapter.DATA_OBJECTS = _DATA_OBJECTS;
 }());
 
 

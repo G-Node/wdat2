@@ -7,172 +7,197 @@
   // Class: Form
   //-------------------------------------------------------------------------------------
 
-  /* Constructor for the VForm base class.
+  /**
+   * Constructor for the Form base class.
    *
-   * Input Definitions (inputdefs):
-   *    Structure { field_name: { type: <type>, modifier: <mod>, ...}, ...}
+   * @param id (String, Obj)        String or jQuery object that represents the container.
+   * @param title (Sting)           Title of the form.
+   * @param bus (Bus)               Bus for handling events.
+   * @param actions (Obj, Array)    Definitions of all actions (e.g. save or response).
+   * @param model (String, Obj)     Model for the form. This can be a name of a model
+   * @param isModal (Boolean)       If true then this form can be shown in a modal window.
    *
-   *    Types: text, ltext, file, password, date, num, int, email, boolean,
-   *           hidden and option.
+   * Depends on: jQuery, jQuery-UI, WDAT.Bus, WDAT.Container, WDAT.model
    *
-   *    Modifiers: min (number), max (number), obligatory (true/false),
-   *               options ({id1: val1, ...}), readonly (true/false).
-   *
-   * Parameter:
-   *  - name: String, Obj     Name of the form or jQuery object.
-   *
-   *  - title: Sting          The title of the form.
-   *
-   *  - bus: EventBus         Bus for events.
-   *
-   *  - inputdefs: Obj        Describes all input fields that should be created automatically.
-   *
-   *  - save: String          An event for the handling of save events.
-   *
-   *  - modal: Boolean        If true then this form can be shown in a modal window.
-   *
-   * Depends on
-   *    jQuery, jQuery-UI, WDAT.api.EventBus, WDAT.ui.Widget
+   * TODO Create form container for lists.
+   * TODO Create Parent form with childlist and delete actions.
    */
-  WDAT.ui.Form = Form;
-  inherit(Form, WDAT.ui.Widget);
-  function Form(id, bus, save, modal, fields) {
-    Form.parent.constructor.call(this, id, '<div>', 'wdat-form');
-    this._jq.append('<div class="form-fields"></div>');
-    // initialize other properties
-    this._bus     = bus;                          // an event bus
-    this.action   = save || this._id + '-save';   // the save event
-    this._modal   = modal;                        // true if this is a form for modal dialogs
-    this._element = {};                           // the element showed in the form
-    this._fields  = {};                           // definition of input elements
-    // create input fields
-    for (var i in fields) {
-      this.addField(i, fields[i]);
+  WDAT.Form = Form;
+  inherit(Form, WDAT.Container);
+  function Form(id, bus, actions, model, isModal) {
+    Form.parent.constructor.call(this, id, bus, actions, 'wdat-form', Form.FORM_TEMPLATE);
+    this._isModal = isModal;                      // true if this is a form for modal dialogs
+    // get model and type
+    if (typeof model == 'string') {
+      this._type = model;
+      this._model = modFields(model);
+    } else if (typeof model == 'object') {
+      this._model = modFields(model.type);
+      if (this._model)
+        this._type = model.type;
+      else
+        this._model = model;
     }
     // if not modal create a save button
-    if (!modal) {
+    if (!isModal && this._actions.save) {
       // create buttons and actions
       var savebtn = $('<button>').button({text : true, label : "Save"});
       var that = this;
       savebtn.click(function() {
         var data = that.get();
-        if (data) that._bus.publish(that.action, data);
+        //if (data)
+          that._bus.publish(that._actions.save, data);
       });
-      this._jq.append($('<div class="form-btn"></div>').append(savebtn));
+      this._jq.children('.buttonset').append(savebtn);
+    }
+    // attach self to dom
+    this._jq.data(this);
+    // build the form
+    this.refresh();
+  }
+
+  /**
+   * Refresh the form.
+   */
+  Form.prototype.refresh = function() {
+    if (this._model) {
+      // clear form
+      this._jq.children('.errorset').empty();
+      var fieldset = this._jq.children('.fieldset');
+      fieldset.empty();
+      // generate fields
+      for (var name in this._model) {
+        // search for field in data
+        var val = undefined;
+        if (this._data) {
+          val = objGetRecursive(this._data, name, ['fields', 'parents', 'data']);
+          val = (val != null && val.data) ? val.data : val;
+        }
+        // if value has a value, get input element and set val
+        var field = this._genField(name, this._model[name], val);
+        fieldset.append(field);
+      }
     }
   };
 
-  /* Adds a new field to the form.
+  /**
+   * Creates a jQuery object representing an input field with label.
+   * For internal use only.
    *
-   * Parameter:
-   *  - id: String      The id of the input.
+   * @param name (String) Id for the input.
+   * @param def (Obj)     The definition object for the input (see WDAT.type), it must
+   *                      specify a type and can have additionally the following fields:
+   *                      obligatory, min, max, value and label, options, readonly. Valid
+   *                      types are: text, file, email, ltext, num, int, password, option,
+   *                      boolean, hidden.
+   * @param value (Obj)   The value of the field (optional);
    *
-   *  - field: Obj      The definition object for the input, it has to specify a type
-   *                    and can have additionally the following fields: obligatory, min,
-   *                    max, value and label, options, readonly.
-   *                    Valid types are: text, file, email, ltext, num, int, password,
-   *                    option, boolean, hidden.
-   *
-   * Return value:
-   *    None
+   * @return A jQuery object that represents the input element and a label.
    */
-  Form.prototype.addField = function(id, field) {
-    // each form field has a label, an input and a place for error messages
-    var label, input, error;
+  Form.prototype._genField = function(name, def, value) {
+    // create template
+    var html = $(Form.FIELD_TEMPLATE).attr('id', this.toID(name));
+    var htmlLabel = html.children('.field-label');
+    var htmlInput = html.children('.field-input');
     // generate label
-    if (field.type !== 'hidden') {
-      label = field.label ? field.label+': ' : strCapitalizeWords(id, /[_\-\ \.:]/)+': ';
-      label = $('<label class="field-label">').text(label);
+    if (def.type != 'hidden') {
+      var label = (def.label ? def.label : strCapitalizeWords(name, /[_\-\ \.:]/)) + ':';
+      htmlLabel.text(label);
+    } else {
+      html.addClass('hidden');
     }
     // generate input
-    var type = field.type;
-    if (FIELD_TYPES[type]) {
-      var def = FIELD_TYPES[type];
-      input = $('<input>').attr('type', def.type);
-      if (def.create) def.create(input);
-      if (!def.nowidth) input.addClass('fixed-width');
-      if (field.value) input.attr('value', field.value);
-    } else if (type === 'ltext' || type === 'textarea') {
+    var ftype = Form.FIELD_TYPES[def.type];
+    var input = null;
+    if (ftype) {
+      input = $('<input>').attr('type', ftype.type);
+      if (ftype.create)
+        ftype.create(input);
+      if (!ftype.nowidth)
+        input.addClass('fixed-width');
+    } else if (def.type === 'ltext' || def.type === 'textarea') {
       input = $('<textarea rows="6"></textarea>');
       input.addClass('fixed-width');
-      if (field.value) input.text(field.value);
-    } else if (type === 'option') {
+        input.attr('value', def.value);
+    } else if (def.type === 'option') {
       input = $('<select size="1"></select>');
-      for (var i in field.options) {
-        input.append($('<option></option>').attr('value', i).text(field.options[i]));
+      for (var i in def.options) {
+        input.append($('<option></option>').attr('value', i).text(def.options[i]));
       }
-      if (field.value) input.attr('value', inputdef.value);
     } else {
       throw new Error('field has no valid type: field.type = ' + type);
     }
-    if (field.readonly) input.attr('readonly', 'readonly');
-    input.attr('name', this.toID(id)).addClass('field-input');
-    // define error field
-    error = $('<div class="field-error"></div>');
-    // add to input definitions
-    this._fields[id] = field;
-    // add label and input to fields
-    var f = this._jq.find('.form-fields');
-    if (label)
-      f.append($('<div>').attr('id', this.toID(id)).append(label, input, error));
-    else
-      f.append($('<div>').attr('id', this.toID(id)).append(input));
+    if (value) {
+      input.attr('value', value);
+    } else if (def.value != undefined && def.value != null) {
+      input.attr('value', def.value);
+    }
+    if (def.readonly) {
+      input.attr('readonly', 'readonly');
+    }
+    input.attr('name', this.toID(name));
+    htmlInput.append(input);
+    return html;
   };
 
-  /* Validates the form and marks errors inside the form.
+  /**
+   * Validates the form and marks errors inside the form.
    *
-   * Parameter:
-   *    None
-   *
-   * Return value:
-   *    True if the form is valid false otherwise.
+   * @return True if the form is valid false otherwise.
    */
   Form.prototype.validate = function() {
     // reset errors
     var valid = true;
-    $('.field-error').text('');
+    this._jq.find('.error').remove();
     // iterate over input definitions
-    for (var name in this._fields) {
-      var inputdef = this._fields[name];
-      var field = $('#' + this.toID(name));
-      var value = field.find('.field-input').val();
+    for (var name in this._model) {
+      var def   = this._model[name];
+      var html  = this._jq.find('#' + this.toID(name));
+      var input = html.children('.field-input').contents();
+      var value = input.val();
+      var error = $(Form.ERROR_TEMPLATE);
       // test if value is empty
       if (value.match(/^\s*$/)) {
         // check if not empty when obligatory
-        if (inputdef.obligatory) {
-          field.find('.field-error').text('this field is obligatory');
+        if (def.obligatory) {
+          error.children('.field-error').text('this field is obligatory');
+          html.after(error);
           valid = false;
           continue;
         }
-        value = null;
       } else {
         // get type definition an do type specific checks
-        var typedef = FIELD_TYPES[inputdef.type]
+        var typedef = Form.FIELD_TYPES[def.type];
         if (typedef && typedef.check && !value.match(typedef.check)) {
-          field.find('.field-error').text(typedef.fail);
+          error.children('.field-error').text(typedef.fail);
+          html.after(error);
           valid = false;
           continue;
         }
         // check bounds
-        if (typedef && (inputdef.type === 'num' || inputdef.type === 'int')) {
+        if (typedef && (def.type === 'num' || def.type === 'int')) {
           value = parseFloat(value);
-          if (inputdef.min !== undefined && value < inputdef.min) {
-            field.find('.field-error').text('value must be larger than ' + inputdef.min);
+          if (def.min !== undefined && value < def.min) {
+            error.children('.field-error').text('value must be larger than ' + def.min);
+            html.after(error);
             valid = false;
             continue;
-          } else if (inputdef.max !== undefined && value > inputdef.max) {
-            field.find('.field-error').text('value must be less than ' + inputdef.max);
+          } else if (def.max !== undefined && value > def.max) {
+            error.children('.field-error').text('value must be less than ' + def.max);
+            html.after(error);
             valid = false;
             continue;
           }
         } else {
           value = value.toString();
-          if (inputdef.min !== undefined && value.length < inputdef.min) {
-            field.find('.field-error').text('value must be longer than ' + inputdef.min);
+          if (def.min !== undefined && value.length < def.min) {
+            error.children('.field-error').text('value must be longer than ' + def.min);
+            html.after(error);
             valid = false;
             continue;
-          } else if (inputdef.max !== undefined && value.length > inputdef.max) {
-            field.find('.field-error').text('value must be less than ' + inputdef.max);
+          } else if (def.max !== undefined && value.length > def.max) {
+            error.children('.field-error').text('value must be less than ' + def.max);
+            html.after(error);
             valid = false;
             continue;
           }
@@ -182,7 +207,37 @@
     return valid;
   };
 
-  /* Validates the form and read all data from the form.
+  /**
+   * Set the data object of the form.
+   *
+   * @param data (Obj)       The data object of the container.
+   *
+   * @returns The data object or undefined if the data don't match the form type.
+   */
+  Form.prototype.set = function(data) {
+    var newdata = undefined;
+    if (data) {
+      if (this._type && data.type == this._type) {
+        newdata = data;
+      } else if (!this._type) {
+        newdata = data;
+      }
+    } else {
+      if (this._type) {
+        newdata = modCreate(this._type);
+      } else {
+        newdata = {};
+      }
+    }
+    if (newdata) {
+      this._data = newdata;
+    }
+    this.refresh();
+    return newdata;
+  };
+
+  /**
+   * Validates the form and read all data from the form.
    *
    * Parameter:
    *    None
@@ -193,71 +248,34 @@
    */
   Form.prototype.get = function() {
     if (this.validate()) {
-      var data = this._element || {};
-      for (var name in this._fields) {
-        var def = this._fields[name];
-        var input = this._jq.find('#' + this.toID(name) + ' :input');
-        var value = (input.val());
-        if (value === '') {
-          value = null;
+      for ( var field in this._model) {
+        var def = this._model[field];
+        var input = this._jq.find('#' + this.toID(field) + ' :input');
+        var val = (input.val());
+        if (val === '') {
+          val = null;
         } else if (def.type === 'num') {
-          value = parseFloat(value);
+          val = parseFloat(val);
         } else if (def.type === 'int') {
-          value = parseInt(value);
+          val = parseInt(val);
         }
-        var set = objSetRecursive(data, name, value, ['fields', 'parents', 'data']);
-        if (!set) data[name] = value;
+        var set = objSetRecursive(this._data, field, val, ['fields', 'parents', 'data']);
+        if (!set)
+          this._data[field] = val;
       }
-      return data;
-    } else {
-      return null;
+      return this._data;
     }
   };
 
-  /* Sets all the values of a form.
-   *
-   * Parameter:
-   *  - elem: Obj       Object representing the data of the form. This can be a plain object
-   *                    or an object with a structure as returned by the DataAPI class.
-   *
-   * Return value:
-   *    None
-   */
-  Form.prototype.set = function(elem) {
-    $('.field-error').text('');
-    for (var name in this._fields) {
-      // search for field in data
-      var value = objGetRecursive(elem, name, ['fields', 'parents', 'data']);
-      value = (value != null && value.data) ? value.data : value;
-      // if value has a value, get input element and set val
-      var input = this._jq.find('#' + this.toID(name) + ' :input');
-      if (value !== null) {
-        value = strTrim(value.toString());
-        input.val(value);
-      } else if (this._fields[name].value !== undefined) {
-        input.val(this._fields[name].value);
-      } else {
-        input.val('');
-      }
-    }
-    this._element = elem;
-  };
-
-  /* Opens the form in a modal window.
-   *
-   * Parameters:
-   *  - save: String, function    Override the event or callback for save
-   *                                events.
-   *
-   * Return value:
-   *    None
+  /**
+   * Opens the form in a modal window.
    */
   Form.prototype.open = function() {
-    if (this._modal && this._jq) {
-      var title = this._title || 'Form';
+    if (this._isModal && this._jq) {
+      var title = strCapitalizeWords(this._type, /[_\-\ \.:]/) || 'Form';
       var that = this;
       this._jq.dialog({               // jQuery-UI dialog
-        autoOpen : true, width : 520, modal : true,
+        autoOpen : true, width : 610, modal : true,
         draggable: false, resizable: false, title: title,
         buttons : {
           Cancel : function() {         // callback for cancel actions
@@ -265,8 +283,8 @@
           },
           Save : function() {           // callback for save actions
             var data = that.get();
-            if (data !== null) {
-              that._bus.publish(that.action, data);
+            if (data) {
+              that._bus.publish(that.event('save'), data);
               $(this).dialog('close');
             }
           }
@@ -275,10 +293,22 @@
     }
   };
 
-  /* Internal constant that defines properties for several
-   * input types.
+  /**
+   * Some template strings.
    */
-  var FIELD_TYPES = {
+  Form.FORM_TEMPLATE = '<div class="wdat-form"><div class="errorset"></div>' +
+                       '<div class="fieldset"></div><div class="buttonset"></div></div>';
+
+  Form.FIELD_TEMPLATE = '<div class="field"><div class="field-label"></div>' +
+                        '<div class="field-input"></div></div>';
+
+  Form.ERROR_TEMPLATE = '<div class="error"><div class="field-label"></div>' +
+                        '<div class="field-error"></div></div>';
+
+  /**
+   * Internal constant that defines properties for several input types.
+   */
+  Form.FIELD_TYPES = {
           text:   { type: 'text' },
           file:   { type: 'file' },
           hidden: { type: 'hidden'},
@@ -298,68 +328,14 @@
           boolean:  { type: 'checkbox',
                       nowidth: true }
   };
-  Form.FIELD_TYPES = FIELD_TYPES;
 
   //-------------------------------------------------------------------------------------
-  // Class: VSectionForm
+  // Class: FormContainer
   //-------------------------------------------------------------------------------------
-  WDAT.ui.SectionForm = SectionForm;
-  inherit(SectionForm, Form);
-  function SectionForm(name, bus, save, modal) {
-    this._title = 'Section';
-    var fields = {
-      type: {type: 'hidden', value: 'section'},
-      parent_section: {type: 'hidden'},
-      name: {type: 'text', obligatory: true, min: 3, max: 100},
-      odml_type: {type: 'int', label: 'Type', obligatory: true, min: 0, value: 0},
-      tree_position: {type: 'int', label: 'Position', value: 1, obligatory: true},
-      description: {type: 'ltext'},
-      safety_level: {type: 'option',  options: {'public': 'Public', 'friendly': 'Friendly', 'private': 'Private'}},
-      date_created: {type: 'text', readonly: true}
-    };
-    SectionForm.parent.constructor.call(this, name, bus, save, modal, fields);
-  }
 
   //-------------------------------------------------------------------------------------
-  // Class: VPropertyForm
+  // Class: ParentForm
   //-------------------------------------------------------------------------------------
-  WDAT.ui.PropertyForm = PropertyForm;
-  inherit(PropertyForm, Form);
-  function PropertyForm(name, bus, save, modal) {
-    this._title = 'Property'
-    var fields = {
-      type: {type: 'hidden', value: 'property'},
-      name: {type: 'text', obligatory: true, min: 3, max: 100},
-      unit: {type: 'text', max: 10 },
-      uncertainty: {type: 'text'},
-      dtype: {type: 'text', label: 'Data Type'},
-      //dependency: {type: 'text'},
-      //dependency_value: {type: 'text'},
-      //mapping: {type: 'text'},
-      definition: {type: 'ltext'},
-      //comment: {type: 'ltext'},
-      date_created: {type: 'text', readonly: true}
-    };
-    PropertyForm.parent.constructor.call(this, name, bus, save, modal, fields);
-    this._jq.find('.form-fields').after($('<div class="property-values">'));
-    this._values = {};
-  }
-
-  PropertyForm.prototype.setValue = function(value) {
-    value = value || {}
-    var id = 'val-' + this._bus.uid();
-    var input = $('<input type="text">').addClass('value-input field-input').attr('id', id);
-    if (value.name)
-      input.attr('value', input.name);
-    var label = $('<label class="field-label">').text('Value: ');
-    var delbtn = $('<button>').button({ icons: { primary: "ui-icon-minusthick"}, text: false}).click(function () {
-    });
-    var addbtn = $('<button>').button({ icons: { primary: "ui-icon-plusthick"}, text: false}).click(function () {
-    });
-    var v = this._jq.find('.property-values');
-    v.append($('<div>').attr('id', this.toID(id)).append(label, input, addbtn, delbtn));
-  };
-
 
 }());
 

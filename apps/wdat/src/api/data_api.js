@@ -2,7 +2,8 @@
 
 (function() {
 
-  /* DataAPI is a interface to access a web data source. The basic concept of DataAPI is
+  /**
+   * DataAPI is a interface to access a web data source. The basic concept of DataAPI is
    * to provide a uniform interface e.g. to a RESTfull API. To access the source the
    * DataAPI needs a NetworkResource. A ResurceAdapter is needed in order to convert data
    * from a resource specific format into a format used by the application and vice versa.
@@ -19,29 +20,25 @@
    *    action: string        // The action from the original request
    *  }
    *
-   * Parameter:
-   *  - resource: String      Class name of a network resource, the constructor must be
-   *                          defined in the file 'network_resource.js' and has to be in the
-   *                          module WDAT.api.
+   * @param resource (String)   Class name of a network resource, the constructor must be
+   *                            defined in the file 'network_resource.js' and has to be in the
+   *                            module WDAT.
+   * @param adapter (String)    Class name for a resource adapter, the constructor must be
+   *                            defined in the file 'network_resource.js' and has to be in the
+   *                            module WDAT.
+   * @param bus (Bus)           A bus used for event driven data access.
    *
-   *  - adapter: String       Class name for a resource adapter, the constructor must be
-   *                          defined in the file 'network_resource.js' and has to be in the
-   *                          module WDAT.api.
-   *
-   *  - bus: EventBus         A bus used for event driven data access.
-   *
-   * Depends on:
-   *    WDAT.api.EventBus and the used resource and adapter class.
+   * Depends on: WDAT.Bus and the used resource and adapter class.
    */
-  WDAT.api.DataAPI = DataAPI;
+  WDAT.DataAPI = DataAPI;
   function DataAPI(resource, adapter, bus) {
     this._bus = bus;
     // create a worker
     if (Worker) { // if worker is defined in the browser
-      this._worker = new Worker('/site_media/static/data_api.min.js.worker');
+      this._worker = new Worker('/site_media/static/data_api.js.worker');
       // send worker init message
       var init = {'resource' : resource, 'adapter' : adapter, 'action' : 'init',
-        'event' : 'init-event'};
+                  'event' : 'init-event'};
       this._worker.postMessage(init);
       // callback for messages from the worker
       var that = this;
@@ -50,17 +47,19 @@
       };
       // callback for errors inside the worker
       this._worker.onerror = function(err) {
-        console.log("Error in Worker at: " + err.filename + ": " + err.lineno + ": " + err.message + ".");
+        console.log("Error in Worker at: " + err.filename + ": " + err.lineno + ": " +
+                    err.message + ".");
       };
     } else { // if web workers are not available
       this._worker = false;
     }
     // create resource and adapter from class names
-    this._resource = new WDAT.api[resource]();
-    this._adapter = new WDAT.api[adapter]();
+    this._resource = new WDAT[resource]();
+    this._adapter = new WDAT[adapter]();
   }
 
-  /* Get get data by search specifiers.
+  /**
+   * Get get data by search specifiers.
    *
    * Supported search specifiers:
    *  - permalink:  category/type/number
@@ -70,16 +69,10 @@
    *  - parent:     permalink or ''
    *  - name:       string
    *
-   * Parameter:
-   *  - event: String       Event id for published data.
-   *
-   *  - specifiers: Obj     Object containing all specifiers.
-   *
-   *  - info: Obj, String   Additional information that might be evaluated
-   *                        when the request returns.
-   *
-   * Return value:
-   *    None
+   * @param event (String)    Event id for published data.
+   * @param specifiers (Obj)  Object containing all specifiers.
+   * @param info (Any)        Additional information that might be evaluated
+   *                          when the request returns.
    */
   DataAPI.prototype.get = function(event, specifiers, info) {
     if (this._worker && !WDAT.debug) { // if Worker is available just notify it
@@ -96,18 +89,13 @@
     }
   };
 
-  /* Get get data by url.
+  /**
+   * Get get data by url.
    *
-   * Parameter:
-   *  - event: Sting        Event id for published data.
-   *
-   *  - url: String         The URL to request.
-   *
-   *  - info: Obj, String   Additional information that might be evaluated
-   *                        when the request returns.
-   *
-   * Return value:
-   *    None
+   * @param event (String)    Event id for published data.
+   * @param url (String)      The URL to request.
+   * @param info (Any)        Additional information that might be evaluated
+   *                          when the request returns.
    */
   DataAPI.prototype.getByURL = function(event, url, info) {
     if (this._worker && !WDAT.debug) { // if Worker is available just notify it
@@ -124,18 +112,13 @@
     }
   };
 
-  /* Update or create an object.
+  /**
+   * Update or create an object.
    *
-   * Parameter:
-   *  - event: Sting        Event id for published data.
-   *
-   *  - data: Obj           The object data for the update.
-   *
-   *  - info: Obj, String   Additional information that might be evaluated
-   *                        when the request returns.
-   *
-   * Return value:
-   *    None
+   * @param event (String)    Event id for published data.
+   * @param data (Obj)        The object data for the update.
+   * @param info (Any)        Additional information that might be evaluated
+   *                          when the request returns.
    */
   DataAPI.prototype.set = function(event, data, info) {
     if (this._worker && !WDAT.debug) { // if Worker is available just notify it
@@ -153,20 +136,14 @@
     }
   };
 
-  /* Delete an object.
-   *
-   * Parameter:
-   *  - event: Sting        Event id for published data.
-   *
-   *  - url: String         The URL to the object to delete (see RESTful API doc for info).
-   *
-   *  - info: Obj, String   Additional information that might be evaluated
-   *                        when the request returns.
-   *
+  /**
+   * Delete an object.
    * TODO Maybe prevent bulk deletes.
    *
-   * Return value:
-   *    None
+   * @param event (String)    Event id for published data.
+   * @param url (String)      The URL to the object to delete (see RESTful API doc for info).
+   * @param info (Any)        Additional information that might be evaluated
+   *                          when the request returns.
    */
   DataAPI.prototype.del = function(event, url, info) {
     if (this._worker && !WDAT.debug) { // if Worker is available just notify it
@@ -180,26 +157,23 @@
     }
   };
 
-  /* Send a message to the worker. This method is for internal use only. Messages sent
+  /**
+   * Send a message to the worker. This method is for internal use only. Messages sent
    * to the worker have always the following structure:
    *  {
    *    event: string,   // the event that recieves the result
    *    action: string,  // 'get', 'update', 'delete', 'save' or 'test'
    *    data: object     // data like search parameter or data of the object to save
+   *    info: any        // Additional information
    *  }
    *
-   * Parameter:
-   *  - event: String       The event that is used by the worker to return data.
+   * @param event (String)    The event that is used by the worker to return data.
+   * @param action (String)   The requested action.
+   * @param param (Obj)       Object containing all data for this request.
+   * @param info (Any)        Additional information that might be evaluated
+   *                          when the request returns.
    *
-   *  - action: String      The requested action.
-   *
-   *  - data: Obj.          Object containing all data for this request.
-   *
-   *  - info: Obj, String   Additional information that might be evaluated
-   *                        when the request returns.
-   *
-   * Return value:
-   *    None
+   * @return The message object sent to the worker.
    */
   DataAPI.prototype._notifyWorker = function(event, action, param, info) {
     var worker_msg = {};
@@ -212,4 +186,3 @@
   };
 
 }());
-

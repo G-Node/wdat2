@@ -86,7 +86,7 @@ body {
 }
 
 .border-std-vert {
-	border: 0;
+  border: 0;
   border-top: 1px solid @border-color-std;
   border-bottom: 1px solid @border-color-std;
 }
@@ -158,7 +158,7 @@ input[readonly="readonly"]:FOCUS {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /*
@@ -166,38 +166,46 @@ input[readonly="readonly"]:FOCUS {
  */
 .wdat-container {
   padding: @smallcushion;
-}
 
-.wdat-container .buttons {
-  float: right;
-  height: 20px;
-  vertical-align: middle;
-}
 
-.wdat-container .primary {
-  height: 20px;
-  vertical-align: middle;
-  overflow: hidden;
-}
+  .buttons {
+    float: right;
+    height: 20px;
+    vertical-align: middle;
+  }
 
-.wdat-container .head {
-  font-size: @mediumFontSize;
-}
+  .primary {
+    height: 20px;
+    vertical-align: middle;
+    overflow: hidden;
 
-.wdat-container .head-add {
-  color: @fg-grey;
-  margin-left: @smallcushion;
-}
+    .head {
+      font-size: @mediumFontSize;
+    }
 
-wdat-container .secondary {
-  padding-top: @cushioning;
-}
+    .head-add {
+      color: @fg-grey;
+      margin-left: @smallcushion;
+    }
+  }
 
-.wdat-container .key {
-  font-weight: bold;
-}
+  .secondary {
+    padding-top: @cushioning;
+    margin: 0;
 
-.wdat-container .val {
-  margin-left: @smallcushion;
-}
+    dt {
+      display: block;
+      float: left;
+      font-weight: bold;
+      margin: 0;
+      padding: @smallcushion / 2 @smallcushion;
+    }
 
+    dd {
+      display: block;
+      margin: 0;
+      padding: @smallcushion / 2  @smallcushion;
+    }
+  }
+
+}

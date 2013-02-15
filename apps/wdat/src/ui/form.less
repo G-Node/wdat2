@@ -1,39 +1,46 @@
 /* ---------- file: form.css -----------*/
 
 .wdat-form {
-  .vertical-padding(@cushioning);
-  width: 520px;
+  
+  .vertical-padding(@smallcushion);
+  width: 600px;
 
-  label {
-    text-align: right;
-    display: inline-block;
-    margin: @smallcushion @smallcushion @smallcushion 0px;
+  .fieldset {
+    display: table;
+  }
+  
+  .field, .error {
+    display: table-row;
+  }
+  
+  .field-label { 
     width: 120px;
+    display: table-cell;
+    vertical-align: top;
+    padding: @cushioning + 2  @cushioning;
   }
-
-  input, textarea {
-    display: inline-block;
-    margin: @smallcushion 0px;
+  
+  .field-input, .field-error { 
+    display: table-cell;
+    vertical-align: center;
+    padding: @smallcushion @cushioning;
   }
-
+  
+  input[type=checkbox] {
+    margin: @cushioning 0;
+  }
+  
   input.fixed-width, textarea.fixed-width {
-    width: 350px;
+    width: 460px;
   }
-
-  .field-error {
-    color: red;
-    margin-left: @smallcushion + 120px;
-  }
-
-  .form-btn { 
+  
+  .buttonset {
+    padding: @smallcushion @cushioning - 1;
     text-align: right;
-    margin: @smallcushion;
   }
-
-  /* property form */
-  .property-values button {
-	  vertical-align: middle;
-    margin: 0px 2px;
+  
+  .error, .errorset {
+    color: red;
   }
 
 }

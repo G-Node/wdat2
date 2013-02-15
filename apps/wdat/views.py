@@ -3,9 +3,9 @@ from django.http import HttpResponse
 from django.shortcuts import render_to_response
 import os
 
-def data(request):
+def wdat(request):
     con = RequestContext(request)
-    tp = loader.get_template('data.html')
+    tp = loader.get_template('wdat.html')
     return HttpResponse(tp.render(con))
 
 def test(request, filename):

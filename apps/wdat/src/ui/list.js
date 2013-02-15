@@ -3,7 +3,8 @@
 (function() {
   "use strict";
 
-  /* Constructor for the class List. List implements view to a dynamic list. Elements can
+  /**
+   * Constructor for the class List. List implements view to a dynamic list. Elements can
    * be added, removed and selected. The list expects all elements to have at least
    * the attribute 'name'.
    *
@@ -13,281 +14,289 @@
    * Elements can be grouped in different categories. Internally the list is represented by
    * a table structure. This structure is created by the list view itself.
    *
-   * Parameters:
-   *  - id: String, Obj.    The id of the list or a jQuery object.
+   * @param id (String, Obj)      The id of the list or a jQuery object.
+   * @param bus (Bus)             Bus handling events.
+   * @param actions (Obj, Array)  Set of actions with their respective events or callbacks.
+   * @param categories (Array)    Array of all categories / groups of the list (optional).
    *
-   *  - bus: EventBus       Bus handling events.
-   *
-   *  - events: Obj.        Set of actions with their respective events or callbacks.
-   *
-   *  - categories: Array   Array of all categories / groups of the list (optional).
-   *
-   * Depends on:
-   *    jQuery, WDAT.api.EventBus, WDAT.ui.Button, WDAT.ui.Widget, WDAT.ui.Container
+   * Depends on: jQuery, WDAT.Bus, WDAT.Button, WDAT.MultiContainer, WDAT.Container
    */
-  WDAT.ui.List = List;
-  inherit(List, WDAT.ui.Widget);
+  WDAT.List = List;
+  inherit(List, WDAT.MultiContainer);
   function List(id, bus, actions, categories) {
-    List.parent.constructor.call(this, id, '<div>', 'wdat-list');
-    this._bus = bus;
-    // actions and events
-    this._actions = {}
-    for ( var i in actions) {
-      this._actions[actions[i]] = this._id + '-' + actions[i];
+    List.parent.constructor.call(this, id, bus, actions, 'wdat-list', '<div>');
+    // categories
+    this._categories = {};
+    for (var i in categories) {
+      var cat = categories[i].toLowerCase();
+      this._categories[cat] = strCapitalizeWords(cat, /[_\-\ \.:]/);
     }
-    this._buttonactions = {}
-    for (var i in actions) {
+    // actions for container elements
+    this._contActions = {};
+    for ( var i in actions) {
       var act = actions[i];
-      if (WDAT.ui.Container.ACTIONS.indexOf(act) >= 0 && act != 'add') {
-        this._buttonactions[act] = this._id + '-' + act;
+      if (WDAT.Container.ACTIONS.indexOf(act) >= 0 && act != 'add') {
+        this._contActions[act] = this._id + '-' + act;
       }
     }
-    // create list structure
-    this._categories = {};
-    if (categories) {
-      for ( var i in categories) {
-        var cat = categories[i];
-        var tab = $('<ul><lh class="category"><span class="category-name"></span></lh></ul>');
-        tab.attr('id', this.toID(cat));
-        tab.find('.category-name').text(cat);
-        this._jq.append(tab);
-        this._categories[cat] = tab;
+    // apend self to dom
+    this._jq.data(this);
+    // refresh layout
+    this.refresh();
+  }
+
+  /**
+   * Add a new element to the list. If the element doesn't has id, a unique identifier
+   * will be created.
+   *
+   * @param data (Obj)          The element to add to the list.
+   * @param category (String)   The category (optional).
+   *
+   * @return The inserted element.
+   */
+  List.prototype.add = function(data, category) {
+    var elem = List.parent.add.call(this, data, category);
+    if (elem) {
+      // create a container
+      var id = this.toID(elem.id);
+      var cont = new WDAT.Container($('<li>').attr('id', id), this._bus, this._contActions);
+      cont.set(elem);
+      // get the right category
+      var cat = category || 'default';
+      cat = cat.toLowerCase();
+      if (this._categories[cat]) {
+        // found a matching category
+        cat = this._jq.find('#' + this.toID(category));
+      } else {
+        // no category found, create a new one
+        var label = strCapitalizeWords(cat, /[_\-\ \.:]/);
+        this._categories[cat] = label;
+        var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
+        html.attr('id', this.toID(cat));
+        html.find('.category-name').text(label);
         // create add button if add event is present
         if (this._actions.add) {
-          var b = new WDAT.ui.Button2(null, 'add_small', this._bus,
-                  this._actions.add, {name : cat,id : cat});
-          tab.find('.category').first().append(b.jq());
+          var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {
+            name : label, id : cat});
+          html.find('.category-name').before(b.jq());
+        }
+        // append everything
+        this._jq.find('#' + this.toID('default')).before(html);
+        cat = html;
+      }
+      // append container to the right category
+      cat.append(cont.jq());
+    }
+    return elem;
+  };
+
+  /**
+   * Add a new element to the list that is already wrapped into a container
+   * TODO check call of parent add!
+   *
+   * @param cont (Container)   The element to add to the list.
+   * @param category (String)  The category (optional).
+   *
+   * @return The inserted element.
+   */
+  List.prototype.addContainer = function(cont, category) {
+    var data = cont.get();
+    data = List.parent.add.call(this, data, category);
+    if (data) {
+      cont.jq().attr('id', this.toID(data));
+      // get the right category
+      var cat = undefined;
+      if (category && category != 'default') {
+        if (this._categories[category]) {
+          // found a matching category
+          cat = this._jq.find('#' + this.toID(category));
+        } else {
+          // no category found, create a new one
+          cat = category.toLowerCase();
+          var label = strCapitalizeWords(cat, /[_\-\ \.:]/);
+          this._categories[cat] = label;
+          var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
+          html.attr('id', this.toID(cat));
+          html.find('.category-name').text(label);
+          // create add button if add event is present
+          if (this._actions.add) {
+            var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {
+              name : label, id : cat});
+            html.find('.category-name').before(b.jq());
+          }
+          // append everything
+          this._jq.find('#' + this.toID('default')).before(html);
+          cat = html;
+        }
+      } else {
+        // no category specified, get default category
+        cat = this._jq.find('#' + this.toID('default'));
+      }
+      // append container and return data object
+      cat.append(cont.jq());
+      return data;
+    }
+  };
+
+  /**
+   * Add new items to the list.
+   *
+   * @param datasets (Array)  The elements to add to the list.
+   * @param category (String) The category (optional).
+   *
+   * @return The elements added to the list.
+   */
+  List.prototype.addAll = function(datasets, category) {
+    var added = [];
+    for ( var i in datasets) {
+      var data = this.add(datasets[i], category);
+      if (data) added.push(data);
+    }
+    return added;
+  };
+
+  /**
+   * Update the content of an existing list element.
+   *
+   * @param data (Object)    The element to update.
+   *
+   * @return The updated element or null if no such element was found.
+   */
+  List.prototype.set = function(data, category) {
+    if (this._data[data.id]) {
+      var oldcat = this._data[data.id].position;
+      var elem = List.parent.set.call(this, data, category);
+      var newcat = this._data[data.id].position;
+      if (elem) {
+        var html = this._jq.find('#' + this.toID(elem));
+        var cont = html.data();
+        cont.set(elem);
+        if (oldcat != newcat) {
+          cont.detach();
+          var cat;
+          if (newcat && newcat != 'default') {
+            cat = this._jq.find('#' + this.toID(newcat));
+          } else {
+            cat = this._jq.find('#' + this.toID('default'));
+          }
+          cat.append(cont.jq());
         }
       }
     }
-    tab = $('<ul></ul>');
-    tab.attr('id', this._id + '-default');
-    this._jq.append(tab);
-    this._categories['default'] = tab;
-  }
-
-  /* Add a new element to the list. If the element doesn't has id, a unique identifier
-   * will be created.
-   *
-   * Parameter:
-   *  - data: Object       The element to add to the list.
-   *
-   *  - category: String   The category (optional).
-   *                       TODO implement inserts at a position.
-   *
-   * Return value:
-   *    The inserted element.
-   */
-  List.prototype.add = function(data, category) {
-    if (!this.has(data)) {
-      // crate an id if necessary
-      if (!data.id)
-        data.id = this._bus.uid();
-      var id = this.toID(data);
-      // Create a new Container
-      var prim = _getPrimary(data);     // primary container attributes
-      var sec  = _getSecondary(data);   // secondary container attributes
-      var cont = new WDAT.ui.Container(id, this._bus, data, prim, sec, this._buttonactions);
-      // add the container to the list
-      var cat = this._categories[category] || this._categories['default'];
-      cat.append(cont.jq());
-    } else {
-      this.update(data);
-    }
-    return data;
   };
 
-  /* Add new items to the list.
+  /**
+   * Remove an element from the list.
    *
-   * Parameter:
-   *  - datasets: Array    The elements to add to the list.
+   * @param data (String, Obj)    The element to remove or the id of this
+   *                              element.
    *
-   *  - category: String   The category (optional).
-   *                       TODO implement inserts at a position.
-   *
-   * Return value:
-   *    The elements added to the list.
+   * @return The removed element or null if no such element was found.
    */
-  List.prototype.addAll = function(datasets, category) {
-    // select category
-    var cat = this._categories[category] || this._categories['default'];
-    // iterate over elements
-    var id, prim, sec, cont;
-    for (var data in datasets) {
-      data = datasets[data];
-      if (!this.has(data)) {
-        // crate an id if necessary
-        if (!data.id)
-          data.id = this._bus.uid();
-        id = this.toID(data);
-        // Create a new Container
-        prim = _getPrimary(data);     // primary container attributes
-        sec  = _getSecondary(data);   // secondary container attributes
-        cont = new WDAT.ui.Container(id, this._bus, data, prim, sec, this._buttonactions);
-        // add the container to the list
-        cat.append(cont.jq());
-      } else {
-        this.update(data);
-      }
-    }
-    return datasets;
-  };
-
-  /* Update the content of an existing list element.
-   *
-   * Parameter:
-   *  - data: Object    The element to update.
-   *
-   * Return value:
-   *   The updated element or null if no such element was found.
-   */
-  List.prototype.update = function(data) {
-    var elem = this._jq.find('#' + this.toID(data));
-    if (elem.length > 0) {
-      var cont = elem.data();
-      cont.data(data);
-      return data;
-    } else {
-      return null;
-    }
-  };
-
-  /* Remove an element from the list.
-   *
-   * Parameter:
-   *  - data: String, Obj.     The element to remove or the id of this
-   *                           element.
-   *
-   * Return value:
-   *   The removed element or null if no such element was found.
-   */
-  List.prototype.remove = function(data) {
-    var elem = this._jq.find('#' + this.toID(data));
-    if (elem.length > 0) {
-      data = elem.data().data();
+  List.prototype.del = function(data) {
+    var deleted = List.parent.del.call(this, data);
+    if (deleted) {
+      var elem = this._jq.find('#' + this.toID(data));
       elem.remove();
-      return data;
-    } else {
-      return null;
+      return true;
     }
   };
 
-  /* Select an element in the list. If the element is already selected
+  /**
+   * Select an element in the list. If the element is already selected
    * the selection will be removed (toggle).
    *
-   * Parameter:
-   *  - data: String, Obj.     The elements to select or the id of this
-   *                           element.
+   * @param data (String, Obj)    The elements to select or the id of this
+   *                              element.
+   * @param single (Boolean)      Set to true if the selected element should be the
+   *                              only selected element in the whole list.
    *
-   *  - single: Bool           Set to true if the selected element should be the
-   *                           only selected element in the whole list.
-   *
-   * Return value:
-   *    True if the element is now selected false otherwise.
+   * @return True if the element is now selected false otherwise.
    */
   List.prototype.select = function(data, single) {
     var selected = false;
-    var elem = this._jq.find('#' + this.toID(data));
-    if (elem.length > 0) {
-      selected = elem.is('.selected');
+    if (this.has(data)) {
+      var html = this._jq.find('#' + this.toID(data));
+      selected = html.is('.selected');
       if (single) {
         this._jq.find('.wdat-container').removeClass('selected');
       }
-      elem.toggleClass('selected', !selected);
+      html.toggleClass('selected', !selected);
       selected = !selected;
     }
     return selected;
   };
 
-  /* Remove all elements from the list without removing the categories.
-   *
-   * Return value:
-   *    None
-   */
-  List.prototype.clear = function() {
-    this._jq.children('.wdat-container').remove();
-  };
 
-  /* Returns the event used for a specific action.
-   *
-   * Parameter:
-   *  - action: String      The action.
-   *
-   * Return value:
-   *    The event name, that is used for a specific action or null if no event
-   *    was specified.
+  /**
+   * Refresh or create the whole content of the container.
    */
-  List.prototype.event = function(action) {
-    var e = this._actions[action];
-    if (typeof e === 'function')
-      return null;
-    else
-      return e;
-  };
-
-  /* Checks if an element is present
-   *
-   * Parameter:
-   *  - data: String, Obj.     The element to check or its id.
-   *
-   * Return value:
-   *   True if the element is present, false otherwise.
-   */
-  List.prototype.has = function(data) {
-    return (data.id && this._jq.find('#' + this.toID(data.id)).length > 0);
-  };
-
-  /* Crates a default handler function for select events.
-   *
-   * Return value:
-   *   A default handler.
-   */
-  List.prototype.selectHandler = function() {
-    var that = this;
-    return function(event, data) {
-        that.select(data, true);
-    };
-  };
-
-  /* Crates a default handler function for delete events.
-   *
-   * Return value:
-   *   A default handler.
-   */
-  List.prototype.removeHandler = function() {
-    var that = this;
-    return function(event, data) {
-        that.remove(data);
-    };
-  };
-
-  /* Helper that determines the primary attributes for
-   * a continer used as a list element. For internal use only.
-   */
-  function _getPrimary(data) {
-    return ['name'];
-  }
-
-  /* Helper that determines the secondary attributes for
-   * a continer used as a list element. For internal use only.
-   */
-  function _getSecondary(data) {
-    var secondary = [];
-    if (data.hasOwnProperty('fields')) {
-      for (var i in data.fields) {
-        if (i !== 'name' && data.fields.hasOwnProperty(i)) {
-          secondary.push(i);
-        }
+  List.prototype.refresh = function() {
+    // remove all content
+    this._jq.empty();
+    // crate category representation
+    for ( var i in this._categories) {
+      var cat = i;
+      var label = this._categories[i];
+      var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
+      html.attr('id', this.toID(cat));
+      html.find('.category-name').text(label);
+      // create add button if add event is present
+      if (this._actions.add) {
+        var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {name : label, id : cat});
+        html.find('.category-name').before(b.jq());
       }
+      // append everything
+      this._jq.append(html);
     }
-    if (data.hasOwnProperty('date_created')) {
-      secondary.push('date_created');
+//    html = $('<ul><lh class="category"></lh></ul>');
+//    html.attr('id', this.toID('default'));
+//    if (this._actions.add) {
+//      var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {name : 'Default', id : 'default'});
+//      html.find('.category').append(b.jq());
+//    }
+//    this._jq.append(html);
+    // add elements to list
+    for (var i in this._data) {
+      var elem = this._data[i].data;
+      var category = this._data[i].position;
+      // create a container
+      var id = this.toID(elem.id);
+      var cont = new WDAT.Container($('<li>').attr('id', id), this._bus, this._contActions);
+      cont.set(elem);
+      // get the right category
+      if (category && category != 'default') {
+        html = this._jq.find('#' + this.toID(category));
+      } else {
+        html = this._jq.find('#' + this.toID('default'));
+      }
+      // append container to the right category
+      html.append(cont.jq());
     }
-    if (data.hasOwnProperty('safety_level')) {
-      secondary.push('safety_level');
-    }
-    return secondary;
-  }
+  };
+
+  /**
+   * Crates a default handler function for select events.
+   *
+   * @return A default handler.
+   */
+  List.prototype.selHandler = function() {
+    var that = this;
+    return function(event, data) {
+      that.select(data, true);
+    };
+  };
+
+  /**
+   * Crates a default handler function for delete events.
+   *
+   * @return A default handler.
+   */
+  List.prototype.delHandler = function() {
+    var that = this;
+    return function(event, data) {
+      that.del(data);
+    };
+  };
 
 }());
-
