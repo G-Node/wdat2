@@ -208,7 +208,6 @@ WDAT.model.metadata = {
   },
   property : {
     fields : {
-      type: {type: 'hidden', value: 'property'},
       name: {type: 'text', obligatory: true, min: 3, max: 100},
       unit: {type: 'text', max: 10 },
       uncertainty: {type: 'text'},

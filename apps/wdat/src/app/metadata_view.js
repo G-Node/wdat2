@@ -37,11 +37,13 @@
     this._properties = new WDAT.List(propListId, bus, {add: addProp}, ['properties']);
     this._properties.refresh();
     html.append(this._properties.jq());
+    // actions for propety container
     this._propActions = {
             del: id + '-del-prop',
             edit: id + '-edit-prop',
             select_val: selValue
     };
+    // other actions for the presenter
     this._actions = {
             add_prop: addProp,
             save_prop: id + '-save-prop',
@@ -61,6 +63,10 @@
     bus.subscribe(selSection, this._selectSectionHandler());
     bus.subscribe(this._actions.update_all, this._updateAllHandler());
     bus.subscribe(this._actions.add_prop, this._addPropertyHandler());
+    bus.subscribe(this._propActions.edit, this._editPropertyHandler());
+    bus.subscribe(this._actions.save_prop, this._savePropertyHandler());
+    bus.subscribe(this._actions.update_prop, this._updatePropertyHandler());
+    bus.subscribe(this._propActions.del, this._delPropertyHandler());
   }
 
   /**
@@ -110,6 +116,7 @@
       }
       if (section) {
         that._section.set(section);
+        that._properties.clear();
         for (var j in properties) {
           var p = properties[j].property;
           var v = properties[j].values;
@@ -123,7 +130,7 @@
   };
 
   /**
-   * Creates an event handler that reacts on 'add_property' events. It opens a form with
+   * Creates an event handler that reacts on 'add_prop' events. It opens a form with
    * an empty property.
    *
    * The form opened by this handler may trigger an 'save_prop' event.
@@ -141,6 +148,91 @@
         elem.parents.section = p.id;
         f.set(elem);
         f.open();
+      }
+    };
+  };
+
+  /**
+   * Creates an event handler that reacts on 'edit_prop' events. It opens a form with
+   * the property data that was published with the event.
+   *
+   * The form opened by this handler may trigger an 'save_prop' event.
+   *
+   * @returns A handler for 'edit_prop' events.
+   */
+  MetadataView.prototype._editPropertyHandler = function() {
+    var that = this;
+    return function(event, data) {
+      var f = that._form;
+      if (data && data.id) {
+        f.set(data);
+        f.open();
+      }
+    };
+  };
+
+  /**
+   * Crates an event handler that reacts on 'save_prop' events. The handler calls the
+   * DataAPI and tries to save the data passed along with the event.
+   *
+   * If saved sucessfully the DataAPI will trigger an 'update_prop' event.
+   *
+   * @returns A handler for 'save_prop' events.
+   */
+  MetadataView.prototype._savePropertyHandler = function() {
+    var that = this;
+    return function(event, data) {
+      if (data && data.type == 'property') {
+        that._api.set(that._actions.update_prop, data, 'save');
+      }
+    };
+  };
+
+  /**
+   * Creates an event that reacts on 'update_prop' events. The handler will update the
+   * property list using the data pased along with the event.
+   *
+   * Does not trigger any further events.
+   * FIXME update does not work
+   *
+   * @returns A handler for 'update_prop' events.
+   */
+  MetadataView.prototype._updatePropertyHandler = function() {
+    var that = this;
+    return function(event, data) {
+      if (data.info == 'save') {
+        var elements = data.response;
+        for (var i in elements) {
+          var elem = elements[i];
+          if (that._properties.has(elem)) {
+            that._properties.set(elem);
+          } else {
+            var cont = new WDAT.PropertyContainer(elem.id, that._bus, that._propActions);
+            cont.set(elem);
+            cont.setChildren([]);
+            that._properties.addContainer(cont, 'properties');
+          }
+        }
+      } else if (data.info == 'delete') {
+        that._properties.del(data.param);
+      }
+    };
+  };
+
+  /**
+   * Crates an event that reacts on 'del_prop' events. The handler calls
+   * DataAPI.
+   *
+   * If the deletion was successful the handler will trigger an 'update_prop' event.
+   *
+   * @returns A handler for 'del_prop' events.
+   */
+  MetadataView.prototype._delPropertyHandler = function() {
+    var that = this;
+    return function(event, data) {
+      var id = data.id || data;
+      if (id) {
+        that._api.del(that._actions.update_prop, id, 'delete');
       }
     };
   };

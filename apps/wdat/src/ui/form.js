@@ -283,7 +283,7 @@
           },
           Save : function() {           // callback for save actions
             var data = that.get();
-            if (data !== null) {
+            if (data) {
               that._bus.publish(that.event('save'), data);
               $(this).dialog('close');
             }
