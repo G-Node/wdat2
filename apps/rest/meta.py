@@ -70,9 +70,9 @@ meta_attributes = {
 
 # possible unit types: order matters!!
 meta_unit_types = {
-    "time": ("s", "ms", "mcs"), # *1000, *1, /1000
-    "signal": ("v", "mv", "mcv"),
-    "sampling": ("hz", "khz", "mhz", "1/s")} # *1, *1000, *100000, *1
+    "time": ("s", "ms", "us"), # *1000, *1, /1000
+    "signal": ("V", "mV", "uV"),
+    "sampling": ("Hz", "kHz", "MHz", "1/s")} # *1, *1000, *100000, *1
 
 # object type: data-related attributes names. waveform is a special case (2-3D).
 meta_data_attrs = {

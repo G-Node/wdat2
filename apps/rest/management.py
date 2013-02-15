@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError, FieldError
 from django.views.decorators.http import condition
 from django.utils import simplejson as json
-from django.db import models
+from django.db import models, IntegrityError
 from django.db.models.fields import FieldDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_unicode
@@ -13,7 +13,7 @@ from datetime import datetime
 import settings
 import hashlib
 
-from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M
+from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M, ObjectState
 from rest.common import *
 from rest.meta import *
 
@@ -23,7 +23,6 @@ from rest.meta import *
 # propagate metadata for NEO
 # check ACL
 # parent's e-tag should change when child has been changed
-
 
 class BaseHandler(object):
     """
@@ -50,6 +49,13 @@ class BaseHandler(object):
         self.mode = settings.DEFAULT_RESPONSE_MODE
         #self.excluded_bulk_update = () # error when bulk update on these fields
 
+    @property
+    def is_versioned(self):
+        return issubclass(self.model, ObjectState)
+
+    @property
+    def is_multiuser(self):
+        return ("owner" in [x.name for x in self.model._meta.local_fields])
 
     @auth_required
     def __call__(self, request, obj_id=None, *args, **kwargs):
@@ -63,28 +69,31 @@ class BaseHandler(object):
         With respect to the overall performance, the algorithm is the following:
         - first it constructs a QuerySet with all user-provided filters from the 
         request, security filters etc.
-        - then it evaluates the QuerySet getting object ids from the database
+        - then it evaluates the QuerySet getting object guids from the database
         - then another QuerySet is being built, requesting objects with the
-        relatives, m2m (if needed) but only for the ids, filtered in steps 1-2.
+        relatives, m2m (if needed) but only for the guids, filtered in steps 1-2
         """
         kwargs = {}
         create = False
-        if self.options.has_key('at_time'): # to fetch a particular version
+        if self.options.has_key('at_time') and self.is_versioned:
+            # to fetch a particular version
             kwargs['at_time'] = self.options['at_time']
 
         if request.method in self.actions.keys():
 
             if obj_id: # single object case, GET, UPDATE or DELETE
                 objects = self.model.objects.filter( **kwargs )
-                objects = objects.filter( local_id = obj_id )
+                objects = objects.filter( pk = obj_id )
                 if not objects: # object does not exist?
                     return NotFound(message_type="does_not_exist", request=request)
-                if request.method == 'GET': # get single object
-                    if not objects[0].is_accessible(request.user):
-                        return Forbidden(message_type="not_authorized", request=request)
 
-                elif not objects[0].is_editable(request.user): # modify single
-                    return Forbidden(message_type="not_authorized", request=request)
+                if self.is_versioned: # validate permissions for multi-user objs
+                    if request.method == 'GET': # get single object
+                        if not objects[0].is_accessible(request.user):
+                            return Forbidden(message_type="not_authorized", request=request)
+
+                    elif not objects[0].is_editable(request.user): # modify single
+                        return Forbidden(message_type="not_authorized", request=request)
 
             else: # a category case, GET, CREATE, DELETE or BULK UPDATE
                 update = self.options.has_key('bulk_update')
@@ -92,7 +101,7 @@ class BaseHandler(object):
                     # GET, DELETE or BULK UPDATE
                     objects = self.model.objects.filter( **kwargs )
                     try:
-                        objects = self.do_filter(request.user, objects, update)
+                        objects = self.primary_filtering(request.user, objects, update)
                     except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
                         # filter key/value is/are wrong
                         return BadRequest(json_obj={"details": e.message}, \
@@ -107,15 +116,19 @@ class BaseHandler(object):
 
             if not create:
                 q = self.options.get("q", self.mode)
-                if q == 'full' or q == 'beard':
-                    kwargs["fetch_children"] = True
 
-                all_ids = objects.values_list( "id", flat=True )
-                if len(all_ids) > 0: # evaluate pre-QuerySet here, 1st SQL!
-                    kwargs["id__in"] = self.do_sift(all_ids)
-                    objects = self.model.objects.get_related( **kwargs )
+                if self.is_versioned:
+                    all_ids = objects.values_list( "guid", flat=True )
+                    if len(all_ids) > 0: # evaluate pre-QuerySet here, hits database
+                        kwargs["guid__in"] = self.secondary_filtering(all_ids)
+                        if request.method == 'DELETE':
+                            objects = kwargs["guid__in"] # just pass [guid's]
+                        else:
+                            objects = self.model.objects.get_related( **kwargs )
+                    else:
+                        objects = []
                 else:
-                    objects = []
+                    pass # FIXME secondary filtering for non-versioned objs!!
 
             return self.actions[request.method](request, objects)
         else:
@@ -134,21 +147,23 @@ class BaseHandler(object):
                 if matched:
                     params[smart_unicode(k)] = request_params_cleaner.get(matched[0])(v)
 
-                else: # attribute- and other filters
-                    try: 
-                        """ here we add local_id to all FKs (not the real IDs 
-                        which change from version to version). Note, that all
-                        other nice filters like parent__name__contains will not
-                        work because of the versioning. """
-                        field = self.model._meta.get_field( k )
-                        #if field.rel and isinstance(field.rel, models.ManyToOneRel):
-                        #    k += '__local_id'
-                    except FieldDoesNotExist:
-                        pass
+                else: # attribute- and other filters, lookups
+                    """ here one could add some field-based validation for every  
+                    key, like:
+
+                    if k.find('__'):
+                        try: 
+                            field_name = k[ : k.find('__') ]
+                            field = self.model._meta.get_field( field_name )
+                        except FieldDoesNotExist:
+                            # ignore this key?
+                            pass
+
+                    for better safety.
+                    """
                     attr_filters[smart_unicode(k)] = smart_unicode(v)
 
-            params["permalink_host"] = '%s://%s' % (request.is_secure() and \
-                'https' or 'http', request.get_host())
+            params["permalink_host"] = get_host_for_permalink( request )
             self.options = params
             self.attr_filters = attr_filters # save here attribute-specific filters
         except (ObjectDoesNotExist, ValueError, IndexError, KeyError), e:
@@ -167,7 +182,77 @@ class BaseHandler(object):
         return rdata
 
 
-    def do_sift(self, ids):
+    def primary_filtering(self, user, objects, update=False):
+        """ filter objects as per request params + security filtering """
+
+        # GET params filters
+        for key, value in self.options.items():
+            matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
+            if matched and objects:
+                filter_func = self.list_filters[matched[0]]
+                objects = filter_func(objects, self.options[key], user)
+
+        if self.attr_filters: # include django lookup filters
+            for key, value in self.attr_filters.items():
+                # using local_id instead of id due to versioning
+                new_key = key
+                if str( key[ : key.find('__')] ) == 'id':
+                    new_key = key.replace('id', 'local_id')
+                    self.attr_filters[ new_key ] = self.attr_filters.pop(key)
+
+                # convert to list if needed
+                if new_key.find('__in') > 0 and type(str(value)) == type(''):
+                    new_val = value.replace('[', '').replace(']', '')
+                    new_val = new_val.replace('(', '').replace('])', '')
+                    
+                    self.attr_filters[new_key] = [int(v) for v in new_val.split(',')]
+
+                # __isnull needs value conversion to correct bool
+                if new_key.find('__isnull') > 0 and type(str(value)) == type(''):
+                    try:
+                        if int(value) == 0:
+                            self.attr_filters[new_key] = 0
+                    except ValueError:
+                        pass # we treat any other value except 0 as True
+
+            objects = objects.filter(**self.attr_filters)
+
+        # permissions filter, if object interfaces multi-user access
+        if self.is_multiuser:
+
+            # 1. all public objects 
+            q1 = objects.filter(safety_level=1).exclude(owner=user)
+
+            # 2. all *friendly*-shared objects
+            friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
+                + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
+            q2 = objects.filter(safety_level=2, owner__in=friends)
+
+            # 3. All private direct shares
+            dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
+                object_type=self.model.acl_type())]
+            q3 = objects.filter(pk__in=dir_acc)
+
+            perm_filtered = q1 | q2 | q3
+
+            if update:
+                # 1. All private direct shares with 'edit' level
+                dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
+                    object_type=self.model.acl_type(), access_level=2)]
+                available = objects.filter(pk__in=dir_acc)
+
+                if self.options.has_key('mode') and not self.options['mode'] == 'ignore':
+                    if not perm_filtered.count() == available.count():
+                        raise ReferenceError("Some of the objects in your query are not available for an update.")
+
+                perm_filtered = objects.filter(pk__in=dir_acc) # not to damage QuerySet
+
+            objects = perm_filtered | objects.filter(owner=user)
+
+        return objects
+
+
+    def secondary_filtering(self, ids):
         """ simply sifts the given list with the following parameters:
         - offset
         - max_results
@@ -203,64 +288,6 @@ class BaseHandler(object):
             objects = objs
         """
         return ids[ offset: offset + max_results ]
-
-    def do_filter(self, user, objects, update=False):
-        """ filter objects as per request params + security filtering """
-
-        # GET params filters
-        for key, value in self.options.items():
-            matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
-            if matched and objects:
-                filter_func = self.list_filters[matched[0]]
-                objects = filter_func(objects, self.options[key], user)
-
-        if self.attr_filters: # include django lookup filters
-            for key, value in self.attr_filters.items():
-                # using local_id instead of id due to versioning
-                new_key = key
-                if str( key[ : key.find('__')] ) == 'id':
-                    new_key = key.replace('id', 'local_id')
-                    self.attr_filters[ new_key ] = self.attr_filters.pop(key)
-
-                # convert to list if needed
-                if new_key.find('__in') > 0 and type(str(value)) == type(''):
-                    new_val = value.replace('[', '').replace(']', '')
-                    new_val = new_val.replace('(', '').replace('])', '')
-                    
-                    self.attr_filters[new_key] = [int(v) for v in new_val.split(',')]
-            objects = objects.filter(**self.attr_filters)
-
-        # permissions filter:
-        # 1. all public objects 
-        q1 = objects.filter(safety_level=1).exclude(owner=user)
-
-        # 2. all *friendly*-shared objects
-        friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
-            + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
-        q2 = objects.filter(safety_level=2, owner__in=friends)
-
-        # 3. All private direct shares
-        dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
-            object_type=self.model.acl_type())]
-        q3 = objects.filter(local_id__in=dir_acc)
-
-        perm_filtered = q1 | q2 | q3
-
-        if update:
-            # 1. All private direct shares with 'edit' level
-            dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
-                object_type=self.model.acl_type(), access_level=2)]
-            available = objects.filter(id__in=dir_acc)
-
-            if self.options.has_key('mode') and not self.options['mode'] == 'ignore':
-                if not perm_filtered.count() == available.count():
-                    raise ReferenceError("Some of the objects in your query are not available for an update.")
-
-            perm_filtered = objects.filter(id__in=dir_acc) # not to damage QuerySet
-
-        objects = perm_filtered | objects.filter(owner=user)
-
-        return objects
 
 
     def get(self, request, objects, code=200):
@@ -332,11 +359,13 @@ class BaseHandler(object):
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
-        except ValidationError, VE:
+        except (IntegrityError, ValidationError), VE:
             if hasattr(VE, 'message_dict'):
                 json_obj=VE.message_dict
-            else:
+            elif hasattr(VE, 'messages'):
                 json_obj={"details": ", ".join(VE.messages)}
+            else:
+                json_obj={"details": str( VE )}
             return BadRequest(json_obj=json_obj, \
                 message_type="bad_parameter", request=request)
         except (AssertionError, AttributeError, KeyError), e:
@@ -350,19 +379,14 @@ class BaseHandler(object):
             update_kwargs=update_kwargs, m2m_dict=m2m_dict, fk_dict=fk_dict )
 
         request.method = "GET"
-        if 'local_id' in self.model._meta.get_all_field_names():
-            id_attr = 'local_id'
-        else:
-            id_attr = 'id'
-        ids = [ getattr(obj, id_attr) for obj in objects ]
-        filt = { id_attr + '__in': ids }
+        filt = { 'pk__in': [ obj.pk for obj in objects ] }
         # need refresh the QuerySet, f.e. in case of a bulk update
         return self.get(request, self.model.objects.get_related( **filt ), return_code)
 
 
     def delete(self, request, objects):
         """ delete (archive) provided objects """
-        self.model.save_changes(objects, {'current_state': 20}, {}, {}, True)
+        self.model.objects.filter( guid__in = objects ).delete()
         return Success(message_type="deleted", request=request)
 
     def get_filter_by_name(self, filter_name):
@@ -482,7 +506,7 @@ class ACLHandler(BaseHandler):
 
 def get_obj_attr(request, obj_id=None, handler=None, *args, **kwargs):
     """ computes etag / last_modified for a single object """
-    if not handler or not obj_id:
+    if not handler or not obj_id or not handler.is_versioned:
         return None
     try:
         try: # try to get object by local ID (+ at_time)
@@ -538,9 +562,9 @@ def top_filter(objects, value, user):
 def visibility_filter(objects, value, user):
     """ filters public / private / shared """
     if value == "private":
-        return objects.filter(current_state=3)
+        return objects.filter( safety_level = 3 )
     if value == "public":
-        return objects.filter(current_state=1)
+        return objects.filter( safety_level = 1 )
     if value == "shared":
         return objects.exclude(owner=user) # permissions are validated later anyway
 

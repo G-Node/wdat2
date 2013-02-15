@@ -16,18 +16,20 @@ import tables as tb
 import os
 
 class FileHandler(BaseHandler):
-    """ handles file upload via PUT """
+    def __init__(self, serializer, model):
+        super(FileHandler, self).__init__( serializer, model )
+        self.actions = {
+            'GET': self.get,
+            'POST': self.process_with_crud,
+            'DELETE': self.delete }
 
-    def create_or_update(self, request, objects=None):
-        """ 
-        PUT, objects == None: not supported, use POST
-        PUT or POST, not objects == None: update file parameters
-        POST, objects == None: create new file
-        """
+    def process_with_crud(self, request, objects=None):
         if request.method == 'PUT':
             return NotSupported(json_obj={"details": "To upload a new file please use HTTP POST."}, \
                 message_type="invalid_method", request=request)
-        if len(request.FILES) > 0: # create new file via form
+
+        if len(request.FILES) > 0:
+            # create new file via form, CREATE case
             form = RESTFileForm(request.POST, request.FILES)
             if form.is_valid():
                 datafile = form.save(commit=False)
@@ -36,20 +38,26 @@ class FileHandler(BaseHandler):
 
                 self.model.save_changes( objects=[datafile], update_kwargs={}, \
                     m2m_dict={}, fk_dict={}, m2m_append=True )
-                self.run_post_processing( datafile = datafile )
+                #self.run_validation( datafile = datafile )
+                datafile.save()
 
                 return_code = 201
                 request.method = "GET"
-                return self.get( request, self.model.objects.get_related( id=datafile.id ), return_code )
+                return self.get( request, self.model.objects.get_related( pk=datafile.pk ), return_code )
 
             else:
                 return BadRequest(json_obj=form.errors, \
                     message_type="missing_parameter", request=request)
 
-    def run_post_processing(self, *args, **kwargs):
+        else:
+            # normal UPDATE case
+            return self.create_or_update(request, objects)
+
+
+    def run_validation(self, *args, **kwargs):
         """ start a task to check the file compatibility """
         datafile = kwargs['datafile']
-        extracted = extract_file_info.delay( datafile.id )
+        extracted = extract_file_info.delay( datafile.pk )
         task_id = str(extracted.task_id) # this line is required, due to short tasks
         datafile.last_task_id = task_id
         datafile.save()
@@ -152,7 +160,7 @@ class FileOperationsHandler(BaseHandler):
     def extract(self, request, datafile):
         """ Extract files/folders from the file if archive."""
         if datafile.is_archive: # start a task to extract from archive
-            extracted = extract_from_archive.delay(datafile.id)
+            extracted = extract_from_archive.delay(datafile.pk)
             task_id = str(extracted.task_id) # this line is required, due to short tasks
             datafile.last_task_id = task_id
             datafile.save()
@@ -169,7 +177,7 @@ class FileOperationsHandler(BaseHandler):
         }
         if datafile.convertible:
             method = CONVERSION_MAP[str(datafile.file_type)]
-            converted = method.delay(datafile.id)
+            converted = method.delay(datafile.pk)
             task_id = str(converted.task_id) # this line is required, due to short tasks
             datafile.last_task_id = task_id
             datafile.save()

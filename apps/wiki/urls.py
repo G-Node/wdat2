@@ -4,7 +4,6 @@ from django.conf.urls.defaults import *
 from django.conf import settings
 
 from wiki import views, models
-from projects.models import Project
 
 try:
     WIKI_URL_RE = settings.WIKI_URL_RE

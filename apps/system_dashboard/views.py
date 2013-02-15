@@ -14,7 +14,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from datafiles.models import Datafile
-from pinax.apps.projects.models import Project
+#from pinax.apps.projects.models import Project
 from django.utils.translation import ugettext as _
 
 @login_required
