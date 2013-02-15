@@ -632,6 +632,23 @@ meta_classnames = {
     "waveform": WaveForm}
 
 
+backbone = {}
+safe = ['safety_level', 'data_size', 'data_length', 'file_origin']
+for obj_type, cls in meta_classnames.items():
+    params = {}
+    params[ 'data_fields' ] = [field.name for field in cls._meta.local_fields if\
+        field.name + "__unit" in [f.name for f in cls._meta.local_fields]]
+    params[ 'attributes' ] = [field.name for field in cls._meta.local_fields if\
+        field.editable and not field.rel and not field.name in safe \
+            and field.name.find('__unit') < 0 and field.name not in params['data_fields']]
+    params[ 'required' ] = [field.name for field in cls._meta.local_fields if\
+        field.editable and not field.name in safe and not field.null and field.name.find('__unit') < 0]
+    params[ 'parents' ] = [field.name for field in cls._meta.local_fields if\
+        field.__class__ in [VersionedForeignKey] and \
+            field.name not in params['data_fields'] and not field.name in safe]
+    backbone[ obj_type ] = params
+
+
 def get_type_by_class(cls):
     """
     Returns the type of the object (string), like 'segment' or 'event'.

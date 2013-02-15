@@ -199,3 +199,25 @@ class Value(SafetyLevel, ObjectState):
         return ValueSerializer
 
 
+# supporting functions
+#===============================================================================
+
+meta_classnames = {
+    "section": Section,
+    "property": Property,
+    "value": Value
+}
+
+backbone = {}
+safe = ['safety_level', 'odml_type', 'tree_position', 'is_template', 'user_custom']
+for obj_type, cls in meta_classnames.items():
+    params = {}
+    params[ 'attributes' ] = [field.name for field in cls._meta.local_fields if\
+        field.editable and not field.rel and not field.name in safe]
+    params[ 'required' ] = [field.name for field in cls._meta.local_fields if\
+        field.editable and not field.name in safe and not field.null]
+    params[ 'parents' ] = [field.name for field in cls._meta.local_fields if\
+        field.__class__ in [VersionedForeignKey] and not field.name in safe]
+    backbone[ obj_type ] = params
+
+

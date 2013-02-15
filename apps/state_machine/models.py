@@ -349,12 +349,17 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
         # step 1: validation + versioned objects update
         guids_to_close = []
         val_flag = False
+        processed = []
+        to_submit = []
         for obj in objects:
             if obj.guid: # existing object, need to close old version later
+                if obj.pk in processed:
+                    break
                 guids_to_close.append( str( obj.guid ) )
             else:  # new object
                 obj.local_id = lid
                 lid += 1
+            processed.append( obj.pk )
             obj.date_created = obj.date_created or now
             obj.starts_at = now
             # compute unique hash (after updating object and starts_at)
@@ -362,12 +367,13 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             if not val_flag: # clean only one object for speed
                 obj.full_clean()
                 val_flag = True
+            to_submit.append( obj )
 
         # step 2: close old records
         self.filter( guid__in = guids_to_close ).delete()
 
         # step 3: create objects in bulk
-        return super(VersionedQuerySet, self).bulk_create( objects )
+        return super(VersionedQuerySet, self).bulk_create( to_submit )
 
     def update(self, **kwargs):
         """ update objects with new attrs and FKs """
@@ -732,14 +738,18 @@ class ObjectState( models.Model ):
         the method saves changes to attributes (update_kwargs), FKs (fk_dict) 
         and M2M relations (m2m_dict) to all provided objects, resolving 
         versioning features.
+
+        FIXME: partially replicate relations processing to the save() function
         """
         if not objects: return None
+
+        # FIXME make transactional
 
         if update_kwargs or fk_dict:
             for obj in objects:
                 for name, value in dict(update_kwargs, **fk_dict).items():
                     setattr(obj, name, value)
-            self.objects.bulk_create( objects )
+            self.objects.get_query_set().bulk_create( objects )
 
         if m2m_dict: # process versioned m2m relations separately, in bulk
             local_ids = [ x.local_id for x in objects ]
@@ -784,7 +794,7 @@ class ObjectState( models.Model ):
                             attrs[ "date_created" ] = now
                             attrs[ "starts_at" ] = now
                         new_rels.append( m2m_class( **attrs ) )
-                m2m_class.objects.bulk_create( new_rels )
+                m2m_class.objects.get_query_set().bulk_create( new_rels )
 
 
 class SafetyLevel(models.Model):
