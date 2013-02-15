@@ -1,7 +1,11 @@
 """ 
 This script creates test data for core apps of the NeuREST.
 
-This script is independent from the test data located at fixtures inside django 
+run it normally from the project root folder like:
+
+<project_root>$ python load_test_data.py
+
+NOTE. This script is independent from the test data located at fixtures inside django 
 apps. As opposed to fixtures for UnitTests, where small number of test objects 
 needed to allow tests run faster, this script is designed for API clients and
 in practice creates significant amount of different objects with relatively high
