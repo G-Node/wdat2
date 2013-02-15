@@ -62,32 +62,27 @@
       var cont = new WDAT.Container($('<li>').attr('id', id), this._bus, this._contActions);
       cont.set(elem);
       // get the right category
-      var cat = undefined;
-      if (category && category != 'default') {
-        if (this._categories[category]) {
-          // found a matching category
-          cat = this._jq.find('#' + this.toID(category));
-        } else {
-          // no category found, create a new one
-          cat = category.toLowerCase();
-          var label = strCapitalizeWords(cat, /[_\-\ \.:]/);
-          this._categories[cat] = label;
-          var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
-          html.attr('id', this.toID(cat));
-          html.find('.category-name').text(label);
-          // create add button if add event is present
-          if (this._actions.add) {
-            var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {
-              name : label, id : cat});
-            html.find('.category-name').before(b.jq());
-          }
-          // append everything
-          this._jq.find('#' + this.toID('default')).before(html);
-          cat = html;
-        }
+      var cat = category || 'default';
+      cat = cat.toLowerCase();
+      if (this._categories[cat]) {
+        // found a matching category
+        cat = this._jq.find('#' + this.toID(category));
       } else {
-        // no category specified, get default category
-        cat = this._jq.find('#' + this.toID('default'));
+        // no category found, create a new one
+        var label = strCapitalizeWords(cat, /[_\-\ \.:]/);
+        this._categories[cat] = label;
+        var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
+        html.attr('id', this.toID(cat));
+        html.find('.category-name').text(label);
+        // create add button if add event is present
+        if (this._actions.add) {
+          var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {
+            name : label, id : cat});
+          html.find('.category-name').before(b.jq());
+        }
+        // append everything
+        this._jq.find('#' + this.toID('default')).before(html);
+        cat = html;
       }
       // append container to the right category
       cat.append(cont.jq());
@@ -254,12 +249,12 @@
       // append everything
       this._jq.append(html);
     }
-    html = $('<ul><lh class="category"></lh></ul>');
-    html.attr('id', this.toID('default'));
-    if (this._actions.add) {
-      var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {name : 'Default', id : 'default'});
-      html.find('.category').append(b.jq());
-    }
+//    html = $('<ul><lh class="category"></lh></ul>');
+//    html.attr('id', this.toID('default'));
+//    if (this._actions.add) {
+//      var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {name : 'Default', id : 'default'});
+//      html.find('.category').append(b.jq());
+//    }
     this._jq.append(html);
     // add elements to list
     for (var i in this._data) {

@@ -143,7 +143,7 @@
       var p = that._section.get();
       var f = that._form;
       f.set();
-      if (data.id && p.id) {
+      if (p && p.id) {
         var elem = modCreate('property');
         elem.parents.section = p.id;
         f.set(elem);
@@ -193,7 +193,6 @@
    * property list using the data pased along with the event.
    *
    * Does not trigger any further events.
-   * FIXME update does not work
    *
    * @returns A handler for 'update_prop' events.
    */

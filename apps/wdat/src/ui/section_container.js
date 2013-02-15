@@ -139,7 +139,7 @@
 
     val = objGetRecursive(this._data, 'data_type') || 'n.a.';
     field = $(SectionContainer.FIELD_TEMPLATE);
-    field.children('.field-name').text('Data Tape:');
+    field.children('.field-name').text('Data Type:');
     field.children('.field-val').text(val);
     html.append(field);
 
