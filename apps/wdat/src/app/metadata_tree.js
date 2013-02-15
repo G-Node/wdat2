@@ -191,11 +191,14 @@
       if (data.action === 'del') {
         that._tree.del(data.info);
       } else if (data.action === 'set') {
-        var elem = data.response[0];
-        if (elem.parents && elem.parents.parent_section) {
-          that._tree.add(elem, elem.parents.parent_section);
-        } else {
-          that._tree.add(elem, 'own-metadata');
+        var elements = data.response;
+        for (var i in elements) {
+          var elem = elements[i];
+          if (elem.parents && elem.parents.parent_section) {
+            that._tree.add(elem, elem.parents.parent_section);
+          } else {
+            that._tree.add(elem, 'own-metadata');
+          }
         }
       }
     };

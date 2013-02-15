@@ -183,7 +183,7 @@
     var that = this;
     return function(event, data) {
       if (data && data.type == 'property') {
-        that._api.set(that._actions.update_prop, data, 'save');
+        that._api.set(that._actions.update_prop, data);
       }
     };
   };
@@ -200,7 +200,7 @@
   MetadataView.prototype._updatePropertyHandler = function() {
     var that = this;
     return function(event, data) {
-      if (data.info == 'save') {
+      if (data.action == 'set') {
         var elements = data.response;
         for (var i in elements) {
           var elem = elements[i];
@@ -213,7 +213,7 @@
             that._properties.addContainer(cont, 'properties');
           }
         }
-      } else if (data.info == 'delete') {
+      } else if (data.action === 'del') {
         that._properties.del(data.param);
       }
     };
@@ -232,7 +232,7 @@
     return function(event, data) {
       var id = data.id || data;
       if (id) {
-        that._api.del(that._actions.update_prop, id, 'delete');
+        that._api.del(that._actions.update_prop, id);
       }
     };
   };
