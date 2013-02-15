@@ -255,7 +255,7 @@
 //      var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {name : 'Default', id : 'default'});
 //      html.find('.category').append(b.jq());
 //    }
-    this._jq.append(html);
+//    this._jq.append(html);
     // add elements to list
     for (var i in this._data) {
       var elem = this._data[i].data;
