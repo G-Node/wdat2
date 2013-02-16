@@ -19,9 +19,6 @@ from rest.meta import *
 
 # TODO
 # simple full-text search filter 
-# bulk objects creation
-# propagate metadata for NEO
-# check ACL
 # parent's e-tag should change when child has been changed
 
 class BaseHandler(object):
@@ -35,9 +32,7 @@ class BaseHandler(object):
         # custom filters, could be extended in a parent class.
         # important - a custom filter should not evaluate QuerySet.
         self.list_filters = {
-            'top': top_filter,
             'visibility': visibility_filter,
-            'owner': owner_filter,
         }
         self.assistant = {} # to store some params for serialization/deserial.
         self.actions = {
@@ -139,9 +134,38 @@ class BaseHandler(object):
         else:
             return NotSupported(message_type="invalid_method", request=request)
 
-
     def clean_get_params(self, request):
         """ clean request GET params """
+        request_params_cleaner = {
+            # signal / times group
+            'start_time': lambda x: float(x), # may raise ValueError
+            'end_time': lambda x: float(x), # may raise ValueError
+            'start_index': lambda x: int(x), # may raise ValueError
+            'end_index': lambda x: int(x), # may raise ValueError
+            'duration': lambda x: float(x), # may raise ValueError
+            'samples_count': lambda x: int(x), # may raise ValueError
+            'downsample': lambda x: int(x), # may raise ValueError
+
+            # functional group
+            'm2m_append':  lambda x: bool(int(x)), # may raise ValueError
+
+            # common
+            'at_time': lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+            'fk_mode': lambda x: int(x), # may raise ValueError
+            'bulk_update': lambda x: bool(int(x)), # may raise ValueError
+            'visibility':  lambda x: visibility_options[x], # may raise IndexError
+            'top':  lambda x: top_options[x], # may raise IndexError
+            'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+            'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+            'offset': lambda x: int(x), # may raise ValueError
+            'max_results':  lambda x: abs(int(x)), # may raise ValueError
+            'show_kids': lambda x: bool(int(x)), # may raise ValueError
+            'cascade': lambda x: bool(int(x)), # may raise ValueError
+            'q': lambda x: object_filters[str(x)], # may raise ValueError or IndexError
+            'groups_of': lambda x: int(x), # may raise ValueError
+            'spacing': lambda x: int(x), # may raise ValueError
+            'format': lambda x: x.lower(),
+        }
         try: # assert request parameters both from request.GET and from kwargs
             for k, v in request.GET.items():
 
@@ -165,12 +189,12 @@ class BaseHandler(object):
                     for better safety. Here we let django resolve it.
                     """
                     # using pk instead of id due to versioning
-                    new_key = k
+                    new_key = smart_unicode(k)
                     if str( k[ : k.find('__')] ) == 'id':
                         new_key = k.replace('id', 'pk')
 
                     # convert to list if needed
-                    new_val = v
+                    new_val = smart_unicode(v)
                     if new_key.find('__in') > 0 and type(str(v)) == type(''):
                         new_val = v.replace('[', '').replace(']', '')
                         new_val = new_val.replace('(', '').replace('])', '')
@@ -185,9 +209,9 @@ class BaseHandler(object):
 
                     if k.startswith('n__'): # negative filter
                         new_key = new_key[ 3: ]
-                        self.attr_excludes[smart_unicode(new_key)] = smart_unicode(new_val)
+                        self.attr_excludes[smart_unicode(new_key)] = new_val
                     else:
-                        self.attr_filters[smart_unicode(new_key)] = smart_unicode(new_val)
+                        self.attr_filters[smart_unicode(new_key)] = new_val
 
             self.options["permalink_host"] = get_host_for_permalink( request )
         except (ObjectDoesNotExist, ValueError, IndexError, KeyError), e:
@@ -217,9 +241,6 @@ class BaseHandler(object):
             if matched and objects:
                 filter_func = self.list_filters[matched[0]]
                 objects = filter_func(objects, self.options[key], user)
-
-        import ipdb
-        ipdb.set_trace()
 
         # django lookup filters
         objects = objects.filter(**self.attr_filters).exclude(**self.attr_excludes)
@@ -556,34 +577,15 @@ def process_REST(request, obj_id=None, handler=None, *args, **kwargs):
 
 # FILTERS ----------------------------------------------------------------------
 
-def top_filter(objects, value, user):
-    """ for hierarchical models, returns the top of the hierarchy """
-    if value == "owned":
-        return objects.filter(owner=user, parent_section=None)
-    if value == "shared":
-        """ top shared objects for a given user. if a section's direct 
-        parent is not shared, a section displays on top of the tree. """
-        shared = objects.exclude(owner=user)
-        return shared.filter(parent_section=None)
-
 def visibility_filter(objects, value, user):
-    """ filters public / private / shared """
+    """ here is an example filter to show how filters could be used by custom 
+    handlers. this filter handles public / private / shared objects. """
     if value == "private":
         return objects.filter( safety_level = 3 )
     if value == "public":
         return objects.filter( safety_level = 1 )
     if value == "shared":
         return objects.exclude(owner=user) # permissions are validated later anyway
-
-def owner_filter(objects, value, user):
-    """ objects belonging to a specific user, by ID """
-    try: # resolving users
-        user = int(value)
-        u = User.objects.get(id=user)
-    except ValueError: # username is given
-        u = User.objects.get(username=value)
-    return objects.filter(owner=u)
-
 
 #-------------------------------------------------------------------------------
 # Trigger could be also used for versions update (sets ends_at to now()) when

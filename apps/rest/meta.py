@@ -120,45 +120,6 @@ factor_options = {
   "mcskhz": 1.0/1000.0,
 }
 
-# special parameters for GET requests
-request_params_cleaner = {
-    # signal / times group
-    'start_time': lambda x: float(x), # may raise ValueError
-    'end_time': lambda x: float(x), # may raise ValueError
-    'start_index': lambda x: int(x), # may raise ValueError
-    'end_index': lambda x: int(x), # may raise ValueError
-    'duration': lambda x: float(x), # may raise ValueError
-    'samples_count': lambda x: int(x), # may raise ValueError
-    'downsample': lambda x: int(x), # may raise ValueError
-
-    # data (NEO) group - enable TODO
-    #'section': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
-    #'property': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
-    #'value': lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
-    'datafile': lambda x: int(x), # may raise UnicodeEncodeError?
-
-    # functional group
-    'm2m_append':  lambda x: bool(int(x)), # may raise ValueError
-
-    # common
-    'at_time': lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
-    'fk_mode': lambda x: int(x), # may raise ValueError
-    'bulk_update': lambda x: bool(int(x)), # may raise ValueError
-    'visibility':  lambda x: visibility_options[x], # may raise IndexError
-    'top':  lambda x: top_options[x], # may raise IndexError
-    'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
-    'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
-    'offset': lambda x: int(x), # may raise ValueError
-    'max_results':  lambda x: abs(int(x)), # may raise ValueError
-    'show_kids': lambda x: bool(int(x)), # may raise ValueError
-    'cascade': lambda x: bool(int(x)), # may raise ValueError
-    'q': lambda x: object_filters[str(x)], # may raise ValueError or IndexError
-    'groups_of': lambda x: int(x), # may raise ValueError
-    'spacing': lambda x: int(x), # may raise ValueError
-    'format': lambda x: x.lower(),
-    #'every': lambda x: int(x), # replaced by groups_of + spacing
-}
-
 object_filters = {
     "link": "link",
     "full": "full",
