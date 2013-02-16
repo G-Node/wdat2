@@ -51,11 +51,11 @@ class LoadData( object ):
     verbose = True # print messages while processing
     usernames = ['bob', 'jeff', 'anita']
     RANDOM_VALUES = {
-        models.CharField: lambda obj_type, field, user: (obj_type + field.name + 
-                binascii.b2a_hex( os.urandom( np.random.randint(1, 20) ) )
+        models.CharField: lambda obj_type, field, user: (obj_type + "_" + 
+            field.name + "_" + binascii.b2a_hex( os.urandom( np.random.randint(1, 20) ) )
         ),
-        models.TextField: lambda obj_type, field, user: (obj_type + field.name +
-            binascii.b2a_hex( os.urandom( np.random.randint(1, 200) ) )
+        models.TextField: lambda obj_type, field, user: (obj_type + "_" + 
+            field.name + "_" + binascii.b2a_hex( os.urandom( np.random.randint(1, 200) ) )
         ),
         models.IntegerField: lambda obj_type, field, user: (
             np.random.randint(1, 1000)
