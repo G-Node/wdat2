@@ -146,7 +146,6 @@ request_params_cleaner = {
     'bulk_update': lambda x: bool(int(x)), # may raise ValueError
     'visibility':  lambda x: visibility_options[x], # may raise IndexError
     'top':  lambda x: top_options[x], # may raise IndexError
-    'owner':  lambda x: smart_unicode(x), # may raise UnicodeEncodeError?
     'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
     'offset': lambda x: int(x), # may raise ValueError
