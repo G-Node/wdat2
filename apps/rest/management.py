@@ -19,9 +19,6 @@ from rest.meta import *
 
 # TODO
 # simple full-text search filter 
-# bulk objects creation
-# propagate metadata for NEO
-# check ACL
 # parent's e-tag should change when child has been changed
 
 class BaseHandler(object):
@@ -32,10 +29,10 @@ class BaseHandler(object):
     def __init__(self, serializer, model):
         self.serializer = serializer() # serializer
         self.model = model # the model to work with, required
-        self.list_filters = { # common filters, extend in a parent class
-            'top': top_filter,
+        # custom filters, could be extended in a parent class.
+        # important - a custom filter should not evaluate QuerySet.
+        self.list_filters = {
             'visibility': visibility_filter,
-            'owner': owner_filter,
         }
         self.assistant = {} # to store some params for serialization/deserial.
         self.actions = {
@@ -47,6 +44,9 @@ class BaseHandler(object):
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
         self.update = True # create / update via POST by default
         self.mode = settings.DEFAULT_RESPONSE_MODE
+        self.attr_filters = {} # attribute filters
+        self.attr_excludes = {} # negative attribute filters
+        self.options = {} # other request parameters
         #self.excluded_bulk_update = () # error when bulk update on these fields
 
     @property
@@ -103,7 +103,7 @@ class BaseHandler(object):
                     try:
                         objects = self.primary_filtering(request.user, objects, update)
                     except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
-                        # filter key/value is/are wrong
+                        #k.find('__') filter key/value is/are wrong
                         return BadRequest(json_obj={"details": e.message}, \
                             message_type="wrong_params", request=request)
                     except ReferenceError, e: # attempt to update non-editable objects
@@ -134,20 +134,47 @@ class BaseHandler(object):
         else:
             return NotSupported(message_type="invalid_method", request=request)
 
-
     def clean_get_params(self, request):
         """ clean request GET params """
-        attr_filters = {}
-        params = {}
+        request_params_cleaner = {
+            # signal / times group
+            'start_time': lambda x: float(x), # may raise ValueError
+            'end_time': lambda x: float(x), # may raise ValueError
+            'start_index': lambda x: int(x), # may raise ValueError
+            'end_index': lambda x: int(x), # may raise ValueError
+            'duration': lambda x: float(x), # may raise ValueError
+            'samples_count': lambda x: int(x), # may raise ValueError
+            'downsample': lambda x: int(x), # may raise ValueError
+
+            # functional group
+            'm2m_append':  lambda x: bool(int(x)), # may raise ValueError
+
+            # common
+            'at_time': lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+            'fk_mode': lambda x: int(x), # may raise ValueError
+            'bulk_update': lambda x: bool(int(x)), # may raise ValueError
+            'visibility':  lambda x: visibility_options[x], # may raise IndexError
+            'top':  lambda x: top_options[x], # may raise IndexError
+            'created_min':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+            'created_max':  lambda x: datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S"), # may raise ValueError
+            'offset': lambda x: int(x), # may raise ValueError
+            'max_results':  lambda x: abs(int(x)), # may raise ValueError
+            'show_kids': lambda x: bool(int(x)), # may raise ValueError
+            'cascade': lambda x: bool(int(x)), # may raise ValueError
+            'q': lambda x: object_filters[str(x)], # may raise ValueError or IndexError
+            'groups_of': lambda x: int(x), # may raise ValueError
+            'spacing': lambda x: int(x), # may raise ValueError
+            'format': lambda x: x.lower(),
+        }
         try: # assert request parameters both from request.GET and from kwargs
             for k, v in request.GET.items():
 
                 # predefined filters; taking first match
                 matched = [key for key in request_params_cleaner.keys() if k.startswith(key)]
                 if matched:
-                    params[smart_unicode(k)] = request_params_cleaner.get(matched[0])(v)
+                    self.options[smart_unicode(k)] = request_params_cleaner.get(matched[0])(v)
 
-                else: # attribute- and other filters, lookups
+                else: # attribute- and other filters, negative filters, lookups
                     """ here one could add some field-based validation for every  
                     key, like:
 
@@ -159,13 +186,34 @@ class BaseHandler(object):
                             # ignore this key?
                             pass
 
-                    for better safety.
+                    for better safety. Here we let django resolve it.
                     """
-                    attr_filters[smart_unicode(k)] = smart_unicode(v)
+                    # using pk instead of id due to versioning
+                    new_key = smart_unicode(k)
+                    if str( k[ : k.find('__')] ) == 'id':
+                        new_key = k.replace('id', 'pk')
 
-            params["permalink_host"] = get_host_for_permalink( request )
-            self.options = params
-            self.attr_filters = attr_filters # save here attribute-specific filters
+                    # convert to list if needed
+                    new_val = smart_unicode(v)
+                    if new_key.find('__in') > 0 and type(str(v)) == type(''):
+                        new_val = v.replace('[', '').replace(']', '')
+                        new_val = new_val.replace('(', '').replace('])', '')
+                        new_val = [int(v) for v in new_val.split(',')]
+
+                    # __isnull needs value conversion to correct bool
+                    if new_key.find('__isnull') > 0 and type(str(v)) == type(''):
+                        try:
+                            if int(v) == 0: new_val = 0
+                        except ValueError:
+                            pass # we treat any other value except 0 as True
+
+                    if k.startswith('n__'): # negative filter
+                        new_key = new_key[ 3: ]
+                        self.attr_excludes[smart_unicode(new_key)] = new_val
+                    else:
+                        self.attr_filters[smart_unicode(new_key)] = new_val
+
+            self.options["permalink_host"] = get_host_for_permalink( request )
         except (ObjectDoesNotExist, ValueError, IndexError, KeyError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="wrong_params", request=request)
@@ -183,39 +231,19 @@ class BaseHandler(object):
 
 
     def primary_filtering(self, user, objects, update=False):
-        """ filter objects as per request params + security filtering """
+        """ filter objects as per request params: predefined filters + django
+        lookup filters + security filtering. Does not evaluate QuerySet, does
+        not hit the database. """
 
-        # GET params filters
+        # specific predefined filters
         for key, value in self.options.items():
             matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
             if matched and objects:
                 filter_func = self.list_filters[matched[0]]
                 objects = filter_func(objects, self.options[key], user)
 
-        if self.attr_filters: # include django lookup filters
-            for key, value in self.attr_filters.items():
-                # using local_id instead of id due to versioning
-                new_key = key
-                if str( key[ : key.find('__')] ) == 'id':
-                    new_key = key.replace('id', 'local_id')
-                    self.attr_filters[ new_key ] = self.attr_filters.pop(key)
-
-                # convert to list if needed
-                if new_key.find('__in') > 0 and type(str(value)) == type(''):
-                    new_val = value.replace('[', '').replace(']', '')
-                    new_val = new_val.replace('(', '').replace('])', '')
-                    
-                    self.attr_filters[new_key] = [int(v) for v in new_val.split(',')]
-
-                # __isnull needs value conversion to correct bool
-                if new_key.find('__isnull') > 0 and type(str(value)) == type(''):
-                    try:
-                        if int(value) == 0:
-                            self.attr_filters[new_key] = 0
-                    except ValueError:
-                        pass # we treat any other value except 0 as True
-
-            objects = objects.filter(**self.attr_filters)
+        # django lookup filters
+        objects = objects.filter(**self.attr_filters).exclude(**self.attr_excludes)
 
         # permissions filter, if object interfaces multi-user access
         if self.is_multiuser:
@@ -549,34 +577,15 @@ def process_REST(request, obj_id=None, handler=None, *args, **kwargs):
 
 # FILTERS ----------------------------------------------------------------------
 
-def top_filter(objects, value, user):
-    """ for hierarchical models, returns the top of the hierarchy """
-    if value == "owned":
-        return objects.filter(owner=user, parent_section=None)
-    if value == "shared":
-        """ top shared objects for a given user. if a section's direct 
-        parent is not shared, a section displays on top of the tree. """
-        shared = objects.exclude(owner=user)
-        return shared.filter(parent_section=None)
-
 def visibility_filter(objects, value, user):
-    """ filters public / private / shared """
+    """ here is an example filter to show how filters could be used by custom 
+    handlers. this filter handles public / private / shared objects. """
     if value == "private":
         return objects.filter( safety_level = 3 )
     if value == "public":
         return objects.filter( safety_level = 1 )
     if value == "shared":
         return objects.exclude(owner=user) # permissions are validated later anyway
-
-def owner_filter(objects, value, user):
-    """ objects belonging to a specific user, by ID """
-    try: # resolving users
-        user = int(value)
-        u = User.objects.get(id=user)
-    except ValueError: # username is given
-        u = User.objects.get(username=value)
-    return objects.filter(owner=u)
-
 
 #-------------------------------------------------------------------------------
 # Trigger could be also used for versions update (sets ends_at to now()) when
