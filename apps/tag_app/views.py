@@ -26,7 +26,7 @@ def tags(request, tag, template_name='tags/index.html'):
 
     wiki_article_tags = TaggedItem.objects.get_by_model(WikiArticle, tag)
 
-    datafile_tags = TaggedItem.objects.get_by_model(Datafile, tag).filter(current_state=10)
+    datafile_tags = TaggedItem.objects.get_by_model(Datafile, tag)
     datafile_tags = filter(lambda x: x.is_accessible(request.user), datafile_tags)
 
     return render_to_response(template_name, {

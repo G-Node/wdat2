@@ -165,3 +165,20 @@ def profile_edit(request, form_class=ProfileForm, **kwargs):
         "profile": profile,
         "profile_form": profile_form,
     }, context_instance=RequestContext(request))
+
+
+# processes REST requests returning a list of users 
+from profiles.serializers import UserSerializer
+from profiles.handlers import UsersHandler
+from rest.management import process_REST
+
+def api_users(request, *args, **kwargs):
+    return process_REST(request, handler=UsersHandler(UserSerializer, User), *args, **kwargs)
+
+def api_user_details(request, *args, **kwargs):
+    if kwargs.has_key('username'):
+        kwargs['id'] = User.objects.get( username = kwargs['username'] ).id
+    return process_REST(request, kwargs['id'], handler=UsersHandler(UserSerializer, User), *args, **kwargs)
+
+
+

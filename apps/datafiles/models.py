@@ -9,14 +9,16 @@ from datetime import datetime
 from django.db import models
 from django.db.models.fields import TextField
 from django.contrib.auth.models import User
-from state_machine.models import SafetyLevel, ObjectState
+from state_machine.models import SafetyLevel, ObjectState, VersionedForeignKey
 from django.core.files import storage
 from django.template.defaultfilters import filesizeformat
 from friends.models import Friendship
 from tagging.fields import TagField
 from django.utils.translation import ugettext_lazy as _
 from metadata.models import Section
-from scipy import signal as spsignal
+
+
+#from scipy import signal as spsignal
 
 import settings
 
@@ -65,7 +67,7 @@ class Datafile(SafetyLevel, ObjectState):
     )
     name = models.CharField( 'name', blank=True, max_length=200 )
     caption = models.TextField( 'description', blank=True)
-    section = models.ForeignKey(Section, blank=True, null=True)
+    section = VersionedForeignKey(Section, blank=True, null=True)
     raw_file = models.FileField( 'raw_file', storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField( 'tags' )
     # here we put file info extracted using neuroshare, stored as JSON
@@ -113,7 +115,7 @@ class Datafile(SafetyLevel, ObjectState):
 
     @property
     def has_array(self):
-        return self.file_type == 5
+        return self.file_type in [0, 5] # change to just 5 after debugging!
 
     def get_slice(self, start_index=0, end_index=10**9, downsample=None, **kwargs):
         """ returns a slice of the array data.
@@ -124,8 +126,12 @@ class Datafile(SafetyLevel, ObjectState):
         with tb.openFile(self.raw_file.path, 'r') as f:
             l = f.listNodes( "/" )[0][ start_index : end_index ]
 
-        if downsample and downsample < len( l ):
-            dataslice = spsignal.resample(l, downsample)
+        """ FIXME!! downsampling is temporarily switched off. This is made due 
+        to the scipy library that can't be used in the current context. A new
+        algorithm should be used, or the scipy should be compiled using the 
+        local numpy having a different version. """
+        #if downsample and downsample < len( l ):
+        #    dataslice = spsignal.resample(l, downsample)
 
         return l # this is a [sliced] array
 

@@ -1,7 +1,0 @@
-Before any data load check and configure the settings_to_load file.
-
-To load the data just execute an appropriate python file:
-
-python <filename.py>
-
-

@@ -1,11 +1,41 @@
 from django.http import HttpResponse
 from django.utils import simplejson
 from django.core.serializers.json import DjangoJSONEncoder
+from state_machine.models import _get_url_base
 from meta import meta_messages
 from StringIO import StringIO
 
+import urlparse
+
 #===============================================================================
 # here we implement REST API supporting functions
+
+def get_host_for_permalink( request ):
+    return '%s://%s' % (request.is_secure() and 'https' or 'http', request.get_host())
+
+def auth_required(func):
+    """
+    Decorator for views where authentication required. 
+    Returns HTTP 403 Unauthorized if user is not authenticated.
+    """
+    argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
+    fname = func.func_name
+    def auth_func(*args, **kwargs):
+        user = None
+        for a in args:
+            if hasattr(a, 'user'): user = a.user
+        if not user or not user.is_authenticated():
+            return Unauthorized(message_type="not_authenticated")
+        return func(*args, **kwargs)
+    return auth_func
+
+def get_serial_type(request):
+    """ computes whether it's xml, json or other (not supported by API) """
+    if "text/xml" in request.META["CONTENT_TYPE"]:
+        return "xml"
+    if "application/json" in request.META["CONTENT_TYPE"]:
+        return "json"
+    return "json" #FIXME should be None? fail requests with other types?
 
 class BasicJSONResponse(HttpResponse):
     """
@@ -16,7 +46,13 @@ class BasicJSONResponse(HttpResponse):
     def __init__(self, json_obj={}, message_type=None, request=None):
         self.stream = StringIO()
         if request: 
-            if request.user: json_obj["logged_in_as"] = request.user.username
+            if request.user:
+                u = request.user
+                json_obj["logged_in_as"] = {
+                    "username": u.username,
+                    "permalink": urlparse.urljoin( get_host_for_permalink( request ), \
+                        ''.join(['user/', str(u.pk), '/']) )
+                    }
         if message_type:
             json_obj["message_type"] = message_type
             json_obj["message"] = meta_messages[message_type]
@@ -46,29 +82,6 @@ class NotFound(BasicJSONResponse):
 class NotSupported(BasicJSONResponse):
     status_code = 405
 
-def auth_required(func):
-    """
-    Decorator for views where authentication required. 
-    Returns HTTP 403 Unauthorized if user is not authenticated.
-    """
-    argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
-    fname = func.func_name
-    def auth_func(*args, **kwargs):
-        user = None
-        for a in args:
-            if hasattr(a, 'user'): user = a.user
-        if not user or not user.is_authenticated():
-            return Unauthorized(message_type="not_authenticated")
-        return func(*args, **kwargs)
-    return auth_func
-
-def get_serial_type(request):
-    """ computes whether it's xml, json or other (not supported by API) """
-    if "text/xml" in request.META["CONTENT_TYPE"]:
-        return "xml"
-    if "application/json" in request.META["CONTENT_TYPE"]:
-        return "json"
-    return "json" #FIXME should be None? fail requests with other types?
 
 
 

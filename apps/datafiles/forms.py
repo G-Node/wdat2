@@ -30,7 +30,7 @@ class DatafileEditForm(forms.ModelForm):
     
     class Meta:
         model = Datafile
-        exclude = ('date_added', 'owner', 'current_state', 'raw_file')
+        exclude = ('date_added', 'owner', 'raw_file')
         
     def __init__(self, user=None, *args, **kwargs):
         self.user = user
@@ -42,7 +42,7 @@ class DeleteDatafileForm(forms.Form):
         user = kwargs.pop('user')
         super(DeleteDatafileForm, self).__init__(*args, **kwargs)
         self.fields['set_choices'] = forms.MultipleChoiceField(
-            choices=[(c.id, c.name) for c in Datafile.objects.filter(Q(current_state=10, owner=user))],
+            choices=[(c.id, c.name) for c in Datafile.objects.filter(Q(owner=user))],
             widget=widgets.CheckboxSelectMultiple)
 
 class DatafileShortEditForm(forms.ModelForm):
