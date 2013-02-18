@@ -43,6 +43,8 @@
    * @param specifier (Obj)   An object containing multiple search specifier.
    *
    * @return The requested data as a JSON string as specified by the G-Node RESTfull API.
+   *
+   * TODO handle 'OR' specifiers
    */
   NetworkResource.prototype.get = function(specifier) {
     // check for depth specifier
@@ -236,7 +238,24 @@
       url = '/' + spec.category + '/' + spec.type + '/?q=full&';
       for (var i in spec) {
         if (i !== 'type' && i !== 'category') {
-          url += this._specToComp(spec.type, i, spec[i], '='); // TODO other operators
+          var key = i;
+          var val, op;
+          if (spec[i] instanceof Array) {
+            if (spec[i].length > 1) {
+              val = spec[i][0];
+              op  = spec[i][1];
+            } else if (spec[i].length = 1) {
+              val = spec[i][0];
+              op  = '=';
+            } else {
+              val = '';
+              op  = '=';
+            }
+          } else {
+            val = spec[i];
+            op  = '=';
+          }
+          url += this._specToComp(spec.type, key, val, op); // TODO other operators
         }
       }
     }
