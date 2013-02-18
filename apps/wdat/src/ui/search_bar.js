@@ -6,7 +6,7 @@
   /**
    *
    *  Depends on: jQuery, WDAT.Bus, WDAT.Button
-   * */
+   */
   WDAT.ui.SearchBar = SearchBar;
   inherit(SearchBar, WDAT.Widget);
   function SearchBar(id, bus, search, activate) {
@@ -19,6 +19,7 @@
             type: this._id + '-type',
             compose: this._id + '-compose'
     };
+    this._presets = {};
     // initialize dom
     this._searchbar = $('<textarea rows="2" cols="30">');
     this._jq.find('.search-field').append(this._searchbar);
@@ -58,8 +59,48 @@
     var active = (this._activebox.val() == 'active') ? true : false;
     // parse params
     var str = this._searchbar.val();
-    var param = this._searchbar.val(); // TODO parse parameter list
-    return {active: active, param: param};
+    try {
+      var param = this.parse(str);
+      if (param.length == 0) {
+        param = null;
+      }
+      return {active: active, param: param};
+    } catch (e) {
+      return {active: active, param: null, error: e};
+    }
+  };
+
+  /**
+   * Parse strings to search parameter suited for the DataAPI
+   *
+   * @param str (String)    The string to parse.
+   *
+   * @returns Array of search parameters.
+   */
+  SearchBar.prototype.parse = function(str) {
+    var splitOR, splitAND, splitOp, error;
+    var result = [];
+    splitOR = str.split(/\s+[Oo][Rr]\s+|\|/);
+    for (var i in splitOR) {
+      var partResult = {};
+      splitAND = splitOR[i].split(/\s+[Aa][Nn][Dd]\s+|,|&/);
+      for (var j in splitAND) {
+        splitOp = splitAND[j].split(/([<>=:])/);
+        if (splitOp.length == 3) {
+          var key = strTrim(splitOp[0]);
+          var op  = strTrim(splitOp[1]);
+          var val = strTrim(splitOp[2]);
+          if (op == ':') op = '=';
+          partResult[key] = [val, op];
+        } else {
+          error = 'Parsing of search parameters failes at substring "' +
+                  splitAND[j] + '".';
+          throw error;
+        }
+      }
+      result.push(partResult);
+    }
+    return result;
   };
 
   SearchBar.prototype._searchButtonHandler = function() {
