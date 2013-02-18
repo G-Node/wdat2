@@ -47,71 +47,42 @@
    * TODO handle 'OR' specifiers
    */
   NetworkResource.prototype.get = function(specifier) {
-    // check for depth specifier
-    var result;
-    if (specifier.depth) {
-      // get depth and delete it from specifiers
-      var depth = parseInt(specifier.depth);
-      depth = (depth > 2) ? 2 : depth;
-      delete specifier.depth;
-      // do first request
-      var url = this._specToURL(specifier);
-      result = this.getByURL(url);
-      if (!result.error) {
-        // parse response
-        var response = JSON.parse(result.response);
-        var subrequest_error = undefined;
-        var other_responses = [];
-        var stack = [];             // stack with elements to process
-        for (var i in response.selected) {
-          stack.push({data: response.selected[i], depth: 0});
-        }
-        while(stack.length > 0 && !subrequest_error) {
-          var elem = stack.pop();
-          if (elem.depth < depth) {
-            var type = elem.data.model.split('.');
-            type = type[type.length - 1];
-            var childfields = modChildren(type);
-            var id = _stripURL(elem.data.permalink);
-            for (var i in childfields) {
-              var field = childfields[i];
-              if (field.type && elem.data.fields[i].length > 0) {
-                var tmp = this.get({type: field.type, parent: id});
-                if (!tmp.error) {
-                  var children = JSON.parse(tmp.response);
-                  other_responses.push(children);
-                  for (var j in children.selected) {
-                    if (elem.depth + 1 < depth) {
-                      stack.push({data: children.selected[j], depth: elem.depth + 1});
-                    }
-                  }
-                } else {
-                  subrequest_error = tmp.response;
-                  break;
-                }
-              }
-            }
+    var depth;
+    if (specifier instanceof Array && specifier.length > 0) {
+      var partialResults = [];
+      for (var i in specifier) {
+        if (specifier[i].hasOwnProperty('depth')) {
+          if (specifier[i].depth) {
+            depth = parseInt(specifier[i].depth);
           }
+          delete specifier[i].depth;
         }
-        // collect results
-        if (!subrequest_error) {
-          for (var i in other_responses) {
-            var resp = other_responses[i];
-            response.selected = response.selected.concat(resp.selected);
-          }
-          result.response = response;
-        } else {
-          // TODO more generous error handling??
-          result.response = subrequest_error;
-          result.error = true;
-        }
-        //console.log(JSON.stringify(response, null, 4));
       }
-    } else {
-      var url = this._specToURL(specifier);
-      result = this.getByURL(url);
+      for (var i in specifier) {
+        var part = this._getSingle(specifier[i], depth);
+        if (part.error) {
+          partialResults = [part];
+          break;
+        }
+        partialResults.push(part);
+      }
+      var result = partialResults.pop();
+      if (!result.error) {
+        for (var i in partialResults) {
+          var part = partialResults[i];
+          result.response.selected = result.response.selected.concat(part.response.selected);
+        }
+      }
+      return result;
+    } else if (typeof specifier == 'object') {
+      if (specifier.hasOwnProperty('depth')) {
+        if (specifier.depth) {
+          depth = parseInt(specifier.depth);
+        }
+        delete specifier.depth;
+      }
+      return this._getSingle(specifier, depth);
     }
-    return result;
   };
 
   /**
@@ -127,10 +98,14 @@
     this._xhr.open('GET', url, false);
     this._xhr.send();
 
-    if (this._xhr.status === 200) {
+    if (this._xhr.status == 200) {
       result.status = 200;
-      result.response = this._xhr.responseText;
-    } else if (this._xhr.status === 404) {
+      result.response = JSON.parse(this._xhr.responseText);
+    } else if (this._xhr.status == 500) {
+      result.status = this._xhr.status;
+      result.error = true;
+      result.response = "Internal server error (500)";
+    } else if (this._xhr.status == 404) {
       result.status = this._xhr.status;
       result.error = true;
       result.response = "Not found (404)";
@@ -160,12 +135,20 @@
 
     if (this._xhr.status === 200 || this._xhr.status === 201) {
       result.status = this._xhr.status;
-      result.response = this._xhr.responseText;
+      result.response = JSON.parse(this._xhr.responseText);
+    } else if (this._xhr.status == 500) {
+      result.status = this._xhr.status;
+      result.error = true;
+      result.response = "Internal server error (500)";
+    } else if (this._xhr.status == 404) {
+      result.status = this._xhr.status;
+      result.error = true;
+      result.response = "Not found (404)";
     } else {
       result.status = this._xhr.status;
       result.error = true;
       var errmsg = JSON.parse(this._xhr.responseText);
-      result.response = errmsg.details || errmsg.message || "Error while updating: (" + this._xhr.status + ")";
+      result.response = errmsg.details || errmsg.message || "Error during request: (" + this._xhr.status + ")";
     }
     return result;
   };
@@ -178,22 +161,104 @@
    * @return Response object with success or error message.
    */
   NetworkResource.prototype.delByURL = function(url) {
-    if (!strStartsWith(url, 'http://') && !strStartsWith(url, '/'))
-      url = '/' + url;
-    var result = {url: url};
+    var readyUrl = url;
+    if (!strStartsWith(url, 'http://') && !strStartsWith(url, '/')) {
+      readyUrl = '/' + url;
+    }
+    var result = {url: readyUrl};
     // Synchronous call to the data api
-    this._xhr.open('DELETE', url, false);
+    this._xhr.open('DELETE', readyUrl, false);
     this._xhr.send();
 
     if (this._xhr.status === 200) {
       result.status = 200;
       var msg = JSON.parse(this._xhr.responseText);
       result.response = msg.message;
+    } else if (this._xhr.status == 500) {
+      result.status = this._xhr.status;
+      result.error = true;
+      result.response = "Internal server error (500)";
+    } else if (this._xhr.status == 404) {
+      result.status = this._xhr.status;
+      result.error = true;
+      result.response = "Not found (404)";
     } else {
       result.status = this._xhr.status;
       result.error = true;
       var errmsg = JSON.parse(this._xhr.responseText);
-      result.response = errmsg.details || errmsg.message || "Error while deleting: (" + this._xhr.status + ")";
+      result.response = errmsg.details || errmsg.message || "Error during request: (" + this._xhr.status + ")";
+    }
+    return result;
+  };
+
+  /**
+   * Get data from the G-Node RESTfull API using one single set of search specifiers.
+   *
+   * @param specifier (Obj)   An object containing multiple search specifier.
+   * @param depth (Number)    The depth of the search to perform.
+   *
+   * @return The requested data as a JSON string as specified by the G-Node RESTfull API.
+   */
+  NetworkResource.prototype._getSingle = function(specifier, depth) {
+    var result = null;
+    if (depth) {
+      var d  = (depth > 2) ? 2 : depth;
+      // do first request
+      var url = this._specToURL(specifier);
+      result = this.getByURL(url);
+      if (!result.error) {
+        // parse response
+        var response = result.response;
+        var subrequest_error = undefined;
+        var other_responses = [];
+        var stack = [];             // stack with elements to process
+        for (var i in response.selected) {
+          stack.push({data: response.selected[i], depth: 0});
+        }
+        while(stack.length > 0 && !subrequest_error) {
+          var elem = stack.pop();
+          if (elem.depth < d) {
+            var type = elem.data.model.split('.');
+            type = type[type.length - 1];
+            var childfields = modChildren(type);
+            var id = _stripURL(elem.data.permalink);
+            for (var i in childfields) {
+              var field = childfields[i];
+              if (field.type && elem.data.fields[i].length > 0) {
+                var tmp = this.get({type: field.type, parent: id});
+                if (!tmp.error) {
+                  var children = tmp.response;
+                  other_responses.push(children);
+                  for (var j in children.selected) {
+                    if (elem.depth + 1 < d) {
+                      stack.push({data: children.selected[j], depth: elem.depth + 1});
+                    }
+                  }
+                } else {
+                  subrequest_error = tmp.response;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        // collect results
+        if (!subrequest_error) {
+          for (var i in other_responses) {
+            var resp = other_responses[i];
+            response.selected = response.selected.concat(resp.selected);
+          }
+          result.response = response;
+        } else {
+          // TODO more generous error handling??
+          result.response = subrequest_error;
+          result.error = true;
+        }
+        //console.log(JSON.stringify(response, null, 4));
+      }
+    } else {
+      var url = this._specToURL(specifier);
+      result = this.getByURL(url);
     }
     return result;
   };
