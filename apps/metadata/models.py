@@ -209,7 +209,7 @@ meta_classnames = {
 }
 
 backbone = {}
-safe = ['safety_level', 'odml_type', 'tree_position', 'is_template', 'user_custom']
+safe = ['safety_level', 'odml_type', 'is_template', 'user_custom']
 for obj_type, cls in meta_classnames.items():
     params = {}
     params[ 'attributes' ] = [field.name for field in cls._meta.local_fields if\
