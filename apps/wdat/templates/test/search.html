@@ -5,15 +5,8 @@
 {% block extra_script %}
 <script type="text/javascript">
   var init = function () {
-    var bus = new WDAT.api.EventBus() 
-      , s = new WDAT.ui.SearchBar('search-1', bus)
-      , log = function (event, args) {
-        $('.event-log').first().append('<p>Event fired: ' + args + '</p>');
-      };
-
-    $('.container').append(s.toJQ());
-
-    bus.subscribe('SearchFired', log);
+    var bus    = new WDAT.Bus(); 
+    var search = new WDAT.ui.SearchBar($('#search'), bus);
   };
 
   $(window).load(init);
@@ -22,7 +15,7 @@
 
 {% block body %}
 <h1>Search Bar Test</h1>
-<div class="container" ></div>
+<div class="container" ><div id="search"></div></div>
 <h3>Event Log</h3>
 <div class="event-log"></div>
 {% endblock %}

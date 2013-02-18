@@ -74,7 +74,7 @@ class EditPropertyForm(forms.ModelForm):
 
 
 class LinkDatasetForm(forms.Form):
-    datasets = forms.ModelMultipleChoiceField(queryset=RDataset.objects.all().filter(current_state=10))
+    datasets = forms.ModelMultipleChoiceField(queryset=RDataset.objects.all())
     
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
@@ -85,14 +85,14 @@ class LinkDatasetForm(forms.Form):
         super(LinkDatasetForm, self).__init__(*args, **kwargs)
         if section:
             for_exclude = section.rel_dataset.all().values_list("id", flat=True)
-            choices = RDataset.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+            choices = RDataset.objects.filter(owner=user).exclude(id__in=for_exclude)
         else:
-            choices = RDataset.objects.filter(owner=user, current_state=10)
+            choices = RDataset.objects.filter(owner=user)
         self.fields['datasets'].queryset = choices
 
 
 class LinkDatafileForm(forms.Form):
-    datafiles = forms.ModelMultipleChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
+    datafiles = forms.ModelMultipleChoiceField(queryset=Datafile.objects.all())
     
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
@@ -103,14 +103,14 @@ class LinkDatafileForm(forms.Form):
         super(LinkDatafileForm, self).__init__(*args, **kwargs)
         if section:
             for_exclude = section.rel_datafiles.all().values_list("id", flat=True)
-            choices = Datafile.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+            choices = Datafile.objects.filter(owner=user).exclude(id__in=for_exclude)
         else:
-            choices = Datafile.objects.filter(owner=user, current_state=10)
+            choices = Datafile.objects.filter(owner=user)
         self.fields['datafiles'].queryset = choices
 
 
 class LinkTSForm(forms.Form):
-    timeseries = forms.ModelMultipleChoiceField(queryset=TimeSeries.objects.all().filter(current_state=10))
+    timeseries = forms.ModelMultipleChoiceField(queryset=TimeSeries.objects.all())
     
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
@@ -121,18 +121,18 @@ class LinkTSForm(forms.Form):
         super(LinkTSForm, self).__init__(*args, **kwargs)
         if section:
             for_exclude = section.rel_timeseries.all().values_list("id", flat=True)
-            choices = TimeSeries.objects.filter(owner=user, current_state=10).exclude(id__in=for_exclude)
+            choices = TimeSeries.objects.filter(owner=user).exclude(id__in=for_exclude)
         else:
-            choices = TimeSeries.objects.filter(owner=user, current_state=10)
+            choices = TimeSeries.objects.filter(owner=user)
         self.fields['timeseries'].queryset = choices
 
 class importOdML(forms.Form):
-    files = forms.ModelChoiceField(queryset=Datafile.objects.all().filter(current_state=10))
+    files = forms.ModelChoiceField(queryset=Datafile.objects.all())
     
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
         super(importOdML, self).__init__(*args, **kwargs)
-        choices = Datafile.objects.filter(title__icontains=".xml", owner=user, current_state=10)
+        choices = Datafile.objects.filter(title__icontains=".xml", owner=user)
         self.fields['files'].queryset = choices
         self.fields['files'].help_text = "Please select a odML file (XML format). The file will be parsed and imported to the selected section."
 

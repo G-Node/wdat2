@@ -6,7 +6,7 @@ from django.db.models import Max
 from django.utils.translation import ugettext_lazy as _
 from django.shortcuts import get_object_or_404
 
-from state_machine.models import SafetyLevel, ObjectState
+from state_machine.models import SafetyLevel, ObjectState, VersionedForeignKey
 from metadata.serializers import SectionSerializer, PropertySerializer, ValueSerializer
 
 class Section(SafetyLevel, ObjectState):
@@ -25,9 +25,9 @@ class Section(SafetyLevel, ObjectState):
     non_cascade_rel = ("property",) # see REST JSON serializer
 
     name = models.CharField(_('name'), max_length=100)
-    description = models.TextField(_('description'), blank=True)
+    description = models.TextField(_('description'), blank=True, null=True)
     odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
-    parent_section = models.ForeignKey('self', blank=True, null=True) # link to itself to create a tree.
+    parent_section = VersionedForeignKey('self', blank=True, null=True) # link to itself to create a tree.
     # position in the list on the same level in the tree
     tree_position = models.IntegerField('tree_position', blank=True, default=0)
     # field indicates whether it is a "template" section
@@ -62,24 +62,24 @@ class Section(SafetyLevel, ObjectState):
 
     @property
     def sections(self):
-        return self.section_set.filter(current_state=10).order_by("-tree_position")
+        return self.section_set.order_by("-tree_position")
 
     def get_properties(self): # returns all active properties
-        return self.property_set.filter(current_state=10)	    
+        return self.property_set.all()
 
     def get_datafiles(self, user): # returns only accessible files
-        datafiles = self.rel_datafiles.filter(current_state=10)
+        datafiles = self.rel_datafiles.all()
         datafiles = filter(lambda x: x.is_accessible(user), datafiles)
         return datafiles
     def has_datafile(self, datafile_id):
-        if self.datafile_set.filter(current_state=10, id=datafile_id):
+        if self.datafile_set.filter( local_id=datafile_id ):
             return True
         return False
 
     def get_blocks(self, user): # NEO Blocks available in this Section
-        return self.block_set.filter(current_state=10)
+        return self.block_set.all()
     def has_block(self, block_id):
-        if self.block_set.filter(current_state=10, id=block_id):
+        if self.block_set.filter(local_id=block_id):
             return True
         return False
 
@@ -93,7 +93,7 @@ class Section(SafetyLevel, ObjectState):
         for f in self.get_datafiles():
             files_vo += f.raw_file.size
         if r: # retrieve statistics recursively
-            for section in self.section_set.all().filter(current_state=10):
+            for section in self.section_set.all():
                     s1, s2, s3, s4 = section.get_objects_count()
                     properties_no += s1
                     datafiles_no += s2
@@ -148,7 +148,7 @@ class Property(SafetyLevel, ObjectState):
     dtype = models.CharField('dtype', blank=True, max_length=10)
     uncertainty = models.CharField('uncertainty', blank=True, max_length=10)
     comment = models.TextField('comment', blank=True)
-    section = models.ForeignKey(Section)
+    section = VersionedForeignKey(Section)
 
     def __unicode__(self):
         return self.name
@@ -184,7 +184,7 @@ class Value(SafetyLevel, ObjectState):
     Class implemented metadata Value. 
     """
     #FIXME add more attributes to the value
-    parent_property = models.ForeignKey(Property) # can't use just property((
+    parent_property = VersionedForeignKey(Property) # can't use just property((
     data = models.TextField('value', blank=True)
 
     def __unicode__(self):
@@ -197,5 +197,27 @@ class Value(SafetyLevel, ObjectState):
     @property
     def default_serializer(self):
         return ValueSerializer
+
+
+# supporting functions
+#===============================================================================
+
+meta_classnames = {
+    "section": Section,
+    "property": Property,
+    "value": Value
+}
+
+backbone = {}
+safe = ['safety_level', 'odml_type', 'tree_position', 'is_template', 'user_custom']
+for obj_type, cls in meta_classnames.items():
+    params = {}
+    params[ 'attributes' ] = [field.name for field in cls._meta.local_fields if\
+        field.editable and not field.rel and not field.name in safe]
+    params[ 'required' ] = [field.name for field in cls._meta.local_fields if\
+        field.editable and not field.name in safe and not field.null]
+    params[ 'parents' ] = [field.name for field in cls._meta.local_fields if\
+        field.__class__ in [VersionedForeignKey] and not field.name in safe]
+    backbone[ obj_type ] = params
 
 

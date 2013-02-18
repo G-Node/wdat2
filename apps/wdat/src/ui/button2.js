@@ -74,6 +74,10 @@
     return this._click;
   };
 
+  Button.prototype.disable = function(disabled) {
+    this._jq.button("option", "disabled", disabled);
+  };
+
   /* Some predefined buttons */
   Button.PREDEF_BUTTONS = {
     add:        {def: {text: true, label: "Add", icons: { primary: "ui-icon-plusthick"}}},

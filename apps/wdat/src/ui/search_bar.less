@@ -1,0 +1,29 @@
+/* ------------------- file: search_bar.less ---------------------- */
+
+.wdat-search {
+  
+  display: table;
+  
+  .top-row, .bottom-row {
+    display: table-row;
+  }
+  
+  .search-field, .activate-btn {
+    display: table-cell;
+    vertical-align: middle;
+    width: 100%;
+    padding: 0 @cushioning;
+    
+    textarea { width: 100%; }
+    input { margin: 8px 4px 0px 0px;}
+  }
+  
+  .search-btn, .compose-btn {
+    display: table-cell;
+    vertical-align: top;
+    width: 90;
+    padding: 0 @cushioning;
+    
+    button { width: 82px; }
+  }
+}

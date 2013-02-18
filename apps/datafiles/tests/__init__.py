@@ -119,11 +119,11 @@ class DatafilesTest(TestCase):
 	    "action": "details_update",
         })
         self.assertEqual(response.status_code, 404)
-	# no way to delete files, as they belong to Joe  (10 - 'active' state)
-        response = self.client.get("/datafiles/delete/1/")
-        self.assertEqual(Datafile.objects.get(pk=1).current_state, 10)
-        response = self.client.get("/datafiles/delete/2/")
-        self.assertEqual(Datafile.objects.get(pk=2).current_state, 10)
+        # no way to delete files, as they belong to Joe
+        response = self.client.delete( "/datafiles/1/" )
+        self.assertTrue( Datafile.objects.get( pk=1 ).is_active() )
+        response = self.client.delete( "/datafiles/2/" )
+        self.assertTrue( Datafile.objects.get( pk=2 ).is_active() )
 
 
     def test_auth_file_details_friend(self):
@@ -169,11 +169,11 @@ class DatafilesTest(TestCase):
 	    "action": "details_update",
         })
         self.assertEqual(response.status_code, 404)
-	# no way to delete files, as they belong to Joe  (10 - 'active' state)
-        response = self.client.get("/datafiles/delete/1/")
-        self.assertEqual(Datafile.objects.get(pk=1).current_state, 10)
-        response = self.client.get("/datafiles/delete/2/")
-        self.assertEqual(Datafile.objects.get(pk=2).current_state, 10)
+        # no way to delete files, as they belong to Joe
+        response = self.client.delete( "/datafiles/1/" )
+        self.assertTrue( Datafile.objects.get( pk=1 ).is_active() )
+        response = self.client.delete( "/datafiles/2/" )
+        self.assertTrue( Datafile.objects.get( pk=2 ).is_active() )
 
 
     def test_owner_file_manage(self):
@@ -210,11 +210,11 @@ class DatafilesTest(TestCase):
         self.assertEqual(Datafile.objects.get(pk=1).shared_with.all().count(), 2)
         self.assertEqual(str(Datafile.objects.get(pk=1).shared_with.all()[0].id), "1")
         self.assertEqual(str(Datafile.objects.get(pk=1).shared_with.all()[1].id), "3")
-	# now I should be able to delete files, they are mine (20 - 'deleted' state)
-        response = self.client.get("/datafiles/delete/1/")
-        self.assertEqual(Datafile.objects.get(pk=1).current_state, 20)
-        response = self.client.get("/datafiles/delete/2/")
-        self.assertEqual(Datafile.objects.get(pk=2).current_state, 20)
+        # now I should be able to delete files, they are mine
+        response = self.client.delete( "/datafiles/1/" )
+        self.assertTrue( not Datafile.objects.get( pk=1 ).is_active() )
+        response = self.client.delete( "/datafiles/2/" )
+        self.assertTrue( not Datafile.objects.get( pk=2 ).is_active() )
 
 
 """ TODO tests for archiving:
