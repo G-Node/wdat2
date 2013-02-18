@@ -109,21 +109,11 @@ def _split_time( **kwargs ):
         timeflt['at_time'] = kwargs.pop('at_time')
     return kwargs, timeflt
 
-def _get_id_attr_name(model):
-    """ if the given model is VERSIONED, the 'local_id' should be used. If
-    this is the normal Django non-versioned model (e.g. a user), an 'id'
-    attribute name should be used as object main identifier."""
-    if 'local_id' in model._meta.get_all_field_names(): # object is versioned
-        return 'local_id'
-    else: # normal django model
-        return 'id'
-
 def _get_url_base(model):
     """ returns a base part of the URL for a model, e.g. /metadata/section/
     for Section model. TODO: find a cleaner way to do that. """
-    id_attr = _get_id_attr_name( model )
     temp = model()
-    setattr(temp, id_attr, 10**9)
+    setattr(temp, 'pk', 10**9)
     url = temp.get_absolute_url()
     # removing the trailing slash if there
     if url.rfind('/') == len(url) - 1:

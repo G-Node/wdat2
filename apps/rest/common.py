@@ -1,6 +1,8 @@
 from django.http import HttpResponse
 from django.utils import simplejson
 from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib.auth.models import AnonymousUser
+
 from state_machine.models import _get_url_base
 from meta import meta_messages
 from StringIO import StringIO
@@ -46,7 +48,7 @@ class BasicJSONResponse(HttpResponse):
     def __init__(self, json_obj={}, message_type=None, request=None):
         self.stream = StringIO()
         if request: 
-            if request.user:
+            if not isinstance(request.user, AnonymousUser):
                 u = request.user
                 json_obj["logged_in_as"] = {
                     "username": u.username,
