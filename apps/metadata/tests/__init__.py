@@ -28,29 +28,19 @@ Still remaining:
 """
 
 from django.test import TestCase
-try:
-    import json
-except ImportError:
-    import simplejson as json
+from django.utils import simplejson as json
 
-SERVER_NAME = "testserver"
+from rest.tests import TestGeneric
+from metadata.models import Section, Property, Value
 
-class TestEmpty(TestCase):
-    fixtures = ["users.json"]
+class TestBasics(TestGeneric, TestCase):
+    fixtures = ["users.json", "metadata.json"]
 
     def setUp(self):
-        logged_in = self.client.login(username="bob", password="pass")
+        logged_in = self.client.login(username="nick", password="pass")
         self.assertTrue(logged_in)
+        self.models_to_test = [Section, Property, Value]
+        self.app_prefix = "metadata"
 
-    def test_empty_returns_200(self):
-        """ if no object exists - should give back 200 """
-        urls_to_test = [
-            "/metadata/section/",
-            "/metadata/property/",
-            "/metadata/value/",
-        ]
-        for url in urls_to_test:
-            response = self.client.get("/metadata/section/")
-            self.assertEqual(response.status_code, 200)
 
 

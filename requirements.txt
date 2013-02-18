@@ -89,6 +89,8 @@ rabbitmqctl set_permissions -p myvhost myuser ".*" ".*" ".*"
 
 The configuration is trivial and can be found here:  http://django-celery.readthedocs.org/en/latest/getting-started/first-steps-with-django.html
 
+To run a dev instance: python manage.py celeryd --loglevel=info
+
 Celery should work as daemon. To configure the daemon: create /etc/init.d/celeryd and /etc/default/celeryd (examples on hal10). 
 start as /etc/init.d/celeryd start. should work. If /etc/init.d/celeryd status can't find the celeryconfig module, put the celeryconfig.py file with celery settings (HOST, PORT etc.) to the /etc/init.d/ folder or make it available to the Python (PYTHONPATH).
 

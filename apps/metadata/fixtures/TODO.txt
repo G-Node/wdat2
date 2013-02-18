@@ -1,1 +1,0 @@
-One has to write the fixtures (JSON) for odML terminologies to load them on the syncdb stage.
