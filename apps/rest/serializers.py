@@ -95,7 +95,7 @@ class Serializer(PythonSerializer):
                             if self.selected_fields is None or field.attname in\
                                 self.selected_fields:
 
-                                if self.is_data_field_django(obj, field):
+                                if self.is_data_field_django(queryset.model, field):
                                     if self.serialize_attrs:
                                         self.handle_data_field(obj, field)
 
@@ -183,14 +183,14 @@ class Serializer(PythonSerializer):
                 update_kwargs = self.deserialize_special(update_kwargs, \
                     field_name, field_value, user)
             else:
+                field = model._meta.get_field(field_name)
+
                 # Handle data/units fields
-                if self.is_data_field_json(field_name, field_value):
+                if self.is_data_field_django(model, field):
                     update_kwargs[field_name] = field_value["data"]
                     update_kwargs[field_name + "__unit"] = field_value["units"]
 
                 else:
-                    field = model._meta.get_field(field_name)
-
                     # Handle M2M relations
                     if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
                         m2m_data = []
@@ -238,13 +238,6 @@ class Serializer(PythonSerializer):
         # prefetched m2m data in _buffer
         self._current[field.name] = [ self.resolve_permalink(related) 
             for related in getattr(obj, field.name + '_buffer', []) ]
-
-    def is_data_field_json(self, attr_name, value):
-        """ determines if a given field has units and requires special proc."""
-        if type(value) == type({}) and value.has_key("data") and \
-            value.has_key("units"):
-            return True
-        return False
 
     def is_data_field_django(self, obj, field):
         """ if a field has units, stored in another field - it's a data field """
