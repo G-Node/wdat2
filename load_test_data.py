@@ -163,7 +163,7 @@ class LoadData( object ):
 
         require: BLOCKS #1, #2
         """
-        sizes = (10**2, 10**4, 10**6) # array length options
+        sizes = (10**2, 10**4, 10**6, 10**7) # array length options
         n = np.random.randint(5, 10) # number of files for every length option
 
         users = User.objects.filter( username__in = self.usernames )
