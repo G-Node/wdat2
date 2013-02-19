@@ -1,4 +1,4 @@
-// ---------- file: section_view.js ---------- //
+// ---------- file: data_view.js ---------- //
 
 (function() {
   "use strict";
@@ -7,7 +7,8 @@
   // Class: DataView
   //-------------------------------------------------------------------------------------
 
-  /* Constructor for the class DataView.
+  /**
+   * Constructor for the class DataView.
    *
    * Parameters:
    *  - id: String/Obj      Name/ID for this individual section view or a jQuery object representing
@@ -18,87 +19,250 @@
    * Depends on:
    *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
    */
-  WDAT.app.DataView = DataView;
-  inherit(DataView, WDAT.Widget);
-  function DataView(id, api, bus, selSection) {
-    DataView.parent.constructor.call(this, id);
-    this._bus = bus;
-    this._nav = new WDAT.ui.BreadCrumb(this.toID('bread-crumb'), bus);
+  WDAT.DataView = DataView;
+  function DataView(html, api, bus, selSection, searchEvent) {
+    var id = html.attr('id') || bus.uid();
+    html.addClass('wdat-data-view');
+    var navId = id + '-bread-crumb';
+    var listId = id + '-ephys-list';
+    this._jq = html;
+    // initialize bread crumb
+    this._nav = new WDAT.BreadCrumb(navId, bus);
+    this._nav.add({id: 'root', name: '>>'}, 0);
     this._jq.append(this._nav.jq());
-    this._list = new WDAT.ui.List(this.toID('list'), bus, ['']);
+    // initialize list
+    this._list = new WDAT.List(listId, bus, ['edit', 'del', 'sel']);
+    this._jq.append(this._list.jq());
+    // bus and api
+    this._bus = bus;
+    this._api = api;
+    // initial values for section and search
+    this._searchActive = false;
+    this._searchParam = null;
+    this._selectedSection = null;
+    this._actions = {
+      sel: selSection,
+      search: searchEvent,
+      update: id + '-udate'
+    };
+    // subscribe events
+    bus.subscribe(selSection, this._selectSectionHandler());
   }
 
-  DataView.TEMPLATE = '<div><div class="data-bread-crumb"></div>' +
-                      '<div class="data-list"></div></div>';
+  DataView.SPECIAL_NODES = ['own-not-annotated', 'own-all', 'shared-not-annotated',
+                            'shared-all', 'public-not-annotated', 'public-all'];
 
-  //-------------------------------------------------------------------------------------
-  // Class: DataContainer (private)
-  //-------------------------------------------------------------------------------------
-
-  /* Constructor for the class DataContainer.
-  *
-  * Parameters:
-  *  - id: String/Obj      Name/ID for this property container or a jQuery object representing
-  *                        an empty div that will be used as the container for the view.
-  *
-  *  - bus: EventBus       A bus handling events.
-  *
-  * Depends on:
-  *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
+  /**
+   * Evaluates the active search configurations and the selected section and
+   * perform one request on the DataAPI that gets all the data.
    */
-  inherit(DataContainer, WDAT.Container);
-  function DataContainer(id, bus) {
-    var act = {sel : 'property-select', del : 'property-delete', edit : 'property-edit'};
-    DataContainer.parent.constructor.call(this, id, bus, act);
-  }
+  DataView.prototype._requestData = function(requestEvent) {
+    // preinitialize search
+    var search = [{}];
+    if (this._searchActive && this._searchParam) {
+      search = this._searchParam;
+      if (typeof search == 'object')
+        search = [search];
+    }
+    // prepare search depending on sections selection
+    if (this._selectedSection) {
+      switch (this._selectedSection) {
+        case 'own-all':
+          search = _createSearchOwnAll(search, '2'); // TODO get real user from api
+          break;
+        case 'shared-all':
+          search = _createSearchSharedAll(search, '2');
+          break;
+        case 'public-all':
+          search = _createSearchPublicAll(search, '2');
+          break;
+        default:
+          if (DataView.SPECIAL_NODES.indexOf(this._selectedSection) < 0) {
+            search = _createSearchBySectionSelected(search, this._selectedSection);
+          } else {
+            search = null;
+          }
+          break;
+      }
+    } else {
+      search = _createSearchNoSelection(search);
+    }
+    // perform search
+    if (search)
+      this._api.get(requestEvent, search);
+  };
 
-  /* Refresh the content (see WDAT.Container).
+
+  DataView.prototype._selectSectionHandler = function() {
+    var that = this;
+    return function(event, data) {
+      var oldId = that._selectedSection;
+      if (data && data.id) {
+        var id = data.id;
+        if (data.type == 'section') {
+          that._selectedSection = id;
+        } else if (DataView.SPECIAL_NODES.indexOf(id) >= 0) {
+          that._selectedSection = id;
+        } else {
+          that._selectedSection = null;
+        }
+      } else {
+        that._selectedSection = null;
+      }
+      if (oldId != that._selectedSection) {
+        that._requestData(that._actions.update);
+      }
+    };
+  };
+
+  DataView.prototype._searchEventHandler = function() {
+    // TODO implement
+  };
+
+  DataView.prototype._updateDataHandler = function() {
+    // TODO implement
+  };
+
+  DataView.prototype._selectDataHandler = function() {
+    // TODO implement
+  };
+
+  DataView.prototype._editDataHandler = function() {
+    // TODO implement
+  };
+
+  DataView.prototype._deleteDataHandler = function() {
+    // TODO implement
+  };
+
+  DataView.prototype._selectNavHandler = function() {
+    // TODO implement
+  };
+
+  /**
+   * Apply search on all data.
+   *
+   * @param search (Array)    Array with search parameters.
    */
-  DataContainer.prototype.refresh = function() {
-    // create primary content
-    var html = this._jq.children('.primary').empty();
-    var val = this._data.name;
-    html.append($('<span class="head">').text(val));
-    html.append($('<span class="head-add">').text(' = '));
-    for ( var i in this._children) {
-      val = this._children[i].name;
-      html.children('.head-add').append(i == 0 ? val : ', ' + val);
-    }
-    val = objGetRecursive(this._data, 'uncertainty');
-    if (val)
-      html.children('.head-add').append('; +/- ' + val);
-    // create secondary content
-    html = this._jq.children('.secondary').empty();
-    val = '';
-    for ( var i in this._children) {
-      val += (i == 0 ? this._children[i].name : ', ' + this._children[i].name);
-    }
-    html.append($('<dt>').text('Values:')).append($('<dd>').text(val || 'n.a.'));
-    val = objGetRecursive(this._data, 'unit');
-    html.append($('<dt>').text('Unit:')).append($('<dd>').text(val || 'n.a.'));
-    val = objGetRecursive(this._data, 'uncertainty');
-    html.append($('<dt>').text('Uncertainty:')).append($('<dd>').text(val || 'n.a.'));
-    val = objGetRecursive(this._data, 'data_type');
-    html.append($('<dt>').text('Data Type:')).append($('<dd>').text(val || 'n.a.'));
-    val = objGetRecursive(this._data, 'definition');
-    html.append($('<dt>').text('Definition:')).append($('<dd>').text(val || 'n.a.'));
-    val = objGetRecursive(this._data, 'date_created');
-    html.append($('<dt>').text('Date Created:')).append($('<dd>').text(val || 'n.a.'));
-    // create buttons
-    html = this._jq.children('.buttons').empty();
-    var btn;
-
-    btn = new WDAT.Button(null, 'more', this._bus, this._expandHandler());
-    html.append(btn.jq());
-
-    for ( var i in WDAT.Container.ACTIONS) {
-      var act = WDAT.Container.ACTIONS[i];
-      if (this._actions.hasOwnProperty(act)) {
-        var click = this._actions[act];
-        btn = new WDAT.Button(null, act + '_small', this._bus, click, this._data);
-        html.append(btn.jq());
+  function _createSearchNoSelection(search) {
+    // all ephys type names
+    var types = modEphyTypes();
+    // prepare search
+    var searchCreated = [];
+    for (var i in search) {
+      var partSearch = search[i];
+      if (partSearch.type) {
+        searchCreated.push(partSearch);
+      } else {
+        for (var j in types) {
+          var cpySearch = {};
+          jQuery.extend(true, cpySearch, partSearch);
+          cpySearch.type = types[j];
+          searchCreated.push(cpySearch);
+        }
       }
     }
-  };
+    return searchCreated;
+  }
+
+  /**
+   * Apply search on all public data.
+   *
+   * @param search (Array)    Array with search parameters.
+   */
+  function _createSearchPublicAll(search, user) {
+    // all ephys types
+    var types = modEphyTypes();
+    // prepare search
+    var searchCreated = [];
+    for (var i in search) {
+      var partSearch = search[i];
+      partSearch.safety_level = 'public';
+      partSearch.owner = [user, '!='];
+      if (partSearch.type) {
+        searchCreated.push(partSearch);
+      } else {
+        for (var j in types) {
+          var cpySearch = {};
+          jQuery.extend(true, cpySearch, partSearch);
+          cpySearch.type = types[j];
+          searchCreated.push(cpySearch);
+        }
+      }
+    }
+    return searchCreated;
+  }
+
+  /**
+   * Apply search on all shared data.
+   *
+   * @param search (Array)    Array with search parameters.
+   */
+  function _createSearchSharedAll(search, user) {
+    // all ephys types
+    var types = modEphyTypes();
+    // prepare search
+    var searchCreated = [];
+    for (var i in search) {
+      var partSearch = search[i];
+      partSearch.safety_level = 'friendly';
+      partSearch.owner = [user, '!='];
+      if (partSearch.type) {
+        searchCreated.push(partSearch);
+      } else {
+        for (var j in types) {
+          var cpySearch = {};
+          jQuery.extend(true, cpySearch, partSearch);
+          cpySearch.type = types[j];
+          searchCreated.push(cpySearch);
+        }
+      }
+    }
+    return searchCreated;
+  }
+
+  /**
+   * Apply search on all own data.
+   *
+   * @param search (Array)    Array with search parameters.
+   */
+  function _createSearchOwnAll(search, user) {
+    // all ephys types
+    var types = modEphyTypes();
+    // prepare search
+    var searchCreated = [];
+    for (var i in search) {
+      var partSearch = search[i];
+      partSearch.owner = user;
+      if (partSearch.type) {
+        searchCreated.push(partSearch);
+      } else {
+        for (var j in types) {
+          var cpySearch = {};
+          jQuery.extend(true, cpySearch, partSearch);
+          cpySearch.type = types[j];
+          searchCreated.push(cpySearch);
+        }
+      }
+    }
+    return searchCreated;
+  }
+
+  /**
+   * Apply search on all public data.
+   *
+   * @param search (Array)    Array with search parameters.
+   */
+  function _createSearchBySectionSelected(search, section) {
+    // prepare search
+    var searchCreated = [];
+    for (var i in search) {
+      var partSearch = search[i];
+      partSearch.parent = section;
+      partSearch.type = 'block';
+      searchCreated.push(partSearch);
+    }
+    return searchCreated;
+  }
 
 }());

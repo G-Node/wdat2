@@ -250,7 +250,9 @@ WDAT.model.data.container = {
       segment_set: {type: 'segment'},
       recordingchannelgroup_set: {type: 'recordingchannelgroup'},
     },
-    parents : {}
+    parents : {
+      section: {type: 'section'}
+    }
   },
   segment : {
     fields : {
@@ -338,12 +340,11 @@ WDAT.model.data.container = {
       file_origin: {type: 'text'}
     },
     children : {
-      spiketrain: {type: 'spiketrain'},
+      spiketrain_set: {type: 'spiketrain'},
       spike_set: {type: 'spike'},
+      recordingchannel: {type: 'recordingchannel'} // TODO here can be updates
     },
-    parents : {
-      recordingchannel: {type: 'recordingchannel'}
-    }
+    parents : {}
   },
   recordingchannel : {
     fields : {
@@ -678,5 +679,18 @@ function modCreate(type) {
     }
     return obj;
   }
+}
+
+function modEphyTypes() {
+  var types = [];
+  for (var i in WDAT.model.data.container) {
+    if (WDAT.model.data.container.hasOwnProperty(i))
+      types.push(i);
+  }
+  for (var i in WDAT.model.data.plotable) {
+    if (WDAT.model.data.plotable.hasOwnProperty(i))
+      types.push(i);
+  }
+  return types;
 }
 

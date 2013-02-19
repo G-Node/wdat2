@@ -60,11 +60,12 @@
       }
       for (var i in specifier) {
         var part = this._getSingle(specifier[i], depth);
-        if (part.error) {
+        if (part.error && part.status != 404) {
           partialResults = [part];
           break;
+        } else if (!part.error) {
+          partialResults.push(part);
         }
-        partialResults.push(part);
       }
       var result = partialResults.pop();
       if (!result.error) {
@@ -344,6 +345,7 @@
   NetworkResource.prototype._specToComp = function(type, key, value, operator) {
     var result = '';
     var template = modTemplate(type);
+    var fields = modFields(type);
     // local function that converts an operator to its equivalent in the URL
     var opToString = function(op) {
       switch (op) {
@@ -352,6 +354,11 @@
         case '<':
           return '__le=';
         default:
+          if (fields[key]  && fields[key].type) {
+            var ftype = fields[key].type;
+            if (ftype == 'int' || ftype == 'num')
+              return '__exact=';
+          }
           return '__icontains=';
       }
     };
@@ -361,7 +368,7 @@
         break;
       case 'type':      // ignore key type
         break;
-      case 'parent':  // search for objects with specific parent
+      case 'parent':    // search for objects with specific parent
         var split = value.toString().split('/');
         // remove empty strings from split
         var tmp = [];
@@ -390,14 +397,41 @@
           }
         }
         break;
+      case 'safety_level': // search for safety level
+        var slevel = parseInt(value);
+        if (!slevel > 0) {
+          switch (value) {
+            case 'public':
+              slevel = 1;
+              break;
+            case 'friendly':
+              slevel = 2;
+              break;
+            default:
+              slevel = 3;
+              break;
+          }
+        }
+        result = encodeURIComponent(key) + '__exact=' + encodeURIComponent(slevel) + '&';
+        break;
+      case 'owner':        // search for owner
+        if (value != null && value != undefined && value !== "") {
+          var v = value.toString().split('/').pop();
+          result = encodeURIComponent(key) + '__exact=' + encodeURIComponent(v) + '&';
+        } else {
+          result = encodeURIComponent(key) + '__isnull=1&';
+        }
+        break;
       default:
         var op = opToString(operator);
-        if (value && value != "")
+        if (value != null && value != undefined && value !== "")
           result = encodeURIComponent(key) + op + encodeURIComponent(value) + '&';
         else
           result = encodeURIComponent(key) + '__isnull=1&';
         break;
     }
+    if (operator == '!=')
+      result = 'n__' + result;
     return result;
   };
 

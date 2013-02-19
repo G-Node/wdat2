@@ -227,6 +227,17 @@
     return selected;
   };
 
+  /**
+   * Clear the container and refresh its content.
+   */
+  List.prototype.clear = function() {
+    delete this._data;
+    delete this._categories;
+    this._data = {};
+    this._categories = {};
+    this.refresh();
+  };
+
 
   /**
    * Refresh or create the whole content of the container.
@@ -249,13 +260,6 @@
       // append everything
       this._jq.append(html);
     }
-//    html = $('<ul><lh class="category"></lh></ul>');
-//    html.attr('id', this.toID('default'));
-//    if (this._actions.add) {
-//      var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {name : 'Default', id : 'default'});
-//      html.find('.category').append(b.jq());
-//    }
-//    this._jq.append(html);
     // add elements to list
     for (var i in this._data) {
       var elem = this._data[i].data;
