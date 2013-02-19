@@ -98,7 +98,7 @@ class DataObject(models.Model):
     """ implements methods and attributes for objects containing array data """
 
     # related data in bytes
-    data_size = models.IntegerField('data_size', blank=True, null=True)
+    data_size = models.IntegerField(blank=True, null=True)
     data_length = models.IntegerField(blank=True, null=True)
 
     class Meta:
@@ -115,10 +115,10 @@ class DataObject(models.Model):
     def update_size(self):
         """ retrieves data from file, updates size. hits the Database (1-2) """
         s = 0
-        for attrname in ['signal', 'times', 'waveform']:
-            if hasattr(self, attrname):
-                df = getattr(self, attrname)
-                self.data_length = len( df.get_slice() )
+        for attrname in backbone[self.obj_type]['array_fields']:
+            df = getattr(self, attrname)
+            if df:
+                #self.data_length = len( df.get_slice() )
                 s += df.size
         self.data_size = s
 
@@ -137,9 +137,9 @@ class Block(BaseInfo):
     NEO Block @ G-Node.
     """
     # NEO attributes
-    name = models.CharField('name', max_length=name_max_length)
-    filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
-    index = models.IntegerField('index', null=True, blank=True)
+    name = models.CharField(max_length=name_max_length)
+    filedatetime = models.DateTimeField(null=True, blank=True)
+    index = models.IntegerField(null=True, blank=True)
     section = VersionedForeignKey(Section, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='block_metadata', \
         blank=True, null=True)
@@ -158,9 +158,9 @@ class Segment(BaseInfo):
     NEO Segment @ G-Node.
     """
     # NEO attributes
-    name = models.CharField('name', max_length=name_max_length)
-    filedatetime = models.DateTimeField('filedatetime', null=True, blank=True)
-    index = models.IntegerField('index', null=True, blank=True)
+    name = models.CharField(max_length=name_max_length)
+    filedatetime = models.DateTimeField(null=True, blank=True)
+    index = models.IntegerField(null=True, blank=True)
     # NEO relationships
     block = VersionedForeignKey(Block, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='segment_metadata', \
@@ -172,11 +172,14 @@ class Segment(BaseInfo):
             "_set").all()]).sum() for child in meta_children["segment"]]).sum())
 
 # 3 (of 15)
-class EventArray(BaseInfo):
+class EventArray(BaseInfo, DataObject):
     """
     NEO EventArray @ G-Node.
     """
-    # no NEO attributes
+    # NEO data arrays
+    labels = VersionedForeignKey( Datafile, blank=True, null=True, related_name='event_labels' )
+    times = VersionedForeignKey(Datafile, related_name='event_times', verbose_name='event_times')
+    times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='eventarray_metadata', \
@@ -193,24 +196,21 @@ class Event(BaseInfo):
     time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
-    eventarray = VersionedForeignKey(EventArray, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='event_metadata', \
         blank=True, null=True)
 
-    @property
-    def is_alone(self):
-        """
-        Indicates whether to show an object alone, even if it is organized in
-        an EventArray.
-        """
-        return (self.eventarray.count() == 0)
 
 # 5 (of 15)
-class EpochArray(BaseInfo):
+class EpochArray(BaseInfo, DataObject):
     """
     NEO EpochArray @ G-Node.
     """
-    # no NEO attributes
+    # NEO data arrays
+    labels = VersionedForeignKey( Datafile, blank=True, null=True, related_name='epoch_labels' )
+    times = VersionedForeignKey(Datafile, related_name='epoch_times', verbose_name='epoch_times')
+    times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
+    durations = VersionedForeignKey(Datafile, related_name='epoch_durations', verbose_name='epoch_durations')
+    durations__unit = fmodels.TimeUnitField('durations__unit', default=def_data_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='epocharray_metadata', \
@@ -229,17 +229,8 @@ class Epoch(BaseInfo):
     duration__unit = fmodels.TimeUnitField('duration__unit', default=def_time_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
-    epocharray = VersionedForeignKey(EpochArray, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='epoch_metadata', \
         blank=True, null=True)
-
-    @property
-    def is_alone(self):
-        """
-        Indicates whether to show an object alone, even if it is organized in
-        an EpochArray.
-        """
-        return (self.epocharray.count() == 0)
 
 # 7 (of 15)
 class RecordingChannelGroup(BaseInfo):
@@ -295,6 +286,8 @@ class SpikeTrain(BaseInfo, DataObject):
     # NEO data arrays
     times = VersionedForeignKey( Datafile, related_name='spiketrains' )
     times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
+    waveforms = VersionedForeignKey( Datafile, blank=True, null=True, related_name='waveforms' )
+    waveforms__unit = fmodels.TimeUnitField('waveforms__unit', blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='spiketrain_metadata', \
         blank=True, null=True)
 
@@ -356,28 +349,25 @@ class SpikeTrain(BaseInfo, DataObject):
     """
 
 # 11 (of 15)
-class AnalogSignalArray(BaseInfo):
+class AnalogSignalArray(BaseInfo, DataObject):
     """
     NEO AnalogSignalArray @ G-Node.
     """
+    # NEO attributes
+    name = models.CharField(max_length=name_max_length)
+    sampling_rate = models.FloatField('sampling_rate')
+    sampling_rate__unit = fmodels.SamplingUnitField('sampling_rate__unit', default=def_samp_unit)
+    t_start = models.FloatField('matrix_t_start')
+    t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
     recordingchannelgroup = VersionedForeignKey(RecordingChannelGroup, blank=True, null=True)
+    # NEO data arrays
+    signal = VersionedForeignKey( Datafile, verbose_name='signal_matrix', related_name='signal_matrix' )
+    signal__unit = fmodels.SignalUnitField('signals__unit', default=def_data_unit)
+    segment = VersionedForeignKey(Segment, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='analogsignalarray_metadata', \
         blank=True, null=True)
-
-    # NEO attributes
-    @property
-    def sampling_rate(self):
-        pass
-
-    @property
-    def s_start(self):
-        pass
-
-    @property
-    def size(self): # FIXME select only current revision and state = 10
-        return int(np.array([w.size for w in self.analogsignal_set.all()]).sum())
 
 
 # 12 (of 15)
@@ -394,7 +384,6 @@ class AnalogSignal(BaseInfo, DataObject):
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
     recordingchannel = VersionedForeignKey(RecordingChannel, blank=True, null=True)
-    analogsignalarray = VersionedForeignKey(AnalogSignalArray, blank=True, null=True)
     # NEO data arrays
     signal = VersionedForeignKey( Datafile, related_name='analogsignals' )
     signal__unit = fmodels.SignalUnitField('signal__unit', default=def_data_unit)
@@ -453,14 +442,6 @@ class AnalogSignal(BaseInfo, DataObject):
 
         #return signal, s_index, e_index + 1, downsample, t_start, new_rate
         return s_index, e_index + 1, downsample, t_start, new_rate
-
-    @property
-    def is_alone(self):
-        """
-        Indicates whether to show an object alone, even if it is organized in
-        an AnalogSignalArray. 
-        """
-        return (self.analogsignalarray.count() == 0)
 
 
 # 13 (of 15)
@@ -544,71 +525,25 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
         super(IrSaAnalogSignal, self).full_clean(*args, **kwargs)
 
 # 14 (of 15)
-class Spike(BaseInfo):
+class Spike(BaseInfo, DataObject):
     """
     NEO Spike @ G-Node.
     """
     # NEO attributes
-    time = models.FloatField('t_start')
+    time = models.FloatField()
     time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
-    sampling_rate = models.FloatField('sampling_rate')
-    sampling_rate__unit = fmodels.SamplingUnitField('sampling_rate__unit', default=def_samp_unit)
-    left_sweep = models.FloatField('left_sweep', default=0.0)
-    left_sweep__unit = fmodels.TimeUnitField('left_sweep__unit', default=def_time_unit)
+    sampling_rate = models.FloatField('sampling_rate', blank=True, null=True)
+    sampling_rate__unit = fmodels.SamplingUnitField('sampling_rate__unit', blank=True, null=True)
+    left_sweep = models.FloatField('left_sweep', blank=True, null=True)
+    left_sweep__unit = fmodels.TimeUnitField('left_sweep__unit', blank=True, null=True)
+    # NEO data arrays
+    waveform = VersionedForeignKey( Datafile, verbose_name='signal_matrix', related_name='waveform' )
+    waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
     unit = VersionedForeignKey(Unit, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='spike_metadata', \
         blank=True, null=True)
-
-    @property
-    def size(self): # FIXME select only current revision and state = 10
-        return int(np.array([w.size for w in self.waveform_set.all()]).sum())
-
-# 15 (of 15)
-class WaveForm(BaseInfo, DataObject):
-    """
-    Supporting class for Spikes and SpikeTrains.
-    """
-    channel_index = models.IntegerField('channel_index', null=True, blank=True)
-    time_of_spike = models.FloatField('time_of_spike', default=0.0) # default used when WF is related to a Spike
-    time_of_spike__unit = fmodels.TimeUnitField('time_of_spike__unit', default=def_data_unit)
-    waveform = VersionedForeignKey( Datafile, related_name='waveforms' )
-    waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
-    spiketrain = VersionedForeignKey(SpikeTrain, blank=True, null=True)
-    spike = VersionedForeignKey(Spike, blank=True, null=True)
-    metadata = models.ManyToManyField(Value, through='waveform_metadata', \
-        blank=True, null=True)
-
-    def get_slice(self, **kwargs):
-        """ only start_index, end_index are supported. hits the Database """
-        start_index = kwargs.get('start_index', 0)
-        end_index = kwargs.get('end_index', 10**9)
-
-        return self.waveform, start_index, end_index
-
-    """ # DEPRECATED way for handling data attribute
-    @apply
-    def waveform():
-        def fget(self, **kwargs):
-            # try to cache signal - could be a trick with new slices..
-            if not hasattr(self, '_waveform'):
-
-                start_index = kwargs.get('start_index', 0)
-                end_index = kwargs.get('end_index', 10**9)
-
-                a = ArrayInHDF5.objects.get( id = self.waveform_data )
-                self._waveform = a.get_slice( start_index, end_index )
-
-            return self._waveform
-
-        def fset(self, ref):
-            self.waveform_data = ref
-            self._waveform = self.waveform # update the waveform
-        def fdel(self):
-            pass
-        return property(**locals())
-    """
 
 
 # supporting functions
@@ -628,14 +563,17 @@ meta_classnames = {
     "irsaanalogsignal": IrSaAnalogSignal,
     "spike": Spike,
     "recordingchannelgroup": RecordingChannelGroup,
-    "recordingchannel": RecordingChannel,
-    "waveform": WaveForm}
+    "recordingchannel": RecordingChannel
+}
 
 
 backbone = {}
 safe = ['safety_level', 'data_size', 'data_length', 'file_origin']
 for obj_type, cls in meta_classnames.items():
     params = {}
+    params[ 'array_fields' ] = [field.name for field in cls._meta.local_fields if\
+        field.__class__ in [VersionedForeignKey] and field.rel.to == Datafile\
+            and not field.name in safe]
     params[ 'data_fields' ] = [field.name for field in cls._meta.local_fields if\
         field.name + "__unit" in [f.name for f in cls._meta.local_fields]]
     params[ 'attributes' ] = [field.name for field in cls._meta.local_fields if\

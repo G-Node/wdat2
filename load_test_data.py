@@ -163,8 +163,7 @@ class LoadData( object ):
 
         require: BLOCKS #1, #2
         """
-        sizes = (10**2, 10**4, 10**6, 10**7) # array length options
-        n = np.random.randint(5, 10) # number of files for every length option
+        sizes = (10**2, 10**4, 10**6) # array length options
 
         users = User.objects.filter( username__in = self.usernames )
         assert len(users) > 0 , "There are no users loaded, run BLOCK 1 first"
@@ -174,7 +173,7 @@ class LoadData( object ):
                 sections are required for the user %s to create files." % user.username
 
             for size in sizes:
-                for i in range( n ):
+                for i in range( np.random.randint(2, 5) ):
                     params = {}
                     rel_path = "test_data/%s/%d/" % (user.username, size)
                     filename = "array%d.h5" % i
@@ -222,15 +221,15 @@ class LoadData( object ):
             ("recordingchannelgroup", lambda: np.random.randint(1, 4)),
             ("recordingchannel", lambda: np.random.randint(1, 12)),
             ("unit", lambda: np.random.randint(1, 10)),
-            ("spike", lambda: np.random.randint(1, 200)),
+            ("spike", lambda: np.random.randint(1, 20)),
             ("eventarray", lambda: np.random.randint(1, 12)),
             ("event", lambda: np.random.randint(1, 50)),
             ("epocharray", lambda: np.random.randint(1, 8)),
             ("epoch", lambda: np.random.randint(1, 20)),
-            ("spiketrain", lambda: np.random.randint(1, 500)),
+            ("spiketrain", lambda: np.random.randint(1, 50)),
             ("analogsignalarray", lambda: np.random.randint(1, 10)),
-            ("analogsignal", lambda: np.random.randint(1, 500)),
-            ("irsaanalogsignal", lambda: np.random.randint(1, 500))
+            ("analogsignal", lambda: np.random.randint(1, 50)),
+            ("irsaanalogsignal", lambda: np.random.randint(1, 50))
         )
 
         users = User.objects.filter( username__in = self.usernames )
@@ -297,10 +296,6 @@ class LoadData( object ):
 
                 # randomly select some NEO class
                 choices = neo_classnames.keys()
-                try:
-                    choices.remove('waveform')
-                except ValueError:
-                    pass
                 obj_type = random.choice( choices )
                 cls = neo_classnames[ obj_type ]
                 assert cls.objects.filter( owner=user ).count() > 0, "Some \
