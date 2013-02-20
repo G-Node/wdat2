@@ -95,6 +95,19 @@ class BaseInfo(SafetyLevel, ObjectState):
         """
         return 0 
 
+    def acl_update(self, safety_level=None, users=None, cascade=False):
+        """ override acl_update algorithm so that the data(files) connected to 
+        an object are also updated (shared). """
+
+        # making acl_update for all connected array-datafiles
+        for field_name in backbone[self.obj_type]['array_fields']:
+            df = getattr(self, field_name, None)
+            if df:
+                df.acl_update(safety_level, users, cascade=False)
+
+        # proceed updating self
+        super(BaseInfo, self).acl_update(safety_level, users, cascade)
+
 
 class DataObject(models.Model):
     """ implements methods and attributes for objects containing array data """
