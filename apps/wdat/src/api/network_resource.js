@@ -63,15 +63,17 @@
         if (part.error && part.status != 404) {
           partialResults = [part];
           break;
-        } else if (!part.error) {
-          partialResults.push(part);
         }
+        partialResults.push(part);
       }
       var result = partialResults.pop();
       if (!result.error) {
+        if (!result.response.selected)
+          result.response.selected = [];
         for (var i in partialResults) {
           var part = partialResults[i];
-          result.response.selected = result.response.selected.concat(part.response.selected);
+          if (!part.error && part.response.selected)
+            result.response.selected = result.response.selected.concat(part.response.selected);
         }
       }
       return result;
@@ -387,7 +389,9 @@
               break;
             }
           }
-          result = encodeURIComponent(parent_name) + '=' + encodeURIComponent(parent_id) + '&';
+          if (parent_name) {
+            result = encodeURIComponent(parent_name) + '=' + encodeURIComponent(parent_id) + '&';
+          }
         } else {
           result = '';
           if (!value || vlaue == "") {
@@ -430,6 +434,8 @@
           result = encodeURIComponent(key) + '__isnull=1&';
         break;
     }
+    if (!result || result == '')
+      throw "Search specifier parse error: type=" + type + ", key=" + key + ", val=" + val;
     if (operator == '!=')
       result = 'n__' + result;
     return result;

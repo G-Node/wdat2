@@ -43,10 +43,15 @@
     this._actions = {
       sel: selSection,
       search: searchEvent,
-      update: id + '-udate'
+      update_all: id + '-udate-all',
+      update_single: id + '-update-single'
     };
     // subscribe events
     bus.subscribe(selSection, this._selectSectionHandler());
+    bus.subscribe(searchEvent, this._searchEventHandler());
+    bus.subscribe(this._actions.update_all, this._updateAllHandler());
+    bus.subscribe(this._actions.update_single, this._updateSingleHandler());
+    bus.subscribe(this._list.event('sel'), this._selectDataHandler());
   }
 
   DataView.SPECIAL_NODES = ['own-not-annotated', 'own-all', 'shared-not-annotated',
@@ -96,7 +101,6 @@
   DataView.prototype._selectSectionHandler = function() {
     var that = this;
     return function(event, data) {
-      var oldId = that._selectedSection;
       if (data && data.id) {
         var id = data.id;
         if (data.type == 'section') {
@@ -109,26 +113,72 @@
       } else {
         that._selectedSection = null;
       }
-      if (oldId != that._selectedSection) {
-        that._requestData(that._actions.update);
-      }
+      // TODO restrict condition for performance reasons
+      that._requestData(that._actions.update_all);
     };
   };
 
   DataView.prototype._searchEventHandler = function() {
-    // TODO implement
+    var that = this;
+    return function(event, data) {
+      if (data) {
+        if (data.param) {
+          that._searchParam = data.param;
+        } else {
+          that._searchParam = null;
+        }
+        if (data.active) {
+          that._searchActive = true;
+        } else {
+          that._searchActive = false;
+        }
+      } else {
+        that._searchParam = null;
+        that._searchActive = false;
+      }
+      // TODO restrict condition for performance reasons
+      that._requestData(that._actions.update_all);
+    };
   };
 
-  DataView.prototype._updateDataHandler = function() {
-    // TODO implement
+  DataView.prototype._updateAllHandler = function() {
+    var that = this;
+    return function(event, data) {
+      if (data.response) {
+        that._list.clear();
+        for (var i in data.response) {
+          that._list.add(data.response[i], data.response[i].type);
+        }
+      }
+    };
+  };
+
+  DataView.prototype._updateSingleHandler = function() {
+    var that = this;
+    return function(event, data) {
+      return that;
+    };
   };
 
   DataView.prototype._selectDataHandler = function() {
-    // TODO implement
-  };
-
-  DataView.prototype._editDataHandler = function() {
-    // TODO implement
+    var that = this;
+    return function(event, data) {
+      if (data) {
+        // preinitialize search
+        var search = [{}];
+        if (this._searchActive && this._searchParam) {
+          search = this._searchParam;
+          if (typeof search == 'object')
+            search = [search];
+        }
+        // create search
+        search = _createSearchByDataSelected(search, data);
+        if (search) {
+          that._api.get(that._actions.update_all, search);
+          that._nav.add(data);
+        }
+      }
+    };
   };
 
   DataView.prototype._deleteDataHandler = function() {
@@ -136,6 +186,10 @@
   };
 
   DataView.prototype._selectNavHandler = function() {
+    // TODO implement
+  };
+
+  DataView.prototype._editDataHandler = function() {
     // TODO implement
   };
 
@@ -151,6 +205,8 @@
     var searchCreated = [];
     for (var i in search) {
       var partSearch = search[i];
+      if (!partSearch.hasOwnProperty('parent'))
+        partSearch.parent = "";
       if (partSearch.type) {
         searchCreated.push(partSearch);
       } else {
@@ -177,6 +233,8 @@
     var searchCreated = [];
     for (var i in search) {
       var partSearch = search[i];
+      if (!partSearch.hasOwnProperty('parent'))
+        partSearch.parent = "";
       partSearch.safety_level = 'public';
       partSearch.owner = [user, '!='];
       if (partSearch.type) {
@@ -205,6 +263,8 @@
     var searchCreated = [];
     for (var i in search) {
       var partSearch = search[i];
+      if (!partSearch.hasOwnProperty('parent'))
+        partSearch.parent = "";
       partSearch.safety_level = 'friendly';
       partSearch.owner = [user, '!='];
       if (partSearch.type) {
@@ -233,6 +293,8 @@
     var searchCreated = [];
     for (var i in search) {
       var partSearch = search[i];
+      if (!partSearch.hasOwnProperty('parent'))
+        partSearch.parent = "";
       partSearch.owner = user;
       if (partSearch.type) {
         searchCreated.push(partSearch);
@@ -263,6 +325,33 @@
       searchCreated.push(partSearch);
     }
     return searchCreated;
+  }
+
+  function _createSearchByDataSelected(search, data) {
+    // parent data
+    var parentId = data.id;
+    var parentChildTypes = modChildren(data.type);
+    // create search
+    var searchCreated = [];
+    for (var i in search) {
+      var partSearch = search[i];
+      partSearch.parent = parentId;
+      if (partSearch.type) {
+        searchCreated.push(partSearch);
+      } else {
+        for (var j in parentChildTypes) {
+          if (data.children[j] && data.children[j].length > 0) {
+            var cpySearch = {};
+            jQuery.extend(true, cpySearch, partSearch);
+            cpySearch.type = parentChildTypes[j].type;
+            searchCreated.push(cpySearch);
+          }
+        }
+      }
+    }
+    if (searchCreated.length > 0) {
+      return searchCreated;
+    }
   }
 
 }());

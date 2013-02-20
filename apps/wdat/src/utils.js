@@ -470,7 +470,7 @@ WDAT.model.data.plotable = {
       recordingchannel: {type: 'recordingchannel'}
     }
   },
-  irsaanalogsigal : {
+  irsaanalogsignal : {
     fields: {
       name: {type: 'text', obligatory: true, min: 3, max: 100},
       description: {type: 'ltext'},

@@ -67,4 +67,7 @@ WDAT.worker_routine = function(msg) {
 };
 
 // Attach worker routine to message events and notify the main thread
-onmessage = function(msg) { postMessage(WDAT.worker_routine(msg)); };
+onmessage = function(msg) {
+    var result = WDAT.worker_routine(msg);
+    postMessage(result);
+};

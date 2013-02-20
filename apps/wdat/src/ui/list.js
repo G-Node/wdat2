@@ -81,7 +81,11 @@
           html.find('.category-name').before(b.jq());
         }
         // append everything
-        this._jq.find('#' + this.toID('default')).before(html);
+        var position = this._jq.find('#' + this.toID('default'));
+        if (position.length > 0)
+          position.before(html);
+        else
+          this._jq.append(html);
         cat = html;
       }
       // append container to the right category
