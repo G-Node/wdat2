@@ -106,7 +106,7 @@
    * @return True if the element is in the bread crumb bar, false otherwise.
    */
   BreadCrumb.prototype.has = function(data) {
-    return (data && this._navi.children('#' + this._toId(data)).length > 0);
+    return (data && this._jq.children('#' + this.toID(data)).length > 0);
   };
 
   /**

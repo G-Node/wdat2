@@ -52,6 +52,7 @@
     bus.subscribe(this._actions.update_all, this._updateAllHandler());
     bus.subscribe(this._actions.update_single, this._updateSingleHandler());
     bus.subscribe(this._list.event('sel'), this._selectDataHandler());
+    bus.subscribe(this._nav.action, this._selectDataHandler());
   }
 
   DataView.SPECIAL_NODES = ['own-not-annotated', 'own-all', 'shared-not-annotated',
@@ -164,18 +165,24 @@
     var that = this;
     return function(event, data) {
       if (data) {
-        // preinitialize search
-        var search = [{}];
-        if (this._searchActive && this._searchParam) {
-          search = this._searchParam;
-          if (typeof search == 'object')
-            search = [search];
-        }
-        // create search
-        search = _createSearchByDataSelected(search, data);
-        if (search) {
-          that._api.get(that._actions.update_all, search);
-          that._nav.add(data);
+        if (data.id == 'root') {
+          that._requestData(that._actions.update_all);
+        } else {
+          // preinitialize search
+          var search = [{}];
+          if (that._searchActive && that._searchParam) {
+            search = that._searchParam;
+            if (typeof search == 'object')
+              search = [search];
+          }
+          // create search
+          search = _createSearchByDataSelected(search, data);
+          if (search) {
+            that._api.get(that._actions.update_all, search);
+            var selected = that._nav.selected();
+            if (selected.id != data.id)
+              that._nav.add(data);
+          }
         }
       }
     };
@@ -185,9 +192,7 @@
     // TODO implement
   };
 
-  DataView.prototype._selectNavHandler = function() {
-    // TODO implement
-  };
+
 
   DataView.prototype._editDataHandler = function() {
     // TODO implement

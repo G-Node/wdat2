@@ -434,8 +434,6 @@
           result = encodeURIComponent(key) + '__isnull=1&';
         break;
     }
-    if (!result || result == '')
-      throw "Search specifier parse error: type=" + type + ", key=" + key + ", val=" + val;
     if (operator == '!=')
       result = 'n__' + result;
     return result;
