@@ -65,8 +65,8 @@ class Datafile(SafetyLevel, ObjectState):
         (4, _('odml')),
         (5, _('hdf5_array')),
     )
-    name = models.CharField( 'name', blank=True, max_length=200 )
-    caption = models.TextField( 'description', blank=True)
+    name = models.CharField( 'name', max_length=200 )
+    caption = models.TextField( 'description', blank=True, null=True )
     section = VersionedForeignKey(Section, blank=True, null=True)
     raw_file = models.FileField( 'raw_file', storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField( 'tags' )
@@ -75,7 +75,7 @@ class Datafile(SafetyLevel, ObjectState):
     # indicate whether the file is convertible using NEO / Neuroshare
     file_type = models.IntegerField( 'file_type', choices=FORMAT_MAP, default=0, editable=False )
     # store ID of the last Task Broker task
-    last_task_id = models.CharField( 'last_task_id', blank=True, max_length=255, editable=False )
+    last_task_id = models.CharField( 'last_task_id', blank=True, null=True, max_length=255, editable=False )
     # indicate whether some information was extracted from file (if archive)
     operations_log = models.TextField( 'operations_log', blank=True, null=True, editable=False )
     # size is stored in DB for SQL query performance

@@ -87,52 +87,51 @@ class Serializer(PythonSerializer):
             self.start_object(obj)
 
             for field in obj._meta.local_fields: # local fields / FK fields
-                if field.serialize:
-                    if field.name in self.special_for_serialization:
+                if field.serialize and (self.selected_fields is None or 
+                    field.name in self.selected_fields) and self.serialize_attrs:
+
+                    if field.verbose_name in self.special_for_serialization:
+                        # IMPORTANT verbose_name is checked for special fields
                         self.serialize_special(obj, field)
                     else:
-                        if field.rel is None:
-                            if self.selected_fields is None or field.attname in\
-                                self.selected_fields:
 
-                                if self.is_data_field_django(obj, field):
-                                    if self.serialize_attrs:
-                                        self.handle_data_field(obj, field)
-
-                                elif field.attname.find("__unit") > 0:
-                                    pass # ignore unit fields as already processed
-
-                                elif self.serialize_attrs: # FIXME resolve choices
-                                    self.handle_field(obj, field)
-
-                        elif self.selected_fields is None or field.attname[:-3]\
-                            in self.selected_fields:
-                            #self.handle_fk_field(obj, field)
-                            rid = getattr(obj, field.name + "_id")
-                            if rid:
-                                url_base = ''.join([ self.host, _get_url_base( field.rel.to ) ])
-                                self._current[field.name] = urlparse.urljoin( url_base, str( rid ) )
+                        if self.is_data_field_django(queryset.model, field):
+                            if field.rel is None:
+                                data = field._get_val_from_obj(obj)
+                                if not is_protected_type(data): data = field.value_to_string(obj)
                             else:
-                                self._current[field.name] = None
+                                data = self.handle_fk_field(obj, field)
+                            units = smart_unicode(getattr(obj, field.name + "__unit"), \
+                                self.encoding, strings_only=True)
+                            self._current[field.name] = {
+                                "data": data,
+                                "units": units
+                            }
+                        else:
+                            if field.name.find("__unit") > 0:
+                                pass # ignore unit fields as already processed
+                            elif field.rel:
+                                self._current[field.name] = self.handle_fk_field(obj, field)
+                            else: # TODO resolve choices
+                                self.handle_field(obj, field)
 
             if self.serialize_rel: 
 
                 # m2m fields
                 for field in obj._meta.many_to_many:
-                    if field.serialize:
-                        if self.selected_fields is None or field.attname in \
-                            self.selected_fields:
-                            if hasattr(obj, field.name + "_buffer"):
-                                # this relation is versioned and was lazy loaded
-                                children = []
-                                for child in getattr(obj, field.name + "_buffer", []):
-                                    if hasattr(child, 'get_absolute_url'):
-                                        children.append(''.join([self.host, child.get_absolute_url()]))
-                                    else:
-                                        children.append(''.join([ self.host, child ]))
-                                self._current[field.name] = children
-                            else:
-                                self.handle_m2m_field(obj, field)
+                    if field.serialize and (self.selected_fields is None or 
+                        field.name in self.selected_fields):
+                        if hasattr(obj, field.name + "_buffer"):
+                            # this relation is versioned and was pre-loaded
+                            children = []
+                            for child in getattr(obj, field.name + "_buffer", []):
+                                if hasattr(child, 'get_absolute_url'):
+                                    children.append(''.join([self.host, child.get_absolute_url()]))
+                                else:
+                                    children.append(''.join([ self.host, child ]))
+                            self._current[field.name] = children
+                        else: # non-versioned m2m field FIXME ???
+                            self.handle_m2m_field(obj, field)
 
                 # process reverse relations (like properties for section)
                 for rel_name in rev_rel_list:
@@ -183,14 +182,14 @@ class Serializer(PythonSerializer):
                 update_kwargs = self.deserialize_special(update_kwargs, \
                     field_name, field_value, user)
             else:
+                field = model._meta.get_field(field_name)
+
                 # Handle data/units fields
-                if self.is_data_field_json(field_name, field_value):
+                if self.is_data_field_django(model, field):
                     update_kwargs[field_name] = field_value["data"]
                     update_kwargs[field_name + "__unit"] = field_value["units"]
 
                 else:
-                    field = model._meta.get_field(field_name)
-
                     # Handle M2M relations
                     if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
                         m2m_data = []
@@ -211,7 +210,7 @@ class Serializer(PythonSerializer):
                             fk_dict[field.name] = None # remove relation
 
                     # handle standard fields
-                    elif field.editable and not field.attname == 'id': 
+                    elif field.editable and not field.name == 'id': 
                         #TODO raise error when trying to change id or date_created etc?
                         update_kwargs[field_name] = field.to_python(field_value)
 
@@ -219,32 +218,17 @@ class Serializer(PythonSerializer):
 
 #-------------------------------------------------------------------------------
 # Field handlers
-
-    def handle_data_field(self, obj, field):
-        """ serialize data field """
-        data = field._get_val_from_obj(obj)
-        if not is_protected_type(data): data = field.value_to_string(obj)
-        units = smart_unicode(getattr(obj, field.attname + "__unit"), \
-            self.encoding, strings_only=True)
-        self._current[field.attname] = {
-            "data": data,
-            "units": units
-        }
+    def handle_fk_field(self, obj, field):
+        rid = getattr(obj, field.name + "_id")
+        if rid: # build a permalink without fetching an object
+            url_base = ''.join([ self.host, _get_url_base( field.rel.to ) ])
+            return urlparse.urljoin( url_base, str( rid ) )
+        return None
 
     def handle_m2m_field(self, obj, field):
-        #if field.rel.through._meta.auto_created:
-        #    self._current[field.name] = [self.resolve_permalink(related)
-        #                       for related in getattr(obj, field.name).iterator()]
         # prefetched m2m data in _buffer
         self._current[field.name] = [ self.resolve_permalink(related) 
             for related in getattr(obj, field.name + '_buffer', []) ]
-
-    def is_data_field_json(self, attr_name, value):
-        """ determines if a given field has units and requires special proc."""
-        if type(value) == type({}) and value.has_key("data") and \
-            value.has_key("units"):
-            return True
-        return False
 
     def is_data_field_django(self, obj, field):
         """ if a field has units, stored in another field - it's a data field """
