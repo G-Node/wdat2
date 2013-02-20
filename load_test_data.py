@@ -104,7 +104,7 @@ class LoadData( object ):
                 prof.save()
 
         if self.verbose:
-            print "Users done."
+            print "USERS DONE."
 
 
     def load_metadata(self):
@@ -151,7 +151,7 @@ class LoadData( object ):
                     obj = cls.objects.create( **params )
 
         if self.verbose:
-            print "Metadata done."
+            print "METADATA DONE."
 
 
     def load_datafiles(self):
@@ -202,7 +202,7 @@ class LoadData( object ):
                     d = Datafile.objects.create( **params )
 
         if self.verbose:
-            print "Datafiles done."
+            print "DATAFILES DONE."
 
 
     def load_neo(self):
@@ -271,7 +271,7 @@ class LoadData( object ):
                     obj = cls.objects.create( **params )
 
         if self.verbose:
-            print "NEO done."
+            print "NEO DONE."
 
 
     def annotate(self):
@@ -310,7 +310,7 @@ class LoadData( object ):
                 cls.save_changes( rneo, {}, {"metadata": [v.pk for v in rvalues]}, {}, False )
 
         if self.verbose:
-            print "Annotation done."
+            print "ANNOTATION DONE."
 
         """
         # Additionally setup Section - Block connections if needed using this:

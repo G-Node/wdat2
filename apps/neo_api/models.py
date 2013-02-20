@@ -14,6 +14,7 @@ from neo_api.serializers import NEOSerializer
 
 # default unit values and values limits
 name_max_length = 100
+description_max_length = 2048
 label_max_length = 100
 unit_max_length = 10
 
@@ -59,6 +60,7 @@ class BaseInfo(SafetyLevel, ObjectState):
     """
     Base abstract class for any NEO object created at G-Node.
     """
+    description = models.CharField(max_length=description_max_length, blank=True, null=True)
     file_origin = VersionedForeignKey(Datafile, blank=True, null=True, editable=False)
 
     @models.permalink
@@ -176,6 +178,7 @@ class EventArray(BaseInfo, DataObject):
     """
     NEO EventArray @ G-Node.
     """
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     # NEO data arrays
     labels = VersionedForeignKey( Datafile, blank=True, null=True, related_name='event_labels' )
     times = VersionedForeignKey(Datafile, related_name='event_times', verbose_name='event_times')
@@ -191,6 +194,7 @@ class Event(BaseInfo):
     NEO Event @ G-Node.
     """
     # NEO attributes
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     label = models.CharField('label', max_length=label_max_length)
     time = models.FloatField('time')
     time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
@@ -205,6 +209,7 @@ class EpochArray(BaseInfo, DataObject):
     """
     NEO EpochArray @ G-Node.
     """
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     # NEO data arrays
     labels = VersionedForeignKey( Datafile, blank=True, null=True, related_name='epoch_labels' )
     times = VersionedForeignKey(Datafile, related_name='epoch_times', verbose_name='epoch_times')
@@ -222,6 +227,7 @@ class Epoch(BaseInfo):
     NEO Epoch @ G-Node.
     """
     # NEO attributes
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     label = models.CharField('label', max_length=label_max_length)
     time = models.FloatField('time')
     time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
@@ -237,9 +243,8 @@ class RecordingChannelGroup(BaseInfo):
     """
     NEO RecordingChannelGroup @ G-Node.
     """
-    # NEO attributes
-    name = models.CharField('name', max_length=name_max_length)
     # NEO relationships
+    name = models.CharField(max_length=name_max_length)
     block = VersionedForeignKey(Block, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='recordingchannelgroup_metadata', \
         blank=True, null=True)
@@ -250,7 +255,7 @@ class RecordingChannel(BaseInfo):
     NEO RecordingChannel @ G-Node.
     """
     # NEO attributes
-    name = models.CharField('name', max_length=name_max_length)
+    name = models.CharField(max_length=name_max_length)
     index = models.IntegerField('index', null=True, blank=True)
     # NEO relationships
     recordingchannelgroup = VersionedForeignKey(RecordingChannelGroup, blank=True, null=True)
@@ -262,9 +267,8 @@ class Unit(BaseInfo):
     """
     NEO Unit @ G-Node.
     """
-    # NEO attributes
-    name = models.CharField('name', max_length=name_max_length)
     # NEO relationships
+    name = models.CharField(max_length=name_max_length)
     recordingchannel = models.ManyToManyField(RecordingChannel, \
         through='unit_recordingchannel', blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='unit_metadata', \
@@ -276,6 +280,7 @@ class SpikeTrain(BaseInfo, DataObject):
     NEO SpikeTrain @ G-Node.
     """
     # NEO attributes
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     t_start = models.FloatField('t_start')
     t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
     t_stop = models.FloatField('t_stop', blank=True, null=True)
@@ -354,18 +359,17 @@ class AnalogSignalArray(BaseInfo, DataObject):
     NEO AnalogSignalArray @ G-Node.
     """
     # NEO attributes
-    name = models.CharField(max_length=name_max_length)
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     sampling_rate = models.FloatField('sampling_rate')
     sampling_rate__unit = fmodels.SamplingUnitField('sampling_rate__unit', default=def_samp_unit)
     t_start = models.FloatField('matrix_t_start')
     t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
-    # NEO relationships
-    segment = VersionedForeignKey(Segment, blank=True, null=True)
-    recordingchannelgroup = VersionedForeignKey(RecordingChannelGroup, blank=True, null=True)
     # NEO data arrays
     signal = VersionedForeignKey( Datafile, verbose_name='signal_matrix', related_name='signal_matrix' )
     signal__unit = fmodels.SignalUnitField('signals__unit', default=def_data_unit)
+    # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
+    recordingchannelgroup = VersionedForeignKey(RecordingChannelGroup, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='analogsignalarray_metadata', \
         blank=True, null=True)
 
@@ -376,7 +380,7 @@ class AnalogSignal(BaseInfo, DataObject):
     NEO AnalogSignal @ G-Node.
     """
     # NEO attributes
-    name = models.CharField('name', max_length=name_max_length)
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     sampling_rate = models.FloatField('sampling_rate')
     sampling_rate__unit = fmodels.SamplingUnitField('sampling_rate__unit', default=def_samp_unit)
     t_start = models.FloatField('t_start')
@@ -450,7 +454,7 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
     NEO IrSaAnalogSignal @ G-Node.
     """
     # NEO attributes
-    name = models.CharField('name', max_length=name_max_length)
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     t_start = models.FloatField('t_start')
     t_start__unit = fmodels.TimeUnitField('t_start__unit', default=def_time_unit)
     # NEO relationships
@@ -530,6 +534,7 @@ class Spike(BaseInfo, DataObject):
     NEO Spike @ G-Node.
     """
     # NEO attributes
+    name = models.CharField(max_length=name_max_length, blank=True, null=True)
     time = models.FloatField()
     time__unit = fmodels.TimeUnitField('time__unit', default=def_time_unit)
     sampling_rate = models.FloatField('sampling_rate', blank=True, null=True)
@@ -537,7 +542,7 @@ class Spike(BaseInfo, DataObject):
     left_sweep = models.FloatField('left_sweep', blank=True, null=True)
     left_sweep__unit = fmodels.TimeUnitField('left_sweep__unit', blank=True, null=True)
     # NEO data arrays
-    waveform = VersionedForeignKey( Datafile, verbose_name='signal_matrix', related_name='waveform' )
+    waveform = VersionedForeignKey( Datafile, verbose_name='signal_matrix', related_name='waveform', blank=True, null=True )
     waveform__unit = fmodels.SignalUnitField('waveform__unit', default=def_data_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
