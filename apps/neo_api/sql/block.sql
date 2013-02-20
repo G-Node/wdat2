@@ -39,6 +39,3 @@ ALTER TABLE `neo_api_recordingchannelgroup` ADD PRIMARY KEY (`guid`);
 
 ALTER TABLE `neo_api_recordingchannel` DROP PRIMARY KEY;
 ALTER TABLE `neo_api_recordingchannel` ADD PRIMARY KEY (`guid`);
-
-ALTER TABLE `neo_api_waveform` DROP PRIMARY KEY;
-ALTER TABLE `neo_api_waveform` ADD PRIMARY KEY (`guid`);

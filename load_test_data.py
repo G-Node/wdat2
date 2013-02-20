@@ -55,7 +55,7 @@ class LoadData( object ):
             field.name + "_" + binascii.b2a_hex( os.urandom( np.random.randint(1, 20) ) )
         ),
         models.TextField: lambda obj_type, field, user: (obj_type + "_" + 
-            field.name + "_" + binascii.b2a_hex( os.urandom( np.random.randint(1, 200) ) )
+            field.name + "_" + binascii.b2a_hex( os.urandom( np.random.randint(1, 20) ) )
         ),
         models.IntegerField: lambda obj_type, field, user: (
             np.random.randint(1, 1000)
@@ -104,7 +104,7 @@ class LoadData( object ):
                 prof.save()
 
         if self.verbose:
-            print "Users done."
+            print "USERS DONE."
 
 
     def load_metadata(self):
@@ -151,7 +151,7 @@ class LoadData( object ):
                     obj = cls.objects.create( **params )
 
         if self.verbose:
-            print "Metadata done."
+            print "METADATA DONE."
 
 
     def load_datafiles(self):
@@ -164,7 +164,6 @@ class LoadData( object ):
         require: BLOCKS #1, #2
         """
         sizes = (10**2, 10**4, 10**6) # array length options
-        n = np.random.randint(5, 10) # number of files for every length option
 
         users = User.objects.filter( username__in = self.usernames )
         assert len(users) > 0 , "There are no users loaded, run BLOCK 1 first"
@@ -174,7 +173,7 @@ class LoadData( object ):
                 sections are required for the user %s to create files." % user.username
 
             for size in sizes:
-                for i in range( n ):
+                for i in range( np.random.randint(2, 5) ):
                     params = {}
                     rel_path = "test_data/%s/%d/" % (user.username, size)
                     filename = "array%d.h5" % i
@@ -203,7 +202,7 @@ class LoadData( object ):
                     d = Datafile.objects.create( **params )
 
         if self.verbose:
-            print "Datafiles done."
+            print "DATAFILES DONE."
 
 
     def load_neo(self):
@@ -222,15 +221,15 @@ class LoadData( object ):
             ("recordingchannelgroup", lambda: np.random.randint(1, 4)),
             ("recordingchannel", lambda: np.random.randint(1, 12)),
             ("unit", lambda: np.random.randint(1, 10)),
-            ("spike", lambda: np.random.randint(1, 200)),
+            ("spike", lambda: np.random.randint(1, 20)),
             ("eventarray", lambda: np.random.randint(1, 12)),
             ("event", lambda: np.random.randint(1, 50)),
             ("epocharray", lambda: np.random.randint(1, 8)),
             ("epoch", lambda: np.random.randint(1, 20)),
-            ("spiketrain", lambda: np.random.randint(1, 500)),
+            ("spiketrain", lambda: np.random.randint(1, 50)),
             ("analogsignalarray", lambda: np.random.randint(1, 10)),
-            ("analogsignal", lambda: np.random.randint(1, 500)),
-            ("irsaanalogsignal", lambda: np.random.randint(1, 500))
+            ("analogsignal", lambda: np.random.randint(1, 50)),
+            ("irsaanalogsignal", lambda: np.random.randint(1, 50))
         )
 
         users = User.objects.filter( username__in = self.usernames )
@@ -272,7 +271,7 @@ class LoadData( object ):
                     obj = cls.objects.create( **params )
 
         if self.verbose:
-            print "NEO done."
+            print "NEO DONE."
 
 
     def annotate(self):
@@ -297,10 +296,6 @@ class LoadData( object ):
 
                 # randomly select some NEO class
                 choices = neo_classnames.keys()
-                try:
-                    choices.remove('waveform')
-                except ValueError:
-                    pass
                 obj_type = random.choice( choices )
                 cls = neo_classnames[ obj_type ]
                 assert cls.objects.filter( owner=user ).count() > 0, "Some \
@@ -315,7 +310,7 @@ class LoadData( object ):
                 cls.save_changes( rneo, {}, {"metadata": [v.pk for v in rvalues]}, {}, False )
 
         if self.verbose:
-            print "Annotation done."
+            print "ANNOTATION DONE."
 
         """
         # Additionally setup Section - Block connections if needed using this:

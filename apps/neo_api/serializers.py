@@ -14,7 +14,7 @@ class NEOSerializer(Serializer):
     deserialization (deserialize_special) which will be used by REST manager for
     processing GET/POST/PUT requests. """
     special_for_deserialization = ('times', 'signal', 'waveform')
-    special_for_serialization = ('times', 'signal', 't_start', 'waveform')
+    special_for_serialization = ('times', 'signal', 't_start')
 
     def serialize_special(self, obj, field):
         """ array- fields require special serialization due to the slicing """
@@ -28,9 +28,8 @@ class NEOSerializer(Serializer):
                 params += "downsample=%s&" % downsample
             return params
 
-        if self.serialize_attrs and field.attname == 't_start' or \
-            obj.obj_type == "waveform":
-            # almosl all have t_start attribute, use that as a trigger
+        if self.serialize_attrs and field.attname == 't_start':
+            # almost all have t_start attribute, use that as a trigger
 
             if obj.obj_type == "irsaanalogsignal":
                 signal, times, s_index, e_index, downsample, t_start = \
@@ -71,16 +70,6 @@ class NEOSerializer(Serializer):
 
                 attrs = {"times": datalink, "t_start": t_start}
 
-            elif obj.obj_type == "waveform":
-                waveform, s_index, e_index = obj.get_slice(**self.options)
-                datalink = self.resolve_permalink( waveform, add_str='/data' )
-
-                params = param_clean(s_index, e_index)
-                if params:
-                    datalink = urlparse.urljoin( datalink, "?" + params )
-
-                attrs = {"waveform": datalink}
-
             for key, attr in attrs.items():
                 units = smart_unicode(getattr(obj, key + "__unit"), \
                     self.encoding, strings_only=True)
@@ -107,6 +96,15 @@ class NEOSerializer(Serializer):
             raise ReferenceError( "Data source is not readable; please provide\
                 correct reference. Current value: %s" % (field_value["data"]) )
 
+    def handle_fk_field(self, obj, field):
+        rid = getattr(obj, field.name + "_id")
+        if rid: # build a permalink without fetching an object
+            url = ''.join([ self.host, _get_url_base( field.rel.to ) ])
+            url += str( rid )
+            if self.is_data_field_django(obj, field):
+                url = urlparse.urljoin( url, "/data" )
+            return url
+        return None
 
 
 class NEOCategorySerializer(NEOSerializer):
