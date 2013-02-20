@@ -140,14 +140,14 @@ class Property(SafetyLevel, ObjectState):
     property and may be linked to the Section. 
     """
     name = models.CharField('name', max_length=100)
-    definition = models.TextField('definition', blank=True)
-    dependency = models.CharField('dependency', blank=True, max_length=1000)
-    dependency_value = models.CharField('dependency_value', blank=True, max_length=1000)
-    mapping = models.CharField('mapping', blank=True, max_length=1000)
-    unit = models.CharField('unit', blank=True, max_length=10)
-    dtype = models.CharField('dtype', blank=True, max_length=10)
-    uncertainty = models.CharField('uncertainty', blank=True, max_length=10)
-    comment = models.TextField('comment', blank=True)
+    definition = models.TextField('definition', blank=True, null=True)
+    dependency = models.CharField('dependency', blank=True, null=True, max_length=1000)
+    dependency_value = models.CharField('dependency_value', blank=True, null=True, max_length=1000)
+    mapping = models.CharField('mapping', blank=True, null=True, max_length=1000)
+    unit = models.CharField('unit', blank=True, null=True, max_length=10)
+    dtype = models.CharField('dtype', blank=True, null=True, max_length=10)
+    uncertainty = models.CharField('uncertainty', blank=True, null=True, max_length=10)
+    comment = models.TextField('comment', blank=True, null=True)
     section = VersionedForeignKey(Section)
 
     def __unicode__(self):
@@ -175,9 +175,6 @@ class Property(SafetyLevel, ObjectState):
     def values_as_str(self):
         return ", ".join([v.data for v in self.values])
 
-    #def __len__(self):
-    #    return len(self.values)
-
 
 class Value(SafetyLevel, ObjectState):
     """ 
@@ -185,7 +182,7 @@ class Value(SafetyLevel, ObjectState):
     """
     #FIXME add more attributes to the value
     parent_property = VersionedForeignKey(Property) # can't use just property((
-    data = models.TextField('value', blank=True)
+    data = models.TextField('value')
 
     def __unicode__(self):
         return self.data

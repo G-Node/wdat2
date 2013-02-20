@@ -96,6 +96,15 @@ class NEOSerializer(Serializer):
             raise ReferenceError( "Data source is not readable; please provide\
                 correct reference. Current value: %s" % (field_value["data"]) )
 
+    def handle_fk_field(self, obj, field):
+        rid = getattr(obj, field.name + "_id")
+        if rid: # build a permalink without fetching an object
+            url = ''.join([ self.host, _get_url_base( field.rel.to ) ])
+            url += str( rid )
+            if self.is_data_field_django(obj, field):
+                url = urlparse.urljoin( url, "/data" )
+            return url
+        return None
 
 
 class NEOCategorySerializer(NEOSerializer):

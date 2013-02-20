@@ -100,7 +100,7 @@ class Serializer(PythonSerializer):
                                 data = field._get_val_from_obj(obj)
                                 if not is_protected_type(data): data = field.value_to_string(obj)
                             else:
-                                data = self.handle_fk_field(obj, field) + '/data'
+                                data = self.handle_fk_field(obj, field)
                             units = smart_unicode(getattr(obj, field.name + "__unit"), \
                                 self.encoding, strings_only=True)
                             self._current[field.name] = {
