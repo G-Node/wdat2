@@ -435,45 +435,13 @@ class ACLHandler(BaseHandler):
 
         request: incoming HTTP request
         """
-        def acl_update(objects, safety_level, users, cascade=False):
-            """ recursively update permissions """
-            model = type( objects[0] ) # TODO make this better
-
-            # first update safety level
-            if safety_level:
-                for_update = []
-                for obj in objects:
-                    if not (obj.safety_level == safety_level):
-                        for_update.append( obj )
-                model.save_changes(for_update, {'safety_level': safety_level}, \
-                    {}, {}, False)
-
-            # update single user shares
-            if not users == None:
-                for obj in objects:
-                    obj.share( users )
-
-            # propagate down the hierarchy if cascade
-            if cascade:
-                for_update = []
-                obj_with_related = model.objects.fetch_fks( objects = objects )
-                for related in model._meta.get_all_related_objects():
-                    if issubclass(related.model, SafetyLevel): # reversed child can be shared
-
-                        for obj in obj_with_related:
-                            for_update += getattr(obj, related.get_accessor_name() + '_data')
-
-                if for_update:
-                    acl_update(for_update, safety_level, users, cascade)
-
-
         def clean_users(users):
             """ if users contain usernames they should be resolved """
             cleaned_users = {}
             for user, access in users.items():
                 try: # resolving users
                     user = int(user)
-                    u = User.objects.get(id=user)
+                    u = User.objects.get(pk=user)
                 except ValueError: # username is given
                     u = User.objects.get(username=user)
 
@@ -495,7 +463,7 @@ class ACLHandler(BaseHandler):
             return NotSupported(message_type="invalid_method", request=request)
 
         try:
-            obj = self.model.objects.get( local_id=id )
+            obj = self.model.objects.get( pk=id )
         except ObjectDoesNotExist:
             return NotFound(message_type="does_not_exist", request=request)
 
@@ -515,7 +483,7 @@ class ACLHandler(BaseHandler):
                     assert type(rdata['shared_with']) == type({}), "Wrong user data."
                     users = clean_users(rdata['shared_with'])
 
-                acl_update([obj], safety_level, users, self.options.has_key('cascade'))
+                obj.acl_update(safety_level, users, self.options.has_key('cascade'))
             except ValidationError, VE:
                 return BadRequest(json_obj=VE.message_dict, \
                     message_type="bad_parameter", request=request)

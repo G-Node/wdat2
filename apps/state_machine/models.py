@@ -136,6 +136,9 @@ def create_hash_from( obj ):
     # option 3.
     #return hashlib.sha1( pickle.dumps( obj ) ).hexdigest()
 
+    # option 4.
+    #import uuid
+    #return str( uuid.uuid4() )
 
 #===============================================================================
 # Field and Descriptor subclasses for VERSIONED Reverse Single relationships
@@ -812,7 +815,7 @@ class SafetyLevel(models.Model):
         users_to_remove = list(set([x.id for x in current_users]) - set(users.keys()))
         for user_id, level in users.items(): # create new accesses and update old ones
             try:
-                u = User.objects.get( id=int(user_id) )
+                u = User.objects.get( pk=int(user_id) )
             except:
                 raise ValueError("Provided user ID is not valid: %s" % user_id)
             if level not in dict(SingleAccess.ACCESS_LEVELS).keys():
@@ -829,6 +832,65 @@ class SafetyLevel(models.Model):
         for u in users_to_remove: # delete legacy accesses
             self.shared_with.get(access_for=u).delete()
 
+    def acl_update(self, safety_level=None, users=None, cascade=False):
+        """ update object safety level and direct user permissions (cascade).
+        Note. This function works with single objects and not very effective 
+        with bulk acl object updates (when propagation down the tree needed). 
+        For efficiency look at 'bulk_acl_update' classmethod. """
+
+        # first update safety level
+        if safety_level and not self.safety_level == safety_level:
+            if not int(safety_level) in dict(self.SAFETY_LEVELS).keys():
+                raise ValueError("Provided safety level is not valid: %s" % safety_level)
+            self.safety_level = safety_level
+            self.save()
+
+        # update single user shares
+        if not users == None:
+            self.share( users )
+
+        # propagate down the hierarchy if cascade
+        if cascade:
+            for related in self._meta.get_all_related_objects():
+                if issubclass(related.model, SafetyLevel): # reversed child can be shared
+                    for obj in getattr(self, related.get_accessor_name()).all():
+                        obj.acl_update(safety_level, users, cascade)
+
+    @classmethod
+    def bulk_acl_update(self, objects, safety_level=None, users=None, cascade=False):
+        """ 
+        # bulk acl update for homogenious list of objects
+        # principal difference is the speed of the update (less SQL hits)
+        model = objects[0].__class__ # TODO make this better
+
+        # first update safety level - in bulk
+        if safety_level:
+            for_update = []
+            for obj in objects:
+                if not (obj.safety_level == safety_level):
+                    for_update.append( obj )
+            model.save_changes(for_update, {'safety_level': safety_level}, {}, {}, False)
+
+        # update single user shares - not in bulk FIXME
+        if not users == None:
+            for obj in objects:
+                obj.share( users )
+
+        # propagate down the hierarchy if cascade - fetching in bulk
+        if cascade:
+            for_update = []
+            obj_with_related = model.objects.fetch_fks( objects = objects )
+            for related in model._meta.get_all_related_objects():
+                if issubclass(related.model, SafetyLevel): # reversed child can be shared
+
+                    for obj in obj_with_related:
+                        for_update += getattr(obj, related.get_accessor_name() + '_data')
+
+            if for_update:
+                acl_update(for_update, safety_level, users, cascade)
+        """
+        raise NotImplementedError
+
     @property
     def shared_with(self):
         """ returns a QuerySet of all specific accesses. Method relies on 
@@ -842,9 +904,6 @@ class SafetyLevel(models.Model):
 
     def remove_all_shares(self):
         raise NotImplementedError
-
-    def publish_object():
-        self.safety_level = 1
 
     def is_public(self):
         return self.safety_level == 1
