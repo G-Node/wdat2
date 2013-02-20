@@ -113,6 +113,8 @@ def _get_url_base(model):
     """ returns a base part of the URL for a model, e.g. /metadata/section/
     for Section model. TODO: find a cleaner way to do that. """
     temp = model()
+    if model == User: # not to break HTML interface
+        return '/user/'
     setattr(temp, 'pk', 10**9)
     url = temp.get_absolute_url()
     # removing the trailing slash if there

@@ -220,7 +220,7 @@ class Serializer(PythonSerializer):
 # Field handlers
     def handle_fk_field(self, obj, field):
         rid = getattr(obj, field.name + "_id")
-        if rid:
+        if rid: # build a permalink without fetching an object
             url_base = ''.join([ self.host, _get_url_base( field.rel.to ) ])
             return urlparse.urljoin( url_base, str( rid ) )
         return None
