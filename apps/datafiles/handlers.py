@@ -71,7 +71,6 @@ class FileOperationsHandler(BaseHandler):
         self.OPERATIONS = {
             'extract': self.extract,
             'convert': self.convert,
-            'download': self.download,
             'data': self.data
         }
         self.actions = { 'GET': self.get }
@@ -97,63 +96,72 @@ class FileOperationsHandler(BaseHandler):
 
 
     def data(self, request, datafile):
-        """ returns the [sliced] data array. Supports following formats:
+        """ Handles file downloads. If a file has an array, supports export to 
+        the following formats:
         - HDF5
         - JSON
         """
-        if not datafile.has_array:
-            return BadRequest(message_type="no_hdf5_array", request=request)
+        if self.options.has_key('start_index') or self.options.has_key('end_index') or\
+            self.options.has_key('format'): # a -full or -sliced array requested
+            
+            if not datafile.has_array:
+                return BadRequest(message_type="no_hdf5_array", request=request)
 
-        # getting dataslice from file
-        filename = datafile.guid
-        if self.options.has_key('start_index'):
-            filename += '-S' + str( self.options['start_index'] )
-        if self.options.has_key('end_index'):
-            filename += '-E' + str( self.options['end_index'] )
-
-        dataslice = datafile.get_slice( **self.options )
-        if not len(dataslice) > 0:
-            BadRequest(message_type="wrong_index", request=request)
-
-        # pytables and h5py do not support files in memory((
-        #temp = tempfile.NamedTemporaryFile()
-
-        if self.options.has_key('format') and self.options['format'] == 'json':
-            # 1. return as JSON
-            response = HttpResponse( str(dataslice.tolist()) )
-
-        else:
-            # 2. return as HDF5 (default)
+            # preparing filename for the file
+            filename = datafile.guid
+            if self.options.has_key('start_index'):
+                filename += '-S' + str( self.options['start_index'] )
+            if self.options.has_key('end_index'):
+                filename += '-E' + str( self.options['end_index'] )
             full_path = os.path.join( settings.TMP_FILES_PATH, filename )
-            #if not os.path.exists( full_path ):
-            # could try to use existing file with the slice? as cache
-            fileh = tb.openFile( full_path, mode = "w")
-            fileh.createArray( "/", "data", dataslice )
-            fileh.close()
 
-            #wrapper = FileWrapper( file( full_path ) )
-            #response = HttpResponse(wrapper, content_type='application/x-hdf')
-            response = HttpResponse( file( full_path ).read(), mimetype='application/x-hdf')
-            response['Content-Disposition'] = 'attachment; filename=%s.h5' % filename
+            dataslice = datafile.get_slice( **self.options )
+            if not len(dataslice) > 0:
+                BadRequest(message_type="wrong_index", request=request)
+
+            # TODO: idea - try to use existing file with the slice as cache?
+            #if not os.path.exists( full_path ): etc.
+
+            if self.options.has_key('format') and self.options['format'] == 'json':
+                # 1. return as JSON
+                """ an old option to return json in the response content, not as
+                a file:
+                response = HttpResponse( str(dataslice.tolist()) )
+                """
+                with open( full_path, "w" ) as f:
+                    f.write( str(dataslice.tolist()) )
+                response = HttpResponse( file( full_path ).read(), mimetype='application/json')
+                response['Content-Disposition'] = 'attachment; filename=%s.json' % filename
+
+            else:
+                # 2. return as HDF5 (default)
+                #fileh = tb.openFile( full_path, mode = "w")
+                #fileh.createArray( "/", "data", dataslice )
+                #fileh.close()
+                with tb.openFile( full_path, mode = "w") as fileh:
+                    fileh.createArray( "/", "data", dataslice )
+
+                #wrapper = FileWrapper( file( full_path ) )
+                #response = HttpResponse(wrapper, content_type='application/x-hdf')
+                response = HttpResponse( file( full_path ).read(), mimetype='application/x-hdf')
+                response['Content-Disposition'] = 'attachment; filename=%s.h5' % filename
+
             response['Content-Length'] = os.path.getsize( full_path )
 
-        return response
+        else: # simple file download
+            """
+            An alternative way is to use xsendfile:
+            #response = HttpResponse(mimetype='application/force-download')
+            #response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.name)
+            """
+            mimetype, encoding = mimetypes.guess_type(datafile.raw_file.path)
+            mimetype = mimetype or 'application/octet-stream' 
+            response = HttpResponse(datafile.raw_file.read(), mimetype=mimetype)
+            response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.name)
+            response['Content-Length'] = datafile.raw_file.size 
+            if encoding: 
+                response["Content-Encoding"] = encoding
 
-
-    def download(self, request, datafile):
-        """
-        Processes requests for file download.
-        An alternative way is to use xsendfile:
-        #response = HttpResponse(mimetype='application/force-download')
-        #response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.name)
-        """
-        mimetype, encoding = mimetypes.guess_type(datafile.raw_file.path)
-        mimetype = mimetype or 'application/octet-stream' 
-        response = HttpResponse(datafile.raw_file.read(), mimetype=mimetype)
-        response['Content-Disposition'] = 'attachment; filename=%s' % (datafile.name)
-        response['Content-Length'] = datafile.raw_file.size 
-        if encoding: 
-            response["Content-Encoding"] = encoding
         return response
 
 
