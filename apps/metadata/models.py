@@ -12,26 +12,20 @@ from metadata.serializers import SectionSerializer, PropertySerializer, ValueSer
 class Section(SafetyLevel, ObjectState):
     """
     Class represents a metadata "Section". Used to organize metadata 
-    (mainly properties with their values) and Datafiles in a tree-like structure. 
+    (properties - values), Datafiles and NEO Blocks in a tree-like structure. 
     May be recursively linked to itself. May be made public or shared with 
     specific users.
     """
-    SECTION_TYPES = (
-        (0, _('Section')),
-        (10, _('Project')),
-        (20, _('Experiment')),
-        (30, _('Dataset')),
-    )
     non_cascade_rel = ("property",) # see REST JSON serializer
 
-    name = models.CharField(_('name'), max_length=100)
-    description = models.TextField(_('description'), blank=True, null=True)
-    odml_type = models.IntegerField(_('type'), choices=SECTION_TYPES, default=0)
+    name = models.CharField(max_length=100)
+    description = models.TextField(max_length=100, blank=True, null=True)
+    odml_type = models.CharField(blank=True, null=True)
     parent_section = VersionedForeignKey('self', blank=True, null=True) # link to itself to create a tree.
     # position in the list on the same level in the tree
-    tree_position = models.IntegerField('tree_position', blank=True, default=0)
+    tree_position = models.IntegerField(default=0)
     # field indicates whether it is a "template" section
-    is_template = models.BooleanField('is_template', default=False)
+    is_template = models.BooleanField(default=False)
     # the following implements "odML vocabulary". If the section is a "template"
     # (see field above) then this is a pointer to a user, who created this 
     # default template (thus it's a personal template), and if it is "NULL" - 
@@ -45,20 +39,9 @@ class Section(SafetyLevel, ObjectState):
     def get_absolute_url(self):
         return ('section_details', [str(self.local_id)])
 
-    def does_belong_to(self, user):
-        if self.owner == user:
-            return True
-        return False
-
     @property
     def default_serializer(self):
         return SectionSerializer
-
-    @property
-    def rest_filters(self):
-        """ supported filters for REST API """
-        return ['top', 'section_id', 'visibility', 'owner', 'created_min', \
-            'created_max']
 
     @property
     def sections(self):
@@ -67,39 +50,40 @@ class Section(SafetyLevel, ObjectState):
     def get_properties(self): # returns all active properties
         return self.property_set.all()
 
-    def get_datafiles(self, user): # returns only accessible files
-        datafiles = self.rel_datafiles.all()
-        datafiles = filter(lambda x: x.is_accessible(user), datafiles)
-        return datafiles
-    def has_datafile(self, datafile_id):
-        if self.datafile_set.filter( local_id=datafile_id ):
-            return True
-        return False
+    def traverse_ids(self):
+        """ return all section ids located inside self recursively, by 
+        traversing every branch of the section tree. Transparent but very 
+        unefficient, could make lots of DB hits """
+        ids = [s.pk for s in self.sections]
+        for s in self.sections:
+            ids += s.traverse_ids()
+        return ids
 
-    def get_blocks(self, user): # NEO Blocks available in this Section
-        return self.block_set.all()
-    def has_block(self, block_id):
-        if self.block_set.filter(local_id=block_id):
-            return True
-        return False
+    def fetch_deep_ids(self, ids):
+        """ return all section ids located inside sections with given ids. This
+        function as many sql calls as there are levels of the section tree """
+        down_one_level = self.__class__.objects.filter( parent_section_id__in=ids )
+        down_one_level = list( down_one_level.values_list( 'pk', flat=True ) )
+        if down_one_level:
+            return ids + self.fetch_deep_ids( down_one_level )
+        return ids
 
-    def get_objects_count(self, r=True):
-        """ Section statistics: number of properties, datafiles, blocks, 
-        files volume. Recursive, if r is True """
-        properties_no = self.get_properties().count()
-        datafiles_no = self.get_datafiles().count()
-        blocks_no = self.get_blocks().count()
-        files_vo = 0
-        for f in self.get_datafiles():
-            files_vo += f.raw_file.size
-        if r: # retrieve statistics recursively
-            for section in self.section_set.all():
-                    s1, s2, s3, s4 = section.get_objects_count()
-                    properties_no += s1
-                    datafiles_no += s2
-                    blocks_no += s3
-                    files_vo += s4
-        return properties_no, datafiles_no, blocks_no, files_vo
+    def stats(self, cascade=False):
+        """ Section statistics """
+        sec_ids = [ self.pk ]
+        if cascade: # recursively traverse a tree of child sections
+            sec_ids = self.fetch_deep_ids( sec_ids )
+
+        stats = {} # calculate section statistics
+        for rm in self._meta.get_all_related_objects():
+            k = rm.name
+            if not rm.model == self.__class__:
+                kwargs = { rm.field.name + '_id__in': sec_ids }
+                v = rm.model.objects.filter( **kwargs ).count()
+            else:
+                v = len(sec_ids) - 1 # exclude self
+            stats[ k ] = v
+        return stats
 
     def copy_section(self, section, pos, recursive=True, top=False):
         """ Makes a copy of a given section, placing a copy into self. Datafiles
@@ -156,12 +140,6 @@ class Property(SafetyLevel, ObjectState):
     @models.permalink
     def get_absolute_url(self):
         return ('property_details', [str(self.local_id)])
-
-    def does_belong_to(self, user):
-        """ Defines whether this property belongs to a certain user. """
-        if self.section.does_belong_to(user):
-            return True
-        return False
 
     @property
     def default_serializer(self):
