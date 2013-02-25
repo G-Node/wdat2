@@ -145,7 +145,7 @@
       f.set();
       if (p && p.id) {
         var elem = modCreate('property');
-        elem.parents.section = p.id;
+        elem.parents._section = p.id;
         f.set(elem);
         f.open();
       }

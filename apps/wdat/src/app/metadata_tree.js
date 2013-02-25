@@ -33,21 +33,21 @@
     // create header
     this._jq.append('<h1>Metadata Browser</h1>');
     // create tree
-    this._tree = new WDAT.Tree(treeId, bus, ['sel', 'del', 'edit', 'add']);
-    this._jq.append(this._tree.jq());
+    this.tree = new WDAT.Tree(treeId, bus, ['sel', 'del', 'edit', 'add']);
+    this._jq.append(this.tree.jq());
     // create buttons
     // define names for internal and external events
     this._actions = {
       sel:    selEvent,                     // selection events to notify external comonents
-      save:   this._tree.id() + '-save',    // save events from forms
-      load:   this._tree.id() + '-load',    // DataAPI response to load events
-      update: this._tree.id() + '-update'   // DataAPI response to update events
+      save:   this.tree.id() + '-save',    // save events from forms
+      load:   this.tree.id() + '-load',    // DataAPI response to load events
+      update: this.tree.id() + '-update'   // DataAPI response to update events
     };
     // event used internally to react on DataAPI resonses
     this._api = api;
     this._bus = bus;
     // a form for section editing and creation
-    this._updateEvent = this._tree.name + '-update';
+    this._updateEvent = this.tree.name + '-update';
     var formId = id += '-section-form';
     this._form = new WDAT.Form(formId, bus, {save: this._actions.save}, 'section', true);
     this._form.set();
@@ -56,12 +56,12 @@
     this._bus.subscribe(this._actions.update, this._updateHandler());
     this._bus.subscribe(this._actions.load, this._loadHandler());
     // subscribe handlers for tree events
-    this._bus.subscribe(this._tree.event('del'), this._deleteHandler());
-    this._bus.subscribe(this._tree.event('edit'), this._editHandler());
-    this._bus.subscribe(this._tree.event('add'), this._editHandler());
-    this._bus.subscribe(this._tree.event('expand'), this._expandHandler());
+    this._bus.subscribe(this.tree.event('del'), this._deleteHandler());
+    this._bus.subscribe(this.tree.event('edit'), this._editHandler());
+    this._bus.subscribe(this.tree.event('add'), this._editHandler());
+    this._bus.subscribe(this.tree.event('expand'), this._expandHandler());
     // publish tree selections as external event
-    this._bus.subscribe(this._tree.event('sel'), this._selectHandler());
+    this._bus.subscribe(this.tree.event('sel'), this._selectHandler());
   }
 
   /**
@@ -72,7 +72,7 @@
   MetadataTree.prototype.load = function() {
     for (var node in MetadataTree.PREDEF_NODES) {
       node = MetadataTree.PREDEF_NODES[node];
-      this._tree.add(node, node.parent_id, node.isleaf);
+      this.tree.add(node, node.parent_id, node.isleaf);
     }
   };
 
@@ -84,8 +84,8 @@
   MetadataTree.prototype._selectHandler = function() {
     var that = this;
     return function(event, data) {
-      that._tree.select(data.id, true);
-      var selected = that._tree.selected();
+      that.tree.select(data.id, true);
+      var selected = that.tree.selected();
       that._bus.publish(that._actions.sel, selected);
     };
   };
@@ -104,14 +104,18 @@
       var search = null, info = null;
       if (_isPredefNode(id)) {
         if (id == 'own-metadata') {
-          search = {type: 'section', parent: ''};
+          search = {type: 'section', parent: '', owner: '2'}; // TODO get real owner
           info = 'own-metadata';
         } else if (id == 'shared-metadata') {
-          // TODO request shared data here (AFTER PULL) and only own data above
+          search = {type: 'section', parent: '', owner: ['2', '!='], safety_level: 'friendly'}; // TODO get real owner
+          info = 'shared-metadata';
+        } else if (id == 'public-metadata') {
+          search = {type: 'section', parent: '', owner: ['2', '!='], safety_level: 'public'}; // TODO get real owner
+          info = 'public-metadata';
         }
       } else {
-        if (that._tree.isExpanded(id)) {
-          that._tree.delChildren(id);
+        if (that.tree.isExpanded(id)) {
+          that.tree.delChildren(id);
         } else {
           search = {type: 'section', parent: id};
         }
@@ -119,7 +123,7 @@
       if (search) {
         that._api.get(that._actions.load, search, info);
       }
-      that._tree.expand(id, false);
+      that.tree.expand(id, false);
     };
   };
 
@@ -135,9 +139,9 @@
       var f = that._form;
       f.set();
       if (!_isPredefNode(id)) {
-        if (event.type == that._tree.event('add')) {
+        if (event.type == that.tree.event('add')) {
           f.set({parents: {parent_section: id}, type: 'section'});
-        } else if (event.type == that._tree.event('edit')) {
+        } else if (event.type == that.tree.event('edit')) {
           f.set(data);
         }
         f.open();
@@ -189,15 +193,15 @@
     var that = this;
     return function(event, data) {
       if (data.action === 'del') {
-        that._tree.del(data.info);
+        that.tree.del(data.info);
       } else if (data.action === 'set') {
         var elements = data.response;
         for (var i in elements) {
           var elem = elements[i];
           if (elem.parents && elem.parents.parent_section) {
-            that._tree.add(elem, elem.parents.parent_section);
+            that.tree.add(elem, elem.parents.parent_section);
           } else {
-            that._tree.add(elem, 'own-metadata');
+            that.tree.add(elem, 'own-metadata');
           }
         }
       }
@@ -216,9 +220,9 @@
         for (var i in data.response) {
           i = data.response[i];
           if (data.info && _isPredefNode(data.info)) {
-            that._tree.add(i, data.info);
+            that.tree.add(i, data.info);
           } else if (i.parents.parent_section) {
-            that._tree.add(i, i.parents.parent_section);
+            that.tree.add(i, i.parents.parent_section);
           }
         }
       }
@@ -248,12 +252,13 @@
    */
   MetadataTree.PREDEF_NODES = [
           {id: 'own-metadata', name: 'Metadata', parent_id: null},
-          {id: 'own-not-annotated', name: 'Not Annotated', parent_id: null, isleaf: true},
           {id: 'own-all', name: 'All Data', parent_id: null, isleaf: true},
           {id: 'shared', name: 'Shared Objects', parent_id: null},
           {id: 'shared-metadata', name: 'Metadata', parent_id: 'shared'},
-          {id: 'shared-not-annotated', name: 'Not Annotated', parent_id: 'shared', isleaf: true},
-          {id: 'shared-all', name: 'All Data', parent_id: 'shared', isleaf: true}
+          {id: 'shared-all', name: 'All Data', parent_id: 'shared', isleaf: true},
+          {id: 'public', name: 'Public Objects', parent_id: null},
+          {id: 'public-metadata', name: 'Metadata', parent_id: 'public'},
+          {id: 'public-all', name: 'All Data', parent_id: 'public', isleaf: true}
   ];
 
 }());

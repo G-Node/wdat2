@@ -31,8 +31,8 @@
     this._nav.add({id: 'root', name: '>>'}, 0);
     this._jq.append(this._nav.jq());
     // initialize list
-    this._list = new WDAT.List(listId, bus, ['edit', 'del', 'sel']);
-    this._jq.append(this._list.jq());
+    this.list = new WDAT.List(listId, bus, ['edit', 'del', 'sel']);
+    this._jq.append(this.list.jq());
     // bus and api
     this._bus = bus;
     this._api = api;
@@ -51,7 +51,7 @@
     bus.subscribe(searchEvent, this._searchEventHandler());
     bus.subscribe(this._actions.update_all, this._updateAllHandler());
     bus.subscribe(this._actions.update_single, this._updateSingleHandler());
-    bus.subscribe(this._list.event('sel'), this._selectDataHandler());
+    bus.subscribe(this.list.event('sel'), this._selectDataHandler());
     bus.subscribe(this._nav.action, this._selectDataHandler());
   }
 
@@ -67,7 +67,7 @@
     var search = [{}];
     if (this._searchActive && this._searchParam) {
       search = this._searchParam;
-      if (typeof search == 'object')
+      if (!(search instanceof Array))
         search = [search];
     }
     // prepare search depending on sections selection
@@ -103,6 +103,7 @@
     var that = this;
     return function(event, data) {
       if (data && data.id) {
+        that._nav.del(1);
         var id = data.id;
         if (data.type == 'section') {
           that._selectedSection = id;
@@ -123,6 +124,7 @@
     var that = this;
     return function(event, data) {
       if (data) {
+        that._nav.del(1);
         if (data.param) {
           that._searchParam = data.param;
         } else {
@@ -146,9 +148,9 @@
     var that = this;
     return function(event, data) {
       if (data.response) {
-        that._list.clear();
+        that.list.clear();
         for (var i in data.response) {
-          that._list.add(data.response[i], data.response[i].type);
+          that.list.add(data.response[i], data.response[i].type);
         }
       }
     };
@@ -210,8 +212,8 @@
     var searchCreated = [];
     for (var i in search) {
       var partSearch = search[i];
-      if (!partSearch.hasOwnProperty('parent'))
-        partSearch.parent = "";
+//      if (!partSearch.hasOwnProperty('parent'))
+//        partSearch.parent = "";
       if (partSearch.type) {
         searchCreated.push(partSearch);
       } else {
@@ -238,8 +240,8 @@
     var searchCreated = [];
     for (var i in search) {
       var partSearch = search[i];
-      if (!partSearch.hasOwnProperty('parent'))
-        partSearch.parent = "";
+//      if (!partSearch.hasOwnProperty('parent'))
+//        partSearch.parent = "";
       partSearch.safety_level = 'public';
       partSearch.owner = [user, '!='];
       if (partSearch.type) {
@@ -268,8 +270,8 @@
     var searchCreated = [];
     for (var i in search) {
       var partSearch = search[i];
-      if (!partSearch.hasOwnProperty('parent'))
-        partSearch.parent = "";
+//      if (!partSearch.hasOwnProperty('parent'))
+//        partSearch.parent = "";
       partSearch.safety_level = 'friendly';
       partSearch.owner = [user, '!='];
       if (partSearch.type) {
@@ -298,8 +300,8 @@
     var searchCreated = [];
     for (var i in search) {
       var partSearch = search[i];
-      if (!partSearch.hasOwnProperty('parent'))
-        partSearch.parent = "";
+//      if (!partSearch.hasOwnProperty('parent'))
+//        partSearch.parent = "";
       partSearch.owner = user;
       if (partSearch.type) {
         searchCreated.push(partSearch);

@@ -109,32 +109,31 @@
     if (data) {
       cont.jq().attr('id', this.toID(data));
       // get the right category
-      var cat = undefined;
-      if (category && category != 'default') {
-        if (this._categories[category]) {
-          // found a matching category
-          cat = this._jq.find('#' + this.toID(category));
-        } else {
-          // no category found, create a new one
-          cat = category.toLowerCase();
-          var label = strCapitalizeWords(cat, /[_\-\ \.:]/);
-          this._categories[cat] = label;
-          var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
-          html.attr('id', this.toID(cat));
-          html.find('.category-name').text(label);
-          // create add button if add event is present
-          if (this._actions.add) {
-            var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {
-              name : label, id : cat});
-            html.find('.category-name').before(b.jq());
-          }
-          // append everything
-          this._jq.find('#' + this.toID('default')).before(html);
-          cat = html;
-        }
+      var cat = category || 'default';
+      cat = cat.toLowerCase();
+      if (this._categories[cat]) {
+        // found a matching category
+        cat = this._jq.find('#' + this.toID(category));
       } else {
-        // no category specified, get default category
-        cat = this._jq.find('#' + this.toID('default'));
+        // no category found, create a new one
+        var label = strCapitalizeWords(cat, /[_\-\ \.:]/);
+        this._categories[cat] = label;
+        var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
+        html.attr('id', this.toID(cat));
+        html.find('.category-name').text(label);
+        // create add button if add event is present
+        if (this._actions.add) {
+          var b = new WDAT.Button(null, 'add_small', this._bus, this._actions.add, {
+            name : label, id : cat});
+          html.find('.category-name').before(b.jq());
+        }
+        // append everything
+        var position = this._jq.find('#' + this.toID('default'));
+        if (position.length > 0)
+          position.before(html);
+        else
+          this._jq.append(html);
+        cat = html;
       }
       // append container and return data object
       cat.append(cont.jq());

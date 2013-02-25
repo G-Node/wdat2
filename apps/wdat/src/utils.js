@@ -181,7 +181,7 @@ WDAT.api = WDAT.api || {}; // name space related to the RESTfull API
 WDAT.app = WDAT.app || {}; // name space for application specific parts
 WDAT.ui = WDAT.ui || {}; // name space for UI base classes
 
-WDAT.debug = true;
+WDAT.debug = false;
 
 //-------------------------------------------------------------------------------------
 // Data model definition
@@ -198,7 +198,7 @@ WDAT.model.metadata = {
     },
     children : {
       property_set: {type: 'property', label: 'Properties'},
-      block_set: {type: 'block', label: 'Properties'},
+      block_set: {type: 'block', label: 'Blocks'},
 //      datafile_set: {type: 'file', label: 'Files'},
       section_set: {type: 'section', label: 'Sections'}
     },
@@ -276,62 +276,6 @@ WDAT.model.data.container = {
     parents : {
       block: {type: 'block'}
     }
-  },
-  /* move to plotable ? */
-  eventarray : {
-    fields : {
-      name: {type: 'text', obligatory: true, min: 3, max: 100},
-      labels: {type: 'text'},
-      description: {type: 'ltext'},
-      file_origin: {type: 'text'}
-    },
-    data : {
-      times: {type: 'num'}
-    },
-    children: {
-      event_set: {type: 'event'}
-    },
-    parents: {
-      segment: {type: 'segment'}
-    },
-  },
-  /* move to plotable ? */
-  epocharray : {
-    fields: {
-      name: {type: 'text', obligatory: true, min: 3, max: 100},
-      labels: {type: 'text'},
-      description: {type: 'ltext'},
-      file_origin: {type: 'text'},
-    },
-    data: {
-      times: {type: 'datafile'},
-      durations: {type: 'datafile'},
-    },
-    children: {
-      epoch_set: {type: 'epoch'},
-    },
-    parents: {
-      segment: {type: 'segment'},
-    }
-  },
-  /* move to plotable ? */
-  analogsignalarray : {
-    fields : {
-      name: {type: 'text', obligatory: true, min: 3, max: 100},
-      description: {type: 'ltext'},
-      file_origin: {type: 'text'},
-    },
-    data : {
-      analogsignal_set: {type: 'datafile'},
-      sampling_rate: {type: 'num'},
-      t_start: {type: 'num'},
-    },
-    children : {
-      analogsignal_set: {type: 'analogsignal'},
-    },
-    parents : {
-      segment: {type: 'segment'},
-    },
   },
   unit : {
     fields : {
@@ -432,7 +376,6 @@ WDAT.model.data.plotable = {
     children: {},
     parents: {
       segment: {type: 'segment'},
-      eventarray: {type: 'eventarray'}
     }
   },
   epoch : {
@@ -449,7 +392,6 @@ WDAT.model.data.plotable = {
     children: {},
     parents: {
       segment: {type: 'segment'},
-      epocharray: {type: 'epocharray'}
     }
   },
   analogsignal : {
@@ -466,7 +408,6 @@ WDAT.model.data.plotable = {
     children : {},
     parents : {
       segment: {type: 'segment'},
-      analogsignalarray: {type: 'analogsignalarray'},
       recordingchannel: {type: 'recordingchannel'}
     }
   },
@@ -484,6 +425,59 @@ WDAT.model.data.plotable = {
     parents: {
       segment: {type: 'segment'},
     }
+  },
+  /* move to plotable ? */
+  eventarray : {
+    fields : {
+      name: {type: 'text', obligatory: true, min: 3, max: 100},
+      labels: {type: 'text'},
+      description: {type: 'ltext'},
+      file_origin: {type: 'text'}
+    },
+    data : {
+      times: {type: 'num'}
+    },
+    children: {
+    },
+    parents: {
+      segment: {type: 'segment'}
+    },
+  },
+  /* move to plotable ? */
+  epocharray : {
+    fields: {
+      name: {type: 'text', obligatory: true, min: 3, max: 100},
+      labels: {type: 'text'},
+      description: {type: 'ltext'},
+      file_origin: {type: 'text'},
+    },
+    data: {
+      times: {type: 'datafile'},
+      durations: {type: 'datafile'},
+    },
+    children: {
+    },
+    parents: {
+      segment: {type: 'segment'},
+    }
+  },
+  /* move to plotable ? */
+  analogsignalarray : {
+    fields : {
+      name: {type: 'text', obligatory: true, min: 3, max: 100},
+      description: {type: 'ltext'},
+      file_origin: {type: 'text'},
+    },
+    data : {
+      analogsignal_set: {type: 'datafile'},
+      sampling_rate: {type: 'num'},
+      t_start: {type: 'num'},
+    },
+    children : {
+    },
+    parents : {
+      segment: {type: 'segment'},
+    },
   }
 };
 WDAT.model.all = {

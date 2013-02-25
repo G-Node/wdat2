@@ -12,18 +12,18 @@
     display: table-cell;
     vertical-align: middle;
     width: 100%;
-    padding: 0 @cushioning;
-    
     textarea { width: 100%; }
     input { margin: 8px 4px 0px 0px;}
   }
   
   .search-btn, .compose-btn {
     display: table-cell;
-    vertical-align: top;
+    vertical-align: middle;
     width: 90;
-    padding: 0 @cushioning;
-    
-    button { width: 82px; }
+    button { margin-left: @cushioning; }
   }
+  
+  .search-field, .search-btn { padding: @cushioning @smallcushion 0 @smallcushion; }
+  
+  .activate-btn, .compose-btn { padding: 0 @smallcushion @cushioning @smallcushion; }
 }

@@ -7,7 +7,7 @@
    *
    *  Depends on: jQuery, WDAT.Bus, WDAT.Button
    */
-  WDAT.ui.SearchBar = SearchBar;
+  WDAT.SearchBar = SearchBar;
   inherit(SearchBar, WDAT.Widget);
   function SearchBar(id, bus, search, activate) {
     SearchBar.parent.constructor.call(this, id, SearchBar.TEMPLATE, 'wdat-search');
@@ -28,10 +28,10 @@
     this._jq.find('.search-btn').append(this._searchbtn.jq());
     this._activebox = $('<input type="checkbox" value="active" checked="checked">');
     this._activebox.click(this._activateBoxHandler());
-    this._jq.find('.activate-btn').append(this._activebox).append('Activate search');
-    this._composebtn = new WDAT.Button('compose-btn', 'Compose', bus,
-                                       this._composeButtonHandler());
-    this._jq.find('.compose-btn').append(this._composebtn.jq());
+    this._jq.find('.activate-btn').append(this._activebox).append('Apply filter rules');
+//    this._composebtn = new WDAT.Button('compose-btn', 'Compose', bus,
+//                                       this._composeButtonHandler());
+//    this._jq.find('.compose-btn').append(this._composebtn.jq());
   }
 
   /**
@@ -116,12 +116,12 @@
       var val = that._activebox.val();
       if (val == "active") {
         that._searchbtn.disable(true);
-        that._composebtn.disable(true);
+//        that._composebtn.disable(true);
         that._searchbar.attr('readonly', true);
         that._activebox.val('inactive');
       } else {
         that._searchbtn.disable(false);
-        that._composebtn.disable(false);
+//        that._composebtn.disable(false);
         that._searchbar.attr('readonly', null);
         that._activebox.val('active');
       }
@@ -138,5 +138,5 @@
   SearchBar.TEMPLATE = '<div class="wdat-search"><div class="top-row">' +
                        '<div class="search-field"></div><div class="search-btn"></div>' +
                        '</div><div class="bottom-row"><div class="activate-btn"></div>' +
-                       '<div class="compose-btn"></div></div></div>"';
+                       '<div class="compose-btn"></div></div></div>';
 }());

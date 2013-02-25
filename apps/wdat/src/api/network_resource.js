@@ -204,7 +204,7 @@
    */
   NetworkResource.prototype._getSingle = function(specifier, depth) {
     var result = null;
-    if (depth) {
+    if (depth) {  // FIXME some part of this code returns null values in the result
       var d  = (depth > 2) ? 2 : depth;
       // do first request
       var url = this._specToURL(specifier);
@@ -212,7 +212,7 @@
       if (!result.error) {
         // parse response
         var response = result.response;
-        var subrequest_error = undefined;
+        var subrequest_error = false;
         var other_responses = [];
         var stack = [];             // stack with elements to process
         for (var i in response.selected) {
@@ -227,7 +227,7 @@
             var id = _stripURL(elem.data.permalink);
             for (var i in childfields) {
               var field = childfields[i];
-              if (field.type && elem.data.fields[i].length > 0) {
+              if (field.type && field.type != type && elem.data.fields[i].length > 0) {
                 var tmp = this.get({type: field.type, parent: id});
                 if (!tmp.error) {
                   var children = tmp.response;

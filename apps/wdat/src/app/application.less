@@ -1,6 +1,10 @@
 /* ---------- file: application.less -----------*/
 
-div.head, div.nav, div.main, div.left, div.right, div.center {
+body {
+  background-color: #dddddd;
+}
+
+div.head, div.nav {
   border: 1px solid black;
 }
 
@@ -23,30 +27,26 @@ div.head, div.nav, div.main, div.left, div.right, div.center {
   
   .left {
     float: left;
-    width: 250px;
+    width: 280px;
     min-height: 200px; /* remove?*/
   }
   
   .right {
     float: right;
-    width: 250px;
+    width: 280px;
     min-height: 200px; /* remove?*/
   }
   
   .center {
     min-height: 200px; /* remove?*/
-    margin: 0 250px + @cushioning;
+    margin: 0 280px + @cushioning;
   }
   
   /* MOVE THE FOLLOWING DEFINITIONS TO OTHER FILES*/
   
-  #search-bar {
-    height: 50px;
-  }
   
-  #metadata-tree, #property-list, #data-list {
-    overflow: scroll; 
-    overflow-x: auto;
+  #sel-data-view {
+    margin-top: @cushioning;
   }
   
   #data-list, #main-content {

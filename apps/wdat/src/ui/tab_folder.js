@@ -18,7 +18,7 @@
   WDAT.TabFolder = TabFolder;
   inherit(TabFolder, WDAT.MultiContainer);
   function TabFolder(id, bus, hasControl) {
-    TabFolder.parent.constructor.call(this, id, bus, ['sel'], 'wdat-tab-folder');
+    TabFolder.parent.constructor.call(this, id, bus, ['sel'], 'wdat-tab-folder', '<div>');
     this._hasControl = hasControl;
     if (this._hasControl) {
       this._control = $('<ul class="tab-navigation"></ul>');
