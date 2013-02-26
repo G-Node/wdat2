@@ -20,7 +20,7 @@ class Section(SafetyLevel, ObjectState):
 
     name = models.CharField(max_length=100)
     description = models.TextField(max_length=100, blank=True, null=True)
-    odml_type = models.CharField(blank=True, null=True)
+    odml_type = models.CharField(max_length=50, blank=True, null=True)
     parent_section = VersionedForeignKey('self', blank=True, null=True) # link to itself to create a tree.
     # position in the list on the same level in the tree
     tree_position = models.IntegerField(default=0)

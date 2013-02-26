@@ -87,7 +87,7 @@ class BaseHandler(object):
                 if not objects: # object does not exist?
                     return NotFound(message_type="does_not_exist", request=request)
 
-                if self.is_versioned: # validate permissions for multi-user objs
+                if self.is_multiuser: # validate permissions for multi-user objs
                     if request.method == 'GET': # get single object
                         if not objects[0].is_accessible(request.user):
                             return Forbidden(message_type="not_authorized", request=request)
@@ -326,6 +326,15 @@ class BaseHandler(object):
             "selected_range": None,
             "selected": None
         }
+
+        # calulate the size of the response, if data is requested
+        # if objects have data, start to retrieve it first
+        #exobj = objects[0] # example object
+        #if exobj.has_data:
+            #data_ids = objects.values_list('data_key', flat=True)
+            # problem: how to retreive a slice with diff time window? hm..
+            #ids[obj_id] = exobj.obj_type
+
         if objects:
             try:
                 srlzd = self.serializer.serialize(objects, options=self.options)

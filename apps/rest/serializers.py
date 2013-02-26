@@ -40,9 +40,9 @@ class Serializer(PythonSerializer):
     def serialize_rel(self):
         return (self.q == 'full' or self.q == 'beard') and self.show_kids
 
-    def serialize(self, queryset, options={}):
+    def serialize(self, objects, options={}):
         """
-        Serialize a queryset. options => dict(request.GET)
+        Serialize a set of heterogenious objects. options => dict(request.GET)
         """
         def parse_options(self, options):
             self.options = options
@@ -62,28 +62,22 @@ class Serializer(PythonSerializer):
             - other: permalink or just id for objects without permalink """
             self.use_natural_keys = options.get("fk_mode", self.use_natural_keys)
 
-        if not len(queryset) > 0:
+        if not len(objects) > 0:
             return None
 
         parse_options(self, options)
 
-        # list of names of reverse relations
-        rev_rel_list = [f.field.rel.related_name or f.model().obj_type + "_set" \
-            for f in queryset.model._meta.get_all_related_objects() if not \
-                issubclass(f.model, VersionedM2M) and \
-                    issubclass(f.model, ObjectState)]
-
         self.start_serialization()
 
-        # calulate the size of the response, if data is requested
-        # if objects have data, start to retrieve it first
-        #exobj = queryset[0] # example object
-        #if exobj.has_data:
-            #data_ids = queryset.values_list('data_key', flat=True)
-            # problem: how to retreive a slice with diff time window? hm..
-            #ids[obj_id] = exobj.obj_type
+        for obj in objects: # better if homogenious objects...
+            model = obj.__class__
 
-        for obj in queryset: # homogenious objects
+            # list of names of reverse relations
+            rev_rel_list = [f.field.rel.related_name or f.model().obj_type + "_set" \
+                for f in model._meta.get_all_related_objects() if not \
+                    issubclass(f.model, VersionedM2M) and \
+                        issubclass(f.model, ObjectState)]
+
             self.start_object(obj)
 
             for field in obj._meta.local_fields: # local fields / FK fields
@@ -95,7 +89,7 @@ class Serializer(PythonSerializer):
                         self.serialize_special(obj, field)
                     else:
 
-                        if self.is_data_field_django(queryset.model, field):
+                        if self.is_data_field_django(model, field):
                             if field.rel is None:
                                 data = field._get_val_from_obj(obj)
                                 if not is_protected_type(data): data = field.value_to_string(obj)

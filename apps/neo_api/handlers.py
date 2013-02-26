@@ -90,24 +90,23 @@ class MetadataHandler(BaseHandler):
 
             kwargs = {}
             # loading related values (m2m should be loaded by default)
-            kwargs["local_id__in"] = objects[0].metadata_buffer_ids
+            kwargs["pk__in"] = objects[0].metadata_buffer_ids
             values = value_model.objects.filter( **kwargs )
-            ser_values = self.serializer.serialize(values, options=self.options)
-
-            # mmap is a list of pairs (<value_id>, <property_id>)
-            mmap = value_model.objects.filter( **kwargs ).values_list('local_id',\
-                'parent_property_id')
 
             # loading properties
-            kwargs["local_id__in"] = [v.parent_property_id for v in values]
-            props = prop_model.objects.filter( **kwargs )
-            ser_props = self.serializer.serialize(props, options=self.options)
+            kwargs["pk__in"] = [v.parent_property_id for v in values]
+            properties = prop_model.objects.filter( **kwargs )
 
+            mmap = values.values_list('pk', 'parent_property_id')
             pairs = []
-            for i in mmap:
-                v = [x for x in ser_values if x['fields']['local_id'] == i[0]][0]
-                p = [x for x in ser_props if x['fields']['local_id'] == i[1]][0]
+
+            for i in mmap: # no database hits here
+                p_obj = [x for x in properties if int(x.pk) == int(i[1])]
+                v_obj = [x for x in values if int(x.pk) == int(i[0])]
+                p = self.serializer.serialize( p_obj, options=self.options )[0]
+                v = self.serializer.serialize( v_obj, options=self.options)[0]
                 pairs.append([ p , v ])
+
             resp_data["metadata"] = pairs
             message_type = "metadata_found"
 
