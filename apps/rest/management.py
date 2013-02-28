@@ -200,6 +200,12 @@ class BaseHandler(object):
                         new_val = new_val.replace('(', '').replace('])', '')
                         new_val = [int(v) for v in new_val.split(',')]
 
+                    # shortcuts to query data by metadata: mp & mv
+                    if new_key.find('mp__') > -1:
+                        new_key = new_key.replace('mp__', 'metadata__parent_property__')
+                    if new_key.find('mv__') > -1:
+                        new_key = new_key.replace('mv__', 'metadata__data__')
+
                     # __isnull needs value conversion to correct bool
                     if new_key.find('__isnull') > 0 and type(str(v)) == type(''):
                         try:
