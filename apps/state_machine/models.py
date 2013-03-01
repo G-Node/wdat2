@@ -380,29 +380,67 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             return self.bulk_create( objs )
         return self
 
-    def get_related(self, *args, **kwargs):
-        """ returns a LIST (not a queryset) of objects with children permalinks. 
-        This should be faster than using any of standard django 'select_related'
-        or 'prefetch_related' methods which (unexpectedly) do not work exactly 
-        as suggested. """
-        objects = self.filter( **kwargs )
+    def security_filter(self, user, update=False):
+        """ filters given queryset for objects available for a given user. Does 
+        not evaluate QuerySet, does not hit the database. """
+        queryset = self.all()
 
-        if objects: # evaluates queryset, executes 1 SQL
+        if not "owner" in [x.name for x in queryset.model._meta.local_fields]:
+            return queryset # non-multiuser objects are fully available
+
+        if issubclass(queryset.model, SafetyLevel):
+            if not update:
+                # 1. all public objects 
+                q1 = queryset.filter(safety_level=1).exclude(owner=user)
+
+                # 2. all *friendly*-shared objects
+                friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
+                    + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
+                q2 = queryset.filter(safety_level=2, owner__in=friends)
+
+                # 3. All private direct shares
+                dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
+                    object_type=queryset.model.acl_type())]
+                q3 = queryset.filter(pk__in=dir_acc)
+
+                perm_filtered = q1 | q2 | q3
+
+            else:
+                # 1. All private direct shares with 'edit' level
+                dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
+                    object_type=queryset.model.acl_type(), access_level=2)]
+                perm_filtered = queryset.filter(pk__in=dir_acc) # not to damage QuerySet
+        else:
+            perm_filtered = queryset.none()
+
+        # owned objects always available
+        queryset = perm_filtered | queryset.filter(owner=user)
+        return queryset
+
+    def fill_relations(self, user=None):
+        """ returns a LIST (not a queryset) of objects with children and m2m
+        permalinks. """
+        objects = self.all()
+
+        if len( objects ) > 0: # evaluates queryset if not done yet
             # fetch reversed FKs (children)
-            objects = self.fetch_fks( objects )
+            objects = self.fetch_fks( objects, user )
 
             # fetch reversed M2Ms (m2m children)
-            objects = self.fetch_m2m( objects )
+            objects = self.fetch_m2m( objects, user )
 
         return objects
 
-    def fetch_fks(self, objects):
+    def fetch_fks(self, objects, user=None):
         """ assigns permalinks of the reversed-related children to the list of 
         objects given. Expects list of objects, uses reversed FKs to fetch 
         children and their ids. Returns same list of objects, each having new  
         attributes WITH postfix _buffer and _buffer_ids after default django 
         <fk_name>_set field, containing list of reversly related FK object 
-        permalinks and ids respectively. """
+        permalinks and ids respectively.
+
+        Used primarily in REST. 
+        """
         if not objects: return []
 
         ids = [ x.pk for x in objects ]
@@ -425,7 +463,10 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             if self._at_time and issubclass(rel_model, ObjectState): # proxy time if requested
                 filt = dict(filt, **{"at_time": self._at_time})
             # relmap is a list of pairs (<child_id>, <parent_ref_id>)
-            relmap = rel_model.objects.filter( **filt ).values_list('pk', rel_field_name)
+            rel_objs = rel_model.objects.filter( **filt )
+            if user:
+                rel_objs = rel_objs.security_filter( user )
+            relmap = rel_objs.values_list('pk', rel_field_name)
 
             if relmap:
                 # preparing fk maps: preparing dicts with keys as parent 
@@ -445,7 +486,6 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
                     except KeyError: # no children, but that's ok
                         setattr( obj, rel_name + "_buffer", [] )
                         setattr( obj, rel_name + "_buffer_ids", [] )
-                    #setattr( obj, rel_name + "_data", [x[0] for x in relmap if x[1] == lid] )
             else:
                 # objects do not have any children of that type
                 for obj in objects: 
@@ -453,7 +493,7 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
                     setattr( obj, rel_name + "_buffer_ids", [] )
         return objects
 
-    def fetch_m2m(self, objects):
+    def fetch_m2m(self, objects, user=None):
         """ assigns permalinks of the related m2m children to the list of 
         objects given. Expects list of objects, uses m2m to fetch children with 
         their ids. Returns same list of objects, each having new attribute WITH 
@@ -468,6 +508,7 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             m2m_class = field.rel.through
             own_name = field.m2m_field_name()
             rev_name = field.m2m_reverse_field_name()
+            rev_model = field.related.parent_model
             filt = dict( [(own_name + '__in', ids)] )
             url_base = _get_url_base( field.rel.to )
 
@@ -483,6 +524,10 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             rel_m2m_map = [ ( getattr(r, own_name + "_id"), \
                 getattr(r, rev_name + "_id") ) for r in rel_m2ms ]
             if rel_m2m_map:
+                if user: # security filtering
+                    available = rev_model.objects.get_query_set().security_filter( user ).values_list('pk', flat=True)
+                    rel_m2m_map = [x for x in rel_m2m_map if x[1] in available]
+
                 # preparing m2m maps: preparing dicts with keys as parent 
                 # object ids, and lists with m2m related children links and ids.
                 m2m_map_plinks = {}
@@ -560,10 +605,7 @@ class VersionedM2MManager( VersionManager ):
 
 
 class VersionedObjectManager( VersionManager ):
-    """ extends a normal manager for versioned objects with a 'get_related' 
-    method, which is able to fetch objects together with permalinks to the 
-    direct, reversed and m2m relatives. This type of query is needed for the 
-    default Response behaviour """
+    """ extends a normal manager for versioned objects """
 
     def get_query_set(self, **timeflt ):
         """ init QuerySet that supports object versioning """
@@ -575,18 +617,6 @@ class VersionedObjectManager( VersionManager ):
         """ proxy get_by_guid() method to QuerySet """
         return self.get_query_set().get_by_guid( guid )
 
-    def get_related(self, *args, **kwargs):
-        """ proxy get_related() method to QuerySet """
-        return self.get_query_set( **kwargs ).get_related(*args, **kwargs)
-
-    def get(self, *args, **kwargs):
-        """ same as get_related but always returns one object or throws an error
-        if there is no object. takes the first one if there are many """
-        try:
-            obj = self.get_related( *args, **kwargs )[0]
-        except IndexError:
-            raise ObjectDoesNotExist()
-        return obj
 
 #===============================================================================
 # Base models for a Versioned Object, M2M relations and Permissions management
@@ -979,5 +1009,4 @@ class SingleAccess(models.Model):
     def resolve_access_level(self, value):
         """ convert from int to str and vice versa TODO """
         pass
-
 

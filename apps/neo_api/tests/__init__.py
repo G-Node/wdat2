@@ -61,7 +61,7 @@ def create_simple_objects():
     ser.host = "http://testhost.org"
     sample_objects = {}
     for cls in meta_classnames.values():
-        objs = cls.objects.get_related( pk=1 )
+        objs = cls.objects.filter( pk=1 ).fill_relations()
         sobj = ser.serialize( objs )[0]['fields']
 
         # non-editable fields

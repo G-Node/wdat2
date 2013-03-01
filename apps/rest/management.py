@@ -7,7 +7,6 @@ from django.db.models.fields import FieldDoesNotExist
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_unicode
 
-from friends.models import Friendship
 from datetime import datetime
 
 import settings
@@ -67,13 +66,11 @@ class BaseHandler(object):
         request: incoming HTTP request
         obj_id: ID of the object from request URL
         """
-        kwargs = {}
-        create = False
-
         if not request.method in self.actions.keys():
             return NotSupported(message_type="invalid_method", request=request)
 
-        if not obj_id and not self.options.has_key('bulk_update'):
+        if not obj_id and not self.options.has_key('bulk_update') and \
+            request.method == 'POST':
             # create
             objects = None
 
@@ -87,10 +84,9 @@ class BaseHandler(object):
                 if self.options.has_key('at_time') and self.is_versioned:
                     objects = objects.filter( self.options['at_time'] )
 
-                # 2. permissions filtering
-                objects = self.security_filter(self, user, queryset, update=update)
-
                 if not obj_id:
+                    # 2. permissions filtering
+                    objects = objects.security_filter(request.user, update=update)
 
                     # 3. custom model filters
                     for key, value in self.options.items():
@@ -114,88 +110,31 @@ class BaseHandler(object):
 
                 else:
                     objects = objects.filter( pk=obj_id )
+                    if not objects:
+                        raise ObjectDoesNotExist('This object does not exist.')
 
-            except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
+                    objects = objects.security_filter(request.user, update=update) 
+                    if not objects:
+                        raise ReferenceError('You are not authorized to access this object.')
+
+            except (FieldError, ValidationError, ValueError), e:
                 return BadRequest(json_obj={"details": e.message}, \
                     message_type="wrong_params", request=request)
-            except ReferenceError, e: # attempt to update non-editable objects
+            except ObjectDoesNotExist, e:
+                return NotFound(json_obj={"details": e.message}, \
+                    message_type="wrong_reference", request=request)
+            except ReferenceError, e:
                 return Forbidden(json_obj={"details": e.message}, \
                     message_type="not_authorized", request=request)
 
             if request.method == 'GET':
                 # enrich objects with relatives
-
+                objects = objects.fill_relations( request.user )
 
                 # enrich objects with ACLs
 
-
         return self.actions[request.method](request, objects)
 
-
-
-
-
-
-
-
-        if self.options.has_key('at_time') and self.is_versioned:
-            # to fetch a particular version
-            kwargs['at_time'] = self.options['at_time']
-
-        if request.method in self.actions.keys():
-
-            if obj_id: # single object case, GET, UPDATE or DELETE
-                objects = self.model.objects.filter( **kwargs )
-                objects = objects.filter( pk = obj_id )
-                if not objects: # object does not exist?
-                    return NotFound(message_type="does_not_exist", request=request)
-
-                if self.is_multiuser: # validate permissions for multi-user objs
-                    if request.method == 'GET': # get single object
-                        if not objects[0].is_accessible(request.user):
-                            return Forbidden(message_type="not_authorized", request=request)
-
-                    elif not objects[0].is_editable(request.user): # modify single
-                        return Forbidden(message_type="not_authorized", request=request)
-
-            else: # a category case, GET, CREATE, DELETE or BULK UPDATE
-                update = self.options.has_key('bulk_update')
-                if request.method == 'GET' or (request.method == 'POST' and update):
-                    # GET, DELETE or BULK UPDATE
-                    objects = self.model.objects.filter( **kwargs )
-                    try:
-                        objects = self.primary_filtering(request.user, objects, update)
-                    except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
-                        #k.find('__') filter key/value is/are wrong
-                        return BadRequest(json_obj={"details": e.message}, \
-                            message_type="wrong_params", request=request)
-                    except ReferenceError, e: # attempt to update non-editable objects
-                        return Forbidden(json_obj={"details": e.message}, \
-                            message_type="not_authorized", request=request)
-
-                else: # CREATE
-                    create = True
-                    objects = None
-
-            if not create:
-                q = self.options.get("q", self.mode)
-
-                if self.is_versioned:
-                    all_ids = objects.values_list( "guid", flat=True )
-                    if len(all_ids) > 0: # evaluate pre-QuerySet here, hits database
-                        kwargs["guid__in"] = self.secondary_filtering(all_ids)
-                        if request.method == 'DELETE':
-                            objects = kwargs["guid__in"] # just pass [guid's]
-                        else:
-                            objects = self.model.objects.get_related( **kwargs )
-                    else:
-                        objects = []
-                else:
-                    pass # FIXME secondary filtering for non-versioned objs!!
-
-            return self.actions[request.method](request, objects)
-        else:
-            return NotSupported(message_type="invalid_method", request=request)
 
     def clean_get_params(self, request):
         """ clean request GET params """
@@ -300,44 +239,6 @@ class BaseHandler(object):
         if rdata.has_key('fields'):
             rdata = rdata['fields']
         return rdata
-
-
-    @ classmethod
-    def security_filter(self, user, queryset, update=False):
-        """ filters given queryset for objects available for a given user. Does 
-        not evaluate QuerySet, does not hit the database. """
-
-        if not "owner" in [x.name for x in queryset.model._meta.local_fields]:
-            return queryset # non-multiuser objects are fully available
-
-        if issubclass(queryset.model, SafetyLevel):
-            if not update:
-                # 1. all public objects 
-                q1 = queryset.filter(safety_level=1).exclude(owner=user)
-
-                # 2. all *friendly*-shared objects
-                friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
-                    + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
-                q2 = queryset.filter(safety_level=2, owner__in=friends)
-
-                # 3. All private direct shares
-                dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
-                    object_type=queryset.model.acl_type())]
-                q3 = queryset.filter(pk__in=dir_acc)
-
-                perm_filtered = q1 | q2 | q3
-
-            else:
-                # 1. All private direct shares with 'edit' level
-                dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
-                    object_type=queryset.model.acl_type(), access_level=2)]
-                perm_filtered = queryset.filter(pk__in=dir_acc) # not to damage QuerySet
-        else:
-            perm_filtered = queryset.none()
-
-        # owned objects always available
-        queryset = perm_filtered | queryset.filter(owner=user)
-        return queryset
 
 
     def post_filter(self, queryset):
@@ -479,12 +380,14 @@ class BaseHandler(object):
         request.method = "GET"
         filt = { 'pk__in': [ obj.pk for obj in objects ] }
         # need refresh the QuerySet, f.e. in case of a bulk update
-        return self.get(request, self.model.objects.get_related( **filt ), return_code)
+        fresh = self.model.objects.filter( **filt ).fill_relations( request.user )
+        return self.get(request, fresh, return_code)
 
 
     def delete(self, request, objects):
         """ delete (archive) provided objects """
-        self.model.objects.filter( guid__in = objects ).delete()
+        ids = [x.pk for x in objects]
+        self.model.objects.filter( guid__in = ids ).delete()
         return Success(message_type="deleted", request=request)
 
     def get_filter_by_name(self, filter_name):
