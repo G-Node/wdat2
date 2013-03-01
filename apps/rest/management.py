@@ -61,20 +61,75 @@ class BaseHandler(object):
     def __call__(self, request, obj_id=None, *args, **kwargs):
         """
         GET: get, POST: create/update, DELETE: delete single object. Serves 
-        partial data requests (info, data etc.) using GET params.
+        partial data requests (info, data etc.), filering using GET params.
 
         request: incoming HTTP request
         obj_id: ID of the object from request URL
-
-        With respect to the overall performance, the algorithm is the following:
-        - first it constructs a QuerySet with all user-provided filters from the 
-        request, security filters etc.
-        - then it evaluates the QuerySet getting object guids from the database
-        - then another QuerySet is being built, requesting objects with the
-        relatives, m2m (if needed) but only for the guids, filtered in steps 1-2
         """
         kwargs = {}
         create = False
+
+        if not request.method in self.actions.keys():
+            return NotSupported(message_type="invalid_method", request=request)
+
+        if not obj_id and not self.options.has_key('bulk_update'):
+            # create
+            objects = None
+
+        else:
+            # get, (bulk) update, delete
+            objects = self.model.objects.all()
+            update = (request.method == 'POST' or request.method == 'DELETE')
+
+            try:
+                # 1. to fetch a particular version
+                if self.options.has_key('at_time') and self.is_versioned:
+                    objects = objects.filter( self.options['at_time'] )
+
+                # 2. permissions filtering
+                objects = self.security_filter(self, user, queryset, update=update)
+
+                if not obj_id:
+
+                    # 3. custom model filters
+                    for key, value in self.options.items():
+                        matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
+                        if matched and objects:
+                            filter_func = self.list_filters[matched[0]]
+                            objects = filter_func(objects, self.options[key], user)
+
+                    # 4. django lookup filters
+                    objects = objects.filter(**self.attr_filters).exclude(**self.attr_excludes)
+
+                    # 5. post-filtering
+                    objects = self.post_filter( objects )
+
+                else:
+                    objects = objects.filter( pk=obj_id )
+
+            except (ObjectDoesNotExist, FieldError, ValidationError, ValueError), e:
+                return BadRequest(json_obj={"details": e.message}, \
+                    message_type="wrong_params", request=request)
+            except ReferenceError, e: # attempt to update non-editable objects
+                return Forbidden(json_obj={"details": e.message}, \
+                    message_type="not_authorized", request=request)
+
+            if request.method == 'GET':
+                # enrich objects with relatives
+
+
+                # enrich objects with ACLs
+
+
+        return self.actions[request.method](request, objects)
+
+
+
+
+
+
+
+
         if self.options.has_key('at_time') and self.is_versioned:
             # to fetch a particular version
             kwargs['at_time'] = self.options['at_time']
@@ -236,62 +291,51 @@ class BaseHandler(object):
         return rdata
 
 
-    def primary_filtering(self, user, objects, update=False):
-        """ filter objects as per request params: predefined filters + django
-        lookup filters + security filtering. Does not evaluate QuerySet, does
-        not hit the database. """
+    @ classmethod
+    def security_filter(self, user, queryset, update=False):
+        """ filters given queryset for objects available for a given user. Does 
+        not evaluate QuerySet, does not hit the database. """
 
-        # specific predefined filters
-        for key, value in self.options.items():
-            matched = [fk for fk in self.list_filters.keys() if key.startswith(fk)]
-            if matched and objects:
-                filter_func = self.list_filters[matched[0]]
-                objects = filter_func(objects, self.options[key], user)
+        if not "owner" in [x.name for x in queryset.model._meta.local_fields]:
+            return queryset # non-multiuser objects are fully available
 
-        # django lookup filters
-        objects = objects.filter(**self.attr_filters).exclude(**self.attr_excludes)
+        if issubclass(queryset.model, SafetyLevel):
+            if not update:
+                # 1. all public objects 
+                q1 = queryset.filter(safety_level=1).exclude(owner=user)
 
-        # permissions filter, if object interfaces multi-user access
-        if self.is_multiuser:
+                # 2. all *friendly*-shared objects
+                friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
+                    + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
+                q2 = queryset.filter(safety_level=2, owner__in=friends)
 
-            # 1. all public objects 
-            q1 = objects.filter(safety_level=1).exclude(owner=user)
+                # 3. All private direct shares
+                dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
+                    object_type=queryset.model.acl_type())]
+                q3 = queryset.filter(pk__in=dir_acc)
 
-            # 2. all *friendly*-shared objects
-            friends = [f.to_user.id for f in Friendship.objects.filter(from_user=user)] \
-                + [f.from_user.id for f in Friendship.objects.filter(to_user=user)]
-            q2 = objects.filter(safety_level=2, owner__in=friends)
+                perm_filtered = q1 | q2 | q3
 
-            # 3. All private direct shares
-            dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
-                object_type=self.model.acl_type())]
-            q3 = objects.filter(pk__in=dir_acc)
-
-            perm_filtered = q1 | q2 | q3
-
-            if update:
+            else:
                 # 1. All private direct shares with 'edit' level
-                dir_acc = [sa.id for sa in SingleAccess.objects.filter(access_for=user, \
-                    object_type=self.model.acl_type(), access_level=2)]
-                available = objects.filter(pk__in=dir_acc)
+                dir_acc = [sa.object_id for sa in SingleAccess.objects.filter(access_for=user, \
+                    object_type=queryset.model.acl_type(), access_level=2)]
+                perm_filtered = queryset.filter(pk__in=dir_acc) # not to damage QuerySet
+        else:
+            perm_filtered = queryset.none()
 
-                if self.options.has_key('mode') and not self.options['mode'] == 'ignore':
-                    if not perm_filtered.count() == available.count():
-                        raise ReferenceError("Some of the objects in your query are not available for an update.")
+        # owned objects always available
+        queryset = perm_filtered | queryset.filter(owner=user)
 
-                perm_filtered = objects.filter(pk__in=dir_acc) # not to damage QuerySet
+        return queryset
 
-            objects = perm_filtered | objects.filter(owner=user)
-
-        return objects
-
-
-    def secondary_filtering(self, ids):
-        """ simply sifts the given list with the following parameters:
+    def post_filter(self, queryset):
+        """ sifts the given list with the following parameters:
         - offset
         - max_results
         - spacing
-        - groups_of """
+        - groups_of 
+        Evaluates queryset as defined by the django logic. """
 
         offset = self.offset
         if self.options.has_key('offset'):
@@ -321,7 +365,7 @@ class BaseHandler(object):
                     objs = objs | objects.all()[ind:]
             objects = objs
         """
-        return ids[ offset: offset + max_results ]
+        return queryset[ offset: offset + max_results ]
 
 
     def get(self, request, objects, code=200):
@@ -560,15 +604,16 @@ def process_REST(request, obj_id=None, handler=None, *args, **kwargs):
 
 # FILTERS ----------------------------------------------------------------------
 
-def visibility_filter(objects, value, user):
+def visibility_filter(queryset, value, user):
     """ here is an example filter to show how filters could be used by custom 
-    handlers. this filter handles public / private / shared objects. """
+    handlers. this filter handles public / private / shared objects. MUST return
+    QuerySet """
     if value == "private":
-        return objects.filter( safety_level = 3 )
+        return queryset.filter( safety_level = 3 )
     if value == "public":
-        return objects.filter( safety_level = 1 )
+        return queryset.filter( safety_level = 1 )
     if value == "shared":
-        return objects.exclude(owner=user) # permissions are validated later anyway
+        return queryset.exclude(owner=user) # permissions are validated later anyway
 
 #-------------------------------------------------------------------------------
 # Trigger could be also used for versions update (sets ends_at to now()) when
