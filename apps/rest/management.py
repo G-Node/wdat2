@@ -12,6 +12,7 @@ from datetime import datetime
 
 import settings
 import hashlib
+import re
 
 from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M, ObjectState
 from rest.common import *
@@ -44,8 +45,8 @@ class BaseHandler(object):
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
         self.update = True # create / update via POST by default
         self.mode = settings.DEFAULT_RESPONSE_MODE
-        self.attr_filters = {} # attribute filters
-        self.attr_excludes = {} # negative attribute filters
+        self.attr_filters = [] # attribute filters
+        self.attr_excludes = [] # negative attribute filters
         self.options = {} # other request parameters
         #self.excluded_bulk_update = () # error when bulk update on these fields
 
@@ -99,7 +100,14 @@ class BaseHandler(object):
                             objects = filter_func(objects, self.options[key], user)
 
                     # 4. django lookup filters
-                    objects = objects.filter(**self.attr_filters).exclude(**self.attr_excludes)
+                    # processing one-by-one, potentially equal keys (metadata)
+                    for filt in self.attr_filters:
+                        filter_dict = dict( [filt] )
+                        objects = objects.filter( **filter_dict )
+
+                    for filt in self.attr_excludes:
+                        filter_dict = dict( [filt] )
+                        objects = objects.exclude( **filter_dict )
 
                     # 5. post-filtering
                     objects = self.post_filter( objects )
@@ -191,6 +199,7 @@ class BaseHandler(object):
 
     def clean_get_params(self, request):
         """ clean request GET params """
+        self.attr_filters, self.attr_excludes = [], []
         request_params_cleaner = {
             # signal / times group
             'start_time': lambda x: float(x), # may raise ValueError
@@ -230,19 +239,19 @@ class BaseHandler(object):
                     self.options[smart_unicode(k)] = request_params_cleaner.get(matched[0])(v)
 
                 else: # attribute- and other filters, negative filters, lookups
-                    """ here one could add some field-based validation for every  
-                    key, like:
-
-                    if k.find('__'):
-                        try: 
-                            field_name = k[ : k.find('__') ]
-                            field = self.model._meta.get_field( field_name )
-                        except FieldDoesNotExist:
-                            # ignore this key?
-                            pass
-
-                    for better safety. Here we let django resolve it.
+                    """ possibly make search shortcuts for metadata, key:value
+                    test_key = str(k)
+                    if test_key.startswith('n__'):
+                        test_key = test_key[ 3: ]
+                    if test_key.find('__'):
+                        test_key = test_key[ : test_key.find('__') ]
+                    try: 
+                        field = self.model._meta.get_field( test_key )
+                    except FieldDoesNotExist:
+                        # we consider this is the metadata key:value filter
+                        new_key = k.replace(test_key, 'metadata__parent_property__name')
                     """
+
                     # using pk instead of id due to versioning
                     new_key = smart_unicode(k)
                     if str( k[ : k.find('__')] ) == 'id':
@@ -256,10 +265,12 @@ class BaseHandler(object):
                         new_val = [int(v) for v in new_val.split(',')]
 
                     # shortcuts to query data by metadata: mp & mv
-                    if new_key.find('mp__') > -1:
-                        new_key = new_key.replace('mp__', 'metadata__parent_property__')
-                    if new_key.find('mv__') > -1:
-                        new_key = new_key.replace('mv__', 'metadata__data__')
+                    m = re.search('mp(?P<id>[\d]+)__', new_key)
+                    if m:
+                        new_key = new_key.replace(m.group(0), 'metadata__parent_property__')
+                    m = re.search('mv(?P<id>[\d]+)__', new_key)
+                    if m:
+                        new_key = new_key.replace(m.group(0), 'metadata__data__')
 
                     # __isnull needs value conversion to correct bool
                     if new_key.find('__isnull') > 0 and type(str(v)) == type(''):
@@ -270,9 +281,9 @@ class BaseHandler(object):
 
                     if k.startswith('n__'): # negative filter
                         new_key = new_key[ 3: ]
-                        self.attr_excludes[smart_unicode(new_key)] = new_val
+                        self.attr_excludes.append( (smart_unicode(new_key), new_val) )
                     else:
-                        self.attr_filters[smart_unicode(new_key)] = new_val
+                        self.attr_filters.append( (smart_unicode(new_key), new_val) )
 
             self.options["permalink_host"] = get_host_for_permalink( request )
         except (ObjectDoesNotExist, ValueError, IndexError, KeyError), e:
@@ -326,8 +337,8 @@ class BaseHandler(object):
 
         # owned objects always available
         queryset = perm_filtered | queryset.filter(owner=user)
-
         return queryset
+
 
     def post_filter(self, queryset):
         """ sifts the given list with the following parameters:
