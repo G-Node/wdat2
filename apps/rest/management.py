@@ -13,7 +13,7 @@ import settings
 import hashlib
 import re
 
-from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M, ObjectState
+from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M, ObjectState, ObjectExtender
 from rest.common import *
 from rest.meta import *
 
@@ -27,8 +27,9 @@ class BaseHandler(object):
     object, get list of objects, create, update and delete objects.
     """
     def __init__(self, serializer, model):
-        self.serializer = serializer() # serializer
         self.model = model # the model to work with, required
+        self.serializer = serializer() # serializer
+        self.extender = ObjectExtender( model ) # used to fetch additional attrs
         # custom filters, could be extended in a parent class.
         # important - a custom filter should not evaluate QuerySet.
         self.list_filters = {
@@ -81,7 +82,9 @@ class BaseHandler(object):
 
             try:
                 # 1. to fetch a particular version
+                at_time = None
                 if self.options.has_key('at_time') and self.is_versioned:
+                    at_time = self.options['at_time']
                     objects = objects.filter( self.options['at_time'] )
 
                 if not obj_id:
@@ -105,7 +108,7 @@ class BaseHandler(object):
                         filter_dict = dict( [filt] )
                         objects = objects.exclude( **filter_dict )
 
-                    # 5. post-filtering
+                    # 5. post-filter (max_results etc.) evaluates (!) queryset
                     objects = self.post_filter( objects )
 
                 else:
@@ -129,9 +132,10 @@ class BaseHandler(object):
 
             if request.method == 'GET':
                 # enrich objects with relatives
-                objects = objects.fill_relations( request.user )
+                objects = self.extender.fill_relations( objects, request.user, at_time )
 
                 # enrich objects with ACLs
+                objects = self.extender.fill_acl( objects, request.user )
 
         return self.actions[request.method](request, objects)
 
@@ -380,7 +384,8 @@ class BaseHandler(object):
         request.method = "GET"
         filt = { 'pk__in': [ obj.pk for obj in objects ] }
         # need refresh the QuerySet, f.e. in case of a bulk update
-        fresh = self.model.objects.filter( **filt ).fill_relations( request.user )
+        fresh = self.model.objects.filter( **filt )
+        fresh = self.extender.fill_relations( fresh, request.user )
         return self.get(request, fresh, return_code)
 
 

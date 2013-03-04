@@ -153,6 +153,10 @@ class Serializer(PythonSerializer):
                         if not (not children and rel_name[:-4] in self.do_not_show_if_empty):
                             self._current[rel_name] = children
 
+            # extend with object permissions
+            if hasattr(obj, '_shared_with'):
+                self._current['shared_with'] = getattr(obj, '_shared_with')
+
             self.end_object(obj)
         self.end_serialization()
 

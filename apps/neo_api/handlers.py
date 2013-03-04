@@ -9,8 +9,6 @@ from state_machine.models import VersionedM2M, ObjectState
 
 import settings
 
-# FIXME reqrite all filters below to include versioning
-
 class NEOHandler(BaseHandler):
     """ add some specific filtering to the base Handler """
 
@@ -27,7 +25,7 @@ class NEOHandler(BaseHandler):
 
             model = objects[0].__class__ # any better way?
             tags = {'metadata': m2m_dict['metadata']}
-            obj_with_related = model.objects.get_query_set().fetch_fks( objects = objects )
+            obj_with_related = self.extender.fill_fks( objects = objects )
             rels = [(f.model, f.model().obj_type + "_set") for f in \
                 model._meta.get_all_related_objects() if not \
                 issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]

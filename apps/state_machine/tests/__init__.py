@@ -1,4 +1,4 @@
-from state_machine.models import ObjectState, SafetyLevel, VersionedForeignKey, VersionedM2M
+from state_machine.models import ObjectState, SafetyLevel, VersionedForeignKey, VersionedM2M, ObjectExtender
 
 import time
 import datetime
@@ -242,7 +242,8 @@ class TestObjectState(TestCase):
         time.sleep( 1 )
 
         # assert object has 2 direct children and 2 M2M children
-        P1 = FakeParentModel.objects.filter( pk=1 ).fill_relations()[0]
+        P1 = FakeParentModel.objects.filter( pk=1 )
+        P1 = ObjectExtender( P1.model ).fill_relations( P1 )[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 2)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 2)
 
@@ -251,12 +252,14 @@ class TestObjectState(TestCase):
         m2m2.delete()
 
         # assert object has now only 1 direct child and 1 M2M child
-        P1 = FakeParentModel.objects.filter( pk=1 ).fill_relations()[0]
+        P1 = FakeParentModel.objects.filter( pk=1 )
+        P1 = ObjectExtender( P1.model ).fill_relations( P1 )[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 1)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 1)
 
         # assert previous relations accessible back in time
-        P1 = FakeParentModel.objects.filter( at_time=bp, pk=1 ).fill_relations()[0]
+        P1 = FakeParentModel.objects.filter( at_time=bp, pk=1 )
+        P1 = ObjectExtender( P1.model ).fill_relations( P1, _at_time=bp )[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 2)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 2)
 

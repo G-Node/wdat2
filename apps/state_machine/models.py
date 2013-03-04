@@ -417,141 +417,6 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
         queryset = perm_filtered | queryset.filter(owner=user)
         return queryset
 
-    def fill_relations(self, user=None):
-        """ returns a LIST (not a queryset) of objects with children and m2m
-        permalinks. """
-        objects = self.all()
-
-        if len( objects ) > 0: # evaluates queryset if not done yet
-            # fetch reversed FKs (children)
-            objects = self.fetch_fks( objects, user )
-
-            # fetch reversed M2Ms (m2m children)
-            objects = self.fetch_m2m( objects, user )
-
-        return objects
-
-    def fetch_fks(self, objects, user=None):
-        """ assigns permalinks of the reversed-related children to the list of 
-        objects given. Expects list of objects, uses reversed FKs to fetch 
-        children and their ids. Returns same list of objects, each having new  
-        attributes WITH postfix _buffer and _buffer_ids after default django 
-        <fk_name>_set field, containing list of reversly related FK object 
-        permalinks and ids respectively.
-
-        Used primarily in REST. 
-        """
-        if not objects: return []
-
-        ids = [ x.pk for x in objects ]
-
-        flds = [f for f in self.model._meta.get_all_related_objects() if not \
-            issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
-        related_names = [f.field.rel.related_name or f.model().obj_type + "_set" for f in flds]
-
-        # FK relations - loop over related managers / models
-        for rel_name in related_names:
-
-            # get all related objects for all requested objects as one SQL
-            rel_manager = getattr(self.model, rel_name)
-            rel_field_name = rel_manager.related.field.name
-            rel_model = rel_manager.related.model
-            url_base = _get_url_base( rel_model )
-
-            # fetching reverse relatives of type rel_name:
-            filt = { rel_field_name + '__in': ids }
-            if self._at_time and issubclass(rel_model, ObjectState): # proxy time if requested
-                filt = dict(filt, **{"at_time": self._at_time})
-            # relmap is a list of pairs (<child_id>, <parent_ref_id>)
-            rel_objs = rel_model.objects.filter( **filt )
-            if user:
-                rel_objs = rel_objs.security_filter( user )
-            relmap = rel_objs.values_list('pk', rel_field_name)
-
-            if relmap:
-                # preparing fk maps: preparing dicts with keys as parent 
-                # object ids, and lists with related children links and ids.
-                fk_map_plinks = {}
-                fk_map_ids = {}
-                mp = np.array( relmap )
-                fks = set( mp[:, 1] )
-                for i in fks:
-                    fk_map_ids[i] = [ int(x) for x in mp[ mp[:,1]==i ][:,0] ]
-                    fk_map_plinks[i] = [ url_base + str(x) for x in fk_map_ids[i] ]
-
-                for obj in objects: # parse children into attrs
-                    try:
-                        setattr( obj, rel_name + "_buffer", fk_map_plinks[obj.pk] )
-                        setattr( obj, rel_name + "_buffer_ids", fk_map_ids[obj.pk] )
-                    except KeyError: # no children, but that's ok
-                        setattr( obj, rel_name + "_buffer", [] )
-                        setattr( obj, rel_name + "_buffer_ids", [] )
-            else:
-                # objects do not have any children of that type
-                for obj in objects: 
-                    setattr( obj, rel_name + "_buffer", [] )
-                    setattr( obj, rel_name + "_buffer_ids", [] )
-        return objects
-
-    def fetch_m2m(self, objects, user=None):
-        """ assigns permalinks of the related m2m children to the list of 
-        objects given. Expects list of objects, uses m2m to fetch children with 
-        their ids. Returns same list of objects, each having new attribute WITH 
-        postfix _buffer and _buffer_ids after default django <m2m_name> field, 
-        containing list of m2m related object permalinks and ids respectively. 
-        """
-        if not objects: return []
-
-        ids = [ obj.pk for obj in objects ]
-
-        for field in self.model._meta.many_to_many:
-            m2m_class = field.rel.through
-            own_name = field.m2m_field_name()
-            rev_name = field.m2m_reverse_field_name()
-            rev_model = field.related.parent_model
-            filt = dict( [(own_name + '__in', ids)] )
-            url_base = _get_url_base( field.rel.to )
-
-            # proxy time if requested
-            if self._at_time and issubclass(m2m_class, VersionedM2M):
-                filt = dict(filt, **{"at_time": self._at_time})
-
-            # select all related m2m connections (not reversed objects!) of 
-            # a specific type, one SQL
-            rel_m2ms = m2m_class.objects.filter( **filt ).select_related(rev_name)
-
-            # get evaluated m2m conn queryset:
-            rel_m2m_map = [ ( getattr(r, own_name + "_id"), \
-                getattr(r, rev_name + "_id") ) for r in rel_m2ms ]
-            if rel_m2m_map:
-                if user: # security filtering
-                    available = rev_model.objects.get_query_set().security_filter( user ).values_list('pk', flat=True)
-                    rel_m2m_map = [x for x in rel_m2m_map if x[1] in available]
-
-                # preparing m2m maps: preparing dicts with keys as parent 
-                # object ids, and lists with m2m related children links and ids.
-                m2m_map_plinks = {}
-                m2m_map_ids = {}
-                mp = np.array( rel_m2m_map )
-                fks = set( mp[:, 0] )
-                for i in fks:
-                    m2m_map_ids[i] = [ int(x) for x in mp[ mp[:,0]==i ][:,1] ]
-                    m2m_map_plinks[i] = [ url_base + str(x) for x in m2m_map_ids[i] ]
-
-                for obj in objects: # parse children into attrs
-                    try:
-                        setattr( obj, field.name + '_buffer', m2m_map_plinks[ obj.pk ] )
-                        setattr( obj, field.name + '_buffer_ids', m2m_map_ids[ obj.pk ] )
-                    except KeyError: # no children, but that's ok
-                        setattr( obj, field.name + '_buffer', [] )
-                        setattr( obj, field.name + '_buffer_ids', [] )
-            else:
-                # objects do not have any m2ms of that type
-                for obj in objects: 
-                    setattr( obj, field.name + '_buffer', [] )
-                    setattr( obj, field.name + '_buffer_ids', [] )
-        return objects
-
     def get_by_guid(self, guid):
         """ every object has a global ID (basically it's a hash of it's JSON 
         representation). As this ID is unique, one can request an object by it's
@@ -911,7 +776,7 @@ class SafetyLevel(models.Model):
         # propagate down the hierarchy if cascade - fetching in bulk
         if cascade:
             for_update = []
-            obj_with_related = model.objects.fetch_fks( objects = objects )
+            obj_with_related = model.objects.fill_fks( objects = objects )
             for related in model._meta.get_all_related_objects():
                 if issubclass(related.model, SafetyLevel): # reversed child can be shared
 
@@ -1009,4 +874,182 @@ class SingleAccess(models.Model):
     def resolve_access_level(self, value):
         """ convert from int to str and vice versa TODO """
         pass
+
+
+#===============================================================================
+# Classes supporting utilities
+#===============================================================================
+
+class ObjectExtender:
+    """ used to extend a list of given homogenious objects with additional 
+    attributes:
+    - children permalinks for every object
+    - permalinks of m2m objects
+    - acl settings for every object
+    """
+    model = None
+
+    def __init__(self, model):
+        self.model = model
+
+    def fill_acl(self, objects, user=None):
+        """ extends every object in a given list with _shared_with dict with 
+        current object's acl settings """
+        if not objects: return []
+
+        ids = [ x.pk for x in objects ]
+
+        # check if the model is multi-user
+        if hasattr(self.model, 'acl_type') and issubclass(self.model, ObjectState) and user:
+            # fetch single accesses for all objects
+            accs = SingleAccess.objects.filter( object_id__in=ids, \
+                object_type=self.model.acl_type() )
+
+            # parse accesses to objects
+            for obj in objects:
+                sw = dict([(sa.access_for.username, sa.access_level) \
+                    for sa in accs if sa.object_id == obj.pk])
+                if user == obj.owner:
+                    setattr(obj, '_shared_with', sw or None)
+                else:
+                    setattr(obj, '_shared_with', None)
+
+        return objects
+
+    def fill_relations(self, objects, user=None, _at_time=None):
+        """ extends every object in a given list with children and m2m
+        permalinks """
+        if not objects:
+            return None
+
+        if len( objects ) > 0: # evaluates queryset if not done yet
+            # fetch reversed FKs (children)
+            objects = self.fill_fks( objects, user, _at_time )
+
+            # fetch reversed M2Ms (m2m children)
+            objects = self.fill_m2m( objects, user, _at_time )
+
+        return objects
+
+    def fill_fks(self, objects, user=None, _at_time=None):
+        """ assigns permalinks of the reversed-related children to the list of 
+        objects given. Expects list of objects, uses reversed FKs to fetch 
+        children and their ids. Returns same list of objects, each having new  
+        attributes WITH postfix _buffer and _buffer_ids after default django 
+        <fk_name>_set field, containing list of reversly related FK object 
+        permalinks and ids respectively.
+
+        Used primarily in REST. 
+        """
+        if not objects: return []
+
+        ids = [ x.pk for x in objects ]
+
+        flds = [f for f in self.model._meta.get_all_related_objects() if not \
+            issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
+        related_names = [f.field.rel.related_name or f.model().obj_type + "_set" for f in flds]
+
+        # FK relations - loop over related managers / models
+        for rel_name in related_names:
+
+            # get all related objects for all requested objects as one SQL
+            rel_manager = getattr(self.model, rel_name)
+            rel_field_name = rel_manager.related.field.name
+            rel_model = rel_manager.related.model
+            url_base = _get_url_base( rel_model )
+
+            # fetching reverse relatives of type rel_name:
+            filt = { rel_field_name + '__in': ids }
+            if _at_time and issubclass(rel_model, ObjectState): # proxy time if requested
+                filt = dict(filt, **{"at_time": _at_time})
+            # relmap is a list of pairs (<child_id>, <parent_ref_id>)
+            rel_objs = rel_model.objects.filter( **filt )
+            if user:
+                rel_objs = rel_objs.security_filter( user )
+            relmap = rel_objs.values_list('pk', rel_field_name)
+
+            if relmap:
+                # preparing fk maps: preparing dicts with keys as parent 
+                # object ids, and lists with related children links and ids.
+                fk_map_plinks = {}
+                fk_map_ids = {}
+                mp = np.array( relmap )
+                fks = set( mp[:, 1] )
+                for i in fks:
+                    fk_map_ids[i] = [ int(x) for x in mp[ mp[:,1]==i ][:,0] ]
+                    fk_map_plinks[i] = [ url_base + str(x) for x in fk_map_ids[i] ]
+
+                for obj in objects: # parse children into attrs
+                    try:
+                        setattr( obj, rel_name + "_buffer", fk_map_plinks[obj.pk] )
+                        setattr( obj, rel_name + "_buffer_ids", fk_map_ids[obj.pk] )
+                    except KeyError: # no children, but that's ok
+                        setattr( obj, rel_name + "_buffer", [] )
+                        setattr( obj, rel_name + "_buffer_ids", [] )
+            else:
+                # objects do not have any children of that type
+                for obj in objects: 
+                    setattr( obj, rel_name + "_buffer", [] )
+                    setattr( obj, rel_name + "_buffer_ids", [] )
+        return objects
+
+    def fill_m2m(self, objects, user=None, _at_time=None):
+        """ assigns permalinks of the related m2m children to the list of 
+        objects given. Expects list of objects, uses m2m to fetch children with 
+        their ids. Returns same list of objects, each having new attribute WITH 
+        postfix _buffer and _buffer_ids after default django <m2m_name> field, 
+        containing list of m2m related object permalinks and ids respectively. 
+        """
+        if not objects: return []
+
+        ids = [ obj.pk for obj in objects ]
+
+        for field in self.model._meta.many_to_many:
+            m2m_class = field.rel.through
+            own_name = field.m2m_field_name()
+            rev_name = field.m2m_reverse_field_name()
+            rev_model = field.related.parent_model
+            filt = dict( [(own_name + '__in', ids)] )
+            url_base = _get_url_base( field.rel.to )
+
+            # proxy time if requested
+            if _at_time and issubclass(m2m_class, VersionedM2M):
+                filt = dict(filt, **{"at_time": _at_time})
+
+            # select all related m2m connections (not reversed objects!) of 
+            # a specific type, one SQL
+            rel_m2ms = m2m_class.objects.filter( **filt ).select_related(rev_name)
+
+            # get evaluated m2m conn queryset:
+            rel_m2m_map = [ ( getattr(r, own_name + "_id"), \
+                getattr(r, rev_name + "_id") ) for r in rel_m2ms ]
+            if rel_m2m_map:
+                if user: # security filtering
+                    available = rev_model.objects.get_query_set().security_filter( user ).values_list('pk', flat=True)
+                    rel_m2m_map = [x for x in rel_m2m_map if x[1] in available]
+
+                # preparing m2m maps: preparing dicts with keys as parent 
+                # object ids, and lists with m2m related children links and ids.
+                m2m_map_plinks = {}
+                m2m_map_ids = {}
+                mp = np.array( rel_m2m_map )
+                fks = set( mp[:, 0] )
+                for i in fks:
+                    m2m_map_ids[i] = [ int(x) for x in mp[ mp[:,0]==i ][:,1] ]
+                    m2m_map_plinks[i] = [ url_base + str(x) for x in m2m_map_ids[i] ]
+
+                for obj in objects: # parse children into attrs
+                    try:
+                        setattr( obj, field.name + '_buffer', m2m_map_plinks[ obj.pk ] )
+                        setattr( obj, field.name + '_buffer_ids', m2m_map_ids[ obj.pk ] )
+                    except KeyError: # no children, but that's ok
+                        setattr( obj, field.name + '_buffer', [] )
+                        setattr( obj, field.name + '_buffer_ids', [] )
+            else:
+                # objects do not have any m2ms of that type
+                for obj in objects: 
+                    setattr( obj, field.name + '_buffer', [] )
+                    setattr( obj, field.name + '_buffer_ids', [] )
+        return objects
+
 

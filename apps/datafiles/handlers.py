@@ -43,7 +43,10 @@ class FileHandler(BaseHandler):
 
                 return_code = 201
                 request.method = "GET"
-                return self.get( request, self.model.objects.get( pk=datafile.pk ).fill_relations( request.user ), return_code )
+
+                res = self.model.objects.get( pk=datafile.pk )
+                res = self.extender.fill_relations( res, request.user )
+                return self.get( request, res, return_code )
 
             else:
                 return BadRequest(json_obj=form.errors, \

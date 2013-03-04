@@ -26,7 +26,7 @@ from neo_api.serializers import NEOSerializer
 from datetime import datetime
 from django.utils import simplejson as json
 from django.core.serializers.json import DjangoJSONEncoder
-from state_machine.models import _get_url_base
+from state_machine.models import _get_url_base, ObjectExtender
 
 import tables as tb
 import numpy as np
@@ -61,7 +61,8 @@ def create_simple_objects():
     ser.host = "http://testhost.org"
     sample_objects = {}
     for cls in meta_classnames.values():
-        objs = cls.objects.filter( pk=1 ).fill_relations()
+        objs = cls.objects.filter( pk=1 )
+        objs = ObjectExtender( cls ).fill_relations( objs )
         sobj = ser.serialize( objs )[0]['fields']
 
         # non-editable fields
