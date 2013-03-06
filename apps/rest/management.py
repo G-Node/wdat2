@@ -356,9 +356,9 @@ class BaseHandler(object):
 
             # TODO insert here the transaction end
 
-        #except FieldDoesNotExist, v:
-        #    return BadRequest(json_obj={"details": v.message}, \
-        #        message_type="post_data_invalid", request=request)
+        except FieldDoesNotExist, v:
+            return BadRequest(json_obj={"details": v.message}, \
+                message_type="post_data_invalid", request=request)
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
@@ -371,9 +371,9 @@ class BaseHandler(object):
                 json_obj={"details": str( VE )}
             return BadRequest(json_obj=json_obj, \
                 message_type="bad_parameter", request=request)
-        #except (AssertionError, AttributeError, KeyError), e:
-        #    return BadRequest(json_obj={"details": e.message}, \
-        #        message_type="post_data_invalid", request=request)
+        except (AssertionError, AttributeError, KeyError), e:
+            return BadRequest(json_obj={"details": e.message}, \
+                message_type="post_data_invalid", request=request)
         except (ReferenceError, ObjectDoesNotExist), e:
             return NotFound(json_obj={"details": e.message}, \
                 message_type="wrong_reference", request=request)
@@ -440,10 +440,19 @@ class ACLHandler(BaseHandler):
         if not request.method in actions:
             return NotSupported(message_type="invalid_method", request=request)
 
-        try:
-            obj = self.model.objects.get( pk=id )
-        except ObjectDoesNotExist:
+        objects = self.model.objects.filter( pk=id )
+        if not objects:
             return NotFound(message_type="does_not_exist", request=request)
+
+        update = False
+        if not request.method == 'GET':
+            update = True
+
+        objects = objects.security_filter(request.user, update=update)
+        if not objects:
+            return Forbidden(message_type="not_authorized", request=request)
+
+        obj = objects[0]
 
         if not request.method == 'GET':
             try:
@@ -461,7 +470,14 @@ class ACLHandler(BaseHandler):
                     assert type(rdata['shared_with']) == type({}), "Wrong user data."
                     users = clean_users(rdata['shared_with'])
 
-                obj.acl_update(safety_level, users, self.options.has_key('cascade'))
+                cascade = self.options.has_key('cascade') # True if in options
+
+                # this option processes objects in bulk (faster)
+                SafetyLevel.bulk_acl_update([obj], safety_level, users, cascade)
+
+                # this option processes objects one-by-one (slower)
+                #obj.acl_update(safety_level, users, cascade)
+
             except ValidationError, VE:
                 return BadRequest(json_obj=VE.message_dict, \
                     message_type="bad_parameter", request=request)

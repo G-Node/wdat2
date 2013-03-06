@@ -738,27 +738,6 @@ class ObjectState( models.Model ):
 
                 m2m_class.objects.get_query_set().bulk_create( new_rels )
 
-                """
-                # create new m2m connections
-                to_create = {}
-                for value in new_ids:
-                    filt = {rev_name: value} # exclude already created conn-s
-                    to_create[value] = list( set(pks) - \
-                        set(rel_m2ms.filter( **filt ).values_list( own_name, flat=True )) )
-
-                new_rels = []
-                for value, obj_ids in to_create.iteritems():
-                    for i in obj_ids:
-                        attrs = {}
-                        attrs[ own_name + '_id' ] = i
-                        attrs[ rev_name + '_id' ] = value
-                        if is_versioned:
-                            attrs[ "date_created" ] = now
-                            attrs[ "starts_at" ] = now
-                        new_rels.append( m2m_class( **attrs ) )
-                m2m_class.objects.get_query_set().bulk_create( new_rels )
-                """
-
         # make update for main objects
         if obj_for_update:
             self.objects.get_query_set().bulk_create( obj_for_update )
@@ -768,7 +747,6 @@ class ObjectState( models.Model ):
             parents = upd['class'].objects.filter( pk__in=set( upd['ids'] ) )
             if parents:
                 upd['class'].objects.get_query_set().bulk_create( parents )
-
 
 
 
@@ -818,7 +796,11 @@ class SafetyLevel(models.Model):
         """ update object safety level and direct user permissions (cascade).
         Note. This function works with single objects and not very effective 
         with bulk acl object updates (when propagation down the tree needed). 
-        For efficiency look at 'bulk_acl_update' classmethod. """
+        For efficiency look at 'bulk_acl_update' classmethod. 
+
+        - safety_level is an int (see self.SAFETY_LEVELS)
+        - users is a dict { <user_id>: <access_level>, } (see ACCESS_LEVELS)
+        """
 
         # first update safety level
         if safety_level and not self.safety_level == safety_level:
@@ -840,38 +822,82 @@ class SafetyLevel(models.Model):
 
     @classmethod
     def bulk_acl_update(self, objects, safety_level=None, users=None, cascade=False):
-        """ 
-        # bulk acl update for homogenious list of objects
-        # principal difference is the speed of the update (less SQL hits)
-        model = objects[0].__class__ # TODO make this better
+        """ bulk acl update for homogenious (?) list of objects. The difference 
+        from the similar acl_update method is the speed of the update (this 
+        method makes less SQL hits) 
 
-        # first update safety level - in bulk
+        - safety_level is an int (see self.SAFETY_LEVELS)
+        - users is a dict { <user_id>: <access_level>, } (see ACCESS_LEVELS)
+        """
+        # update safety level - in bulk
         if safety_level:
-            for_update = []
+            for_update = {}
             for obj in objects:
                 if not (obj.safety_level == safety_level):
-                    for_update.append( obj )
-            model.save_changes(for_update, {'safety_level': safety_level}, {}, {}, False)
+                    if not for_update.has_key( obj.__class__ ):
+                        for_update[ obj.__class__ ] = []
+                    # collect objects to update for every class type
+                    for_update[ obj.__class__ ].append( obj )
 
-        # update single user shares - not in bulk FIXME
+            # perform bulk updates, one sql for every class type
+            for model, objs in for_update.items():
+                model.save_changes(objs, {'safety_level': safety_level}, {}, {}, False)
+
+        # update single user shares. assume users are cleaned (exist)
         if not users == None:
+            obj_map = {} # dict {<obj_type>: [<object_pk>, ..], }
             for obj in objects:
-                obj.share( users )
+                obj_type = obj.obj_type
+                if not obj_map.has_key( obj_type ):
+                    obj_map[ obj_type ] = []
+                obj_map[ obj_type ].append( obj.pk )
 
-        # propagate down the hierarchy if cascade - fetching in bulk
+            # remove old accesses
+            for obj_type, ids in obj_map.items():
+                old = SingleAccess.objects.filter( object_type=obj_type )
+                old = old.filter( object_id__in=ids ).delete()
+
+            # create new access records
+            new_accesses = []
+            for obj in objects:
+                for user_id, access_level in users.items():
+                    new_acc = SingleAccess()
+                    new_acc.object_id = obj.pk
+                    new_acc.object_type = obj.obj_type
+                    new_acc.access_for_id = user_id
+                    new_acc.access_level = access_level
+                    new_accesses.append( new_acc )
+            SingleAccess.objects.bulk_create( new_accesses )
+
+        # propagate down the hierarchy if cascade
         if cascade:
-            for_update = []
-            obj_with_related = model.objects.fill_fks( objects = objects )
-            for related in model._meta.get_all_related_objects():
-                if issubclass(related.model, SafetyLevel): # reversed child can be shared
+            for_update = [] # collector for children to update (heterogenious ?)
+            obj_map = {} # dict {<obj_class>: [<obj>, ..], }
+            for obj in objects:
+                cls = obj.__class__
+                if not obj_map.has_key( cls ):
+                    obj_map[ cls ] = []
+                obj_map[ cls ].append( obj )
 
-                    for obj in obj_with_related:
-                        for_update += getattr(obj, related.get_accessor_name() + '_data')
+            for cls, objs in obj_map.items():
+                ext = ObjectExtender( cls )
+                obj_with_related = ext.fill_fks( objects = objs )
+
+                for related in cls._meta.get_all_related_objects():
+                    # cascade down only for reversed children that can be shared
+                    if issubclass(related.model, SafetyLevel):
+
+                        # collector for children IDs: for every obj from given
+                        # objects collect children ids to update, by type (related)
+                        ids_upd = []
+                        for obj in obj_with_related:
+                            ids_upd += getattr(obj, related.get_accessor_name() + '_buffer_ids')
+
+                        # all children of 'related' type
+                        for_update += list( related.model.objects.filter( pk__in=ids_upd ) )
 
             if for_update:
-                acl_update(for_update, safety_level, users, cascade)
-        """
-        raise NotImplementedError
+                self.bulk_acl_update(for_update, safety_level, users, cascade)
 
     @property
     def shared_with(self):
@@ -939,7 +965,7 @@ class SingleAccess(models.Model):
     """
     Represents a single connection between an object (Section, Datafile etc.) 
     and a User, with whom the object is shared + the level of this sharing 
-    ('read-only' or 'can edit').
+    ('read-only' or 'can edit' etc.).
 
     IMPORTANT: if you need object to have single accesses you have to define a
     acl_type method for it (see example with 'Section').
@@ -967,10 +993,10 @@ class SingleAccess(models.Model):
 
 class ObjectExtender:
     """ used to extend a list of given homogenious objects with additional 
-    attributes:
-    - children permalinks for every object
-    - permalinks of m2m objects
-    - acl settings for every object
+    attributes. For every given object it assigns:
+    - children permalinks
+    - permalinks of related m2m objects
+    - acl settings
     """
     model = None
 
