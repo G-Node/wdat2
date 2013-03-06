@@ -535,10 +535,10 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
 
     def full_clean(self, *args, **kwargs):
         """ Add some validation to keep 'signal' and 'times' dimensions 
-        consistent. """
-        if not len( self.signal.get_slice() ) == len( self.times.get_slice() ):
-            raise ValidationError({"Data Inconsistent": \
-                meta_messages["data_inconsistency"]})
+        consistent. Currently switched off. """
+        #if not len( self.signal.get_slice() ) == len( self.times.get_slice() ):
+        #    raise ValidationError({"Data Inconsistent": \
+        #        meta_messages["data_inconsistency"]})
         super(IrSaAnalogSignal, self).full_clean(*args, **kwargs)
 
 # 14 (of 15)

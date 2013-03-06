@@ -322,7 +322,7 @@ class BaseHandler(object):
         """
         We "boycott" everything "that's not made by our hands" for security and
         practical reasons (no automatic JSON parsing into an object). Create and
-        update have very similar functionality thus implemented as one function.
+        update have very similar functionality thus combined in one function.
         """
         try:
             rdata = self.clean_post_data(request.body)
@@ -337,8 +337,8 @@ class BaseHandler(object):
 
             # parse request data
             # -update_kwargs - new attribute values as a {'attr': value}
-            # -fk_dict - new VERSIONED FKs (normal FKs are parsed as attrs), as 
-            #    a dict {'relname': new_fk, }
+            # -fk_dict - VERSIONED FKs (normal FKs are parsed as attrs), as a 
+            #     dict {'relname': new_fk, }
             # -m2m_dict - new m2m rels, as a dict {'relname': [new ids], }
             update_kwargs, m2m_dict, fk_dict = self.serializer.deserialize(rdata, \
                 self.model, user=request.user, encoding=encoding, m2m_append=self.m2m_append)
@@ -356,9 +356,9 @@ class BaseHandler(object):
 
             # TODO insert here the transaction end
 
-        except FieldDoesNotExist, v:
-            return BadRequest(json_obj={"details": v.message}, \
-                message_type="post_data_invalid", request=request)
+        #except FieldDoesNotExist, v:
+        #    return BadRequest(json_obj={"details": v.message}, \
+        #        message_type="post_data_invalid", request=request)
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
@@ -371,9 +371,9 @@ class BaseHandler(object):
                 json_obj={"details": str( VE )}
             return BadRequest(json_obj=json_obj, \
                 message_type="bad_parameter", request=request)
-        except (AssertionError, AttributeError, KeyError), e:
-            return BadRequest(json_obj={"details": e.message}, \
-                message_type="post_data_invalid", request=request)
+        #except (AssertionError, AttributeError, KeyError), e:
+        #    return BadRequest(json_obj={"details": e.message}, \
+        #        message_type="post_data_invalid", request=request)
         except (ReferenceError, ObjectDoesNotExist), e:
             return NotFound(json_obj={"details": e.message}, \
                 message_type="wrong_reference", request=request)

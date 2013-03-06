@@ -627,7 +627,9 @@ class ObjectState( models.Model ):
         """
         the method saves changes to attributes (update_kwargs), FKs (fk_dict) 
         and M2M relations (m2m_dict) to all provided objects, resolving 
-        versioning features.
+        versioning and caching features.
+        - correctly handles FK and M2M relationships
+        - refreshes parent objects if there was any change (for caching)
 
         FIXME: partially replicate relations processing to the save() function
         """
@@ -635,14 +637,57 @@ class ObjectState( models.Model ):
 
         # FIXME make transactional
 
+        new_attr = False # indicates ANY difference in attr with curr objects
+        new_fk = False # indicates if ANY new FK has to be assigned
+        obj_for_update = [] # collector of objects that require update (caching)
+
+        par_for_update = {} # init collector of parent IDs for update (caching)
+        if fk_dict:
+            for fkey, fvalue in fk_dict.items():
+                par_for_update[ fvalue.obj_type ] = {
+                    'class': fvalue.__class__,
+                    'ids': []
+                }
+
         if update_kwargs or fk_dict:
             for obj in objects:
-                for name, value in dict(update_kwargs, **fk_dict).items():
-                    setattr(obj, name, value)
-            self.objects.get_query_set().bulk_create( objects )
+
+                # 1. processing attributes
+                for name, value in update_kwargs.items():
+                    if new_attr or not getattr(obj, name) == value:
+                        new_attr = True
+                        setattr(obj, name, value)
+
+                # 2. processing FKs
+                # for every new FK old (if exists) and new parent records have 
+                # to be updated (new guid/starts_at = new Etag/last-modified)
+                # this allows proper caching on the client side
+                for fkey, fvalue in fk_dict.items():
+
+                    ot = fvalue.obj_type
+                    curr_fk = getattr(obj, fkey + '_id')
+                    # detect whether new value has to be assigned
+                    if not curr_fk == fvalue.pk:
+
+                        # old parent Etag has to be updated, collect
+                        if curr_fk:
+                            par_for_update[ ot ]['ids'].append( curr_fk )
+
+                        # new parent Etag has to be updated, collect
+                        if not fvalue.pk in par_for_update[ ot ]:
+                            par_for_update[ ot ]['ids'].append( fvalue.pk )
+
+                        new_fk = True
+                        setattr(obj, fkey, fvalue)
+
+                # detect whether object got any changes
+                if new_attr or new_fk:
+                    obj_for_update.append( obj )
+
+                new_attr, new_fk = False, False # reset for the next object
 
         if m2m_dict: # process versioned m2m relations separately, in bulk
-            local_ids = [ x.local_id for x in objects ]
+            pks = dict( [ (x.pk, x) for x in objects ] )
 
             for m2m_name, new_ids in m2m_dict.items():
 
@@ -653,25 +698,52 @@ class ObjectState( models.Model ):
                 own_name = field.m2m_field_name()
                 rev_name = field.m2m_reverse_field_name()
 
-                # retrieve all current relations for all selected objects
-                filt = dict( [(own_name + '__in', local_ids)] )
+                # retrieve all current relations (!) for all given objects
+                filt = dict( [(own_name + '__in', pks.keys())] )
                 rel_m2ms = m2m_class.objects.filter( **filt )
 
                 now = datetime.now()
+                cache_ids = [] # collector for objects to to refresh cache
 
                 # close old existing m2m
                 if not m2m_append: 
                     # list of reverse object ids to close
                     to_close = list( set(rel_m2ms.values_list( rev_name, flat=True )) - set(new_ids) )
-                    filt = dict( [(own_name + '__in', local_ids), \
+                    filt = dict( [(own_name + '__in', pks.keys()), \
                         (rev_name + "__in", to_close)] )
+
+                    # update collector for objects to refresh cache
+                    cache_ids = m2m_class.objects.filter( **filt ).values_list( own_name, flat=True )
                     m2m_class.objects.filter( **filt ).delete()
 
+                # create new m2m connections
+                filt = dict( [(rev_name + '__in', new_ids)] )
+                existing = rel_m2ms.filter( **filt ).values_list( own_name, rev_name )
+                new_rels = []
+                for pk in pks.keys():
+                    for n in new_ids:
+                        if not (pk, n) in existing:
+                            attrs = {}
+                            attrs[ own_name + '_id' ] = pk
+                            attrs[ rev_name + '_id' ] = n
+                            if is_versioned:
+                                attrs[ "date_created" ] = now
+                                attrs[ "starts_at" ] = now
+                            new_rels.append( m2m_class( **attrs ) )
+                            cache_ids.append( pk )
+
+                # update collector for objects to refresh cache
+                cache_upd = [obj for obj in objects if obj.pk in cache_ids]
+                obj_for_update = list( set( obj_for_update + cache_upd ) )
+
+                m2m_class.objects.get_query_set().bulk_create( new_rels )
+
+                """
                 # create new m2m connections
                 to_create = {}
                 for value in new_ids:
                     filt = {rev_name: value} # exclude already created conn-s
-                    to_create[value] = list( set(local_ids) - \
+                    to_create[value] = list( set(pks) - \
                         set(rel_m2ms.filter( **filt ).values_list( own_name, flat=True )) )
 
                 new_rels = []
@@ -685,6 +757,19 @@ class ObjectState( models.Model ):
                             attrs[ "starts_at" ] = now
                         new_rels.append( m2m_class( **attrs ) )
                 m2m_class.objects.get_query_set().bulk_create( new_rels )
+                """
+
+        # make update for main objects
+        if obj_for_update:
+            self.objects.get_query_set().bulk_create( obj_for_update )
+
+        # update appropriate FKs to refresh cache
+        for obj_type, upd in par_for_update.items():
+            parents = upd['class'].objects.filter( pk__in=set( upd['ids'] ) )
+            if parents:
+                upd['class'].objects.get_query_set().bulk_create( parents )
+
+
 
 
 class SafetyLevel(models.Model):
