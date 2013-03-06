@@ -13,7 +13,8 @@ class NEOHandler(BaseHandler):
     """ add some specific filtering to the base Handler """
 
     def run_post_processing(self, *args, **kwargs):
-        """ metadata tagging propagates down the hierarchy by default """
+        """ metadata tagging propagates down the hierarchy by default. objects 
+        must be homogenious, NEO-type """
         objects = kwargs['objects']
         m2m_dict = kwargs['m2m_dict']
         if not objects: return None
@@ -35,17 +36,10 @@ class NEOHandler(BaseHandler):
                 # collect children plinks of type rel_name for all requested objects
                 for_update = []
                 for obj in obj_with_related:
-                    for_update += getattr(obj, rel_name + "_buffer")
+                    for_update += getattr(obj, rel_name + "_buffer_ids")
 
-                # extract ids from permalinks
-                processed = [] # ids of related objects which metadata should be updated
-                for p in for_update:
-                    if p.rfind('/') + 1 == len(p):
-                        p = p[ : len(p)-1 ]
-                    processed.append( p[ p.rfind('/') + 1 : ] )
-
-                if processed: # update metadata for all children of type rel_name
-                    children = rel_model.objects.filter( pk__in = processed )
+                if for_update: # update metadata for all children of type rel_name
+                    children = rel_model.objects.filter( pk__in = for_update )
                     rel_model.save_changes(children, {}, tags, {}, self.m2m_append)
                     self.run_post_processing( objects=children, m2m_dict=m2m_dict )
 
