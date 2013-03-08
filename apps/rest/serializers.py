@@ -89,7 +89,7 @@ class Serializer(PythonSerializer):
                         self.serialize_special(obj, field)
                     else:
 
-                        if self.is_data_field_django(model, field):
+                        if self.is_data_field_django(field):
                             if field.rel is None:
                                 data = field._get_val_from_obj(obj)
                                 if not is_protected_type(data): data = field.value_to_string(obj)
@@ -183,7 +183,7 @@ class Serializer(PythonSerializer):
                 field = model._meta.get_field(field_name)
 
                 # Handle data/units fields
-                if self.is_data_field_django(model, field):
+                if self.is_data_field_django(field):
                     update_kwargs[field_name] = field_value["data"]
                     update_kwargs[field_name + "__unit"] = field_value["units"]
 
@@ -228,9 +228,9 @@ class Serializer(PythonSerializer):
         self._current[field.name] = [ self.resolve_permalink(related) 
             for related in getattr(obj, field.name + '_buffer', []) ]
 
-    def is_data_field_django(self, obj, field):
+    def is_data_field_django(self, field):
         """ if a field has units, stored in another field - it's a data field """
-        if (field.name + "__unit") in [f.name for f in obj._meta.local_fields]:
+        if (field.name + "__unit") in [f.name for f in field.model._meta.local_fields]:
             return True
         return False
 

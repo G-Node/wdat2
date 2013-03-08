@@ -29,17 +29,25 @@ Still remaining:
 
 from django.test import TestCase
 from django.utils import simplejson as json
+from django.contrib.auth.models import User
 
 from rest.tests import TestGeneric
-from metadata.models import Section, Property, Value
+from metadata.models import Section, Property, Value, backbone
 
 class TestBasics(TestGeneric, TestCase):
     fixtures = ["users.json", "metadata.json"]
 
     def setUp(self):
-        logged_in = self.client.login(username="nick", password="pass")
+
+        self.user = User.objects.get( pk=1 ) # first user, important!
+        # logging in as first user. important as the first user owns all 
+        # required objects installed as fixtures, thus tests that need related 
+        # objects for their testing purposes will not fail.
+
+        logged_in = self.client.login(username=self.user.username, password="pass")
         self.assertTrue(logged_in)
-        self.models_to_test = [Section, Property, Value]
+        self.models_to_test = (Section, Property, Value)
+        self.backbone = backbone
         self.app_prefix = "metadata"
 
 

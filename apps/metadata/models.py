@@ -189,6 +189,7 @@ for obj_type, cls in meta_classnames.items():
     params = {}
     params[ 'attributes' ] = [field.name for field in cls._meta.local_fields if\
         field.editable and not field.rel and not field.name in safe]
+    params[ 'data_fields' ] = []
     params[ 'required' ] = [field.name for field in cls._meta.local_fields if\
         field.editable and not field.name in safe and not field.null]
     params[ 'parents' ] = [field.name for field in cls._meta.local_fields if\

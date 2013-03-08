@@ -119,7 +119,7 @@ class TestGeneric(TestCase):
             units = 'mV'
         try:
             self.new_value = field.to_python( v )
-            if self.ser.is_data_field_django(model, field):
+            if self.ser.is_data_field_django(field):
                 self.new_value = {
                     "data": self.new_value,
                     "units": units
