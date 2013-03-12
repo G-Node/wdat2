@@ -143,6 +143,11 @@ class BaseHandler(object):
     def clean_get_params(self, request):
         """ clean request GET params """
         self.attr_filters, self.attr_excludes = [], []
+
+        if hasattr(self.model, 'metadata'):
+            value_cls = self.model.metadata.field.rel.to
+            property_cls = value_cls.parent_property.field.rel.to
+
         request_params_cleaner = {
             # signal / times group
             'start_time': lambda x: float(x), # may raise ValueError
@@ -174,6 +179,7 @@ class BaseHandler(object):
             'format': lambda x: x.lower(),
         }
         try: # assert request parameters both from request.GET and from kwargs
+            lookups = {}
             for k, v in request.GET.items():
 
                 # predefined filters; taking first match
@@ -182,51 +188,75 @@ class BaseHandler(object):
                     self.options[smart_unicode(k)] = request_params_cleaner.get(matched[0])(v)
 
                 else: # attribute- and other filters, negative filters, lookups
-                    """ possibly make search shortcuts for metadata, key:value
-                    test_key = str(k)
-                    if test_key.startswith('n__'):
-                        test_key = test_key[ 3: ]
-                    if test_key.find('__'):
-                        test_key = test_key[ : test_key.find('__') ]
-                    try: 
-                        field = self.model._meta.get_field( test_key )
-                    except FieldDoesNotExist:
-                        # we consider this is the metadata key:value filter
-                        new_key = k.replace(test_key, 'metadata__parent_property__name')
-                    """
 
-                    # using pk instead of id due to versioning
-                    new_key = smart_unicode(k)
-                    if str( k[ : k.find('__')] ) == 'id':
-                        new_key = k.replace('id', 'pk')
+                    # identify filter type, field-based or metadata-related and
+                    # save these filters as lookups {}
+                    curr_key = str(k)
+                    attr_flag = False # indicates an attibute given inside key
 
-                    # convert to list if needed
-                    new_val = smart_unicode(v)
-                    if new_key.find('__in') > 0 and type(str(v)) == type(''):
-                        new_val = v.replace('[', '').replace(']', '')
-                        new_val = new_val.replace('(', '').replace('])', '')
-                        new_val = [int(v) for v in new_val.split(',')]
+                    if curr_key.startswith('n__'):
+                        curr_key = curr_key[ 3: ]
 
-                    # shortcuts to query data by metadata: mp & mv
-                    m = re.search('mp(?P<id>[\d]+)__', new_key)
-                    if m:
-                        new_key = new_key.replace(m.group(0), 'metadata__parent_property__')
-                    m = re.search('mv(?P<id>[\d]+)__', new_key)
-                    if m:
-                        new_key = new_key.replace(m.group(0), 'metadata__data__')
+                    if curr_key.find('__'):
+                        test_key = curr_key[ curr_key.find('__') + 2 : ]
+                        if test_key.find('__'):
+                            attr = test_key[ : test_key.find('__') ]
 
-                    # __isnull needs value conversion to correct bool
-                    if new_key.find('__isnull') > 0 and type(str(v)) == type(''):
                         try:
-                            if int(v) == 0: new_val = 0
-                        except ValueError:
-                            pass # we treat any other value except 0 as True
+                            property_cls._meta.get_field( attr )
+                            attr_flag = True # lookup for some Property attribute
 
-                    if k.startswith('n__'): # negative filter
-                        new_key = new_key[ 3: ]
-                        self.attr_excludes.append( (smart_unicode(new_key), new_val) )
-                    else:
-                        self.attr_filters.append( (smart_unicode(new_key), new_val) )
+                        except FieldDoesNotExist:
+                            pass
+
+                        curr_key = curr_key[ : curr_key.find('__') ]
+
+                    try:
+                        # normal single attribute lookup if no error raised
+                        field = self.model._meta.get_field( curr_key )
+                        lookups[k] = v
+
+                    except FieldDoesNotExist: # set 2 lookups
+
+                        # we consider this is the metadata key:value filter
+                        lookups['metadata__parent_property__name__icontains'] = curr_key
+
+                        if attr_flag:
+                            nk = k.replace(curr_key, 'metadata__parent_property')
+                        else:
+                            nk = 'metadata__data'
+                        lookups[nk] = v
+
+            import ipdb
+            ipdb.set_trace()
+
+            # clean and parse lookup filters
+            for k, v in lookups.items():
+
+                # using pk instead of id due to versioning
+                new_key = smart_unicode(k)
+                if str( k[ : k.find('__')] ) == 'id':
+                    new_key = k.replace('id', 'pk')
+
+                # convert to list if needed
+                new_val = smart_unicode(v)
+                if new_key.find('__in') > 0 and type(str(v)) == type(''):
+                    new_val = v.replace('[', '').replace(']', '')
+                    new_val = new_val.replace('(', '').replace('])', '')
+                    new_val = [int(v) for v in new_val.split(',')]
+
+                # __isnull needs value conversion to correct bool
+                if new_key.find('__isnull') > 0 and type(str(v)) == type(''):
+                    try:
+                        if int(v) == 0: new_val = 0
+                    except ValueError:
+                        pass # we treat any other value except 0 as True
+
+                if k.startswith('n__'): # negative filter
+                    new_key = new_key[ 3: ]
+                    self.attr_excludes.append( (smart_unicode(new_key), new_val) )
+                else:
+                    self.attr_filters.append( (smart_unicode(new_key), new_val) )
 
             self.options["permalink_host"] = get_host_for_permalink( request )
         except (ObjectDoesNotExist, ValueError, IndexError, KeyError), e:
