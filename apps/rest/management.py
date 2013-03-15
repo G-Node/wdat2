@@ -227,9 +227,6 @@ class BaseHandler(object):
                             nk = 'metadata__data'
                         lookups[nk] = v
 
-            import ipdb
-            ipdb.set_trace()
-
             # clean and parse lookup filters
             for k, v in lookups.items():
 
@@ -379,7 +376,7 @@ class BaseHandler(object):
                 return_code = 200
             else: # create case
                 return_code = 201
-                objects = [ self.model( owner = request.user, **update_kwargs ) ]
+                objects = [ self.model( owner = request.user ) ]
 
             self.model.save_changes(objects, update_kwargs, m2m_dict, fk_dict,\
                 self.m2m_append)

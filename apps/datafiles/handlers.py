@@ -44,7 +44,7 @@ class FileHandler(BaseHandler):
                 return_code = 201
                 request.method = "GET"
 
-                res = self.model.objects.get( pk=datafile.pk )
+                res = self.model.objects.filter( pk=datafile.pk )
                 res = self.extender.fill_relations( res, request.user )
                 return self.get( request, res, return_code )
 
