@@ -144,7 +144,9 @@ class BaseHandler(object):
         """ clean request GET params """
         self.attr_filters, self.attr_excludes = [], []
 
-        if hasattr(self.model, 'metadata'):
+        metadata_searchable = hasattr(self.model, 'metadata')
+
+        if metadata_searchable:
             value_cls = self.model.metadata.field.rel.to
             property_cls = value_cls.parent_property.field.rel.to
 
@@ -202,12 +204,15 @@ class BaseHandler(object):
                         if test_key.find('__'):
                             attr = test_key[ : test_key.find('__') ]
 
-                        try:
-                            property_cls._meta.get_field( attr )
-                            attr_flag = True # lookup for some Property attribute
+                        if metadata_searchable:
+                            try: # check if the k:v pair is a metadata filter
+                                property_cls._meta.get_field( attr )
+                                # indicates lookup for some Property attribute if 
+                                # True, lookup for the Value otherwise
+                                attr_flag = True
 
-                        except FieldDoesNotExist:
-                            pass
+                            except FieldDoesNotExist:
+                                pass
 
                         curr_key = curr_key[ : curr_key.find('__') ]
 
@@ -218,12 +223,15 @@ class BaseHandler(object):
 
                     except FieldDoesNotExist: # set 2 lookups
 
-                        # we consider this is the metadata key:value filter
+                        if not metadata_searchable:
+                            raise KeyError('The %s:%s pair is not found in the attributes list and cannot be applied to this type of objects' % (k, v))
+
+                        # we consider this k:v as the metadata key:value filter
                         lookups['metadata__parent_property__name__icontains'] = curr_key
 
-                        if attr_flag:
+                        if attr_flag: # lookup for related Property
                             nk = k.replace(curr_key, 'metadata__parent_property')
-                        else:
+                        else: # lookup for Value
                             nk = 'metadata__data'
                         lookups[nk] = v
 
