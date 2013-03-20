@@ -85,7 +85,7 @@ class BaseHandler(object):
                 at_time = None
                 if self.options.has_key('at_time') and self.is_versioned:
                     at_time = self.options['at_time']
-                    objects = objects.filter( self.options['at_time'] )
+                    objects = objects.filter( at_time=at_time )
 
                 if not obj_id:
                     # 2. permissions filtering
@@ -378,8 +378,6 @@ class BaseHandler(object):
             update_kwargs, m2m_dict, fk_dict = self.serializer.deserialize(rdata, \
                 self.model, user=request.user, encoding=encoding, m2m_append=self.m2m_append)
 
-            # TODO insert here the transaction begin
-
             if objects: # update case
                 return_code = 200
             else: # create case
@@ -388,8 +386,6 @@ class BaseHandler(object):
 
             self.model.save_changes(objects, update_kwargs, m2m_dict, fk_dict,\
                 self.m2m_append)
-
-            # TODO insert here the transaction end
 
         except FieldDoesNotExist, v:
             return BadRequest(json_obj={"details": v.message}, \
@@ -427,7 +423,7 @@ class BaseHandler(object):
     def delete(self, request, objects):
         """ delete (archive) provided objects """
         ids = [x.pk for x in objects]
-        self.model.objects.filter( guid__in = ids ).delete()
+        self.model.objects.filter( pk__in = ids ).delete()
         return Success(message_type="deleted", request=request)
 
     def get_filter_by_name(self, filter_name):
