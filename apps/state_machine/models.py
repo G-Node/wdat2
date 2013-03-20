@@ -364,11 +364,16 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
                 val_flag = True
             to_submit.append( obj )
 
+        # TODO insert here the transaction begin
+
         # step 2: close old records
         self.filter( guid__in = guids_to_close ).delete()
 
         # step 3: create objects in bulk
         return super(VersionedQuerySet, self).bulk_create( to_submit )
+
+        # TODO insert here the transaction end
+
 
     def update(self, **kwargs):
         """ update objects with new attrs and FKs """
@@ -610,6 +615,9 @@ class ObjectState( models.Model ):
         DRY: the 'bulk_create' method of the VersionedQuerySet work in a similar
         way, however combining them in one function would be too ambiguous."""
         now = datetime.now()
+
+        # TODO insert here the transaction begin
+
         if not self.local_id: # saving new object, not a new version
             self.local_id = self._get_new_local_id() # must be first
             self.date_created = now
@@ -621,6 +629,9 @@ class ObjectState( models.Model ):
         self.starts_at = now
         self.guid = create_hash_from( self ) # compute unique hash 
         super(ObjectState, self).save() # add force_insert?
+
+        # TODO insert here the transaction end
+
 
     @classmethod
     def save_changes(self, objects, update_kwargs, m2m_dict, fk_dict, m2m_append):
@@ -640,6 +651,7 @@ class ObjectState( models.Model ):
         new_attr = False # indicates ANY difference in attr with curr objects
         new_fk = False # indicates if ANY new FK has to be assigned
         obj_for_update = [] # collector of objects that require update (caching)
+        m2m_new_rels = {} # collector for new m2m relations
 
         par_for_update = {} # init collector of parent IDs for update (caching)
         if fk_dict:
@@ -688,6 +700,7 @@ class ObjectState( models.Model ):
 
         if m2m_dict: # process versioned m2m relations separately, in bulk
             pks = dict( [ (x.pk, x) for x in objects ] )
+            m2m_fo_update = {}
 
             for m2m_name, new_ids in m2m_dict.items():
 
@@ -736,7 +749,10 @@ class ObjectState( models.Model ):
                 cache_upd = [obj for obj in objects if obj.pk in cache_ids]
                 obj_for_update = list( set( obj_for_update + cache_upd ) )
 
-                m2m_class.objects.get_query_set().bulk_create( new_rels )
+                m2m_new_rels[ m2m_class ] = new_rels
+                #m2m_class.objects.get_query_set().bulk_create( new_rels )
+
+        # TODO insert here the transaction begin
 
         # make update for main objects
         if obj_for_update:
@@ -748,6 +764,11 @@ class ObjectState( models.Model ):
             if parents:
                 upd['class'].objects.get_query_set().bulk_create( parents )
 
+        # create new m2ms
+        for cls, new_rels in m2m_new_rels.items():
+            cls.objects.get_query_set().bulk_create( new_rels )
+
+        # TODO insert here the transaction end
 
 
 class SafetyLevel(models.Model):
@@ -792,6 +813,7 @@ class SafetyLevel(models.Model):
         for u in users_to_remove: # delete legacy accesses
             self.shared_with.get(access_for=u).delete()
 
+    # TODO remove this as deprecated or make transaction.atomic decorated
     def acl_update(self, safety_level=None, users=None, cascade=False):
         """ update object safety level and direct user permissions (cascade).
         Note. This function works with single objects and not very effective 
@@ -820,6 +842,7 @@ class SafetyLevel(models.Model):
                     for obj in getattr(self, related.get_accessor_name()).all():
                         obj.acl_update(safety_level, users, cascade)
 
+    # TODO insert here transaction.atomic decorator
     @classmethod
     def bulk_acl_update(self, objects, safety_level=None, users=None, cascade=False):
         """ bulk acl update for homogenious (?) list of objects. The difference 

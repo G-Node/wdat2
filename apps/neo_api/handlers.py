@@ -14,7 +14,9 @@ class NEOHandler(BaseHandler):
 
     def run_post_processing(self, *args, **kwargs):
         """ metadata tagging propagates down the hierarchy by default. objects 
-        must be homogenious, NEO-type """
+        must be homogenious, NEO-type. There is no need to make this atomic as
+        it is supposed to be executed only within a single django request, which
+        is atomic by default. """
         objects = kwargs['objects']
         m2m_dict = kwargs['m2m_dict']
         if not objects: return None
