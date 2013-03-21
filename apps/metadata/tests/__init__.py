@@ -47,7 +47,7 @@ class TestBasics(TestGeneric, TestCase):
         logged_in = self.client.login(username=self.user.username, password="pass")
         self.assertTrue(logged_in)
         self.models_to_test = (Section, Property, Value)
-        self.backbone = backbone
+        self.backbone = dict(backbone)
         self.app_prefix = "metadata"
 
 

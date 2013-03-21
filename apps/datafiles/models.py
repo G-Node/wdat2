@@ -149,7 +149,7 @@ meta_classnames = {
 }
 
 backbone = {}
-safe = ['safety_level', 'file_type', 'tags', 'user_custom', 'raw_file']
+safe = ['safety_level', 'file_type', 'tags', 'user_custom', 'raw_file', 'size']
 for obj_type, cls in meta_classnames.items():
     params = {}
     params[ 'attributes' ] = [field.name for field in cls._meta.local_fields if\

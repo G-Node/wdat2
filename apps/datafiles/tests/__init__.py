@@ -31,7 +31,7 @@ class TestBasics(TestGeneric, TestCase):
         logged_in = self.client.login(username=self.user.username, password="pass")
         self.assertTrue( logged_in )
         self.models_to_test = (Datafile,)
-        self.backbone = backbone
+        self.backbone = dict(backbone)
         self.app_prefix = "datafiles"
 
         # create real file(s) as defined in fixtures
@@ -41,17 +41,21 @@ class TestBasics(TestGeneric, TestCase):
             with tb.openFile(path + "array.h5", "a") as f:
                 f.createArray("/", "fixture_array_data", a)
 
-
     def test_create(self):
         """ raw_file FileField is needed to create a file """
         self.backbone['datafile']['attributes'].append( 'raw_file' )
         self.backbone['datafile']['required'].append( 'raw_file' )
         super(TestBasics, self).test_create()
+        self.backbone['datafile']['attributes'].remove( 'raw_file' )
+        self.backbone['datafile']['required'].remove( 'raw_file' )
+
 
     def test_unauth_create(self):
         """ raw_file FileField is needed to create a file """
         self.backbone['datafile']['attributes'].append( 'raw_file' )
         self.backbone['datafile']['required'].append( 'raw_file' )
         super(TestBasics, self).test_unauth_create()
+        self.backbone['datafile']['attributes'].remove( 'raw_file' )
+        self.backbone['datafile']['required'].remove( 'raw_file' )
 
 

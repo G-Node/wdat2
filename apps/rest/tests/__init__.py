@@ -83,7 +83,7 @@ def _create_temp_file( size, ftype='ascii' ):
             f.createArray("/", name, a)
 
     try:
-        return open(filepath, 'r')
+        return open(filepath, 'r') # fuck opened handles
     except:
         raise NotImplementedError('This file type is not supported')
 
@@ -171,7 +171,7 @@ class TestGeneric( object ):
                     if isinstance(field, models.FileField):
                         no_json = True
 
-        if not no_json: # make JSON when no file should be submitted
+        if not no_json: # make JSON when NO file should be submitted
             post = DjangoJSONEncoder().encode(post)
         return post
 
@@ -219,7 +219,8 @@ class TestGeneric( object ):
 
             response = self.client.get( url )
             rdata = json.loads(response.content)
-            for f_name, f_value in post.items():
+
+            for f_name, f_value in json.loads(post).items():
                 field = model._meta.get_field( f_name )
                 field.to_python( f_value ) # just a validation for f_value
                 f_new_value = str(rdata['selected'][0]['fields'][field.name])
@@ -248,7 +249,7 @@ class TestGeneric( object ):
 
             response = self.client.get( url )
             rdata = json.loads(response.content)
-            for f_name, f_value in post.items():
+            for f_name, f_value in json.loads(post).items():
                 field = model._meta.get_field( f_name )
                 field.to_python( f_value ) # just a validation for f_value
                 f_new_value = str(rdata['selected'][0]['fields'][field.name])
