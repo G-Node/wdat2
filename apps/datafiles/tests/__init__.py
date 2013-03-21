@@ -14,7 +14,7 @@ from datafiles.models import Datafile, backbone
 
 """ TODO tests for archiving:
  - add all formats (zip, tar, bz2, gz), files made by zip in different OS!!
- - test validation procedure
+ - test validation task broker routine
  - test data slicing (?)
 """
 

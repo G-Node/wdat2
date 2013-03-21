@@ -151,9 +151,8 @@ class TestGeneric( object ):
         return data
 
     def _gen_random_post(self, model):
-        """ generates a random JSON data for POST for a certain model """
+        """ generates a random JSON dict to further POST for a certain model """
         post = {}
-        no_json = False
         obj_type = model().obj_type
 
         attributes = self.backbone[ obj_type ]['attributes']
@@ -168,11 +167,6 @@ class TestGeneric( object ):
                 if attr in required or random.choice([True, False]):
                     # if not required, 50% to set None
                     post[ field.name ] = self._get_test_value_for_field( field, self.user )
-                    if isinstance(field, models.FileField):
-                        no_json = True
-
-        if not no_json: # make JSON when NO file should be submitted
-            post = DjangoJSONEncoder().encode(post)
         return post
 
 
@@ -196,7 +190,9 @@ class TestGeneric( object ):
             post = self._gen_random_post( model )
 
             kwargs = {}
-            if type( post ) == type( '' ): # JSON encoded string, c_type needed
+            if not _has_file_data( model ):
+                # make JSON when NO file should be submitted
+                post = DjangoJSONEncoder().encode(post)
                 kwargs['content_type'] = "application/json"
             response = self.client.post(url, post, **kwargs)
 
@@ -212,7 +208,8 @@ class TestGeneric( object ):
             url = self._compile_url( model, random_obj )
             post = self._gen_random_post( model )
 
-            response = self.client.post(url, post, content_type="application/json")
+            response = self.client.post(url, DjangoJSONEncoder().encode(post), \
+                content_type="application/json")
 
             self.assertNotEqual(response.status_code, 500, \
                 "Obj type %s; response: %s" % (model().obj_type, response.content))
@@ -220,7 +217,7 @@ class TestGeneric( object ):
             response = self.client.get( url )
             rdata = json.loads(response.content)
 
-            for f_name, f_value in json.loads(post).items():
+            for f_name, f_value in post.items():
                 field = model._meta.get_field( f_name )
                 field.to_python( f_value ) # just a validation for f_value
                 f_new_value = str(rdata['selected'][0]['fields'][field.name])
@@ -242,14 +239,14 @@ class TestGeneric( object ):
             url = self._compile_url( model )
             post = self._gen_random_post( model )
 
-            response = self.client.post(url + '?bulk_update=1', post, \
+            response = self.client.post(url + '?bulk_update=1', DjangoJSONEncoder().encode(post), \
                 content_type="application/json")
             self.assertEqual(response.status_code, 200, \
                 "Obj type %s; response: %s" % (model().obj_type, response.content))
 
             response = self.client.get( url )
             rdata = json.loads(response.content)
-            for f_name, f_value in json.loads(post).items():
+            for f_name, f_value in post.items():
                 field = model._meta.get_field( f_name )
                 field.to_python( f_value ) # just a validation for f_value
                 f_new_value = str(rdata['selected'][0]['fields'][field.name])
@@ -314,7 +311,9 @@ class TestGeneric( object ):
             post = self._gen_random_post( model )
 
             kwargs = {}
-            if type( post ) == type( '' ): # JSON encoded string, c_type needed
+            if not _has_file_data( model ):
+                # make JSON when NO file should be submitted
+                post = DjangoJSONEncoder().encode(post)
                 kwargs['content_type'] = "application/json"
             response = self.client.post(url, post, **kwargs)
 
@@ -331,7 +330,8 @@ class TestGeneric( object ):
             url = self._compile_url( model, random_obj )
             post = self._gen_random_post( model )
 
-            response = self.client.post( url, post, content_type="application/json")
+            response = self.client.post( url, DjangoJSONEncoder().encode(post),\
+                content_type="application/json")
             self.assertEqual(response.status_code, 401)
 
     def test_unauth_get(self):
@@ -379,7 +379,8 @@ class TestGeneric( object ):
             url = self._compile_url( model, random_obj )
             post = self._gen_random_post( model )
 
-            response = self.client.post(url, post, content_type="application/json")
+            response = self.client.post(url, DjangoJSONEncoder().encode(post),\
+                content_type="application/json")
 
             self.assertEqual(response.status_code, 403)
 
