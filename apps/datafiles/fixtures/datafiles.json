@@ -3,10 +3,13 @@
         "pk": 1,
         "model": "datafiles.Datafile",
         "fields": {
-            "name": "some data array",
+            "name": "test file #1",
+            "description": "description - test file #1",
             "raw_file": "data/array.h5",
             "file_type": 5,
+            "section": 1,
             "owner": 1,
+            "safety_level": 3,
             "date_created": "2011-10-05 19:11:56",
             "local_id": 1,
             "guid": "e003e26a7273867bad4c3d0260f476c5762134ac",
@@ -17,13 +20,32 @@
         "pk": 2,
         "model": "datafiles.Datafile",
         "fields": {
-            "name": "some data array",
+            "name": "test file #2",
+            "description": "description - test file #2",
             "raw_file": "data/array.h5",
             "file_type": 5,
             "owner": 1,
+            "safety_level": 3,
             "date_created": "2011-10-05 19:11:56",
             "local_id": 2,
-            "guid": "e003e26a7273867bad4c3d0110f476c5762130ab",
+            "guid": "e003e26a7273867bad4c3d0260f476c5762134ab",
+            "starts_at": "2011-10-05 19:11:56"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "datafiles.Datafile",
+        "fields": {
+            "name": "test file #3",
+            "description": "description - test file #3",
+            "raw_file": "data/array.h5",
+            "file_type": 5,
+            "section": 1,
+            "owner": 1,
+            "safety_level": 3,
+            "date_created": "2011-10-05 19:11:56",
+            "local_id": 3,
+            "guid": "e003e26a7273867bad4c3d0260f476c5762134af",
             "starts_at": "2011-10-05 19:11:56"
         }
     }

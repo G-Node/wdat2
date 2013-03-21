@@ -2,7 +2,9 @@ import datetime
 import time
 import random, binascii
 import numpy as np
+import tables as tb
 import os
+import uuid
 
 from rest.serializers import Serializer
 from rest.meta import meta_unit_types
@@ -49,6 +51,47 @@ class TestBasics(TestGeneric, TestCase):
 
 """
 
+#-------------------------------------------------------------------------------
+# helper functions
+#-------------------------------------------------------------------------------
+
+
+def _create_temp_file( size, ftype='ascii' ):
+    """ create test file with ascii or array data. can be used to create any 
+    data-related objects, like signals, spiketrains etc. or just arbitrary 
+    files.
+
+    size - int
+    returns OPENED python file object !!
+    """
+    a = np.random.rand( size )
+
+    if ftype=='ascii':
+        filepath = '/tmp/' + str( uuid.uuid4() ) + '.txt'
+        with open(filepath, 'w') as f:
+            a.tofile(f, ',')
+
+    elif ftype=='binary':
+        filepath = '/tmp/' + str( uuid.uuid4() ) + '.dat'
+        with open(filepath, 'w') as f:
+            a.tofile(f)
+
+    elif ftype=='hdf5':
+        name = str( uuid.uuid4() )
+        filepath = '/tmp/' + name + '.h5'
+        with tb.openFile(filepath, "a") as f:
+            f.createArray("/", name, a)
+
+    try:
+        return open(filepath, 'r')
+    except:
+        raise NotImplementedError('This file type is not supported')
+
+def _has_file_data( model ):
+    """ defines whether there is a file in the model. if a model has a file 
+    field request POST should have no content type """
+    return len([x for x in model._meta.local_fields if isinstance(x, models.FileField)]) > 0
+
 
 class TestGeneric( object ):
     """ Base abstract class for testing common REST functions like CRUD etc. 
@@ -57,11 +100,11 @@ class TestGeneric( object ):
     This class assumes that test object data is loaded using fixtures.
     """
 
-    user = None # login here
-    models_to_test = () # ordered tuple of model classes to test
-    serializer = Serializer() # custom serializer if needed
-    backbone = None # backbone structure of the app
-    app_prefix = "" # adds before class type in the REST URL
+    user = None                 # login here
+    models_to_test = ()         # ordered tuple of model classes to test
+    serializer = Serializer()   # custom serializer if needed
+    backbone = None             # backbone structure of the app
+    app_prefix = ''             # adds before class type in every REST URL
 
     RANDOM_VALUES = {
         models.CharField: lambda field, user: (
@@ -79,6 +122,9 @@ class TestGeneric( object ):
         models.DateTimeField: lambda field, user: datetime.datetime.now(),
         models.BooleanField: lambda field, user: (
             float( np.random.rand(1) ) > 0.5
+        ),
+        models.FileField: lambda field, user: (
+            _create_temp_file( np.random.randint(1, 1000), ftype='hdf5')
         ),
         models.ForeignKey: lambda field, user: (
             random.choice( field.rel.to.objects.filter(owner=user) ).pk
@@ -107,6 +153,7 @@ class TestGeneric( object ):
     def _gen_random_post(self, model):
         """ generates a random JSON data for POST for a certain model """
         post = {}
+        no_json = False
         obj_type = model().obj_type
 
         attributes = self.backbone[ obj_type ]['attributes']
@@ -121,6 +168,11 @@ class TestGeneric( object ):
                 if attr in required or random.choice([True, False]):
                     # if not required, 50% to set None
                     post[ field.name ] = self._get_test_value_for_field( field, self.user )
+                    if isinstance(field, models.FileField):
+                        no_json = True
+
+        if not no_json: # make JSON when no file should be submitted
+            post = DjangoJSONEncoder().encode(post)
         return post
 
 
@@ -143,8 +195,10 @@ class TestGeneric( object ):
             url = self._compile_url( model )
             post = self._gen_random_post( model )
 
-            response = self.client.post(url, \
-                json.dumps(post, cls=DjangoJSONEncoder), content_type="application/json")
+            kwargs = {}
+            if type( post ) == type( '' ): # JSON encoded string, c_type needed
+                kwargs['content_type'] = "application/json"
+            response = self.client.post(url, post, **kwargs)
 
             self.assertEqual(response.status_code, 201, \
                 "Obj type %s; response: %s" % (model().obj_type, response.content))
@@ -158,8 +212,8 @@ class TestGeneric( object ):
             url = self._compile_url( model, random_obj )
             post = self._gen_random_post( model )
 
-            response = self.client.post(url,\
-                DjangoJSONEncoder().encode(post), content_type="application/json")
+            response = self.client.post(url, post, content_type="application/json")
+
             self.assertNotEqual(response.status_code, 500, \
                 "Obj type %s; response: %s" % (model().obj_type, response.content))
 
@@ -187,8 +241,8 @@ class TestGeneric( object ):
             url = self._compile_url( model )
             post = self._gen_random_post( model )
 
-            response = self.client.post(url + '?bulk_update=1',\
-                DjangoJSONEncoder().encode(post), content_type="application/json")
+            response = self.client.post(url + '?bulk_update=1', post, \
+                content_type="application/json")
             self.assertEqual(response.status_code, 200, \
                 "Obj type %s; response: %s" % (model().obj_type, response.content))
 
@@ -256,9 +310,13 @@ class TestGeneric( object ):
         for model in self.models_to_test:
             random_obj = random.choice( model.objects.all() )
             url = self._compile_url( model, random_obj )
+            post = self._gen_random_post( model )
 
-            response = self.client.post( url, self.serializer.serialize([random_obj]), \
-                content_type="application/json")
+            kwargs = {}
+            if type( post ) == type( '' ): # JSON encoded string, c_type needed
+                kwargs['content_type'] = "application/json"
+            response = self.client.post(url, post, **kwargs)
+
             self.assertEqual(response.status_code, 401)
 
     def test_unauth_update(self):
@@ -270,9 +328,9 @@ class TestGeneric( object ):
         for model in self.models_to_test:
             random_obj = random.choice( model.objects.all() )
             url = self._compile_url( model, random_obj )
+            post = self._gen_random_post( model )
 
-            response = self.client.post( url, self.serializer.serialize([random_obj]), \
-                content_type="application/json")
+            response = self.client.post( url, post, content_type="application/json")
             self.assertEqual(response.status_code, 401)
 
     def test_unauth_get(self):
@@ -320,8 +378,7 @@ class TestGeneric( object ):
             url = self._compile_url( model, random_obj )
             post = self._gen_random_post( model )
 
-            response = self.client.post(url,\
-                DjangoJSONEncoder().encode(post), content_type="application/json")
+            response = self.client.post(url, post, content_type="application/json")
 
             self.assertEqual(response.status_code, 403)
 
