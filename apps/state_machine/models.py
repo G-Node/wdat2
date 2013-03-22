@@ -116,7 +116,10 @@ def _get_url_base(model):
     if model == User: # not to break HTML interface
         return '/user/'
     setattr(temp, 'pk', 10**9)
-    url = temp.get_absolute_url()
+    try:
+        url = temp.get_absolute_url()
+    except AttributeError:
+        return '/'
     # removing the trailing slash if there
     if url.rfind('/') == len(url) - 1:
         url = url[:url.rfind('/')]
@@ -284,7 +287,11 @@ class BaseQuerySetExtension(object):
         to the current datetime. Applied only for active versions, having 
         ends_at=NULL """
         now = datetime.now()
+
+        # select active records
         self.filter( ends_at__isnull = True )
+
+        # delete records - this is the standard QuerySet update call
         super(BaseQuerySetExtension, self).update( ends_at = now )
 
     def exists(self):
@@ -367,7 +374,8 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
         # TODO insert here the transaction begin
 
         # step 2: close old records
-        self.filter( guid__in = guids_to_close ).delete()
+        self.filter( guid__in = guids_to_close )
+        super(VersionedQuerySet, self).delete() # use simple delete!
 
         # step 3: create objects in bulk
         return super(VersionedQuerySet, self).bulk_create( to_submit )
@@ -384,6 +392,36 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
                     setattr(obj, name, value)
             return self.bulk_create( objs )
         return self
+
+    def delete(self):
+        """ a special versioned delete, which removes appropriate direct and 
+        reversed m2ms relations for the objects that are going to be deleted """
+        now = datetime.now()
+        pks = list( self.values_list('pk', flat=True) ) # ids of main objects
+
+        # TODO insert here the transaction begin
+
+        # 1. delete main records
+        super(VersionedQuerySet, self).delete()
+
+        # 2. delete all directly related m2ms
+        for m2m_field in self.model._meta.many_to_many:
+            filt = {}
+            filt[m2m_field.m2m_field_name() + '_id__in'] = pks
+            filt['ends_at__isnull'] = True
+            m2m_field.rel.through.objects.filter( **filt ).update( ends_at = now )
+
+        # 3. delete all reversly related m2ms
+        reverse_related = [x for x in self.model._meta.get_all_related_objects() if \
+            issubclass(x.model, VersionedM2M)]
+        for m2m_related in reverse_related:
+            filt = {}
+            filt[m2m_related.field.name + '_id__in'] = pks
+            filt['ends_at__isnull'] = True
+            m2m_related.model.objects.filter( **filt ).update( ends_at = now )
+
+        # TODO insert here the transaction end
+
 
     def security_filter(self, user, update=False):
         """ filters given queryset for objects available for a given user. Does 
@@ -1168,6 +1206,7 @@ class ObjectExtender:
                 m2m_map_ids = {}
                 mp = np.array( rel_m2m_map )
                 fks = set( mp[:, 0] )
+
                 for i in fks:
                     m2m_map_ids[i] = [ int(x) for x in mp[ mp[:,0]==i ][:,1] ]
                     m2m_map_plinks[i] = [ url_base + str(x) for x in m2m_map_ids[i] ]

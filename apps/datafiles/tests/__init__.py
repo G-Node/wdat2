@@ -7,12 +7,12 @@ from rest.tests import TestGeneric
 import numpy as np
 import tables as tb
 import settings
-import uuid
 import os
 
 from datafiles.models import Datafile, backbone
 
-""" TODO tests for archiving:
+# TODO
+""" tests for archiving:
  - add all formats (zip, tar, bz2, gz), files made by zip in different OS!!
  - test validation task broker routine
  - test data slicing (?)
@@ -48,7 +48,6 @@ class TestBasics(TestGeneric, TestCase):
         super(TestBasics, self).test_create()
         self.backbone['datafile']['attributes'].remove( 'raw_file' )
         self.backbone['datafile']['required'].remove( 'raw_file' )
-
 
     def test_unauth_create(self):
         """ raw_file FileField is needed to create a file """

@@ -175,47 +175,48 @@ class Serializer(PythonSerializer):
             if isinstance(field_value, str):
                 field_value = smart_unicode(field_value, encoding, strings_only=True)
 
-            # Handle special model fields
+            # handle special model fields
             if field_name in self.special_for_deserialization:
-                update_kwargs = self.deserialize_special(update_kwargs, \
-                    field_name, field_value, user)
-            else:
-                field = model._meta.get_field(field_name)
+                field_value = self.deserialize_special(field_name, field_value, user)
 
-                # Handle data/units fields
-                if self.is_data_field_django(field):
-                    update_kwargs[field_name] = field_value["data"]
-                    update_kwargs[field_name + "__unit"] = field_value["units"]
+            field = model._meta.get_field(field_name)
 
+            # prepare to handle data/units fields
+            if self.is_data_field_django(field):
+                update_kwargs[field_name + "__unit"] = field_value["units"]
+                field_value = field_value["data"]
+
+            # Handle M2M relations
+            if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
+                m2m_data = []
+
+                for m2m in field_value: # we support both ID and permalinks
+                    m2m_data.append( self._resolve_ref(field.rel.to, m2m, user) )
+                m2m_dict[field.name] = [int( x.pk ) for x in m2m_data]
+
+            # Handle FK fields (taken from django.core.Deserializer)
+            elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
+                if field_value is not None:
+                    related = self._resolve_ref(field.rel.to, field_value, user)
+                    fk_dict[field.name] = related # establish rel
                 else:
-                    # Handle M2M relations
-                    if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
-                        m2m_data = []
+                    fk_dict[field.name] = None # remove relation
 
-                        for m2m in field_value: # we support both ID and permalinks
-                            m2m_data.append( self._resolve_ref(field.rel.to, m2m, user) )
-                        #if 'local_id' in field.rel.to._meta.get_all_field_names():
-                        m2m_dict[field.name] = [int( x.pk ) for x in m2m_data]
-                        #else:
-                        #    m2m_dict[field.name] = [int(x.id) for x in m2m_data]
-
-                    # Handle FK fields (taken from django.core.Deserializer)
-                    elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
-                        if field_value is not None:
-                            related = self._resolve_ref(field.rel.to, field_value, user)
-                            fk_dict[field.name] = related # establish rel
-                        else:
-                            fk_dict[field.name] = None # remove relation
-
-                    # handle standard fields
-                    elif field.editable and not field.name == 'id': 
-                        #TODO raise error when trying to change id or date_created etc?
-                        update_kwargs[field_name] = field.to_python(field_value)
+            # handle standard fields
+            elif field.editable and not field.name == 'id': 
+                #TODO raise error when trying to change id or date_created etc?
+                update_kwargs[field_name] = field.to_python(field_value)
 
         return update_kwargs, m2m_dict, fk_dict
 
 #-------------------------------------------------------------------------------
 # Field handlers
+
+    def handle_field(self, obj, field):
+        super(Serializer, self).handle_field(obj, field)
+        if isinstance(field, models.DateTimeField) and self._current[field.name]:
+            self._current[field.name] = self._current[field.name].strftime("%Y-%m-%d %H:%M:%S")
+
     def handle_fk_field(self, obj, field):
         rid = getattr(obj, field.name + "_id")
         if rid: # build a permalink without fetching an object
@@ -238,8 +239,15 @@ class Serializer(PythonSerializer):
         """ abstract method for special fields """
         raise NotImplementedError
 
-    def deserialize_special(self, update_kwargs, field_name, field_value, user):
-        """ abstract method for special fields """
+    def deserialize_special(self, kwargs_dict, field_name, field_value, user):
+        """ abstract method for special fields processing. kwargs_dict is a dict
+        which has a structure like: {
+            'update_kwargs': <update_kwargs_dict>
+            'fk_dict': <fk_dict>
+            'm2m_dict': <m2m_dict>
+        } 
+        should return update_kwargs, fk_dict, m2m_dict 
+        """
         raise NotImplementedError
 
 #-------------------------------------------------------------------------------

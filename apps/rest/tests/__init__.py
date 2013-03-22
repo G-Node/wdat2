@@ -17,8 +17,11 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
 """
-This module contains abstract classes for testing basic REST functionality for a
-typical REST app. Tests include:
+================================================================================
+This module contains abstract class for testing basic REST functionality for a
+typical REST app.
+
+Tests Roadmap:
 
 1. CRUD
 2. Permissions
@@ -119,7 +122,7 @@ class TestGeneric( object ):
         models.FloatField: lambda field, user: (
             float( np.random.rand(1) )
         ),
-        models.DateTimeField: lambda field, user: datetime.datetime.now(),
+        models.DateTimeField: lambda field, user: datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         models.BooleanField: lambda field, user: (
             float( np.random.rand(1) ) > 0.5
         ),
@@ -145,7 +148,7 @@ class TestGeneric( object ):
             in_json = {"data": data}
             ufield = field.model._meta.get_field( field.name + "__unit" )
             unit = random.choice( meta_unit_types[ufield._unit_type] )
-            in_json[ field.name + "__unit" ] = unit
+            in_json[ "units" ] = unit
             return in_json
 
         return data
@@ -194,6 +197,7 @@ class TestGeneric( object ):
                 # make JSON when NO file should be submitted
                 post = DjangoJSONEncoder().encode(post)
                 kwargs['content_type'] = "application/json"
+
             response = self.client.post(url, post, **kwargs)
 
             self.assertEqual(response.status_code, 201, \
@@ -219,10 +223,16 @@ class TestGeneric( object ):
 
             for f_name, f_value in post.items():
                 field = model._meta.get_field( f_name )
-                field.to_python( f_value ) # just a validation for f_value
-                f_new_value = str(rdata['selected'][0]['fields'][field.name])
 
-                # check only first object
+                f_new_value = str(rdata['selected'][0]['fields'][field.name])
+                if field.name in self.backbone[model().obj_type]['data_fields']:
+                    # it's a data field, go into
+                    f_new_value = str(rdata['selected'][0]['fields'][field.name]['data'])
+                    f_value = f_value['data']
+
+                field.to_python( f_value ) # just a validation for f_value
+
+                # validate field has the same value
                 if field.rel is None:
                     self.assertEqual(f_new_value, str( f_value ), \
                         "Object: %s, field: %s" % (model().obj_type, field.name) )
@@ -248,14 +258,20 @@ class TestGeneric( object ):
             rdata = json.loads(response.content)
             for f_name, f_value in post.items():
                 field = model._meta.get_field( f_name )
-                field.to_python( f_value ) # just a validation for f_value
-                f_new_value = str(rdata['selected'][0]['fields'][field.name])
 
-                # check only first object
+                f_new_value = str(rdata['selected'][0]['fields'][field.name])
+                if field.name in self.backbone[model().obj_type]['data_fields']:
+                    # it's a data field, go into
+                    f_new_value = str(rdata['selected'][0]['fields'][field.name]['data'])
+                    f_value = f_value['data']
+
+                field.to_python( f_value ) # just a validation for f_value
+
+                # validate field has the same value - check only first object
                 if field.rel is None:
                     self.assertEqual(f_new_value, str( f_value ), \
                         "Object: %s, field: %s" % (model().obj_type, field.name) )
-                else:
+                else: # validate permalink contains new ID
                     self.assertTrue( f_new_value.find( str( f_value ) ) > -1, \
                         "Object: %s, field: %s" % (model().obj_type, field.name) )
 

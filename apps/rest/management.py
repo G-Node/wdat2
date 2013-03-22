@@ -13,7 +13,7 @@ import settings
 import hashlib
 import re
 
-from state_machine.models import SafetyLevel, SingleAccess, VersionedM2M, ObjectState, ObjectExtender
+from state_machine.models import SafetyLevel, SingleAccess, VersionedQuerySet, VersionedM2M, ObjectState, ObjectExtender
 from rest.common import *
 from rest.meta import *
 
@@ -40,11 +40,12 @@ class BaseHandler(object):
             'GET': self.get,
             'POST': self.create_or_update,
             'DELETE': self.delete }
-        self.offset = 0
         self.max_results = settings.REST_CONFIG['max_results'] # 1000
         self.m2m_append = settings.REST_CONFIG['m2m_append'] # True
         self.update = True # create / update via POST by default
         self.mode = settings.DEFAULT_RESPONSE_MODE
+        # params below must be cleaned on every __call__
+        self.offset = 0
         self.attr_filters = [] # attribute filters
         self.attr_excludes = [] # negative attribute filters
         self.options = {} # other request parameters
@@ -89,7 +90,11 @@ class BaseHandler(object):
 
                 if not obj_id:
                     # 2. permissions filtering
-                    objects = objects.security_filter(request.user, update=update)
+                    if isinstance(objects, VersionedQuerySet):
+                        objects = objects.security_filter(request.user, update=update)
+
+                    if update and not objects:
+                        raise ReferenceError('No objects within this query are authorized to change.')
 
                     # 3. custom model filters
                     for key, value in self.options.items():
@@ -116,7 +121,8 @@ class BaseHandler(object):
                     if not objects:
                         raise ObjectDoesNotExist('This object does not exist.')
 
-                    objects = objects.security_filter(request.user, update=update) 
+                    if isinstance(objects, VersionedQuerySet):
+                        objects = objects.security_filter(request.user, update=update) 
                     if not objects:
                         raise ReferenceError('You are not authorized to access this object.')
 
@@ -143,6 +149,7 @@ class BaseHandler(object):
     def clean_get_params(self, request):
         """ clean request GET params """
         self.attr_filters, self.attr_excludes = [], []
+        self.options = {}
 
         metadata_searchable = hasattr(self.model, 'metadata')
 
@@ -375,6 +382,7 @@ class BaseHandler(object):
             # -fk_dict - VERSIONED FKs (normal FKs are parsed as attrs), as a 
             #     dict {'relname': new_fk, }
             # -m2m_dict - new m2m rels, as a dict {'relname': [new ids], }
+
             update_kwargs, m2m_dict, fk_dict = self.serializer.deserialize(rdata, \
                 self.model, user=request.user, encoding=encoding, m2m_append=self.m2m_append)
 
@@ -393,15 +401,15 @@ class BaseHandler(object):
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
-        except (IntegrityError, ValidationError), VE:
-            if hasattr(VE, 'message_dict'):
-                json_obj=VE.message_dict
-            elif hasattr(VE, 'messages'):
-                json_obj={"details": ", ".join(VE.messages)}
-            else:
-                json_obj={"details": str( VE )}
-            return BadRequest(json_obj=json_obj, \
-                message_type="bad_parameter", request=request)
+        #except (IntegrityError, ValidationError), VE:
+        #    if hasattr(VE, 'message_dict'):
+        #        json_obj=VE.message_dict
+        #    elif hasattr(VE, 'messages'):
+        #        json_obj={"details": ", ".join(VE.messages)}
+        #    else:
+        #        json_obj={"details": str( VE )}
+        #    return BadRequest(json_obj=json_obj, \
+        #        message_type="bad_parameter", request=request)
         except (AssertionError, AttributeError, KeyError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="post_data_invalid", request=request)
