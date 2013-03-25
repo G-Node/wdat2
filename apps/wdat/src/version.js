@@ -1,3 +1,24 @@
-// ----------- file: version.js ------------- //
+// ---------- file: version.js ---------- //
 
-WDAT.version = '0.15.0';
+
+// Define version and debug mode in the
+// wdat main module.
+var wdat; (function(wdat) {
+  "use strict";
+
+  /**
+   * The version of the crayon library.
+   *
+   * @define {string}
+   */
+  wdat.version = "0.15.0";
+
+  /**
+   * Activate or deactivate debug mode.
+   *
+   * @define {Boolean}
+   */
+  wdat.debug = true;
+
+})(wdat || (wdat = {}));
+
