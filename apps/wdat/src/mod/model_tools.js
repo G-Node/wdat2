@@ -1,4 +1,4 @@
-// ---------- file: mod/medel_tools.js ---------- //
+// ---------- file: mod/model_tools.js ---------- //
 
 
 // Add helper and tool functions for models to the module 'wdat.mod'.
