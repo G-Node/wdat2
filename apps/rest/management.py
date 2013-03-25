@@ -94,7 +94,7 @@ class BaseHandler(object):
                         objects = objects.security_filter(request.user, update=update)
 
                     if update and not objects:
-                        raise ReferenceError('No objects within this query are authorized to change.')
+                        raise ReferenceError('No objects within this query are authorized for a change.')
 
                     # 3. custom model filters
                     for key, value in self.options.items():
@@ -401,15 +401,15 @@ class BaseHandler(object):
         except (ValueError, TypeError), v:
             return BadRequest(json_obj={"details": v.message}, \
                 message_type="bad_float_data", request=request)
-        #except (IntegrityError, ValidationError), VE:
-        #    if hasattr(VE, 'message_dict'):
-        #        json_obj=VE.message_dict
-        #    elif hasattr(VE, 'messages'):
-        #        json_obj={"details": ", ".join(VE.messages)}
-        #    else:
-        #        json_obj={"details": str( VE )}
-        #    return BadRequest(json_obj=json_obj, \
-        #        message_type="bad_parameter", request=request)
+        except (IntegrityError, ValidationError), VE:
+            if hasattr(VE, 'message_dict'):
+                json_obj=VE.message_dict
+            elif hasattr(VE, 'messages'):
+                json_obj={"details": ", ".join(VE.messages)}
+            else:
+                json_obj={"details": str( VE )}
+            return BadRequest(json_obj=json_obj, \
+                message_type="bad_parameter", request=request)
         except (AssertionError, AttributeError, KeyError), e:
             return BadRequest(json_obj={"details": e.message}, \
                 message_type="post_data_invalid", request=request)

@@ -349,8 +349,8 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
         lid = self.model._get_new_local_id()
 
         # step 1: validation + versioned objects update
-        guids_to_close = []
         val_flag = False
+        guids_to_close = []
         processed = []
         to_submit = []
         for obj in objects:
@@ -367,15 +367,18 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             # compute unique hash (after updating object and starts_at)
             obj.guid = create_hash_from( obj )
             if not val_flag: # clean only one object for speed
-                obj.full_clean()
+                try:
+                    obj.full_clean()
+                except:
+                    import ipdb
+                    ipdb.set_trace()
                 val_flag = True
             to_submit.append( obj )
 
         # TODO insert here the transaction begin
 
-        # step 2: close old records
-        self.filter( guid__in = guids_to_close )
-        super(VersionedQuerySet, self).delete() # use simple delete!
+        # step 2: close old records (!) use simpler delete from BaseQuerySetExtension
+        super(VersionedQuerySet, self.filter( guid__in = guids_to_close )).delete()
 
         # step 3: create objects in bulk
         return super(VersionedQuerySet, self).bulk_create( to_submit )
@@ -690,6 +693,7 @@ class ObjectState( models.Model ):
         new_fk = False # indicates if ANY new FK has to be assigned
         obj_for_update = [] # collector of objects that require update (caching)
         m2m_new_rels = {} # collector for new m2m relations
+        m2m_old_rels = {} # collector for old m2m relations to delete
 
         par_for_update = {} # init collector of parent IDs for update (caching)
         if fk_dict:
@@ -754,7 +758,7 @@ class ObjectState( models.Model ):
                 rel_m2ms = m2m_class.objects.filter( **filt )
 
                 now = datetime.now()
-                cache_ids = [] # collector for objects to to refresh cache
+                cache_ids = [] # collector for objects to refresh cache
 
                 # close old existing m2m
                 if not m2m_append: 
@@ -765,7 +769,7 @@ class ObjectState( models.Model ):
 
                     # update collector for objects to refresh cache
                     cache_ids = m2m_class.objects.filter( **filt ).values_list( own_name, flat=True )
-                    m2m_class.objects.filter( **filt ).delete()
+                    m2m_old_rels[ m2m_class ] = filt # collect old relations
 
                 # create new m2m connections
                 filt = dict( [(rev_name + '__in', new_ids)] )
@@ -787,8 +791,7 @@ class ObjectState( models.Model ):
                 cache_upd = [obj for obj in objects if obj.pk in cache_ids]
                 obj_for_update = list( set( obj_for_update + cache_upd ) )
 
-                m2m_new_rels[ m2m_class ] = new_rels
-                #m2m_class.objects.get_query_set().bulk_create( new_rels )
+                m2m_new_rels[ m2m_class ] = new_rels # collect new relations
 
         # TODO insert here the transaction begin
 
@@ -801,6 +804,10 @@ class ObjectState( models.Model ):
             parents = upd['class'].objects.filter( pk__in=set( upd['ids'] ) )
             if parents:
                 upd['class'].objects.get_query_set().bulk_create( parents )
+
+        # close old m2ms
+        for cls, filt in m2m_old_rels.items():
+            cls.objects.filter( **filt ).delete()
 
         # create new m2ms
         for cls, new_rels in m2m_new_rels.items():
@@ -1193,11 +1200,15 @@ class ObjectExtender:
             rel_m2ms = m2m_class.objects.filter( **filt ).select_related(rev_name)
 
             # get evaluated m2m conn queryset:
-            rel_m2m_map = [ ( getattr(r, own_name + "_id"), \
-                getattr(r, rev_name + "_id") ) for r in rel_m2ms ]
+            rel_m2m_map = [ ( getattr(r, own_name + "_id"), getattr(r, rev_name + "_id") ) for r in rel_m2ms ]
             if rel_m2m_map:
                 if user: # security filtering
-                    available = rev_model.objects.get_query_set().security_filter( user ).values_list('pk', flat=True)
+                    # proxy time if needed
+                    if _at_time and issubclass(rev_model, ObjectState):
+                        available = rev_model.objects.filter(at_time=_at_time)
+                    else:
+                        available = rev_model.objects.all()
+                    available = available.security_filter( user ).values_list('pk', flat=True)
                     rel_m2m_map = [x for x in rel_m2m_map if x[1] in available]
 
                 # preparing m2m maps: preparing dicts with keys as parent 
