@@ -12,6 +12,7 @@ STATIC_CSS = static
 
 # all js sources
 SRC_JS = $(wildcard src/*.js) \
+	$(wildcard src/mod/*.js) \
 	$(wildcard src/api/*.js) \
 	$(wildcard src/ui/*.js) \
 	$(wildcard src/app/*.js)
