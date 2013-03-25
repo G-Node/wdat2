@@ -92,5 +92,104 @@ var wdat; (function(wdat, mod, $) {
     }
   };
 
+  /**
+   * Get all defined parents for a specific type described in WDAT.model
+   *
+   * @param type {string}   The type of a data object.
+   *
+   * @return {Object} An object with all defined parents or 'undefined' if no such type or no
+   *                  parents are specified.
+   */
+  mod.parents = function(type) {
+    var tmpl = mod.template(type);
+    if (tmpl && tmpl.parents) {
+      return tmpl.parents;
+    }
+  };
+
+  /**
+   * Get all defined children for a specific type described in WDAT.model
+   *
+   * @param type {string}   The type of a data object.
+   *
+   * @return {Object} Object with all defined children or 'undefined' if no such type or no children
+   *                  are specified.
+   */
+  mod.children = function(type) {
+    var tmpl = mod.template(type);
+    if (tmpl && tmpl.children) {
+      return tmpl.children;
+    }
+  };
+
+  /**
+   * Determine by its type if a data object is plotable, using the definitions
+   * in WDAT.model.
+   *
+   * @param type {string}     The type of a data object e.g. section, segment or analogsignal
+   *
+   * @return {Boolean} True if the object is plotable, false otherwise
+   */
+  mod.isPlotable = function(type) {
+    var t = type.toString().toLowerCase();
+    return mod.def.ephys.plotable.hasOwnProperty(t);
+  };
+
+  /**
+   * Crates a new object from a certain type with all the defaults set.
+   *
+   * @param type {string}     The type of a data object e.g. section, segment or analogsignal
+   *
+   * @return {Object} A new object from a certain type, or indefined if no such type was found.
+   */
+  mod.create = function(type) {
+    var val, obj = {}, tmpl = mod.template(type);
+    if (tmpl) {
+      if (tmpl.fields) {
+        obj.fields = {};
+        for (var i in tmpl.fields) {
+          val = tmpl.fields[i].value;
+          if (val === undefined) val = null;
+          if (i == 'name')
+            obj.name = val;
+          else
+            obj.fields[i] = val;
+        }
+      }
+      obj.parents = {};
+      for (var i in tmpl.parents) {
+        obj.parents[i] = null;
+      }
+      obj.children = {};
+      for (var i in tmpl.children) {
+        obj.children[i] = [];
+      }
+      return obj;
+    }
+  };
+
+
+  // local var for types
+  var _types;
+
+  /**
+   * Returns an array containing all ephys type names.
+   *
+   * @return {Array} All type names of ephys data types.
+   */
+  mod.ephyTypes = function() {
+    if (!_types) {
+      _types = [];
+      for (var i in mod.def.ephys.container) {
+        _types.push(i);
+      }
+      for (var i in mod.def.ephys.plotable) {
+        _types.push(i);
+      }
+    }
+    return _types;
+  };
+
+
 })(wdat || (wdat = {}), wdat.mod || (wdat.mod = {}), jQuery);
 
