@@ -222,6 +222,8 @@ class BaseHandler(object):
                                 pass
 
                         curr_key = curr_key[ : curr_key.find('__') ]
+                        if self.is_versioned and curr_key == 'id':
+                            curr_key = 'local_id' # versioned objs have local_id
 
                     try:
                         # normal single attribute lookup if no error raised
@@ -247,7 +249,7 @@ class BaseHandler(object):
 
                 # using pk instead of id due to versioning
                 new_key = smart_unicode(k)
-                if str( k[ : k.find('__')] ) == 'id':
+                if new_key.startswith('id__') or str(new_key) == 'id' or new_key.find('__id'):
                     new_key = k.replace('id', 'pk')
 
                 # convert to list if needed
