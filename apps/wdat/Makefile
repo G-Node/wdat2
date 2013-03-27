@@ -11,22 +11,24 @@ STATIC_JS = static
 STATIC_CSS = static
 
 # all js sources
-SRC_JS = $(wildcard src/*.js) \
-	$(wildcard src/mod/*.js) \
-	$(wildcard src/api/*.js) \
-	$(wildcard src/ui/*.js) \
-	$(wildcard src/app/*.js)
+SRC_JS = 	$(wildcard src/*.js) \
+	$(wildcard src/wdat/*.js) \
+	$(wildcard src/wdat/mod.js)
+
+#	$(wildcard src/mod/*.js) \
+#	$(wildcard src/api/*.js) \
+#	$(wildcard src/ui/*.js) \
+#	$(wildcard src/app/*.js)
 
 # sources that are also needed as separate files
-SRC_JS_SEPARATE = src/api/network_resource.js \
-	src/utils.js
+SRC_JS_SEPARATE = src/wdat/api/network_resource.js
 
 # web worker sources
-SRC_JS_WORKER = src/api/data_api.js.worker
+SRC_JS_WORKER = src/wdat/api/data_api.js.worker
 
 # all less sources
-SRC_LESS = $(wildcard src/ui/*.less) \
-	$(wildcard src/app/*.less)
+SRC_LESS = $(wildcard src/wdat/ui/*.less) \
+	$(wildcard src/wdat/app/*.less)
 
 # additonsal less sources
 SRC_LESS_MAIN = $(wildcard src/*.less)

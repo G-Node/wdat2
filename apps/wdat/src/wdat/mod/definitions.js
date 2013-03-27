@@ -3,17 +3,17 @@
 
 // Add objects defining the data model of the API to the
 // module 'mod'.
-var wdat; (function(wdat, mod) {
+var wdat; (function(wdat) {
 
-  // A define the model in mod.def.
-  mod.def = {};
+  // A define the model in wdat.model.
+  wdat.model = {};
 
   /**
    * Define the model for metadata.
    *
    * @define {Object}
    */
-  mod.def.metadata = {
+  wdat.model.metadata = {
 
           section : {
             fields : {
@@ -63,12 +63,12 @@ var wdat; (function(wdat, mod) {
             },
           }
 
-  }; // end mod.def.metadata
+  }; // end wdat.model.metadata
 
   /**
    * Define the model for ephys data.
    */
-  mod.def.ephys = {
+  wdat.model.ephys = {
 
           container : {
 
@@ -328,7 +328,7 @@ var wdat; (function(wdat, mod) {
             }
           }
 
-  }; // end mod.def.ephys
+  }; // end wdat.model.ephys
 
-})(wdat || (wdat = {}), wdat.mod || (wdat.mod = {}));
+})(wdat || (wdat = {}));
 

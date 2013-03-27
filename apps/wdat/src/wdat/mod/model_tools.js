@@ -3,7 +3,7 @@
 
 // Add helper and tool functions for models to the module 'wdat.mod'.
 // Import: wdat.mod as mod and jQuery as $
-var wdat; (function(wdat, mod, $) {
+var wdat; (function(wdat, $) {
   "use strict";
 
   /**
@@ -13,13 +13,13 @@ var wdat; (function(wdat, mod, $) {
    *
    * @return {string} The corresponding category e.g. metadata or electrophysiology
    */
-  mod.category = function(type) {
+  wdat.modelCategory = function(type) {
     var t = type.toString().toLowerCase();
-    if (mod.def.metadata.hasOwnProperty(t))
+    if (wdat.model.metadata.hasOwnProperty(t))
       return 'metadata';
-    else if (mod.def.ephys.container.hasOwnProperty(t))
+    else if (wdat.model.ephys.container.hasOwnProperty(t))
       return 'electrophysiology';
-    else if (mod.def.ephys.plotable.hasOwnProperty(t))
+    else if (wdat.model.ephys.plotable.hasOwnProperty(t))
       return 'electrophysiology';
   };
 
@@ -31,22 +31,22 @@ var wdat; (function(wdat, mod, $) {
    *
    * @param type {string}   The type of a data object e.g. section, segment or analogsignal
    *
-   * @return {Object} The corresponding template object defined in wdat.mod.def or undefined if
+   * @return {Object} The corresponding template object defined in wdat.wdat.model or undefined if
    *                  no such type is specified.
    */
-  mod.template = function(type) {
+  wdat.modelTemplate = function(type) {
     if (type) {
       var t = type.toString().toLowerCase();
       // try to get template from cache
       if (!_templateCache[t]) {
         var tmpl, merged = {};
         // create template
-        if (mod.def.metadata.hasOwnProperty(t))
-          tmpl = mod.def.metadata[t];
-        else if (mod.def.ephys.container.hasOwnProperty(t))
-          tmpl = mod.def.ephys.container[t];
-        else if (mod.def.ephys.plotable.hasOwnProperty(t))
-          tmpl = mod.def.ephys.plotable[t];
+        if (wdat.model.metadata.hasOwnProperty(t))
+          tmpl = wdat.model.metadata[t];
+        else if (wdat.model.ephys.container.hasOwnProperty(t))
+          tmpl = wdat.model.ephys.container[t];
+        else if (wdat.model.ephys.plotable.hasOwnProperty(t))
+          tmpl = wdat.model.ephys.plotable[t];
 
         // merge with all
         if (tmpl) {
@@ -70,8 +70,8 @@ var wdat; (function(wdat, mod, $) {
    * @return {Object} An object with all defined fields or 'undefined' if no such type or no fields
    *                  are specified.
    */
-  mod.fields = function(type) {
-    var tmpl = mod.template(type);
+  wdat.modelFields = function(type) {
+    var tmpl = wdat.modelTemplate(type);
     if (tmpl && tmpl.fields) {
       return tmpl.fields;
     }
@@ -85,8 +85,8 @@ var wdat; (function(wdat, mod, $) {
    * @return {Object} An object with all defined data or 'undefined' if no such type or no data
    *                  are specified.
    */
-  mod.data = function(type) {
-    var tmpl = mod.template(type);
+  wdat.modelData = function(type) {
+    var tmpl = wdat.modelTemplate(type);
     if (tmpl && tmpl.data) {
       return tmpl.data;
     }
@@ -100,8 +100,8 @@ var wdat; (function(wdat, mod, $) {
    * @return {Object} An object with all defined parents or 'undefined' if no such type or no
    *                  parents are specified.
    */
-  mod.parents = function(type) {
-    var tmpl = mod.template(type);
+  wdat.modelParents = function(type) {
+    var tmpl = wdat.modelTemplate(type);
     if (tmpl && tmpl.parents) {
       return tmpl.parents;
     }
@@ -115,8 +115,8 @@ var wdat; (function(wdat, mod, $) {
    * @return {Object} Object with all defined children or 'undefined' if no such type or no children
    *                  are specified.
    */
-  mod.children = function(type) {
-    var tmpl = mod.template(type);
+  wdat.modelChildren = function(type) {
+    var tmpl = wdat.modelTemplate(type);
     if (tmpl && tmpl.children) {
       return tmpl.children;
     }
@@ -130,9 +130,9 @@ var wdat; (function(wdat, mod, $) {
    *
    * @return {Boolean} True if the object is plotable, false otherwise
    */
-  mod.isPlotable = function(type) {
+  wdat.isPlotable = function(type) {
     var t = type.toString().toLowerCase();
-    return mod.def.ephys.plotable.hasOwnProperty(t);
+    return wdat.model.ephys.plotable.hasOwnProperty(t);
   };
 
   /**
@@ -142,8 +142,8 @@ var wdat; (function(wdat, mod, $) {
    *
    * @return {Object} A new object from a certain type, or indefined if no such type was found.
    */
-  mod.create = function(type) {
-    var val, obj = {}, tmpl = mod.template(type);
+  wdat.modelCreate = function(type) {
+    var val, obj = {}, tmpl = wdat.modelTemplate(type);
     if (tmpl) {
       if (tmpl.fields) {
         obj.fields = {};
@@ -177,13 +177,13 @@ var wdat; (function(wdat, mod, $) {
    *
    * @return {Array} All type names of ephys data types.
    */
-  mod.ephyTypes = function() {
+  wdat.ephysTypes = function() {
     if (!_types) {
       _types = [];
-      for (var i in mod.def.ephys.container) {
+      for (var i in wdat.model.ephys.container) {
         _types.push(i);
       }
-      for (var i in mod.def.ephys.plotable) {
+      for (var i in wdat.model.ephys.plotable) {
         _types.push(i);
       }
     }
@@ -191,5 +191,5 @@ var wdat; (function(wdat, mod, $) {
   };
 
 
-})(wdat || (wdat = {}), wdat.mod || (wdat.mod = {}), jQuery);
+})(wdat || (wdat = {}), jQuery);
 
