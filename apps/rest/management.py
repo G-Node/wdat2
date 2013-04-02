@@ -114,7 +114,7 @@ class BaseHandler(object):
                         objects = objects.exclude( **filter_dict )
 
                     # 5. post-filter (max_results etc.) evaluates (!) queryset
-                    objects = self.post_filter( objects )
+                    objects = self.post_filter( objects.distinct() )
 
                 else:
                     objects = objects.filter( pk=obj_id )
@@ -189,6 +189,7 @@ class BaseHandler(object):
         }
         try: # assert request parameters both from request.GET and from kwargs
             lookups = {}
+
             for k, v in request.GET.items():
 
                 # predefined filters; taking first match
@@ -206,7 +207,7 @@ class BaseHandler(object):
                     if curr_key.startswith('n__'):
                         curr_key = curr_key[ 3: ]
 
-                    if curr_key.find('__'):
+                    if curr_key.find('__') > -1:
                         test_key = curr_key[ curr_key.find('__') + 2 : ]
                         if test_key.find('__'):
                             attr = test_key[ : test_key.find('__') ]

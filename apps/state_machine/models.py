@@ -367,11 +367,7 @@ class VersionedQuerySet( BaseQuerySetExtension, QuerySet ):
             # compute unique hash (after updating object and starts_at)
             obj.guid = create_hash_from( obj )
             if not val_flag: # clean only one object for speed
-                try:
-                    obj.full_clean()
-                except:
-                    import ipdb
-                    ipdb.set_trace()
+                obj.full_clean()
                 val_flag = True
             to_submit.append( obj )
 
