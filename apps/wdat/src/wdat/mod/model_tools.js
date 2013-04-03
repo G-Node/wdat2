@@ -51,7 +51,7 @@ var wdat; (function(wdat, $) {
         // merge with all
         if (tmpl) {
           $.extend(true, merged, tmpl);
-          $.extend(true, merged, all);
+          $.extend(true, merged, wdat.model.all);
           _templateCache[t] = merged;
           return merged;
         }

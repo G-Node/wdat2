@@ -13,7 +13,8 @@ STATIC_CSS = static
 # all js sources
 SRC_JS = 	$(wildcard src/*.js) \
 	$(wildcard src/wdat/*.js) \
-	$(wildcard src/wdat/mod.js)
+	$(wildcard src/wdat/mod/*.js) \
+	$(wildcard src/wdat/api/*.js)
 
 #	$(wildcard src/mod/*.js) \
 #	$(wildcard src/api/*.js) \
@@ -29,9 +30,6 @@ SRC_JS_WORKER = src/wdat/api/data_api.js.worker
 # all less sources
 SRC_LESS = $(wildcard src/wdat/ui/*.less) \
 	$(wildcard src/wdat/app/*.less)
-
-# additonsal less sources
-SRC_LESS_MAIN = $(wildcard src/*.less)
 
 # compiled css sources
 SRC_CSS = $(wildcard $(STATIC_CSS)/*.less)
@@ -52,10 +50,8 @@ wdat-api-min.js: wdat-api.js $(SRC_JS_ADD) $(SRC_JS_WORK)
 # compile css files
 wdat-api.css: $(SRC_LESS)
 	cat $(SRC_LESS) > $(STATIC_CSS)/wdat-api.less
-	cat $(SRC_LESS_MAIN) > $(STATIC_CSS)/main.less
 	$(CSSC) $(CSSCARGS) $(STATIC_CSS)/wdat-api.less > $(STATIC_CSS)/wdat-api.css
-	$(CSSC) $(CSSCARGS) $(STATIC_CSS)/main.less > $(STATIC_CSS)/main.css
-	rm $(STATIC_CSS)/wdat-api.less $(STATIC_CSS)/main.less
+	rm $(STATIC_CSS)/wdat-api.less
 
 # make uncompressed js and css files
 wdat: wdat-api.js wdat-api.css
@@ -65,5 +61,4 @@ all: wdat-api.js wdat-api.css wdat-api-min.js
 
 .PHONY: clean
 clean:
-	rm -f $(STATIC_CSS)/*.less $(STATIC_JS)/wdat-api.css \
-	$(STATIC_JS)/main.css $(STATIC_JS)/*.js.worker $(STATIC_JS)/*.js
+	rm -f $(STATIC_CSS)/*.less $(STATIC_JS)/wdat-api.css $(STATIC_JS)/*.js.worker $(STATIC_JS)/*.js

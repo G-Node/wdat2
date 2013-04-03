@@ -330,5 +330,12 @@ var wdat; (function(wdat) {
 
   }; // end wdat.model.ephys
 
+  wdat.model.all = {
+          fields: {
+            safety_level: {type: 'option',  options: {'public': 'Public', 'friendly': 'Friendly', 'private': 'Private'}},
+            date_created: {type: 'text', readonly: true}
+          }
+  };
+
 })(wdat || (wdat = {}));
 
