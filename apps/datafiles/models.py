@@ -66,7 +66,7 @@ class Datafile(SafetyLevel, ObjectState):
         (5, _('hdf5_array')),
     )
     name = models.CharField( 'name', max_length=200 )
-    caption = models.TextField( 'description', blank=True, null=True )
+    description = models.TextField( 'description', blank=True, null=True )
     section = VersionedForeignKey(Section, blank=True, null=True)
     raw_file = models.FileField( 'raw_file', storage=fs, upload_to="data/") # or make_upload_path.. which doesn't work in PROD due to python2.5
     tags = TagField( 'tags' )
@@ -140,4 +140,24 @@ class Datafile(SafetyLevel, ObjectState):
         self.size = self.raw_file.size
         super(Datafile, self).save(*args, **kwargs)
 
+
+# supporting functions
+#===============================================================================
+
+meta_classnames = {
+    "datafile": Datafile
+}
+
+backbone = {}
+safe = ['safety_level', 'file_type', 'tags', 'user_custom', 'raw_file', 'size']
+for obj_type, cls in meta_classnames.items():
+    params = {}
+    params[ 'attributes' ] = [field.name for field in cls._meta.local_fields if\
+        field.editable and not field.rel and not field.name in safe]
+    params[ 'data_fields' ] = []
+    params[ 'required' ] = [field.name for field in cls._meta.local_fields if\
+        field.editable and not field.name in safe and not field.null]
+    params[ 'parents' ] = [field.name for field in cls._meta.local_fields if\
+        field.__class__ in [VersionedForeignKey] and not field.name in safe]
+    backbone[ obj_type ] = params
 

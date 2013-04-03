@@ -21,18 +21,18 @@ import random
 import binascii, datetime
 import json
 
+from settings import FILE_MEDIA_ROOT
 from datetime import datetime
 from django.db import models
-from state_machine.models import VersionedForeignKey
-
 from django.contrib.auth.models import User
+from state_machine.models import VersionedForeignKey
+from rest.meta import meta_unit_types
 
 from metadata.models import Section, Property, Value
 from metadata.models import backbone as meta_backbone
 from metadata.models import meta_classnames as metadata_classnames
 
 from datafiles.models import Datafile
-from settings import FILE_MEDIA_ROOT
 
 from neo_api.models import *
 from neo_api.models import backbone as neo_backbone
@@ -260,7 +260,9 @@ class LoadData( object ):
                                 params[ attr ] = self.RANDOM_VALUES[ field.__class__ ](obj_type, field, user)
 
                                 if attr in data_fields:
-                                    params[ attr + "__unit" ] = "ms"
+                                    ufield = cls._meta.get_field( attr + "__unit" )
+                                    unit = random.choice( meta_unit_types[ufield._unit_type] )
+                                    params[ attr + "__unit" ] = unit
 
                     # take care: M2Ms are ignored
 
