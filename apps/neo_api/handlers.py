@@ -9,13 +9,14 @@ from state_machine.models import VersionedM2M, ObjectState
 
 import settings
 
-# FIXME reqrite all filters below to include versioning
-
 class NEOHandler(BaseHandler):
     """ add some specific filtering to the base Handler """
 
     def run_post_processing(self, *args, **kwargs):
-        """ metadata tagging propagates down the hierarchy by default """
+        """ metadata tagging propagates down the hierarchy by default. objects 
+        must be homogenious, NEO-type. There is no need to make this atomic as
+        it is supposed to be executed only within a single django request, which
+        is atomic by default. """
         objects = kwargs['objects']
         m2m_dict = kwargs['m2m_dict']
         if not objects: return None
@@ -27,7 +28,7 @@ class NEOHandler(BaseHandler):
 
             model = objects[0].__class__ # any better way?
             tags = {'metadata': m2m_dict['metadata']}
-            obj_with_related = model.objects.fetch_fks( objects = objects )
+            obj_with_related = self.extender.fill_fks( objects = objects )
             rels = [(f.model, f.model().obj_type + "_set") for f in \
                 model._meta.get_all_related_objects() if not \
                 issubclass(f.model, VersionedM2M) and issubclass(f.model, ObjectState)]
@@ -37,17 +38,10 @@ class NEOHandler(BaseHandler):
                 # collect children plinks of type rel_name for all requested objects
                 for_update = []
                 for obj in obj_with_related:
-                    for_update += getattr(obj, rel_name + "_buffer")
+                    for_update += getattr(obj, rel_name + "_buffer_ids")
 
-                # extract ids from permalinks
-                processed = [] # ids of related objects which metadata should be updated
-                for p in for_update:
-                    if p.rfind('/') + 1 == len(p):
-                        p = p[ : len(p)-1 ]
-                    processed.append( p[ p.rfind('/') + 1 : ] )
-
-                if processed: # update metadata for all children of type rel_name
-                    children = rel_model.objects.filter( local_id__in = processed )
+                if for_update: # update metadata for all children of type rel_name
+                    children = rel_model.objects.filter( pk__in = for_update )
                     rel_model.save_changes(children, {}, tags, {}, self.m2m_append)
                     self.run_post_processing( objects=children, m2m_dict=m2m_dict )
 
@@ -90,24 +84,23 @@ class MetadataHandler(BaseHandler):
 
             kwargs = {}
             # loading related values (m2m should be loaded by default)
-            kwargs["local_id__in"] = objects[0].metadata_buffer_ids
+            kwargs["pk__in"] = objects[0].metadata_buffer_ids
             values = value_model.objects.filter( **kwargs )
-            ser_values = self.serializer.serialize(values, options=self.options)
-
-            # mmap is a list of pairs (<value_id>, <property_id>)
-            mmap = value_model.objects.filter( **kwargs ).values_list('local_id',\
-                'parent_property_id')
 
             # loading properties
-            kwargs["local_id__in"] = [v.parent_property_id for v in values]
-            props = prop_model.objects.filter( **kwargs )
-            ser_props = self.serializer.serialize(props, options=self.options)
+            kwargs["pk__in"] = [v.parent_property_id for v in values]
+            properties = prop_model.objects.filter( **kwargs )
 
+            mmap = values.values_list('pk', 'parent_property_id')
             pairs = []
-            for i in mmap:
-                v = [x for x in ser_values if x['fields']['local_id'] == i[0]][0]
-                p = [x for x in ser_props if x['fields']['local_id'] == i[1]][0]
+
+            for i in mmap: # no database hits here
+                p_obj = [x for x in properties if int(x.pk) == int(i[1])]
+                v_obj = [x for x in values if int(x.pk) == int(i[0])]
+                p = self.serializer.serialize( p_obj, options=self.options )[0]
+                v = self.serializer.serialize( v_obj, options=self.options)[0]
                 pairs.append([ p , v ])
+
             resp_data["metadata"] = pairs
             message_type = "metadata_found"
 

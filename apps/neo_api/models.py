@@ -195,7 +195,7 @@ class EventArray(BaseInfo, DataObject):
     # NEO data arrays
     labels = VersionedForeignKey( Datafile, blank=True, null=True, related_name='event_labels' )
     times = VersionedForeignKey(Datafile, related_name='event_times', verbose_name='event_times')
-    times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
+    times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='eventarray_metadata', \
@@ -216,7 +216,6 @@ class Event(BaseInfo):
     metadata = models.ManyToManyField(Value, through='event_metadata', \
         blank=True, null=True)
 
-
 # 5 (of 15)
 class EpochArray(BaseInfo, DataObject):
     """
@@ -226,9 +225,9 @@ class EpochArray(BaseInfo, DataObject):
     # NEO data arrays
     labels = VersionedForeignKey( Datafile, blank=True, null=True, related_name='epoch_labels' )
     times = VersionedForeignKey(Datafile, related_name='epoch_times', verbose_name='epoch_times')
-    times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
+    times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
     durations = VersionedForeignKey(Datafile, related_name='epoch_durations', verbose_name='epoch_durations')
-    durations__unit = fmodels.TimeUnitField('durations__unit', default=def_data_unit)
+    durations__unit = fmodels.TimeUnitField('durations__unit', default=def_time_unit)
     # NEO relationships
     segment = VersionedForeignKey(Segment, blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='epocharray_metadata', \
@@ -303,7 +302,7 @@ class SpikeTrain(BaseInfo, DataObject):
     unit = VersionedForeignKey(Unit, blank=True, null=True)
     # NEO data arrays
     times = VersionedForeignKey( Datafile, related_name='spiketrains' )
-    times__unit = fmodels.TimeUnitField('times__unit', default=def_data_unit)
+    times__unit = fmodels.TimeUnitField('times__unit', default=def_time_unit)
     waveforms = VersionedForeignKey( Datafile, blank=True, null=True, related_name='waveforms' )
     waveforms__unit = fmodels.TimeUnitField('waveforms__unit', blank=True, null=True)
     metadata = models.ManyToManyField(Value, through='spiketrain_metadata', \
@@ -535,10 +534,10 @@ class IrSaAnalogSignal(BaseInfo, DataObject):
 
     def full_clean(self, *args, **kwargs):
         """ Add some validation to keep 'signal' and 'times' dimensions 
-        consistent. """
-        if not len( self.signal.get_slice() ) == len( self.times.get_slice() ):
-            raise ValidationError({"Data Inconsistent": \
-                meta_messages["data_inconsistency"]})
+        consistent. Currently switched off. """
+        #if not len( self.signal.get_slice() ) == len( self.times.get_slice() ):
+        #    raise ValidationError({"Data Inconsistent": \
+        #        meta_messages["data_inconsistency"]})
         super(IrSaAnalogSignal, self).full_clean(*args, **kwargs)
 
 # 14 (of 15)

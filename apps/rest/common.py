@@ -58,6 +58,7 @@ class BasicJSONResponse(HttpResponse):
         if message_type:
             json_obj["message_type"] = message_type
             json_obj["message"] = meta_messages[message_type]
+
         js = simplejson.dump(json_obj, self.stream, cls=DjangoJSONEncoder, ensure_ascii=False)
         super(BasicJSONResponse, self).__init__(self.stream.getvalue())
         self['Content-Type'] = "application/json"

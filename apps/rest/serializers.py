@@ -40,9 +40,9 @@ class Serializer(PythonSerializer):
     def serialize_rel(self):
         return (self.q == 'full' or self.q == 'beard') and self.show_kids
 
-    def serialize(self, queryset, options={}):
+    def serialize(self, objects, options={}):
         """
-        Serialize a queryset. options => dict(request.GET)
+        Serialize a set of heterogenious objects. options => dict(request.GET)
         """
         def parse_options(self, options):
             self.options = options
@@ -62,28 +62,22 @@ class Serializer(PythonSerializer):
             - other: permalink or just id for objects without permalink """
             self.use_natural_keys = options.get("fk_mode", self.use_natural_keys)
 
-        if not len(queryset) > 0:
+        if not len(objects) > 0:
             return None
 
         parse_options(self, options)
 
-        # list of names of reverse relations
-        rev_rel_list = [f.field.rel.related_name or f.model().obj_type + "_set" \
-            for f in queryset.model._meta.get_all_related_objects() if not \
-                issubclass(f.model, VersionedM2M) and \
-                    issubclass(f.model, ObjectState)]
-
         self.start_serialization()
 
-        # calulate the size of the response, if data is requested
-        # if objects have data, start to retrieve it first
-        #exobj = queryset[0] # example object
-        #if exobj.has_data:
-            #data_ids = queryset.values_list('data_key', flat=True)
-            # problem: how to retreive a slice with diff time window? hm..
-            #ids[obj_id] = exobj.obj_type
+        for obj in objects: # better if homogenious objects...
+            model = obj.__class__
 
-        for obj in queryset: # homogenious objects
+            # list of names of reverse relations
+            rev_rel_list = [f.field.rel.related_name or f.model().obj_type + "_set" \
+                for f in model._meta.get_all_related_objects() if not \
+                    issubclass(f.model, VersionedM2M) and \
+                        issubclass(f.model, ObjectState)]
+
             self.start_object(obj)
 
             for field in obj._meta.local_fields: # local fields / FK fields
@@ -95,7 +89,7 @@ class Serializer(PythonSerializer):
                         self.serialize_special(obj, field)
                     else:
 
-                        if self.is_data_field_django(queryset.model, field):
+                        if self.is_data_field_django(field):
                             if field.rel is None:
                                 data = field._get_val_from_obj(obj)
                                 if not is_protected_type(data): data = field.value_to_string(obj)
@@ -159,6 +153,10 @@ class Serializer(PythonSerializer):
                         if not (not children and rel_name[:-4] in self.do_not_show_if_empty):
                             self._current[rel_name] = children
 
+            # extend with object permissions
+            if hasattr(obj, '_shared_with'):
+                self._current['shared_with'] = getattr(obj, '_shared_with')
+
             self.end_object(obj)
         self.end_serialization()
 
@@ -177,47 +175,48 @@ class Serializer(PythonSerializer):
             if isinstance(field_value, str):
                 field_value = smart_unicode(field_value, encoding, strings_only=True)
 
-            # Handle special model fields
+            # handle special model fields
             if field_name in self.special_for_deserialization:
-                update_kwargs = self.deserialize_special(update_kwargs, \
-                    field_name, field_value, user)
-            else:
-                field = model._meta.get_field(field_name)
+                field_value = self.deserialize_special(field_name, field_value, user)
 
-                # Handle data/units fields
-                if self.is_data_field_django(model, field):
-                    update_kwargs[field_name] = field_value["data"]
-                    update_kwargs[field_name + "__unit"] = field_value["units"]
+            field = model._meta.get_field(field_name)
 
+            # prepare to handle data/units fields
+            if self.is_data_field_django(field):
+                update_kwargs[field_name + "__unit"] = field_value["units"]
+                field_value = field_value["data"]
+
+            # Handle M2M relations
+            if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
+                m2m_data = []
+
+                for m2m in field_value: # we support both ID and permalinks
+                    m2m_data.append( self._resolve_ref(field.rel.to, m2m, user) )
+                m2m_dict[field.name] = [int( x.pk ) for x in m2m_data]
+
+            # Handle FK fields (taken from django.core.Deserializer)
+            elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
+                if field_value is not None:
+                    related = self._resolve_ref(field.rel.to, field_value, user)
+                    fk_dict[field.name] = related # establish rel
                 else:
-                    # Handle M2M relations
-                    if field.rel and isinstance(field.rel, models.ManyToManyRel) and field.editable:
-                        m2m_data = []
+                    fk_dict[field.name] = None # remove relation
 
-                        for m2m in field_value: # we support both ID and permalinks
-                            m2m_data.append( self._resolve_ref(field.rel.to, m2m, user) )
-                        #if 'local_id' in field.rel.to._meta.get_all_field_names():
-                        m2m_dict[field.name] = [int( x.pk ) for x in m2m_data]
-                        #else:
-                        #    m2m_dict[field.name] = [int(x.id) for x in m2m_data]
-
-                    # Handle FK fields (taken from django.core.Deserializer)
-                    elif field.rel and isinstance(field.rel, models.ManyToOneRel) and field.editable:
-                        if field_value is not None:
-                            related = self._resolve_ref(field.rel.to, field_value, user)
-                            fk_dict[field.name] = related # establish rel
-                        else:
-                            fk_dict[field.name] = None # remove relation
-
-                    # handle standard fields
-                    elif field.editable and not field.name == 'id': 
-                        #TODO raise error when trying to change id or date_created etc?
-                        update_kwargs[field_name] = field.to_python(field_value)
+            # handle standard fields
+            elif field.editable and not field.name == 'id': 
+                #TODO raise error when trying to change id or date_created etc?
+                update_kwargs[field_name] = field.to_python(field_value)
 
         return update_kwargs, m2m_dict, fk_dict
 
 #-------------------------------------------------------------------------------
 # Field handlers
+
+    def handle_field(self, obj, field):
+        super(Serializer, self).handle_field(obj, field)
+        if isinstance(field, models.DateTimeField) and self._current[field.name]:
+            self._current[field.name] = self._current[field.name].strftime("%Y-%m-%d %H:%M:%S")
+
     def handle_fk_field(self, obj, field):
         rid = getattr(obj, field.name + "_id")
         if rid: # build a permalink without fetching an object
@@ -230,9 +229,9 @@ class Serializer(PythonSerializer):
         self._current[field.name] = [ self.resolve_permalink(related) 
             for related in getattr(obj, field.name + '_buffer', []) ]
 
-    def is_data_field_django(self, obj, field):
+    def is_data_field_django(self, field):
         """ if a field has units, stored in another field - it's a data field """
-        if (field.name + "__unit") in [f.name for f in obj._meta.local_fields]:
+        if (field.name + "__unit") in [f.name for f in field.model._meta.local_fields]:
             return True
         return False
 
@@ -240,8 +239,15 @@ class Serializer(PythonSerializer):
         """ abstract method for special fields """
         raise NotImplementedError
 
-    def deserialize_special(self, update_kwargs, field_name, field_value, user):
-        """ abstract method for special fields """
+    def deserialize_special(self, kwargs_dict, field_name, field_value, user):
+        """ abstract method for special fields processing. kwargs_dict is a dict
+        which has a structure like: {
+            'update_kwargs': <update_kwargs_dict>
+            'fk_dict': <fk_dict>
+            'm2m_dict': <m2m_dict>
+        } 
+        should return update_kwargs, fk_dict, m2m_dict 
+        """
         raise NotImplementedError
 
 #-------------------------------------------------------------------------------

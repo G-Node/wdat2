@@ -78,20 +78,18 @@ class NEOSerializer(Serializer):
                     'units': units
                 }
 
-    def deserialize_special(self, update_kwargs, field_name, field_value, user):
+    def deserialize_special(self, field_name, field_value, user):
         """ this validates that the reference points to an accessible datasource
             - should be a datafile
             - should be HDF5
-            - should have an array of type float64 at '/'
+            - should have an array at '/'
             - should be editable by the user
 
         All the fields should have 'data' and 'units' inside.
         """
         datafile = self._resolve_ref(Datafile, field_value["data"], user)
         if datafile.has_array:
-            update_kwargs[field_name] = datafile
-            update_kwargs[field_name + "__unit"] = field_value["units"]
-            return update_kwargs
+            return field_value # all fine, proceed
         else:
             raise ReferenceError( "Data source is not readable; please provide\
                 correct reference. Current value: %s" % (field_value["data"]) )
@@ -101,8 +99,8 @@ class NEOSerializer(Serializer):
         if rid: # build a permalink without fetching an object
             url = ''.join([ self.host, _get_url_base( field.rel.to ) ])
             url += str( rid )
-            if self.is_data_field_django(obj, field):
-                url = urlparse.urljoin( url, "/data" )
+            if self.is_data_field_django(field):
+                url += "/data"
             return url
         return None
 
