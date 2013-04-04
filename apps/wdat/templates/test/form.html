@@ -5,8 +5,8 @@
 {% block extra_script %}
 <script type="text/javascript">
   var init = function() {
-    var bus = new WDAT.Bus();
-    var api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+    var bus = new wdat.Bus();
+    var api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
     /* Create test form with the VForm base class */
     var fields = {
       'id': {type: 'hidden', value: '1'},
@@ -18,7 +18,7 @@
       'vavorite-pizza' : {type: 'option', options: { funghi: "Pizza Funghi", salami: "Pizza Salami", vegi: "Vegi Pizza"}},
       'text': {type: 'ltext'}
     };
-    var form = new WDAT.Form($('#form01'), bus, ['save'], fields);
+    var form = new wdat.Form($('#form01'), bus, ['save'], fields);
     form.set({});
     /* create and register handler for save events */
     function doSave(event, data) {
@@ -26,7 +26,7 @@
     }
     bus.subscribe(form.event('save'), doSave);
 
-    var form_section = new WDAT.Form('form-section', bus, ['save'], 'section', true);
+    var form_section = new wdat.Form('form-section', bus, ['save'], 'section', true);
     var btn_section  = $("#btn-section").button({text: true});
     btn_section.click( function() {
       var id = $('#input-section').val();
@@ -35,12 +35,12 @@
     });
     function doGetSection(event, data) {
       console.log('EVENT get-section: ' + JSON.stringify(data));
-      form_section.set(data.response[0]);
+      form_section.set(first(data.response));
       form_section.open();
     }
     bus.subscribe('get-section', doGetSection);
 
-    var form_property = new WDAT.Form('form-property', bus, ['save'], 'property', true);
+    var form_property = new wdat.Form('form-property', bus, ['save'], 'property', true);
     var btn_property  = $("#btn-property").button({text: true});
     btn_property.click( function() {
       var id = $('#input-property').val();
@@ -49,11 +49,20 @@
     });
     function doGetProperty(event, data) {
       console.log('EVENT get-property: ' + JSON.stringify(data));
-      form_property.set(data.response[0]);
+      form_property.set(first(data.response));
       form_property.open();
     }
     bus.subscribe('get-property', doGetProperty);
   };
+  
+  function first(obj) {
+    result = null;
+    for (var i in obj) {
+      result = obj[i];
+      break;
+    }
+    return result;
+  }
   $(window).load(init);
 </script>
 {% endblock %}

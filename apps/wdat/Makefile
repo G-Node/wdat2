@@ -14,11 +14,15 @@ STATIC_CSS = static
 SRC_JS = 	$(wildcard src/*.js) \
 	$(wildcard src/wdat/*.js) \
 	$(wildcard src/wdat/mod/*.js) \
-	$(wildcard src/wdat/api/*.js)
+	$(wildcard src/wdat/api/*.js) \
+	$(wildcard src/wdat/ui/base.js) \
+	$(wildcard src/wdat/ui/button.js) \
+	$(wildcard src/wdat/ui/bread_crumb.js) \
+	$(wildcard src/wdat/ui/form.js) \
+	$(wildcard src/wdat/ui/list.js)
 
 #	$(wildcard src/mod/*.js) \
 #	$(wildcard src/api/*.js) \
-#	$(wildcard src/ui/*.js) \
 #	$(wildcard src/app/*.js)
 
 # sources that are also needed as separate files

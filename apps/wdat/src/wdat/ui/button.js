@@ -1,236 +1,129 @@
-// ---------- file: button.js ---------- //
+// ---------- file: button2.js ---------- //
 
-// Initialize the module WDAT.widgets if it doesn't exist.
 
-(function() {
-  'use strict';
+var wdat; (function(wdat, $){
 
-  /* A button class.
-   *
-   * Signature:
-   *   var button = WDAT.api.Button(label, bus, click [, className, eventData]);
-   *
-   * Parameters:
-   *  - label: String  (required)
-   *      The label for the button element.  If this label matches criteria
-   *      outlined below, a pre-defined button is created and you only need
-   *      provide the bus, and the click parameter.
-   *
-   *  - bus: WDAT.api.EventBus  (required)
-   *      The bus to publish and subscribe events on.  Can also be null.
-   *
-   *  - click: Function/String/null    (required)
-   *      Function : A callback for the click event on this button.  No events
-   *      are published if this callback is defined.  You can however easily
-   *      circumvent that by publishing an event in your callback function.
-   *
-   *        Signature of callback: function(){}
-   *
-   *      String : Name of the event to publish when clicked.
-   *
-   *        Signature of subscribers: function(event, eventData);
-   *
-   *        Signature of subscribers for toggle functions:
-   *            function(event, eventData);
-   *
-   *            Here, eventData.state is a string.  Either 'more' or 'less'
-   *            depending on which action the user intended.
-   *
-   *      null:  Do nothing when clicked.
-   *
-   *      Additional notes:  A toggle button (label = 'more-small' or
-   *      'less-small') should always have a string *click* value.
-   *
-   *  - className: String  (optional)
-   *      red/blue/green/default
-   *      CSS class name to use.  Overrides any values interpreted through the
-   *      label criterion.
-   *
-   *  - eventData: Object  (optional)
-   *      Additional data to be passed when the events are fired.  If not
-   *      specified, no additional data is passed.
-   *
-   *
-   *  The table below defines the criteria for predefined buttons.
-   *
-   * +--------------+--------------+--------------+--------------+--------------+
-   * |     Type     |  Label/Text  |    Image     |    Event     | CSS Classes  |
-   * +==============+==============+==============+==============+==============+
-   * | add          | New          | -            | click        | button-add   |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | add-small    | -            | button-      | click        | button-add-  |
-   * |              |              | add.png      |              | small        |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | del          | Delete       | -            | click        | button-del   |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | del-small    | -            | button-      | click        | button-del-  |
-   * |              |              | del.png      |              | small        |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | sel          | Select       | -            | click        | button-del-  |
-   * |              |              |              |              | small        |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | sel-small    | -            | button-      | click        | button-sel-  |
-   * |              |              | star.png     |              | small        |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | edit         | Edit         | -            | click        | button-edit  |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | edit-small   | -            | button-      | click        | button-edit- |
-   * |              |              | edit.png     |              | small        |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | more/less-   | -            | button-(more | click        | button-      |
-   * | small        |              | /less).png   |              | more/less    |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | ok           | OK           | -            | click        | button-ok    |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | quit         | Cancel       | -            | click        | button-quit  |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | more/less-   | -            | button-(more | click        | button-      |
-   * | small        |              | /less).png   |              | more/less    |
-   * +--------------+--------------+--------------+--------------+--------------+
-   * | default      | label        | -            | click        | button-big   |
-   * +--------------+--------------+--------------+--------------+--------------+
-   *
-   *
-   * Depends On:
-   *  - jQuery, WDAT.api.EventBus
-   */
-  //WDAT.ui.Button = Button;
-  function Button(label, bus, click, className, eventData) {
-    this.button = $('<button></button>');
 
-    // determine the type
-    var typecmp = label.toLowerCase();
+  /****************************************************************************************
+   * A button widget. This is basically a wrapper for a jQuery UI button
+   * object.
+   *
+   * Depends on: WDAT.Widget, WDAT.Bus, jQuery, jQuery UI
+   *
+   * @returns {Button}
+   ***************************************************************************************/
+  wdat.Button = (function() {
 
-    // add a reference to current instance
-    var that = this;
-
-    // Add labels and classes based solely on the type
-    if (typecmp === 'add') {
-      this._type = 'add';
-      this.button.addClass('button-add').text('New');
-    } else if (typecmp === 'add-small') {
-      this._type = 'add-small';
-      this.button.addClass('button-add-small');
-    } else if (typecmp === 'del') {
-      this._type = 'del';
-      this.button.addClass('button-del').text('Delete');
-    } else if (typecmp === 'del-small') {
-      this._type = 'del-small';
-      this.button.addClass('button-del-small');
-    } else if (typecmp === 'sel') {
-      this._type = 'sel';
-      this.button.addClass('button-sel').text('Select');
-    } else if (typecmp === 'sel-small') {
-      this._type = 'sel-small';
-      this.button.addClass('button-sel-small');
-    } else if (typecmp === 'edit') {
-      this._type = 'edit';
-      this.button.addClass('button-edit').text('Edit');
-    } else if (typecmp === 'edit-small') {
-      this._type = 'edit-small';
-      this.button.addClass('button-edit-small');
-    }
-    else if (typecmp === 'more-small' || typecmp === 'less-small') {
-      var state = typecmp.split('-')[0];
-
-      // Flag to check whether currently in more condition or not.  This flag is
-      // important since it is the only thing that separates a toggle button from
-      // a normal button.  Used later in the event handlers to figure out the
-      // state of the button.
-      this.more_state = (state === 'more');
-
-      this.button.addClass('button-' + state + '-small');
-    }
-    else if (typecmp === 'ok') {
-      this._type = 'ok';
-      this.button.addClass('button-ok')
-        .text('OK');
-    }
-    else if (typecmp === 'quit') {
-      this._type = 'quit';
-      this.button.addClass('button-quit').text('Cancel');
-    } else {
-      // Default case
-      this.button.text(label).addClass('button-big');
-    }
-
-    // If class specified, use it instead of anything else
-    if (className) {
-      var validation_re = /(red|blue|green|default)/;
-
-      if (validation_re.test(className)) {
-        this.button.removeClass();
-        this.button.addClass(className);
-        // Note, this may add a 'button-default' classname, but that
-        // still doesn't hurt because this will make the button fallback
-        // to the button style definition.
+    Button.inherits(wdat.Widget);
+    /**
+     * Constructor for the class Button.
+     *
+     * @param id (String, Obj)          Id or jQuery object that represents the button (optional).
+     * @param label (String)            The label for the button. This might also be a name of a
+     *                                  predefined button class (see PREDEF_BUTTONS).
+     * @param bus (Bus)                 Bus for events.
+     * @param click (String, Function)  Event string or function that is propagated by clicks.
+     *                                  If click is an event the whole button object is passed
+     *                                  to the event.
+     * @param data (Any)                Some data that is passed along with events.
+     *
+     * @constructor @this {Button}
+     */
+    function Button(id, label, bus, click, data) {
+      Button.parent.constructor.call(this, id, '<button>', 'wdat-button');
+      this._bus = bus;
+      this._data = data;
+      if (Button.PREDEF_BUTTONS.hasOwnProperty(label)) {
+        var pre = Button.PREDEF_BUTTONS[label];
+        this._jq.button(pre.def);
+        if (pre.click) this._jq.click(pre.click);
+      } else {
+        this._jq.button({text: true, label: label});
       }
+      this.click(click || this._id);
     }
 
-    // register events
-    this._bus = bus;
-    this._click = click;
-    this._eventData = eventData;
+    /**
+     * Getter and setter for data, that is associated with the button.
+     *
+     * @param data (Any)    New data (optional).
+     *
+     * @return The data associated with the button.
+     */
+    Button.prototype.data = function(data) {
+      var tmp = this._data;
+      if (data !== undefined)
+        this._data = data;
+      return tmp;
+    };
 
-    if (bus) {
-      if (typeof this._click === "function") {
-        // This is a callback
-        this.button.click(this._click);
-      }
-      else if ( typeof click === "string" ) {
-        if (this.more_state !== undefined) {
-          // This is a toggle button, append that information to eventData
-          if (this._eventData === undefined) {
-            this._eventData = {};
-          }
+    /**
+     * Getter or setter for click events.
+     *
+     * @param click (String, Function)    Event string or function that is propagated by
+     *                                    clicks. If click is an event the whole button
+     *                                    object is passed to the event.
+     *
+     * @return The function that handles the click event.
+     */
+    Button.prototype.click = function(click) {
+      if (click) {
+        // remove old handler
+        if (this._click) this._jq.unbind('click', this._click);
+        // add new one
+        if (typeof click === 'function') {
+          this._click = click;
+          this._jq.click(click);
+        } else {
+          var that = this;
+          this._click = function() { that._bus.publish(click.toString(), that.data()); };
+          this._jq.click(this._click);
         }
-
-        this.button.click(function() {
-          /* Within this function, 'that' represents a reference to the Button
-           * object for this button */
-          if (that.more_state !== undefined) {
-            that._eventData.state = (that.more_state === true) ? 'more' : 'less';
-
-            // Update the model
-            that.more_state = !that.more_state;
-
-            // Update the UI
-            that.button.toggleClass('button-more-small', that.more_state);
-            that.button.toggleClass('button-less-small', !that.more_state);
-
-          }
-
-          that._bus.publish(click, that._eventData);
-        });
       }
+      return this._click;
+    };
+
+    Button.prototype.disable = function(disabled) {
+      this._jq.button("option", "disabled", disabled);
+    };
+
+    /* Some predefined buttons */
+    Button.PREDEF_BUTTONS = {
+      add:        {def: {text: true, label: "Add", icons: { primary: "ui-icon-plusthick"}}},
+      add_small:  {def: {text: false, icons: { primary: "ui-icon-plusthick"}}},
+      del:        {def: {text: true, label: "Remove", icons: { primary: "ui-icon-minusthick"}}},
+      del_small:  {def: {text: false, icons: { primary: "ui-icon-minusthick"}}},
+      sel:        {def: {text: true, label: "Select", icons: { primary: "ui-icon-check"}}},
+      sel_small:  {def: {text: false, icons: { primary: "ui-icon-check"}}},
+      edit:       {def: {text: true, label: "Edit", icons: { primary: "ui-icon-wrench"}}},
+      edit_small: {def: {text: false, icons: { primary: "ui-icon-wrench"}}},
+      ok:         {def: {text: true, label: "OK"}},
+      save:       {def: {text: true, label: "Save"}},
+      quit:       {def: {text: true, label: "Cancel"}},
+      more:       {def: {text: false, icons: { primary: "ui-icon-triangle-1-s"}},
+                   click: _toggleimg("ui-icon-triangle-1-s", "ui-icon-triangle-1-n")}
+    };
+
+    /**
+     * Toggle images. For internal use only
+     *
+     * @param first (String)     CSS identifier (jQuery UI button) for the first image.
+     * @param second (String)   CSS identifier (jQuery UI button) for the second image.
+     *
+     * @returns {Function}
+     */
+    function _toggleimg(first, second) {
+      return function() {
+        var b = $(this);
+        if (b.button("option", "icons").primary == first)
+          b.button("option", "icons", { primary: second});
+        else
+          b.button("option", "icons", { primary: first});
+      };
     }
-  }
 
-  /* Returns the button as a jQuery object.
-   *
-   * Return value:
-   *  - The button (jQuery)
-   */
-  Button.prototype.toJQ = function() {
-    return this.button;
-  };
+    return Button;
+  })(); // end class Button
 
-  /* Returns the button as a string.
-   *
-   * Return value:
-   *  - the button as a string.
-   */
-  Button.prototype.toString = function() {
-    return this.button.html();
-  };
+})(wdat || (wdat = {}), jQuery); // end module wdat
 
-  /* Unregister the event used by the button from the event
-   * bus.
-   *
-   * Return value:
-   *  - None
-   */
-  Button.prototype.unsubscribe = function() {
-    this._bus.unsubscribe(this._event);
-  };
-}());
