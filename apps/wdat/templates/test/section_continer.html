@@ -5,9 +5,9 @@
 {% block extra_script %}
 <script type="text/javascript">
   var init = function() {
-    var bus = new WDAT.Bus();
-    var api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
-    var sec = new WDAT.MetadataView($('#sec'), api, bus, 'select-section');
+    var bus = new wdat.Bus();
+    var api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+    var sec = new wdat.MetadataView($('#sec'), api, bus, 'select-section');
 
     /* Create section form and edit a selectable section */
     var btn_section  = $("#btn-section").button({text: true});
@@ -37,7 +37,7 @@
         for (var j in properties) {
           var p = properties[j].property;
           var v = properties[j].values
-          var cont = new WDAT.PropertyContainer(p.id, bus, contActions);
+          var cont = new wdat.PropertyContainer(p.id, bus, contActions);
           cont.set(p);
           cont.setChildren(v);
           list.addContainer(cont, 'properties');
