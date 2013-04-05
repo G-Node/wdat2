@@ -96,7 +96,7 @@ var wdat; (function(wdat, $) {
    ****************************************************************************************/
   wdat.PropertyContainer = (function() {
 
-    PropertyContainer.inherita(wdat.ParentContainer);
+    PropertyContainer.inherits(wdat.ParentContainer);
 
     /**
      * Constructor for the class PropertyContainer.
