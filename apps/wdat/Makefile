@@ -19,7 +19,8 @@ SRC_JS = 	$(wildcard src/*.js) \
 	$(wildcard src/wdat/ui/button.js) \
 	$(wildcard src/wdat/ui/bread_crumb.js) \
 	$(wildcard src/wdat/ui/form.js) \
-	$(wildcard src/wdat/ui/list.js)
+	$(wildcard src/wdat/ui/list.js) \
+	$(wildcard src/wdat/ui/search_bar.js)
 
 #	$(wildcard src/mod/*.js) \
 #	$(wildcard src/api/*.js) \
