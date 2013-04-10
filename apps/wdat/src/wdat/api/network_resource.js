@@ -229,7 +229,7 @@ var wdat; (function(wdat) {
               var type = elem.data.model.split('.');
               type = type[type.length - 1];
               var childfields = wdat.modelChildren(type);
-              var id = _stripURL(elem.data.permalink);
+              var id = wdat.stripURL(elem.data.permalink);
               for (var i in childfields) {
                 var field = childfields[i];
                 if (field.type && field.type != type && elem.data.fields[i].length > 0) {
@@ -499,13 +499,13 @@ var wdat; (function(wdat) {
         // the adapted result
         var adapted = {};
         // adapt general data
-        var tmp = _stripURL(element.permalink).split('/');
+        var tmp = wdat.stripURL(element.permalink).split('/');
         adapted.id = tmp.join('/');
         adapted.type = tmp[1];
         adapted.category = wdat.modelCategory(adapted.type);
         adapted.plotable = wdat.isPlotable(adapted.type);
         adapted.date_created = element.fields.date_created;
-        adapted.owner = _stripURL(element.fields.owner);
+        adapted.owner = wdat.stripURL(element.fields.owner);
         switch (element.fields.safety_level) {
           case 1:
             adapted.safety_level = 'public';
@@ -539,7 +539,7 @@ var wdat; (function(wdat) {
             if (element.fields[c] && element.fields[c].length > 0) {
               adapted.children[c] = [];
               for (var i in element.fields[c]) {
-                adapted.children[c][i] = _stripURL(element.fields[c][i]);
+                adapted.children[c][i] = wdat.stripURL(element.fields[c][i]);
               }
             }
           }
@@ -547,7 +547,7 @@ var wdat; (function(wdat) {
           adapted.parents = {};
           for (var p in template.parents) {
             if (element.fields[p]) {
-              adapted.parents[p] = _stripURL(element.fields[p]);
+              adapted.parents[p] = wdat.stripURL(element.fields[p]);
             }
           }
           // adapt data
@@ -627,28 +627,6 @@ var wdat; (function(wdat) {
       }
       return {'data': adapted, 'url': url};
     };
-
-    /**
-     * Extracts only the path part of a URL.
-     * For internal use only.
-     *
-     * @param url (String)       The URL to strip
-     *
-     * @return The path part of the URL without leading '/'
-     */
-    function _stripURL(url) {
-      var tmp = url.split('://');
-      // remove protocol host and port if present
-      if (tmp.length > 1) {
-        tmp = tmp.slice(1, tmp.length).join('');
-        tmp = tmp.split('/');
-        tmp = tmp.slice(1, tmp.length).join('/');
-      } else {
-        tmp = tmp.join('');
-      }
-      // remove parameter
-      return tmp.split('?')[0];
-    }
 
     return ResourceAdapter;
   })(); // end class ResourceAdapter

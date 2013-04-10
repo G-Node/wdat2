@@ -15,7 +15,9 @@ SRC_JS = 	$(wildcard src/*.js) \
 	$(wildcard src/wdat/*.js) \
 	$(wildcard src/wdat/mod/*.js) \
 	$(wildcard src/wdat/api/*.js) \
-	$(wildcard src/wdat/ui/*.js)
+	$(wildcard src/wdat/ui/*.js) \
+	$(wildcard src/wdat/app/*.js) \
+	$(wildcard src/wdat/plot/*.js)
 
 #	$(wildcard src/app/*.js)
 
@@ -59,4 +61,4 @@ all: wdat-api.js wdat-api.css wdat-api-min.js
 
 .PHONY: clean
 clean:
-	rm -f $(STATIC_CSS)/*.less $(STATIC_JS)/wdat-api.css $(STATIC_JS)/*.js.worker $(STATIC_JS)/*.js
+	rm -f $(STATIC_CSS)/*.less $(STATIC_JS)/wdat-api.css $(STATIC_JS)/*.js.worker $(STATIC_JS)/wdat-api.js  $(STATIC_JS)/wdat-api-min.js

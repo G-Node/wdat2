@@ -1,9 +1,9 @@
 // ---------- file: main_content.js ---------- //
 
-(function() {
+var wdat; (function() {
   'use strict';
   /* Constructor for the presenter MainContent. The presenter is the link
-   * between the DataAPI and several viewers for sections, files an (neo) data 
+   * between the DataAPI and several viewers for sections, files an (neo) data
    * objects.
    *
    * Parameter:
@@ -17,12 +17,12 @@
    * TODO update documentation
    *
    * Depends on:
-   *    WDAT.api.EventBus, WDAT.api.DataAPI, ...
+   *    wdat.api.EventBus, wdat.api.DataAPI, ...
    */
-  WDAT.app.MainContent = MainContent;
+  wdat.MainContent = MainContent;
   function MainContent(id, api, bus, selEvent, searchEvent) {
     // create tabs
-    this._tabs = new WDAT.ui.TabFolder(id, bus, true);
+    this._tabs = new wdat.TabFolder(id, bus, true);
     this._id = this._tabs.id();
     bus.subscribe(this._tabs.action, this._tabs.selectHandler());
     // properties
@@ -33,7 +33,7 @@
       get_val : this._id + '-get-value'};
 
     // create section view
-    this._section = new WDAT.ui.SectionView(this._id + 'section', bus);
+    this._section = new wdat.SectionView(this._id + 'section', bus);
     this._tabs.add(this._section.jq(), 'tab-section', 'Metadata');
     bus.subscribe(this._actions.sel, this.sectionSelHandler());
     bus.subscribe(this._actions.get_sec, this.sectionSelHandler());
@@ -111,4 +111,4 @@
     };
   };
 
-}());
+})(wdat || (wdat = {}), jQuery);

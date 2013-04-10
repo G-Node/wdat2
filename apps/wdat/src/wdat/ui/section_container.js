@@ -6,7 +6,7 @@ var wdat; (function(wdat, $) {
   /*****************************************************************************************
    * Class SectionContainer.
    *
-   * Depends on: jQuery, WDAT.Bus, WDAT.Button, WDAT.Container
+   * Depends on: jQuery, wdat.Bus, wdat.Button, wdat.Container
    *
    * @returns {SectionContainer}
    ****************************************************************************************/
@@ -30,7 +30,7 @@ var wdat; (function(wdat, $) {
     }
 
     /**
-     * Refresh the content (see WDAT.Container).
+     * Refresh the content (see wdat.Container).
      */
     SectionContainer.prototype.refresh = function() {
       // section overview
@@ -90,7 +90,7 @@ var wdat; (function(wdat, $) {
   /*****************************************************************************************
    * Constructor for the class PropertyContainer.
    *
-   * Depends on: jQuery, WDAT.Bus, WDAT.Button, WDAT.Container
+   * Depends on: jQuery, wdat.Bus, wdat.Button, wdat.Container
    *
    * @returns {PropertyContainer}
    ****************************************************************************************/
@@ -113,7 +113,7 @@ var wdat; (function(wdat, $) {
     }
 
     /**
-     * Refresh the content (see WDAT.ParentContainer).
+     * Refresh the content (see wdat.ParentContainer).
      */
     PropertyContainer.prototype.refresh = function() {
       // create primary content
@@ -134,37 +134,37 @@ var wdat; (function(wdat, $) {
       for ( var i in this._children) {
         val += (i == 0 ? this._children[i].name : ', ' + this._children[i].name);
       }
-      var field = $(SectionContainer.FIELD_TEMPLATE);
+      var field = $(wdat.SectionContainer.FIELD_TEMPLATE);
       field.children('.field-name').text('Values:');
       field.children('.field-val').text(val);
       html.append(field);
 
       val = objGetRecursive(this._data, 'unit') || 'n.a.';
-      field = $(SectionContainer.FIELD_TEMPLATE);
+      field = $(wdat.SectionContainer.FIELD_TEMPLATE);
       field.children('.field-name').text('Unit:');
       field.children('.field-val').text(val);
       html.append(field);
 
       val = objGetRecursive(this._data, 'uncertainty') || 'n.a.';
-      field = $(SectionContainer.FIELD_TEMPLATE);
+      field = $(wdat.SectionContainer.FIELD_TEMPLATE);
       field.children('.field-name').text('Uncertainty:');
       field.children('.field-val').text(val);
       html.append(field);
 
       val = objGetRecursive(this._data, 'data_type') || 'n.a.';
-      field = $(SectionContainer.FIELD_TEMPLATE);
+      field = $(wdat.SectionContainer.FIELD_TEMPLATE);
       field.children('.field-name').text('Data Type:');
       field.children('.field-val').text(val);
       html.append(field);
 
       val = objGetRecursive(this._data, 'definition') || 'n.a.';
-      field = $(SectionContainer.FIELD_TEMPLATE);
+      field = $(wdat.SectionContainer.FIELD_TEMPLATE);
       field.children('.field-name').text('Definition:');
       field.children('.field-val').text(val);
       html.append(field);
 
       val = objGetRecursive(this._data, 'date_created') || 'n.a.';
-      field = $(SectionContainer.FIELD_TEMPLATE);
+      field = $(wdat.SectionContainer.FIELD_TEMPLATE);
       field.children('.field-name').text('Date Created:');
       field.children('.field-val').text(val);
       html.append(field);
@@ -172,21 +172,21 @@ var wdat; (function(wdat, $) {
       html = this._jq.children('.buttons').empty();
       var btn;
 
-      btn = new WDAT.Button(null, 'more', this._bus, this._expandHandler());
+      btn = new wdat.Button(null, 'more', this._bus, this._expandHandler());
       html.append(btn.jq());
 
-      for ( var i in WDAT.Container.ACTIONS) {
-        var act = WDAT.Container.ACTIONS[i];
+      for ( var i in wdat.Container.ACTIONS) {
+        var act = wdat.Container.ACTIONS[i];
         if (this._actions.hasOwnProperty(act)) {
           var click = this._actions[act];
-          btn = new WDAT.Button(null, act + '_small', this._bus, click, this._data);
+          btn = new wdat.Button(null, act + '_small', this._bus, click, this._data);
           html.append(btn.jq());
         }
       }
     };
 
     /**
-     * Refresh the content (see WDAT.ParentContainer).
+     * Refresh the content (see wdat.ParentContainer).
      */
     PropertyContainer.prototype.refreshChildren = function() {
       this.refresh();

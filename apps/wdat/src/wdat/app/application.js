@@ -1,6 +1,6 @@
 // ---------- file: application.js ---------- //
 
-(function() {
+var wdat; (function(wdat, $) {
   "use strict";
 
   // global events
@@ -24,44 +24,44 @@
   var selValueView;
   var selDataView;
 
-  WDAT.initialize = function() {
-    var bus = new WDAT.Bus();
-    var api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+  wdat.initialize = function() {
+    var bus = new wdat.Bus();
+    var api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
     // add metadata tree
-    metadataTree = new WDAT.MetadataTree($('#metadata-tree'), api, bus, events.sel_section);
+    metadataTree = new wdat.MetadataTree($('#metadata-tree'), api, bus, events.sel_section);
     metadataTree.load();
 
     // add search bar
-    searchView = new WDAT.SearchView($('#search-bar'), bus, events.search, events.search);
+    searchView = new wdat.SearchView($('#search-bar'), bus, events.search, events.search);
 
     // add tab folder
-    tabFolder = new WDAT.TabFolder($('#tab-folder'), bus, true);
+    tabFolder = new wdat.TabFolder($('#tab-folder'), bus, true);
     bus.subscribe(tabFolder.event('sel'), tabFolder.selectHandler());
 
     // add metadata view
     var html = $('<div id="metadata-view"></div>');
-    metadataView = new WDAT.MetadataView(html, api, bus, events.sel_section);
+    metadataView = new wdat.MetadataView(html, api, bus, events.sel_section);
     tabFolder.add(html, 'metadata-view', 'Info');
 
     // add data view
     html = $('<div id="data-view"></div>');
-    dataView = new WDAT.DataView(html, api, bus, events.sel_section, events.search);
+    dataView = new wdat.DataView(html, api, bus, events.sel_section, events.search);
     tabFolder.add(html, 'data-view', 'Data');
 
     // add file view
     html = $('<div id="file-view"></div>');
-    fileView = new WDAT.FileView(html, bus, events.sel_section, events.search);
+    fileView = new wdat.FileView(html, bus, events.sel_section, events.search);
     tabFolder.add(html, 'file-view', 'Files');
 
     // add selected values list
     html = $('#sel-value-view');
-    selValueView = new WDAT.SelectedValueView(html, bus, events.sel_value, events.sel_value_search);
+    selValueView = new wdat.SelectedValueView(html, bus, events.sel_value, events.sel_value_search);
 
     // add selected data list
     html = $('#sel-data-view');
-    selDataView = new WDAT.SelectedDataView(html, bus, events.sel_data, events.plot);
+    selDataView = new wdat.SelectedDataView(html, bus, events.sel_data, events.plot);
 
-    WDAT.adjustLayout();
+    wdat.adjustLayout();
   };
 
   // values for the layout
@@ -76,7 +76,7 @@
   var MOD_DATA_VIEW = 174;
   var MOD_FILE_VIEW = 141;
 
-  WDAT.adjustLayout = function() {
+  wdat.adjustLayout = function() {
     // TODO remove dummy
     var dummy = VSPACE_SEARCH + VSPACE_TAB;
     dummy += 1;
@@ -94,4 +94,4 @@
     selDataView.list.jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_SEL_DATA);
   };
 
-}());
+})(wdat || (wdat = {}), jQuery);

@@ -1,6 +1,6 @@
 // ---------- file: data_view.js ---------- //
 
-(function() {
+var wdat; (function(wdat, $) {
   "use strict";
 
   //-------------------------------------------------------------------------------------
@@ -17,9 +17,9 @@
    *  - bus: EventBus       A bus handling events.
    *
    * Depends on:
-   *  - jQuery, WDAT.api.EventBus, WDAT.Button, WDAT.Container
+   *  - jQuery, wdat.EventBus, wdat.Button, wdat.Container
    */
-  WDAT.DataView = DataView;
+  wdat.DataView = DataView;
   function DataView(html, api, bus, selSection, searchEvent) {
     var id = html.attr('id') || bus.uid();
     html.addClass('wdat-data-view');
@@ -27,11 +27,11 @@
     var listId = id + '-ephys-list';
     this._jq = html;
     // initialize bread crumb
-    this._nav = new WDAT.BreadCrumb(navId, bus);
+    this._nav = new wdat.BreadCrumb(navId, bus);
     this._nav.add({id: 'root', name: '>>'}, 0);
     this._jq.append(this._nav.jq());
     // initialize list
-    this.list = new WDAT.List(listId, bus, ['edit', 'del', 'sel']);
+    this.list = new wdat.List(listId, bus, ['edit', 'del', 'sel']);
     this._jq.append(this.list.jq());
     // bus and api
     this._bus = bus;
@@ -200,10 +200,8 @@
     // TODO implement
   };
 
-  /**
+  /*
    * Apply search on all data.
-   *
-   * @param search (Array)    Array with search parameters.
    */
   function _createSearchNoSelection(search) {
     // all ephys type names
@@ -228,10 +226,8 @@
     return searchCreated;
   }
 
-  /**
+  /*
    * Apply search on all public data.
-   *
-   * @param search (Array)    Array with search parameters.
    */
   function _createSearchPublicAll(search, user) {
     // all ephys types
@@ -258,10 +254,8 @@
     return searchCreated;
   }
 
-  /**
+  /*
    * Apply search on all shared data.
-   *
-   * @param search (Array)    Array with search parameters.
    */
   function _createSearchSharedAll(search, user) {
     // all ephys types
@@ -288,10 +282,8 @@
     return searchCreated;
   }
 
-  /**
+  /*
    * Apply search on all own data.
-   *
-   * @param search (Array)    Array with search parameters.
    */
   function _createSearchOwnAll(search, user) {
     // all ephys types
@@ -317,10 +309,8 @@
     return searchCreated;
   }
 
-  /**
+  /*
    * Apply search on all public data.
-   *
-   * @param search (Array)    Array with search parameters.
    */
   function _createSearchBySectionSelected(search, section) {
     // prepare search
@@ -361,4 +351,4 @@
     }
   }
 
-}());
+})(wdat || (wdat = {}), jQuery);

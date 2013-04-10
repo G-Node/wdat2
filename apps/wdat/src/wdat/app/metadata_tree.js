@@ -1,7 +1,7 @@
 // ---------- file: metadata_tree.js ---------- //
 
 
-(function(){
+var wdat; (function(wdat, $){
   'use strict';
 
   /**
@@ -18,13 +18,13 @@
    * @param changeEvent(String) The presenter will listen on this event for changes in
    *                            the metadata tree.
    *
-   * Depends on: WDAT.Bus, WDAT.Tree, WDAT.DataAPI, WDAT.Form
+   * Depends on: wdat.Bus, wdat.Tree, wdat.DataAPI, wdat.Form
    *
    * FIXME maybe add a addContainer method to tree
    * FIXME create new edit delete button on bottom of the presenter.
    *
    */
-  WDAT.MetadataTree = MetadataTree;
+  wdat.MetadataTree = MetadataTree;
   function MetadataTree(html, api, bus, selEvent, changeEvent) {
     var id = html.attr('id') || bus.uid();
     html.addClass('wdat-metadata-tree');
@@ -33,7 +33,7 @@
     // create header
     this._jq.append('<h1>Metadata Browser</h1>');
     // create tree
-    this.tree = new WDAT.Tree(treeId, bus, ['sel', 'del', 'edit', 'add']);
+    this.tree = new wdat.Tree(treeId, bus, ['sel', 'del', 'edit', 'add']);
     this._jq.append(this.tree.jq());
     // create buttons
     // define names for internal and external events
@@ -49,7 +49,7 @@
     // a form for section editing and creation
     this._updateEvent = this.tree.name + '-update';
     var formId = id += '-section-form';
-    this._form = new WDAT.Form(formId, bus, {save: this._actions.save}, 'section', true);
+    this._form = new wdat.Form(formId, bus, {save: this._actions.save}, 'section', true);
     this._form.set();
     // subscribe handlers for internal events
     this._bus.subscribe(this._actions.save, this._saveHandler());
@@ -261,5 +261,5 @@
           {id: 'public-all', name: 'All Data', parent_id: 'public', isleaf: true}
   ];
 
-}());
+})(wdat || (wdat = {}), jQuery);
 

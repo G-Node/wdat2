@@ -5,10 +5,15 @@
 <title>{% block title %}{% endblock %}</title>
 <link rel="stylesheet" href="{{ STATIC_URL }}reset.css" />
 <link rel="stylesheet" href="{{ STATIC_URL }}jquery-ui/jquery-ui.min.css" />
+<link rel="stylesheet" href="{{ STATIC_URL }}crayon/crayon.css" />
 <link rel="stylesheet" href="{{ STATIC_URL }}wdat-api.css" />
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}jquery-ui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}d3/d3.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}inheritance.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}crayon/crayon.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}wdat-api.js"></script>
+
 {% block extra_script %}{% endblock %}
 <style type="text/css">
 /* test specific styles */

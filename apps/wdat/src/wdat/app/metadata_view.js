@@ -1,6 +1,6 @@
 // ---------- file: metadata_view.js ---------- //
 
-(function(){
+var wdat; (function(wdat, $){
   'use strict';
 
   /**
@@ -16,12 +16,12 @@
    * @param selValue (String)     The presenter will publich this event when a value
    *                              was selected.
    *
-   * Depends on: WDAT.Bus, WDAT.DataAI, WDAT.SectionContainer, WDAT.PropertyContainer, WDAT.Form
+   * Depends on: wdat.Bus, wdat.DataAI, wdat.SectionContainer, wdat.PropertyContainer, wdat.Form
    *
    * FIXME Properties are not properly updated when a new section is selected.
    * TODO Crate handlers for all events.
    */
-  WDAT.MetadataView = MetadataView;
+  wdat.MetadataView = MetadataView;
   function MetadataView(html, api, bus, selSection, selValue) {
     var id = html.attr('id') || bus.uid();
     html.addClass('wdat-metadata-view');
@@ -29,12 +29,12 @@
     var propListId = id + '-properties';
     this._jq = html;
     // section container
-    this._section = new WDAT.SectionContainer(secContId, bus);
+    this._section = new wdat.SectionContainer(secContId, bus);
     this._section.refresh();
     html.append(this._section.jq());
     // property list
     var addProp = id + '-add-prop';
-    this._properties = new WDAT.List(propListId, bus, {add: addProp}, ['properties']);
+    this._properties = new wdat.List(propListId, bus, {add: addProp}, ['properties']);
     this._properties.refresh();
     html.append(this._properties.jq());
     // actions for propety container
@@ -56,7 +56,7 @@
     this._api = api;
     // a form for property editing events
     var formId = id += '-property-form';
-    this._form = new WDAT.Form(formId, bus, {save: this._actions.save_prop},
+    this._form = new wdat.Form(formId, bus, {save: this._actions.save_prop},
                                'property', true);
     this._form.set();
     // subscribe event handlers
@@ -120,7 +120,7 @@
         for (var j in properties) {
           var p = properties[j].property;
           var v = properties[j].values;
-          var cont = new WDAT.PropertyContainer(p.id, that._bus, that._propActions);
+          var cont = new wdat.PropertyContainer(p.id, that._bus, that._propActions);
           cont.set(p);
           cont.setChildren(v);
           that._properties.addContainer(cont, 'properties');
@@ -206,7 +206,7 @@
           if (that._properties.has(elem)) {
             that._properties.set(elem);
           } else {
-            var cont = new WDAT.PropertyContainer(elem.id, that._bus, that._propActions);
+            var cont = new wdat.PropertyContainer(elem.id, that._bus, that._propActions);
             cont.set(elem);
             cont.setChildren([]);
             that._properties.addContainer(cont, 'properties');
@@ -236,4 +236,4 @@
     };
   };
 
-})();
+})(wdat || (wdat = {}), jQuery);
