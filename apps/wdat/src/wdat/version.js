@@ -11,7 +11,7 @@ var wdat; (function(wdat) {
    *
    * @define {string}
    */
-  wdat.version = "0.15.0";
+  wdat.version = "0.16.0";
 
   /**
    * Activate or deactivate debug mode.
