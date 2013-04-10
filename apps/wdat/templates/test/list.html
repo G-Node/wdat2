@@ -5,8 +5,8 @@
 {% block extra_script %}
 <script type="text/javascript">
 var init = function() {
-  var bus = new WDAT.Bus(); 
-  var list = new WDAT.List($('#list-1'), bus, ['add', 'del', 'sel', 'more'], ['foo', 'bar']);
+  var bus = new wdat.Bus(); 
+  var list = new wdat.List($('#list-1'), bus, ['add', 'del', 'sel', 'more'], ['foo', 'bar']);
   bus.subscribe(list.event('sel'), list.selHandler());
   bus.subscribe(list.event('del'), list.delHandler());
   list.add({name: 'Test1', info: 'Some information 1', data: 'Some data 1'}, 'foo');

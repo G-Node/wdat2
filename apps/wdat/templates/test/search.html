@@ -5,8 +5,8 @@
 {% block extra_script %}
 <script type="text/javascript">
   var init = function () {
-    var bus    = new WDAT.Bus(); 
-    var search = new WDAT.ui.SearchBar($('#search'), bus);
+    var bus    = new wdat.Bus(); 
+    var search = new wdat.SearchBar($('#search'), bus);
   };
 
   $(window).load(init);

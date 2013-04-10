@@ -6,8 +6,8 @@
 <script type="text/javascript">
 function init() {
 
-  var bus = new WDAT.Bus();
-  var data_api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+  var bus = new wdat.Bus();
+  var data_api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
 
   bus.subscribe('data-api', logResults);
   $('#get-by-url').click(getByURLRequest);

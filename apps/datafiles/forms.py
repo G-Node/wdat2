@@ -18,7 +18,7 @@ class NewDatafileForm(forms.ModelForm):
     
     class Meta:
         model = Datafile
-        fields = ['safety_level', 'raw_file', 'caption', 'tags']
+        fields = ['safety_level', 'raw_file', 'description', 'tags']
 
     def __init__(self, user=None, *args, **kwargs):
         self.user = user
@@ -49,7 +49,7 @@ class DatafileShortEditForm(forms.ModelForm):
     
     class Meta:
         model = Datafile
-        fields = ('name', 'caption', 'tags')
+        fields = ('name', 'description', 'tags')
         
 class PrivacyEditForm(forms.ModelForm):
     

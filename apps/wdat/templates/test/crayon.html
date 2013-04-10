@@ -1,0 +1,38 @@
+{% extends "test/test_base.html" %} 
+{% block title %}Crayon Test{%endblock %} 
+{% block extra_script %}
+
+<!-- <script type="text/javascript" src="{{ STATIC_URL }}d3/d3.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}crayon/crayon.js"></script>
+<link rel="stylesheet" href="{{ STATIC_URL }}crayon/crayon.css" /> -->
+<script type="text/javascript">
+  function init() {
+    var svg = d3.select("#svg-1"); 
+    var pm  = new cry.PlotManager(svg);
+    
+    pm.createContext('signal');
+    pm.addRenderer('signal', new cry.SignalRenderer());
+    var signals = new cry.RandomSignal(150, 4, 10000, 5);
+    var signals2 = new cry.RandomSignal(150, 4, 10000, 5);
+    pm.addSource(signals, 'signal', 'signal');
+  
+    pm.createContext('spike', {yticks: 0});
+    pm.addRenderer('spike', new cry.SpikeRenderer());
+    var spikes = new cry.RandomSpikes(150, 1000, 7);
+    var spikes2 = new cry.RandomSpikes(150, 1000, 7);
+    pm.addSource(spikes, 'spike', 'spike');
+  
+    pm.plot();
+  
+    
+    /* make global for debugging and testing */
+    window.run = {svg: svg, pm: pm, signals: signals, spikes: spikes, signals2: signals2, spikes2: spikes2};
+  }
+  $(window).ready(init);
+</script>
+{% endblock %} 
+{% block body %}
+
+  <svg id="svg-1" width="1000" height="600"></svg>
+
+{% endblock %}

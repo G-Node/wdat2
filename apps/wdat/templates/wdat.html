@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>WDAT</title>
 
-<link rel="stylesheet" href="{{ STATIC_URL }}main.css" />
+<link rel="stylesheet" href="{{ STATIC_URL }}reset.css" />
 <link rel="stylesheet" href="{{ STATIC_URL }}jquery-ui/jquery-ui.min.css" />
 <link rel="stylesheet" href="{{ STATIC_URL }}wdat-api.css" />
 
@@ -15,8 +15,8 @@
 <style type="text/css"></style>
 
 <script type="text/javascript">
-  $(window).load(WDAT.app.initialize);
-  window.onresize = WDAT.app.adjustLayout
+  $(window).load(wdat.initialize);
+  window.onresize = wdat.adjustLayout
 </script>
 
 </head>
@@ -28,15 +28,17 @@
 </div>
 <div class="main">
   <div class="left">
-    <div id="metadata-tree">metadata-tree</div>
+    <div id="metadata-tree"></div>
   </div>
   <div class="right">
-    <div id="property-list">property-list</div>
-    <div id="data-list">data-list</div>
+    <div id="sel-value-view"></div>
+    <div id="sel-data-view"></div>
   </div>
   <div class="center">
-    <div id="search-bar">search-bar</div>
-    <div id="main-content">main-content</div>
+    <div id="search-bar"></div>
+    <div id="main-content">
+      <div id="tab-folder"></div>
+    </div>
   </div>
 </div>
 </body>

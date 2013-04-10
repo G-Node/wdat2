@@ -6,7 +6,7 @@
 <script type="text/javascript">
   "use strict";
   var init = function() {
-    var bus = new WDAT.Bus();
+    var bus = new wdat.Bus();
     var log = $(".event-log").first();
 
     var fn = function(event, args){ log.append("<p>event fired: " + args + "</p>"); };

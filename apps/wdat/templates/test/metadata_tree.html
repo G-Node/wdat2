@@ -6,9 +6,9 @@
 <script type="text/javascript">
   var init = function() {
     var selEvent = 'pmeta-select';
-    var bus = new WDAT.Bus(); 
-    var api = new WDAT.DataAPI('NetworkResource', 'ResourceAdapter', bus);
-    var pmeta = new WDAT.MetadataTree($('#tree-1'), api, bus, selEvent);
+    var bus = new wdat.Bus(); 
+    var api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+    var pmeta = new wdat.MetadataTree($('#tree-1'), api, bus, selEvent);
     bus.subscribe(selEvent, logSelection);
     pmeta.load();
     function logSelection(event, data) {

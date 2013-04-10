@@ -1,0 +1,55 @@
+/* ---------- file: application.less -----------*/
+
+body {
+  background-color: #dddddd;
+}
+
+div.head, div.nav {
+  border: 1px solid black;
+}
+
+.head {
+  height: 100px;
+  margin: @cushioning;
+}
+
+.nav {
+  height: 32px;
+  margin: @cushioning;
+  .nav-buttons {
+    margin: auto;
+  }
+}
+
+.main {
+  
+  margin: @cushioning;
+  
+  .left {
+    float: left;
+    width: 280px;
+    min-height: 200px; /* remove?*/
+  }
+  
+  .right {
+    float: right;
+    width: 280px;
+    min-height: 200px; /* remove?*/
+  }
+  
+  .center {
+    min-height: 200px; /* remove?*/
+    margin: 0 280px + @cushioning;
+  }
+  
+  /* MOVE THE FOLLOWING DEFINITIONS TO OTHER FILES*/
+  
+  
+  #sel-data-view {
+    margin-top: @cushioning;
+  }
+  
+  #data-list, #main-content {
+    margin: @cushioning 0;
+  }
+}

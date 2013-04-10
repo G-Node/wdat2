@@ -1,0 +1,78 @@
+//---------- file: data_api.js.worker ----------//
+
+importScripts('network_resource.js');
+
+var wdat; (function(wdat) {
+
+  var resource, adapter;
+  
+  /**
+   * Create the worker routine that handles all messages send to the worker
+   * The message is expected to have the following structure (see data_api.js):
+   * 
+   * TODO move this to DataAPI and use it in a kind of pseudo worker when 
+   *      workers are not available or when in debug mode.
+   *
+   *    { event: <event>, action: <action>, data: <data> }
+   *
+   * @param msg (Object)     The message object produced by calling postMessge(data) on
+   *                         the worker object in the main thread.
+   *
+   * @return The data object that will be passed to the onmessage() method of the worker
+   *         object in the main thread. 
+   */
+  wdat.worker_routine = function(msg) {
+    "use strict";
+    // the original message is wrapped in a message object and contained in msg.data
+    msg = msg.data
+    // crate a result
+    var result = {};
+    switch (msg.action) {
+      case 'init':
+        // initialize network resource and resource adapter
+        wdat.resource = new wdat[msg.resource]();
+        wdat.adapter  = new wdat[msg.adapter]();
+        result.data = "Worker initialized!";
+        break;
+      case 'get':
+        // handle get requests here
+        result.data = resource.get(msg.param);
+        if (!result.data.error)
+          result.data.response = adapter.adapt(result.data.response);
+        break;
+      case 'get_by_url':
+        // handle get requests here
+        result.data = resource.getByURL(msg.param);
+        if (!result.data.error)
+          result.data.response = adapter.adapt(result.data.response);
+        break;
+      case 'set':
+        // handle save requests
+        var tmp = adapter.adaptUpdate(msg.param);
+        result.data = resource.setByURL(tmp.url, tmp.data);
+        if (!result.data.error)
+          result.data.response = adapter.adapt(result.data.response);
+        break;
+      case 'del':
+        // handle delete requests
+        result.data = resource.getByURL(msg.param);
+        break;
+      default:
+        // just a test to see if web worker are ok
+        result.data = "Worker Test OK";
+        break;
+    }
+    result.data.action = msg.action;
+    result.data.param = msg.param;
+    result.data.info = msg.info;
+    result.event = msg.event;
+    return result;
+  };
+
+})(wdat || (wdat = {}))
+
+// Attach worker routine to message events and notify the main thread
+onmessage = function(msg) {
+    var result = wdat.worker_routine(msg);
+    postMessage(result);
+};

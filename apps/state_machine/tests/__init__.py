@@ -1,4 +1,4 @@
-from state_machine.models import ObjectState, SafetyLevel, VersionedForeignKey, VersionedM2M
+from state_machine.models import ObjectState, SafetyLevel, VersionedForeignKey, VersionedM2M, ObjectExtender
 
 import time
 import datetime
@@ -153,8 +153,8 @@ class TestVersionedQuerySet(TestCase):
 
 class TestObjectState(TestCase):
     """
-    Base test class for VersionedObjectManager testing. The get_related method
-    should retrieve and pre-cache objects with all relatives.
+    Base test class for VersionedObjectManager testing. The fill_relations
+    method should retrieve and pre-cache objects with all relatives.
     """
     fixtures = ["users.json"]
 
@@ -218,8 +218,8 @@ class TestObjectState(TestCase):
         self.assertEqual( getattr( P1_old, 'fakechildmodel_set').all().count(), 2 )
 
     def test_fetch_related(self):
-        """ testing how the get_related() function works (fast fetching objects 
-        with relationships) """
+        """ testing how the fill_relations() function works (fast fetching 
+        objects with relationships) """
         owner = User.objects.get( pk = 1 )
 
         # 1. create 2 parent objects: P1, P2
@@ -242,7 +242,8 @@ class TestObjectState(TestCase):
         time.sleep( 1 )
 
         # assert object has 2 direct children and 2 M2M children
-        P1 = FakeParentModel.objects.filter( pk=1 ).get_related()[0]
+        P1 = FakeParentModel.objects.filter( pk=1 )
+        P1 = ObjectExtender( P1.model ).fill_relations( P1 )[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 2)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 2)
 
@@ -251,12 +252,14 @@ class TestObjectState(TestCase):
         m2m2.delete()
 
         # assert object has now only 1 direct child and 1 M2M child
-        P1 = FakeParentModel.objects.filter( pk=1 ).get_related()[0]
+        P1 = FakeParentModel.objects.filter( pk=1 )
+        P1 = ObjectExtender( P1.model ).fill_relations( P1 )[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 1)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 1)
 
         # assert previous relations accessible back in time
-        P1 = FakeParentModel.objects.filter( at_time=bp, pk=1 ).get_related()[0]
+        P1 = FakeParentModel.objects.filter( at_time=bp, pk=1 )
+        P1 = ObjectExtender( P1.model ).fill_relations( P1, _at_time=bp )[0]
         self.assertEqual( len(getattr(P1, 'fakechildmodel_set_buffer_ids')), 2)
         self.assertEqual( len(getattr(P1, 'm2m_buffer_ids')), 2)
 
