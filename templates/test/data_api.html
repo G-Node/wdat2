@@ -1,0 +1,73 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}DataAPI Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+function init() {
+
+  var bus = new wdat.Bus();
+  var data_api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+
+  bus.subscribe('data-api', logResults);
+  $('#get-by-url').click(getByURLRequest);
+  $('#get-by-param').click(getByParamRequest);
+
+  /* log the results of data api requests */
+  function logResults(event, data) {
+    $('.event-log').text("")
+    $('.event-log').append("\nTest URL: " + data.url + "\n");
+    $('.event-log').append("Test action: " + data.action + "\n");
+    $('.event-log').append("Test param: " + JSON.stringify(data.param) + "\n");
+    $('.event-log').append("\nTest Result: " + JSON.stringify(data.response, null, 2) + "\n");
+  }
+  
+  /* request data from DataAPI by URL */
+  function getByURLRequest() {
+    var url = $('#url').val();
+    if (url)
+      data_api.getByURL('data-api', url);
+  }
+  
+  /* request data from DataAPI by search parameter */
+  function getByParamRequest() {
+    var param = $('#param').val();
+    if (param) {
+      param = JSON.parse(param);
+      data_api.get('data-api', param);
+    }
+  }
+};
+
+$(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>DataAPI Test</h1>
+<h2>Request data by URL:</h2>
+<p>
+  Examples:
+  <pre>
+  /metadata/section/1
+  /electrophysiology/block/1
+  /electrophysiology/segment/1
+  </pre>
+</p>
+<p><input type="text" size="80" id="url">&nbsp;<button id="get-by-url">GET</button></p>
+<h2>Request data by search parameter:</h2>
+<p>
+  Examples:
+  <pre>
+  {"id": "/metadata/section/1"}
+  {"id": 1, "type": "section"}
+  {"type": "section", "parent": "/metadata/section/1"}
+  {"type": "analogsignal", "name":"FIX Signal-995"}
+  </pre>
+</p>
+<p><input type="text" size="80" id="param">&nbsp;<button id="get-by-param">GET</button></p>
+<h1>Log</h1>
+<p>
+<pre class="event-log"></pre>
+</p>
+{% endblock %}

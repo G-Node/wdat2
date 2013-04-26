@@ -1,0 +1,24 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}DatePicker Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function () {
+    var b = new WDAT.api.EventBus()
+      , d = $('input.date')
+      , dp = new WDAT.ui.DatePicker(d, b);
+  };
+
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+  <h1>DatePicker Test</h1>
+  <div>
+    <input type="textbox" class="date"></input>
+    <h3>Placeholder text to float over</h3>
+  </div>
+{% endblock %}
+

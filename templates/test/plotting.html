@@ -1,0 +1,40 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Plotting{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  "use strict";
+  var init = function() {
+
+    var svg = d3.select("#svg-1"); 
+    var pm  = new cry.PlotManager(svg);
+    
+    pm.createContext('signal_context01');
+    pm.addRenderer('signal_renderer', new cry.SignalRenderer());
+    var signals01 = new wdat.SignalSourceHardcode(0,1);
+    pm.addSource(signals01, 'signal_context01', 'signal_renderer');
+  
+    pm.createContext('signal_context02');
+    pm.addRenderer('spike_renderer', new cry.SpikeRenderer());
+    var signals02 = new wdat.SignalSourceHardcode(2,4);
+    pm.addSource(signals02, 'signal_context02', 'signal_renderer');
+  
+    pm.plot();
+  
+    
+    /* make global for debugging and testing */
+    window.run = {svg: svg, pm: pm, signals01: signals01, signals02: signals02};
+    
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Plotting</h1>
+
+   <svg id="svg-1" width="1000" height="600" style="background-color: white;"></svg>
+
+</div>
+{% endblock %}

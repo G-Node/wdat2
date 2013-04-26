@@ -1,0 +1,41 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}List Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+var init = function() {
+  var bus = new wdat.Bus(); 
+  var list = new wdat.List($('#list-1'), bus, ['add', 'del', 'sel', 'more'], ['bla', 'bar']);
+  bus.subscribe(list.event('sel'), list.selHandler());
+  bus.subscribe(list.event('del'), list.delHandler());
+  list.add({name: 'Test1', info: 'Some information 1', data: 'Some data 1'}, 'bla');
+  list.add({name: 'Test2', info: 'Some information 2', data: 'Some data 2'}, 'bla');
+  list.add({name: 'Test3', info: 'Some information 3', data: 'Some data 3'}, 'bar');
+  list.add({name: 'Test4', info: 'Some information 4', data: 'Some data 4'}, 'bar');
+  list.add({name: 'Test5', info: 'Some information 5', data: 'Some data 5'});
+  list.add({name: 'Test6', info: 'Some information 6', data: 'Some data 6'}, 'foo-bar');
+  bus.subscribe(list.event('add'), function(event, data) {
+    var elements = [{name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'},
+                    {name: 'Test', info: 'Some information', data: 'Some data'}];
+    list.addAll(elements, data.id);
+  });
+};
+$(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>List Test</h1>
+<div id="list-1">
+</div>
+<div class="event-log"></div>
+{% endblock %}

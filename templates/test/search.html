@@ -1,0 +1,21 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Search Bar Test{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function () {
+    var bus    = new wdat.Bus(); 
+    var search = new wdat.SearchBar($('#search'), bus);
+  };
+
+  $(window).load(init);
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Search Bar Test</h1>
+<div class="container" ><div id="search"></div></div>
+<h3>Event Log</h3>
+<div class="event-log"></div>
+{% endblock %}

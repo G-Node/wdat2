@@ -1,0 +1,71 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}Button Test{% endblock %}
+{% block extra_script %}
+<script type="text/javascript">
+  var init = function() {
+    var bus = new wdat.Bus();
+    var log = function(event, args) {
+      $(".event-log").first().append("<p>event fired: " + args + "</p>");
+    };
+
+    bus.subscribe('bla', log);
+
+    var h = $('<h3></h3>').text('Predefined buttons');
+    $(".button-container").append(h);
+
+    var b = new wdat.Button(null, 'add', bus, 'bla', 'Adding');
+    $(".button-container").append(b.jq());
+    b = new wdat.Button(null, 'del', bus, 'bla', 'Deleting');
+    $(".button-container").append(b.jq());
+    b = new wdat.Button(null, 'sel', bus, 'bla', 'Selecting');
+    $(".button-container").append(b.jq());
+    b = new wdat.Button(null, 'edit', bus, 'bla', 'Editing');
+    $(".button-container").append(b.jq());
+
+
+    h = $('<h3></h3>').text('Predefined small buttons');
+    $(".button-container").append(h);
+
+    var b = new wdat.Button(null, 'add_small', bus, 'bla', 'Small adding');
+    $(".button-container").append(b.jq());
+    b = new wdat.Button(null, 'del_small', bus, 'bla', 'Small deleting');
+    $(".button-container").append(b.jq());
+    b = new wdat.Button(null, 'sel_small', bus, 'bla', 'Small selecting');
+    $(".button-container").append(b.jq());
+    b = new wdat.Button(null, 'edit_small', bus, 'bla', 'Small editing');
+    $(".button-container").append(b.jq());
+
+    h = $('<h3></h3>').text('Event system checks');
+    $(".button-container").append(h);
+
+    b = new wdat.Button(null, 'Should create an alert', bus, function() {
+        alert('And, it does!');
+      }, 'blue');
+    $('.button-container').append(b.jq());
+
+    b = new wdat.Button(null, 'Should publish an event', bus, 'bla', 'And it does!');
+    $('.button-container').append(b.jq());
+
+    b = new wdat.Button(null, 'Should do nothing', bus, null);
+    $('.button-container').append(b.jq());
+
+
+    h = $('<h3></h3>').text('Toggle buttons');
+    $(".button-container").append(h);
+
+    b = new wdat.Button(null, 'more', bus, 'bla', 'More/Less');
+    $('.button-container').append(b.jq());
+
+  };
+  $(window).load(init);
+</script>
+{% endblock %}
+{% block body %}
+  <h1>Button Test</h1>
+  <div style="padding-left: 20px">
+    <div class="button-container"></div>
+    <h3>Events Logger</div>
+    <div class="event-log" style="padding-left: 40px"></div>
+  </div>
+{% endblock %}
