@@ -1,0 +1,9 @@
+# ignored files and folders
+*.pyc
+static
+
+
+# ignore idea files
+.idea
+WDAT2.iml
+
