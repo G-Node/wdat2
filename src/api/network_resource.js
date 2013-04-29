@@ -11,12 +11,42 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
     /**
      * Constructor for the class RequestManager.
+     * TODO Implement doGETArray()
      *
      * @constructor
      */
     function RequestManager() {
 
         var _cache      = new Cache();
+
+        /**
+         * Performs a single post request.
+         *
+         * @param url {String}      The url for the request
+         * @param data {Object}     The request data.
+         * @param callback {Function} Callback that gets the result back.
+         */
+        this.doPOST = function(url, data, callback) {
+
+            var xhr = new XMLHttpRequest();
+
+            url = strings.urlOmitHost(url);
+
+            xhr.onreadystatechange = collect;
+            xhr.open('POST', url);
+            xhr.send(JSON.stringify(data));
+
+            // collect the result and call callback function
+            function collect() {
+                if (xhr.readyState === 4) {
+
+                    var response = _buildResponse(xhr, url, 'POST');
+
+                    // store response and notify callback when all requests are done
+                    callback({primary: [response], secondary: []});
+                }
+            }
+        };
 
         /**
          * Performs multiple, parallel requests with deep option.
@@ -155,7 +185,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 tag = _cache.etagByURL(url);
 
                 xhr.onreadystatechange = collect;
-                xhr.open("GET", url);
+                xhr.open('GET', url);
                 if (tag) {
                     xhr.setRequestHeader('If-None-Match', tag);
                 } else {
@@ -168,58 +198,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 function collect() {
                     if (xhr.readyState === 4) {
 
-                        // response data
-                        var contentType = xhr.getResponseHeader('Content-Type') ,
-                            etag    = xhr.getResponseHeader('ETag') ,
-                            status  = xhr.status ,
-                            content = xhr.responseText ,
-                            message = "no message" ,
-                            error   = false;
-
-                        // response and error handling
-                        if (status === 200) {
-                            // all OK
-                            if (contentType === 'application/json') {
-                                content = JSON.parse(content);
-                                if (etag !== null) {
-                                    _cache.store(url, etag, content);
-                                }
-                            } else {
-                                error = true;
-                                content = null;
-                                message = "Severe Error: wrong content type or no content ("+status+")";
-                            }
-                        } else if (status === 304) {
-                            // unmodified
-                            content = _cache.contentByEtag(etag);
-                            if (!content) {
-                                error = true;
-                                message = "Severe Error: cache miss etag = '"+etag+"' ("+status+")";
-                            }
-                        } else if (status >= 400 && status < 500) {
-                            // client errors
-                            error = true;
-                            if (contentType === 'application/json') {
-                                content = JSON.parse(content);
-                                message = content.message;
-                            } else {
-                                content = null;
-                                message = "Client Error: unresolved ("+status+")";
-                            }
-                        } else {
-                            // server errors and unexpected responses
-                            error = true;
-                            content = null;
-                            message = "Server Error: unresolved ("+status+")";
-                        }
-
-                        // assemble response
-                        var response = {
-                            error:      error ,
-                            data:       content ,
-                            message:    message ,
-                            status:     status
-                        };
+                        var response = _buildResponse(xhr, url, 'GET');
 
                         // store response and notify callback when all requests are done
                         responses.push(response);
@@ -230,6 +209,95 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     }
                 }
             }
+        }
+
+        /**
+         * Build a response object from a finished XMLHttpRequest (readyState == 4).
+         * The response is an object that contains the following information:
+         *
+         * {
+         *     url: {String},
+         *     error: {Boolean},
+         *     data: {Array},
+         *     range: {Array},
+         *     status: {Number},
+         *     message: {String},
+         * }
+         *
+         * @param xhr {XMLHttpRequest} Request object with ready state == 4.
+         * @param url {String} The url of the request.
+         * @param type {String} Either "GET" or "POST" (optional: default "GET").
+         *
+         * @returns {Object} A response object.
+         * @private
+         */
+        function _buildResponse(xhr, url, type) {
+
+            var contentType = xhr.getResponseHeader('Content-Type') ,
+                etag        = xhr.getResponseHeader('ETag') ,
+                content     = xhr.responseText;
+
+            // default response
+            var response = {
+                    url:        url ,
+                    error:      false ,
+                    data:       [] ,
+                    range:      [0, 0] ,
+                    status:     parseInt(xhr.status) ,
+                    type:       type || "GET",
+                    message:    'No message'
+            };
+
+            // response and error handling
+            if (response.status === 200) {
+                // all OK
+
+                if (contentType === 'application/json') {
+                    content = JSON.parse(content);
+                    if (etag !== null) {
+                        _cache.store(url, etag, content);
+                    }
+                    response.message = content.message;
+                    response.data    = content.selection;
+                    response.range   = content.selected_range;
+                } else {
+                    response.error   = true;
+                    response.message = "Severe Error: wrong content type or no content ("+status+")";
+                }
+
+            } else if (response.status === 304) {
+                // unmodified
+
+                content = _cache.contentByEtag(etag);
+                if (!content) {
+                    response.error   = true;
+                    response.message = "Severe Error: cache miss etag = '"+etag+"' ("+status+")";
+                } else {
+                    response.message = content.message;
+                    response.data    = content.selection;
+                    response.range   = content.selected_range;
+                }
+
+            } else if (response.status >= 400 && response.status < 500) {
+                // client errors
+
+                response.error = true;
+                if (contentType === 'application/json') {
+                    content = JSON.parse(content);
+                    response.message = content.message;
+                } else {
+                    response.message = "Client Error: unresolved ("+status+")";
+                }
+
+            } else {
+                // server errors and unexpected responses
+
+                response.error   = true;
+                response.message = "Server Error: unresolved ("+status+")";
+
+            }
+
+            return response;
         }
 
     } // end RequestManager
