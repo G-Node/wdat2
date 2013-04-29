@@ -1,9 +1,11 @@
 //--------- network_resource.js ---------//
 
 /*
- * TODO module description.
+ * Provides the class NetworkResource
+ * The other classes defined in this module (RequestManager, Cache)
+ * are not part of the public API
  */
-define(['util/strings'], function (strings) {
+define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) {
     "use strict";
 
 
@@ -24,8 +26,108 @@ define(['util/strings'], function (strings) {
          * @param depth {Number}
          */
         this.doGET = function(urls, callback, depth) {
-            _doMultiGET(urls, callback);
+
+            var primary = [] ,
+                secondary = [] ,
+                currDepth = depth || 0 ,
+                error = false;
+
+            // perform GET for all urls and let the results be collected
+            // by collectPrimary
+            _doMultiGET(urls, collectPrimary);
+
+            // callback collects primary results and
+            // starts deep requests if necessary
+            function collectPrimary(responses) {
+
+                for (var i = 0; i < responses.length && !error; i++) {
+                    var d = responses[i];
+                    if (d.error) {
+                        error = true;
+                    }
+                    primary.push(d);
+                }
+
+                if (currDepth === 0 || error) {
+                    callback({primary: primary, secondary: secondary});
+                } else if (!error) {
+                    var urls = _childURLs(responses);
+                    if (urls.length > 0) {
+                        currDepth -= 1;
+                        _doMultiGET(urls, collectSecondary);
+                    }
+                }
+            }
+
+            // callback collects secondary results and
+            // continues deep requests if necessary
+            function collectSecondary(responses) {
+
+                for (var i = 0; i < responses.length && !error; i++) {
+                    var d = responses[i];
+                    if (d.error) {
+                        error = true;
+                    }
+                    secondary.push(d);
+                }
+
+                if (currDepth === 0 || error) {
+                    callback({primary: primary, secondary: secondary});
+                } else if (!error) {
+                    var urls = _childURLs(responses);
+                    if (urls.length > 0) {
+                        currDepth -= 1;
+                        _doMultiGET(urls, collectSecondary);
+                    }
+                }
+            }
+
         };
+
+        /**
+         * Determine urls of all children of every response object
+         * and return them in one single array.
+         *
+         * @param responses {Array}     Some responses from the REST-api
+         *
+         * @returns {Array} Urls from all children.
+         *
+         * @private
+         */
+        function _childURLs(responses) {
+
+            var urls = [] ,
+                selected ,
+                element ,
+                childfields ,
+                children ,
+                type;
+
+            for (var i = 0; i < responses.length; i++) {
+                if (!responses[i].error && responses[i].data) {
+
+                    selected = responses[i].data.selected;
+
+                    for (var j = 0; j < selected.length; j++) {
+                        element = selected[j];
+                        type = (type = element.model.split('.'))[type.length - 1];
+
+                        childfields = model_helpers.children(type);
+
+                        for (var k in childfields) {
+                            if (childfields.hasOwnProperty(k) && childfields[k].type !== type) {
+                                children = element.fields[k];
+                                if (children) {
+                                    urls = urls.concat(children);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return urls;
+        }
 
         /**
          * Private function that performs simple GET requests
