@@ -83,7 +83,7 @@ define(function() {
                     } else {
                         var v = obj[field];
                         if (children !== undefined) {
-                            // if children check if v is an object
+                            // if children, check if v is an object
                             if (typeof(v) === 'object' && v !== null && children.indexOf(field) >= 0) {
                                 stack.push(v);
                             }

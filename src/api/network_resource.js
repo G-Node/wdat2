@@ -3,7 +3,7 @@
 /*
  * TODO module description.
  */
-define(function () {
+define(['util/strings'], function (strings) {
     "use strict";
 
 
@@ -49,7 +49,7 @@ define(function () {
                 var xhr = new XMLHttpRequest() ,
                     tag;
 
-                url = _urlOmitHost(url);
+                url = strings.urlOmitHost(url);
                 tag = _cache.etagByURL(url);
 
                 xhr.onreadystatechange = collect;
@@ -137,6 +137,7 @@ define(function () {
      * cache for request results.
      *
      * @constructor
+     * @private
      */
     function Cache() {
         var _lru = {} ,
@@ -225,28 +226,6 @@ define(function () {
         };
 
     } // end Cache
-
-    /**
-     * Remove leading protocol, host and port from a URL if present.
-     *
-     * "http://foo.de/a/b/c?d=e" becomes "/a/b/c?d=e"
-     *
-     * @param url {String} The URL to modify.
-     *
-     * @returns {String} The URL without leading protocol, host and port.
-     *
-     * @private
-     */
-    function _urlOmitHost(url) {
-
-        var result = url.match(/^(http:\/\/|)([A-Za-z0-9\.:-@]*|)(\/.*)/)[3];
-
-        if (!result) {
-            throw "Error: URL mismatch"
-        }
-
-        return result;
-    }
 
     return RequestManager;
 });
