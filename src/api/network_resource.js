@@ -8,12 +8,67 @@
 define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) {
     "use strict";
 
+    /**
+     * Constructor for the class network resource.
+     *
+     * @constructor
+     * @public
+     */
+    function NetworkResource() {
+
+        var _manager = new RequestManager();
+
+        this.get = function(specifier, callback) {
+
+            var param = _parseSpecifier(specifier);
+            _manager.doGET(param.urls, callback, param.depth);
+        };
+
+        this.getByURL = function(urls, callback, depth) {
+            _manager.doGET(urls, callback, depth);
+        };
+
+        this.delete = function(url, callback) {
+            _manager.doDELETE(url, callback);
+        };
+
+        this.set =  function(url, data, callback) {
+            _manager.doPOST(url, data, callback);
+        };
+
+        /**
+         * Parse search specifier and create urls and depth parameter.
+         *
+         * @param specifier {Array|Object}
+         *
+         * @returns {{urls: Array, depth: Number}} urls and depth parameter
+         *          from specifier.
+         *
+         * @private
+         */
+        function _parseSpecifier(specifier) {
+
+            if (typeof(specifier) === 'object') {
+                specifier = [specifier];
+            }
+
+            for (var i = 0; i < specifier.length; i++) {
+
+
+
+            } // end for
+
+            return {urls: [], depth: 0};
+        }
+
+    }
 
     /**
      * Constructor for the class RequestManager.
      * TODO Implement doGETArray()
      *
      * @constructor
+     * @private
      */
     function RequestManager() {
 
@@ -115,6 +170,34 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
         };
 
         /**
+         * Performs a single DELETE request.
+         *
+         * @param url {String}      The url for the request
+         * @param callback {Function} Callback that gets the result back.
+         */
+        this.doDELETE = function(url, callback) {
+
+            var xhr = new XMLHttpRequest();
+
+            url = strings.urlOmitHost(url);
+
+            xhr.onreadystatechange = collect;
+            xhr.open('DELETE', url);
+            xhr.send(null);
+
+            // collect the result and call callback function
+            function collect() {
+                if (xhr.readyState === 4) {
+
+                    var response = _buildResponse(xhr, url, 'DELETE');
+
+                    // store response and notify callback when all requests are done
+                    callback({primary: [response], secondary: []});
+                }
+            }
+        };
+
+        /**
          * Determine urls of all children of every response object
          * and return them in one single array.
          *
@@ -136,17 +219,17 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             for (var i = 0; i < responses.length; i++) {
                 if (!responses[i].error && responses[i].data) {
 
-                    selected = responses[i].data.selected;
+                    selected = responses[i].data;
 
                     for (var j = 0; j < selected.length; j++) {
                         element = selected[j];
-                        type = (type = element.model.split('.'))[type.length - 1];
+                        type = (type = element['model'].split('.'))[type.length - 1];
 
                         childfields = model_helpers.children(type);
 
                         for (var k in childfields) {
                             if (childfields.hasOwnProperty(k) && childfields[k].type !== type) {
-                                children = element.fields[k];
+                                children = element['fields'][k];
                                 if (children) {
                                     urls = urls.concat(children);
                                 }
@@ -257,9 +340,9 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     if (etag !== null) {
                         _cache.store(url, etag, content);
                     }
-                    response.message = content.message;
-                    response.data    = content.selection;
-                    response.range   = content.selected_range;
+                    response.message = content['message'];
+                    response.data    = content['selection'] || [];
+                    response.range   = content['selected_range'] || [0, 0];
                 } else {
                     response.error   = true;
                     response.message = "Severe Error: wrong content type or no content ("+status+")";
@@ -273,9 +356,9 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     response.error   = true;
                     response.message = "Severe Error: cache miss etag = '"+etag+"' ("+status+")";
                 } else {
-                    response.message = content.message;
-                    response.data    = content.selection;
-                    response.range   = content.selected_range;
+                    response.message = content['message'];
+                    response.data    = content['selection'] || [];
+                    response.range   = content['selected_range'] || [0, 0];
                 }
 
             } else if (response.status >= 400 && response.status < 500) {
@@ -284,7 +367,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 response.error = true;
                 if (contentType === 'application/json') {
                     content = JSON.parse(content);
-                    response.message = content.message;
+                    response.message = content['message'];
                 } else {
                     response.message = "Client Error: unresolved ("+status+")";
                 }
@@ -397,5 +480,5 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
     } // end Cache
 
-    return RequestManager;
+    return NetworkResource;
 });
