@@ -48,20 +48,103 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          */
         function _parseSpecifier(specifier) {
 
+            var result = {urls: [], depth: 0};
+
             if (typeof(specifier) === 'object') {
                 specifier = [specifier];
             }
 
             for (var i = 0; i < specifier.length; i++) {
 
+                var spec = specifier[i] ,
+                    category ,
+                    type ,
+                    id;
 
+                // check for depth parameter and remove it
+                spec.depth = _normalizeParam(spec.depth);
+                if (spec.depth[0] > 0 && result.depth === 0) {
+                    result.depth = parseInt(spec.depth[0]);
+                }
+                delete spec.depth;
 
+                // ensure type and check for id
+                spec.id = _normalizeParam(spec.id);
+                var part = strings.segmentId(spec.id[0]);
+                id = part.id;
+                type = part.type || spec.type;
+                if (!type) {
+                    throw "Unable to infer a type from search specifiers: " + JSON.stringify(specifier);
+                } else {
+                    category = part.category || model_helpers.category(type);
+                }
+
+                // remove category, type and id from specifiers
+                delete spec.id;
+                delete spec.type;
+                delete spec.category;
+
+                var baseURLs = [_makeBaseURL(category, type, id)];
+
+                if (!id) {
+                    for (var key in spec) {
+                        if (spec.hasOwnProperty(key)) {
+                            var par = _normalizeParam(spec[key]) ,
+                                val = par[0] ,
+                                op  = par[1];
+
+                            if (key === 'parent') {
+                                baseURLs = _parentToURLComp(baseURLs, type, val);
+                            } else {
+                                baseURLs = _paramToURLComp(baseURLs, type, key, op, val);
+                            }
+                        }
+                    }
+                }
+
+                result.urls = result.urls.concat(baseURLs);
             } // end for
 
-            return {urls: [], depth: 0};
+            return result;
+        }
+
+        function _makeBaseURL(category, type, id) {
+            var url = '/';
+
+            if (category) {
+                url = url + category + '/';
+            }
+            if (type) {
+                url = url + type + '/';
+            }
+            if (id) {
+                url = url + id + '/';
+            }
+
+            return url;
+        }
+
+        function _normalizeParam(param) {
+            if (!(param instanceof Array)) {
+                param = [param];
+            }
+            if (param.length === 1) {
+                param[1] = '=';
+            }
+            return param;
+        }
+
+        function _parentToURLComp(urls, type, val) {
+
+        }
+
+        function _paramToURLComp(urls, type, key, op, val) {
+
         }
 
     }
+
+
 
     /**
      * Constructor for the class RequestManager.

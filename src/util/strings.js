@@ -81,11 +81,64 @@ define(function () {
         return result;
     }
 
+    /**
+     * An id can have the following form
+     *
+     *      'id'
+     *      '/type/id'
+     *      '/category/type/id'
+     *
+     * The function analyses the id and returns all of its parts
+     * as an object.
+     *
+     * @param id {String|Number} The id to analyse.
+     *
+     * @returns {{type: *, category: *, id: *}} The parts of the segmented id.
+     */
+    function segmentId(id) {
+
+        var type    = undefined ,
+            cat     = undefined ,
+            numId   = undefined ,
+            tmp;
+
+        if (id) {
+
+            // remove host and query part
+            tmp = urlOmitHost(id);
+            tmp = tmp.split('?')[0];
+
+            // split by path separator
+            tmp = tmp.split('/');
+
+            switch (tmp.length) {
+                case 1:
+                    numId = parseInt(tmp[0]);
+                    break;
+                case 2:
+                    numId = parseInt(tmp[1]);
+                    type  = tmp[0];
+                    break;
+                case 3:
+                    numId = parseInt(tmp[2]);
+                    type  = tmp[1];
+                    cat   = tmp[0];
+                    break;
+                default:
+                    throw "Id '" + id + "' seems not to be a valid id ";
+            }
+
+        }
+
+        return {type: type, category: cat, id: numId};
+    }
+
     // return public parts of the module
     return {
         startsWith:     startsWith ,
         capitalWords:   capitalWords ,
         trim:           trim ,
-        urlOmitHost:    urlOmitHost
+        urlOmitHost:    urlOmitHost ,
+        segmentId:      segmentId
     };
 });
