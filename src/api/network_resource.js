@@ -16,10 +16,12 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
      */
     function NetworkResource() {
 
+        var SAFETY_LEVEL    = {'public': 1, 'friendly': 2, 'private': 3} ,
+            OPERATOR        = {'=': '__icontains=', '>': '__gt=', '<': '__le='};
+
         var _manager = new RequestManager();
 
         this.get = function(specifier, callback) {
-
             var param = _parseSpecifier(specifier);
             _manager.doGET(param.urls, callback, param.depth);
         };
@@ -69,14 +71,19 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 delete spec.depth;
 
                 // ensure type and check for id
-                spec.id = _normalizeParam(spec.id);
-                var part = strings.segmentId(spec.id[0]);
-                id = part.id;
-                type = part.type || spec.type;
+                if (spec.id) {
+                    spec.id = _normalizeParam(spec.id);
+                    var part = strings.segmentId(spec.id[0].toString());
+                    id = part.id;
+                    type = part.type || spec.type;
+                    category = part.category || model_helpers.category(type);
+                } else {
+                    type = spec.type;
+                    category = model_helpers.category(type);
+                }
+
                 if (!type) {
                     throw "Unable to infer a type from search specifiers: " + JSON.stringify(specifier);
-                } else {
-                    category = part.category || model_helpers.category(type);
                 }
 
                 // remove category, type and id from specifiers
@@ -94,16 +101,16 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                                 op  = par[1];
 
                             if (key === 'parent') {
-                                baseURLs = _parentToURLComp(baseURLs, type, val);
+                                baseURLs = _parentToURL(baseURLs, type, val);
                             } else {
-                                baseURLs = _paramToURLComp(baseURLs, type, key, op, val);
+                                baseURLs = _paramToURL(baseURLs, type, key, op, val);
                             }
                         }
                     }
                 }
 
                 result.urls = result.urls.concat(baseURLs);
-            } // end for
+            }
 
             return result;
         }
@@ -121,25 +128,77 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 url = url + id + '/';
             }
 
-            return url;
+            return url + '?';
         }
 
         function _normalizeParam(param) {
+
             if (!(param instanceof Array)) {
                 param = [param];
             }
             if (param.length === 1) {
                 param[1] = '=';
             }
+
             return param;
         }
 
-        function _parentToURLComp(urls, type, val) {
+        function _parentToURL(urls, type, val) {
 
+            var newurls = [],
+                component ,
+                parents = model_helpers.parents(type);
+
+            for (var pname in parents) {
+                if (parents.hasOwnProperty(pname)) {
+                    component = encodeURIComponent(pname) + '=' + encodeURIComponent(val) + '&';
+                }
+                for (var i = 0; i < urls.length; i++) {
+                    newurls.push(urls[i] + component);
+                }
+            }
+
+            return newurls;
         }
 
-        function _paramToURLComp(urls, type, key, op, val) {
+        function _paramToURL(urls, type, key, op, val) {
 
+            var component = '',
+                fields = model_helpers.field(type);
+
+            switch (key) {
+                case 'safety_level':
+                    var safety_level = parseInt(val);
+                    if (!safety_level > 0) {
+                        safety_level = SAFETY_LEVEL[val] || 3;
+                    }
+                    component = 'safety_level=' + safety_level + '&';
+                case 'owner':
+                    if (val) {
+                        component = 'owner=' + encodeURIComponent(val) + '&';
+                    } else {
+                        component = 'owner__isnull=1&';
+                    }
+                default:
+                    var operator;
+                    if (fields[key]) {
+                        var t = fields[key]['type'];
+                        if (op === '=' && (t === 'int' || t === 'num' || t === 'date')) {
+                            operator = '='
+                        } else {
+                            operator = OPERATOR[op] || '__icontains=';
+                        }
+                    } else {
+                        operator = OPERATOR[op] || '__icontains=';
+                    }
+                    component = encodeURIComponent(key) + operator + encodeURIComponent(val) + '&';
+            }
+
+            for (var i = 0; i < urls.length; i++) {
+                urls[i] = urls[i] + component;
+            }
+
+            return urls;
         }
 
     }
@@ -387,14 +446,16 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          *     data: {Array},
          *     range: {Array},
          *     status: {Number},
+         *     type: {Number},
          *     message: {String},
-         * }
+         * } Response
          *
          * @param xhr {XMLHttpRequest} Request object with ready state == 4.
          * @param url {String} The url of the request.
          * @param type {String} Either "GET" or "POST" (optional: default "GET").
          *
          * @returns {Object} A response object.
+         *
          * @private
          */
         function _buildResponse(xhr, url, type) {
@@ -403,7 +464,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 etag        = xhr.getResponseHeader('ETag') ,
                 content     = xhr.responseText;
 
-            // default response
+            // @type {Response}
             var response = {
                     url:        url ,
                     error:      false ,
@@ -424,7 +485,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                         _cache.store(url, etag, content);
                     }
                     response.message = content['message'];
-                    response.data    = content['selection'] || [];
+                    response.data    = content['selected'] || [];
                     response.range   = content['selected_range'] || [0, 0];
                 } else {
                     response.error   = true;

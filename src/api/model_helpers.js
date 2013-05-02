@@ -12,6 +12,8 @@ define(['util/objects'], function(objects) {
      * @param type {String}   The type of a data object e.g. section, segment or analogsignal
      *
      * @return {String} The corresponding category e.g. metadata or electrophysiology
+     *
+     * @public
      */
     function category(type) {
 
@@ -38,6 +40,8 @@ define(['util/objects'], function(objects) {
      * @param type {string}   The type of a data object e.g. section, segment or analogsignal
      *
      * @return {Object} The corresponding template object.
+     *
+     * @public
      */
     function template(type) {
         var t = type.toLowerCase();
@@ -76,6 +80,8 @@ define(['util/objects'], function(objects) {
      *                        are specified.
      *
      * @return {Object} An object with all defined fields.
+     *
+     * @public
      */
     function fields(type) {
         var tmpl = template(type);
@@ -88,6 +94,8 @@ define(['util/objects'], function(objects) {
      * @param type {string}   The type of a data object.
      *
      * @return {Object} An object with all defined data.
+     *
+     * @public
      */
     function data(type) {
         var tmpl = template(type);
@@ -112,6 +120,8 @@ define(['util/objects'], function(objects) {
      * @param type {string}   The type of a data object.
      *
      * @return {Object} Object with all defined children.
+     *
+     * @public
      */
     function children(type) {
         var tmpl = template(type);
@@ -125,6 +135,8 @@ define(['util/objects'], function(objects) {
      * @param type {string}     The type of a data object e.g. section, segment or analogsignal
      *
      * @return {Boolean} True if the object is plotable, false otherwise
+     *
+     * @public
      */
     function isPlottable(type) {
         var t = type.toLowerCase();
@@ -139,6 +151,8 @@ define(['util/objects'], function(objects) {
      * @param type {string}     The type of a data object e.g. section, segment or analogsignal
      *
      * @return {Object} A new object from a certain type.
+     *
+     * @public
      */
     function create(type) {
         var val , i ,
@@ -184,7 +198,10 @@ define(['util/objects'], function(objects) {
     }
 
 
-    // local var for types
+    /**
+     * @type {Array} Array with all ephys types
+     * @private
+     */
     var _types;
 
     /**
@@ -213,8 +230,13 @@ define(['util/objects'], function(objects) {
         return _types;
     }
 
-    // model definitions:
-    // container, plotable, metadata and all will be defined later in this file
+    /**
+     * All model definitions as object structure.
+     * Container, plotable, metadata and all will be defined later in this file
+     *
+     * @type {{ephys: {container: null, plotable: null}, metadata: null, all: null}}
+     * @private
+     */
     var _def = {ephys: { container: null, plotable: null}, metadata: null, all: null};
 
     // definitions for all models
