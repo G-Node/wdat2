@@ -11,6 +11,9 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
     /**
      * Constructor for the class network resource.
      *
+     * TODO Implement get method or specifier for data
+     * TODO Implement synchronous request e.g. for user data
+     *
      * @constructor
      * @public
      */
@@ -297,7 +300,6 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
     /**
      * Constructor for the class RequestManager.
-     * TODO Implement doGETArray()
      *
      * @constructor
      * @private
