@@ -17,9 +17,10 @@
             window.onload = function() {
                 require(['main'], function() {
                     // load
-                    var DataAPI = require('api/data_api');
-                    var a = new DataAPI();
-                    console.log(a.bla());
+                    window.NetworkResource = require('api/network_resource');
+                    window.resource = new NetworkResource();
+                    window.callback = function(b) { console.log("DONE!!"); window.result = b; };
+                    resource.get([{type: 'section', parent: 1}], callback)
                 });
             }
         </script>

@@ -16,24 +16,65 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
      */
     function NetworkResource() {
 
+        // some constants
         var SAFETY_LEVEL    = {'public': 1, 'friendly': 2, 'private': 3} ,
             OPERATOR        = {'=': '__icontains=', '>': '__gt=', '<': '__le='};
 
+        // initialize a RequestManager
         var _manager = new RequestManager();
 
+        /**
+         * Get elements from the REST api via search specifier.
+         *
+         * A search specifier has the following structure:
+         * {name: val, ...} or {name: [value, operator], ...}
+         *
+         * @param specifier {Array|Object}  A search specifier or an array of specifiers.
+         * @param callback {Function}       A callback function.
+         *
+         * @public
+         */
         this.get = function(specifier, callback) {
             var param = _parseSpecifier(specifier);
             _manager.doGET(param.urls, callback, param.depth);
         };
 
+        /**
+         * Get elements from the REST api by URLs.
+         *
+         * @param urls {String|Array}       Single URL or an array of URLs.
+         * @param callback {Function}       A callback function.
+         * @param depth {Number}            The depth of the query.
+         *
+         * @public
+         */
         this.getByURL = function(urls, callback, depth) {
+            if (!(urls instanceof Array))
+                urls = [urls];
             _manager.doGET(urls, callback, depth);
         };
 
+        /**
+         * Delete an element by URL
+         *
+         * @param url {String}              A URL
+         * @param callback {Function}       A callback function.
+         *
+         * @public
+         */
         this.delete = function(url, callback) {
             _manager.doDELETE(url, callback);
         };
 
+        /**
+         * Update or create an element.
+         *
+         * @param url {String}          A URL
+         * @param data {Object}         A data object
+         * @param callback {Function}       A callback function.
+         *
+         * @public
+         */
         this.set =  function(url, data, callback) {
             _manager.doPOST(url, data, callback);
         };
@@ -52,7 +93,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
             var result = {urls: [], depth: 0};
 
-            if (typeof(specifier) === 'object') {
+            if (!(specifier instanceof Array)) {
                 specifier = [specifier];
             }
 
@@ -115,6 +156,17 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             return result;
         }
 
+        /**
+         * Create a URL from a category, type and id.
+         *
+         * @param category {String}     The category.
+         * @param type {String}         The type.
+         * @param id {String}           The id.
+         *
+         * @returns {string} A base URL.
+         *
+         * @private
+         */
         function _makeBaseURL(category, type, id) {
             var url = '/';
 
@@ -131,6 +183,18 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             return url + '?';
         }
 
+        /**
+         * A parameter from a search specifier can either be a single value, an array
+         * with only one element ([value]) or an array containing a value and a operator
+         * ([value, op]).
+         * This function ensures that a parameter is always represented as array that contains
+         * a value and an operator.
+         *
+         * @param param {String|Array}      A parameter from a search specifier.
+         * @returns {Array}                 An array ([value, op]}
+         *
+         * @private
+         */
         function _normalizeParam(param) {
 
             if (!(param instanceof Array)) {
@@ -143,6 +207,18 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             return param;
         }
 
+        /**
+         * Modifies the given urls and adds a query parameter that searches for a specific
+         * parent.
+         *
+         * @param urls {Array}      Array of URLs.
+         * @param type {String}     The type of the object to search for.
+         * @param val {String}      The id of the parent object.
+         *
+         * @returns {Array} Array of modified URLs
+         *
+         * @private
+         */
         function _parentToURL(urls, type, val) {
 
             var newurls = [],
@@ -161,6 +237,20 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             return newurls;
         }
 
+        /**
+         * Modifies the given URLs and adds query parameter according to the requested
+         * type, key, operator and value.
+         *
+         * @param urls {Array}      Array of URLs.
+         * @param type {String}     The type of the object to search for.
+         * @param key {String}      The key of the search parameter.
+         * @param op {String}       The operator of the search parameter.
+         * @param val {String}      The value.
+         *
+         * @returns {Array} Array of modified URLs.
+         *
+         * @private
+         */
         function _paramToURL(urls, type, key, op, val) {
 
             var component = '',
@@ -173,12 +263,14 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                         safety_level = SAFETY_LEVEL[val] || 3;
                     }
                     component = 'safety_level=' + safety_level + '&';
+                    break;
                 case 'owner':
                     if (val) {
                         component = 'owner=' + encodeURIComponent(val) + '&';
                     } else {
                         component = 'owner__isnull=1&';
                     }
+                    break;
                 default:
                     var operator;
                     if (fields[key]) {
@@ -201,9 +293,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             return urls;
         }
 
-    }
-
-
+    } // End NetworkResource
 
     /**
      * Constructor for the class RequestManager.
@@ -222,6 +312,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          * @param url {String}      The url for the request
          * @param data {Object}     The request data.
          * @param callback {Function} Callback that gets the result back.
+         *
+         * @public
          */
         this.doPOST = function(url, data, callback) {
 
@@ -251,6 +343,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          * @param urls {Array}
          * @param callback {Function}
          * @param depth {Number}
+         *
+         * @public
          */
         this.doGET = function(urls, callback, depth) {
 
@@ -316,6 +410,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          *
          * @param url {String}      The url for the request
          * @param callback {Function} Callback that gets the result back.
+         *
+         * @public
          */
         this.doDELETE = function(url, callback) {
 
@@ -448,7 +544,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          *     status: {Number},
          *     type: {Number},
          *     message: {String},
-         * } Response
+         * }
          *
          * @param xhr {XMLHttpRequest} Request object with ready state == 4.
          * @param url {String} The url of the request.
@@ -464,7 +560,6 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 etag        = xhr.getResponseHeader('ETag') ,
                 content     = xhr.responseText;
 
-            // @type {Response}
             var response = {
                     url:        url ,
                     error:      false ,
@@ -501,7 +596,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     response.message = "Severe Error: cache miss etag = '"+etag+"' ("+status+")";
                 } else {
                     response.message = content['message'];
-                    response.data    = content['selection'] || [];
+                    response.data    = content['selected'] || [];
                     response.range   = content['selected_range'] || [0, 0];
                 }
 
@@ -533,8 +628,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
      * Constructor for the class Cache. Implements a LRU (least recently used)
      * cache for request results.
      *
-     * @constructor
-     * @private
+     * @constructor @private
      */
     function Cache() {
         var _lru = {} ,
@@ -546,6 +640,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          * @param etag {String}     Etag for cache management.
          *
          * @returns {Object|undefined} The cached object or undefined.
+         *
+         * @public
          */
         this.contentByEtag = function(etag) {
 
@@ -565,7 +661,10 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          * Get the last etag that is associated with a URL.
          *
          * @param url {String} The associated URL.
+         *
          * @returns {String|undefined} The found etag or undefined if not found.
+         *
+         * @public
          */
         this.etagByURL = function(url) {
 
@@ -584,6 +683,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          * @param url {String} The URL pointing to the content.
          * @param etag {String} The etag of that content.
          * @param content {Object} The content as returned by the request.
+         *
+         * @public
          */
         this.store = function(url, etag, content) {
 
@@ -596,6 +697,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
         /**
          * Remove least recently used content from the cache if the maximum size
          * was reached.
+         *
+         * @public
          */
         this.clean = function() {
 
