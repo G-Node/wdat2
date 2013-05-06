@@ -556,7 +556,7 @@ define(['util/objects'], function(objects) {
     //
     return {
         category:   category ,
-        teplate:    template ,
+        template:    template ,
         field:      fields ,
         data:       data ,
         parents:    parents ,

@@ -135,7 +135,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 delete spec.type;
                 delete spec.category;
 
-                var baseURLs = [_makeBaseURL(category, type, id)];
+                var baseURLs = [strings.makeBaseURL(category, type, id)];
 
                 if (!id) {
                     for (var key in spec) {
@@ -157,33 +157,6 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             }
 
             return result;
-        }
-
-        /**
-         * Create a URL from a category, type and id.
-         *
-         * @param category {String}     The category.
-         * @param type {String}         The type.
-         * @param id {String}           The id.
-         *
-         * @returns {string} A base URL.
-         *
-         * @private
-         */
-        function _makeBaseURL(category, type, id) {
-            var url = '/';
-
-            if (category) {
-                url = url + category + '/';
-            }
-            if (type) {
-                url = url + type + '/';
-            }
-            if (id) {
-                url = url + id + '/';
-            }
-
-            return url + '?';
         }
 
         /**

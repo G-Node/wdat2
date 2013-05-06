@@ -14,6 +14,8 @@ define(function () {
      * @param cmp {String}    The putative start sequence
      *
      * @returns {Boolean} True if str starts with cmp, false otherwise.
+     *
+     * @public
      */
     function startsWith(s, cmp) {
         return s.substr(0, cmp.length) == cmp;
@@ -30,6 +32,8 @@ define(function () {
      *                          regex this will be used to separate words (See string.split())
      *
      * @return {String} A copy of s with capitalized first character(s).
+     *
+     * @public
      */
     function capitalWords(s, sep) {
         var tmp;
@@ -54,6 +58,8 @@ define(function () {
      * @param s {String}    The string to trim.
      *
      * @return {String} Copy of the string without leading and trailing white space characters.
+     *
+     * @public
      */
     function trim(s) {
         return (s || '').replace(/^\s+|\s+$/g, '');
@@ -69,6 +75,8 @@ define(function () {
      * @param s {String} The URL to modify.
      *
      * @returns {String} The URL without leading protocol, host and port.
+     *
+     * @public
      */
     function urlOmitHost(s) {
 
@@ -94,6 +102,8 @@ define(function () {
      * @param id {String|Number} The id to analyse.
      *
      * @returns {{type: *, category: *, id: *}} The parts of the segmented id.
+     *
+     * @public
      */
     function segmentId(id) {
 
@@ -133,12 +143,40 @@ define(function () {
         return {type: type, category: cat, id: numId};
     }
 
+    /**
+     * Create a URL from a category, type and id.
+     *
+     * @param category {String}     The category.
+     * @param type {String}         The type.
+     * @param id {String}           The id.
+     *
+     * @returns {string} A base URL.
+     *
+     * @public
+     */
+    function makeBaseURL(category, type, id) {
+        var url = '/';
+
+        if (category) {
+            url = url + category + '/';
+        }
+        if (type) {
+            url = url + type + '/';
+        }
+        if (id) {
+            url = url + id + '/';
+        }
+
+        return url + '?';
+    }
+
     // return public parts of the module
     return {
         startsWith:     startsWith ,
         capitalWords:   capitalWords ,
         trim:           trim ,
         urlOmitHost:    urlOmitHost ,
-        segmentId:      segmentId
+        segmentId:      segmentId ,
+        makeBaseURL:    makeBaseURL
     };
 });
