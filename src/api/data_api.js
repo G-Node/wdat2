@@ -27,6 +27,16 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
             _worker.onmessage = _workerHandler;
         }
 
+        /**
+         * Get data from the api via search specifiers.
+         *
+         * @param event {String}            The event under which the response will be published.
+         * @param specifier {Object|Array}  Search specifiers.
+         * @param [info] {*}                Some additional information that will be included in the
+         *                                  response.
+         *
+         * @public
+         */
         this.get = function(event, specifier, info) {
 
             if (_worker) {
@@ -49,14 +59,21 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
                 result.action = 'get';
                 result.info   = info;
 
-                if (typeof(event) === 'function') {
-                    event(result);
-                } else {
-                    _bus.publish(event, result);
-                }
+                _bus.publish(event, result);
             }
         };
 
+        /**
+         * Get data from the api via urls.
+         *
+         * @param event {String}            The event under which the response will be published.
+         * @param urls  {String|Array}      The URLs to request.
+         * @param depth {Number}            The depth of the request.
+         * @param [info] {*}                Some additional information that will be included in the
+         *                                  response.
+         *
+         * @public
+         */
         this.getByURL = function(event, urls, depth, info) {
 
             if (_worker) {
@@ -80,14 +97,20 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
                 result.action = 'get';
                 result.info   = info;
 
-                if (typeof(event) === 'function') {
-                    event(result);
-                } else {
-                    _bus.publish(event, result);
-                }
+                _bus.publish(event, result);
             }
         };
 
+        /**
+         * Update or create objects.
+         *
+         * @param event {String}            The event under which the response will be published.
+         * @param data {Object}             The data of the element to update or create.
+         * @param [info] {*}                Some additional information that will be included in the
+         *                                  response.
+         *
+         * @public
+         */
         this.set = function(event, data, info) {
 
             if (_worker) {
@@ -110,15 +133,21 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
                 result.action = 'set';
                 result.info   = info;
 
-                if (typeof(event) === 'function') {
-                    event(result);
-                } else {
-                    _bus.publish(event, result);
-                }
+                _bus.publish(event, result);
             }
 
         };
 
+        /**
+         * Delete an object.
+         *
+         * @param event {String}            The event under which the response will be published.
+         * @param url {String}              The URL of the object to delete.
+         * @param [info] {*}                Some additional information that will be included in the
+         *                                  response.
+         *
+         * @public
+         */
         this.del = function(event, url, info) {
 
             if (_worker) {
@@ -140,14 +169,17 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
                 result.action = 'del';
                 result.info   = info;
 
-                if (typeof(event) === 'function') {
-                    event(result);
-                } else {
-                    _bus.publish(event, result);
-                }
+                _bus.publish(event, result);
             }
         };
 
+        /**
+         * Handles responses from the worker
+         *
+         * @param msg {Object} The message from the worker.
+         *
+         * @private
+         */
         function _workerHandler(msg) {
 
             // unwrap message
@@ -156,8 +188,6 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
 
             if (event === 'debug') {
                 console.log("WORKER DEBUG\n" + JSON.stringify(result.data, null, 2));
-            } else if (typeof(event) === 'function') {
-                event(result); // TODO needs to be tested
             } else {
                 _bus.publish(event, result);
             }
