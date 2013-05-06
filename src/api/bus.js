@@ -4,7 +4,7 @@
  * Defines a message bus class.
  * Depends on jquery (can't be used in workers)
  */
-define(["env"], function (env) {
+define(['env'], function (env) {
     "use strict";
 
     /**
@@ -29,7 +29,7 @@ define(["env"], function (env) {
          *
          * @param event {String}        The event name.
          * @param callback {Function}   The function to call when events are published.
-         * @param uid {String}          A unique id that is concatenated to the event, in order
+         * @param [uid] {String}          A unique id that is concatenated to the event, in order
          *                              to create unique event names.
          */
         this.subscribe = function(event, callback, uid) {
@@ -48,7 +48,7 @@ define(["env"], function (env) {
          * Unsubscribe a specific event.
          *
          * @param event {String}    The event name.
-         * @param uid {String}      A unique id that is concatenated to the event, in order
+         * @param [uid] {String}      A unique id that is concatenated to the event, in order
          *                          to create unique event names.
          */
         this.unsubscribe = function(event, uid) {
@@ -68,7 +68,7 @@ define(["env"], function (env) {
          *
          * @param event {String}    The event name.
          * @param data {Object}     The data object.
-         * @param uid {String}      Unique identifier.
+         * @param [uid] {String}      Unique identifier.
          */
         this.publish = function(event, data, uid) {
             var e = event;

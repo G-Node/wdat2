@@ -118,6 +118,10 @@ define(function () {
             tmp = urlOmitHost(id);
             tmp = tmp.split('?')[0];
 
+            if (startsWith(tmp, '/')) {
+                tmp = tmp.substr(1, tmp.length);
+            }
+
             // split by path separator
             tmp = tmp.split('/');
 
