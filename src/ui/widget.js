@@ -8,7 +8,8 @@ define(function () {
     "use strict";
 
     /**
-     * Constructor for the the class Widget.
+     * Constructor for the the class Widget. Widget is just a very simple wrapper around
+     * a jQuery object with some useful functions.
      *
      * @param id {String|jQuery}    Id or a jQuery object.
      * @param [template] {String}   A template for the widget.
