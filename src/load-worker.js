@@ -2,7 +2,7 @@
 
 importScripts('js/require.js');
 
-require(['main-worker'], function(main) {
+require(['main-worker'], function(init) {
     "use strict";
-    var main;
+    init();
 });

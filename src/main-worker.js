@@ -3,7 +3,7 @@
 /*
  * TODO module description.
  */
-define('main-worker',['api/resource_adapter', 'api/network_resource'], function (ResourceAdapter, NetworkResource) {
+define(['api/resource_adapter', 'api/network_resource'], function (ResourceAdapter, NetworkResource) {
 
     var _resource, _adapter;
 
@@ -12,15 +12,13 @@ define('main-worker',['api/resource_adapter', 'api/network_resource'], function 
         _resource   = new NetworkResource();
         _adapter    = new ResourceAdapter();
 
-        worker.onmessage = main;
+        onmessage = main;
 
     }
 
     function main(msg) {
 
-        /** @type {{ action: *, event: *, specifier: *,
-         *           urls: *, url: *, info: *, depth: *, data: *}}
-         */
+        /** @type {{ action: *, event: *, specifier: *, urls: *, url: *, info: *, depth: *, data: *}} */
         var message = msg.data;
 
         switch(message.action) {
@@ -37,7 +35,7 @@ define('main-worker',['api/resource_adapter', 'api/network_resource'], function 
                 del(message.event, message.url, message.info);
                 break;
             default:
-                test(message.event, message.info);
+                log(message);
         }
     }
 
@@ -105,15 +103,8 @@ define('main-worker',['api/resource_adapter', 'api/network_resource'], function 
         }
     }
 
-    function test(event, info) {
-        var result = {
-            action:     'test' ,
-            message:    'Worker test: OK!' ,
-            event:      event ,
-            info:       info
-        };
-
-        postMessage(result);
+    function log(data) {
+        postMessage({event: 'debug', data: data, action: 'log'});
     }
 
     return init;

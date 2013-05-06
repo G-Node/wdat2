@@ -63,7 +63,7 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
                 var message = {
                     action:     'get_by_url' ,
                     event:      event ,
-                    ulrs:       urls ,
+                    urls:       urls ,
                     depth:      depth ,
                     info:       info
                 };
@@ -154,7 +154,9 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
             var result  = msg.data ,
                 event   = msg.data.event;
 
-            if (typeof(event) === 'function') {
+            if (event === 'debug') {
+                console.log("WORKER DEBUG\n" + JSON.stringify(result.data, null, 2));
+            } else if (typeof(event) === 'function') {
                 event(result); // TODO needs to be tested
             } else {
                 _bus.publish(event, result);

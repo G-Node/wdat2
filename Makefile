@@ -4,7 +4,8 @@
 
 # js compiler
 JSC = node r.js
-JSCARGS = -o optimize=none logLevel=2 baseUrl=site_media/static appDir=src
+JSCARGS = -o optimize=none logLevel=2 baseUrl=src
+#JSCARGS = -o src/build.js logLevel=2
 # target dir for js files
 JS_DIR = static/js
 
@@ -19,7 +20,7 @@ CSS_DIR = static/css
 JS_SRC  = $(wildcard src/api/*.js) \
 	$(wildcard src/util/*.js)
 
-JS_MAIN = ./src/main.js ./src/main-worker.js
+JS_MAIN = src/main.js src/main-worker.js
 
 JS_BUILD = $(patsubst src%.js, static%.js, $(JS_MAIN))
 
