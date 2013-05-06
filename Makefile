@@ -25,8 +25,8 @@ JS_MAIN = src/main.js src/main-worker.js
 JS_BUILD = $(patsubst src%.js, static%.js, $(JS_MAIN))
 
 JS_DEP  = lib/d3/d3.js \
-	lib/jquery/jquery.js \
 	lib/jquery-ui/jquery-ui.js \
+	lib/jquote/jquery.jqote2.js \
 	lib/requirejs/require.js
 
 # css sources and images
