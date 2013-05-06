@@ -2,7 +2,7 @@
 
 define(['api/model_helpers'], function() {
 
-    function DataAPI() {
+    function Model() {
 
         this.bla = function() {
             return 'bla';
@@ -11,5 +11,5 @@ define(['api/model_helpers'], function() {
 
     }
 
-    return DataAPI;
+    return Model;
 });
