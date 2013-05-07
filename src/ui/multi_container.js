@@ -127,6 +127,19 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
             return d;
         };
 
+        this.position = function(data) {
+            var pos = null;
+
+            if (data) {
+                var id = data.id || data;
+                if (_data.hasOwnProperty(id)) {
+                    pos = _data[id].position;
+                }
+            }
+
+            return pos;
+        };
+
         /**
          * Check if an element is in the container.
          *
@@ -197,6 +210,16 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
 
             return act;
         };
+
+        /**
+         * Getter for data.
+         *
+         * @returns {Object}
+         * @protected
+         */
+        this._data = function() {
+            return  _data;
+        }
 
 
         this._init();
