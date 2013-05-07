@@ -18,6 +18,8 @@ define(function() {
      * @param children {Array}  Only search this subset of children (if present)
      *
      * @returns {} The value of the first property with the given name or undefined.
+     *
+     * @public
      */
     function deepGet(object, prop, children) {
         var found = undefined ,
@@ -65,6 +67,8 @@ define(function() {
      * @param children {Array}  Only search this subset of children (if present)
      *
      * @return {Number} The number of properties found with the given name that have been changed.
+     *
+     * @public
      */
     function deepSet(object, prop, val, children) {
         var stack = [] ,
@@ -109,6 +113,8 @@ define(function() {
      * @param overwrite {Boolean}   Overwrite/merge existing fields (optional: default true).
      *
      * @returns {Object} The merged object.
+     *
+     * @public
      */
     function deepMerge(to, thing, overwrite) {
         var copies = [];
@@ -201,6 +207,8 @@ define(function() {
      * @param thing {Object|Array} The thing to copy.
      *
      * @returns {Object|Array} The copy of thing.
+     *
+     * @public
      */
     function deepCopy(thing) {
         var copies = [] ,

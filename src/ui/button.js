@@ -59,7 +59,7 @@ define(['util/classes', 'ui/widget'], function (classes, Widget) {
          * @public
          */
         this.data = function(data) {
-            if (data) {
+            if (data !== undefined) {
                 _data = data;
                 return this;
             }
@@ -78,7 +78,7 @@ define(['util/classes', 'ui/widget'], function (classes, Widget) {
          * @public
          */
         this.click = function(click) {
-            if (click) {
+            if (click !== undefined) {
 
                 if (this._click) {
                     this.jq().unbind('click', this._click);
