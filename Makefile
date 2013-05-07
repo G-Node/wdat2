@@ -5,13 +5,13 @@
 # js compiler
 JSC = node r.js
 JSCARGS = -o optimize=none logLevel=2 baseUrl=src
-#JSCARGS = -o src/build.js logLevel=2
+
 # target dir for js files
 JS_DIR = static/js
 
 # css compiler
 CSSC = lessc
-CSSCARGS =
+CSSCARGS = -s -x
 # target dir for css files
 CSS_DIR = static/css
 
@@ -30,22 +30,24 @@ JS_DEP  = lib/d3/d3.js \
 	lib/requirejs/require.js
 
 # css sources and images
-LESS_SRC =
+LESS_SRC = $(wildcard src/*.less) \
+	$(wildcard src/ui/*.less)
 
-LESS_BUILD = static/css/main.css
+LESS_BUILD = static/main.css
 
 CSS_DEP = lib/jquery-ui/jquery-ui.css \
 	lib/jquery-ui/images \
-	lib/crayon/crayon.css
+	lib/crayon/crayon.css \
+	lib/reset/reset.css
 
 #
 # Targets
 #
 
-all: jssrc jsdep cssdep
+all: js jsdep less cssdep
 
 # make javascript files and dependencies
-jssrc: $(JS_BUILD)
+js: $(JS_BUILD)
 
 $(JS_BUILD): $(JS_MAIN) $(JS_SRC)
 	@$(JSC) $(JSCARGS) name=$(notdir $(basename $@)) out=$@
@@ -56,6 +58,12 @@ jsdep: $(JS_DEP)
 	@for i in $(JS_DEP); do cp $$i $(JS_DIR)/`basename $$i` ; done
 
 # make less and css files and dependencies
+less: $(LESS_BUILD)
+
+$(LESS_BUILD): $(LESS_SRC)
+	@cat $(LESS_SRC) > static/tmp.less
+	@$(CSSC) $(CSSCARGS) static/tmp.less $(LESS_BUILD)
+	@rm -f static/tmp.less
 
 cssdep: $(CSS_DEP)
 	@mkdir -p $(CSS_DIR)
@@ -63,4 +71,4 @@ cssdep: $(CSS_DEP)
 
 .PHONY: clean
 clean:
-	@rm -fr $(CSS_DIR) $(JS_DIR) $(JS_BUILD)
+	@rm -fr $(CSS_DIR) $(JS_DIR) $(JS_BUILD) $(LESS_BUILD) static/load-worker.js
