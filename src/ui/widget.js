@@ -24,7 +24,7 @@ define(function () {
         var _jq;
 
         // initializes the object (is called later)
-        function _init() {
+        this._init = function() {
             var templ = template || '<div>';
 
             if (!id || typeof(id) === 'string') {
@@ -38,7 +38,7 @@ define(function () {
             if (cls) {
                 _jq.addClass(cls);
             }
-        }
+        };
 
         /**
          * Getter/setter for the widget id.
@@ -111,7 +111,7 @@ define(function () {
             return id;
         };
 
-        _init();
+        this._init();
     }
 
     return Widget;

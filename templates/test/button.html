@@ -2,70 +2,82 @@
 
 {% block title %}Button Test{% endblock %}
 {% block extra_script %}
-<script type="text/javascript">
-  var init = function() {
-    var bus = new wdat.Bus();
-    var log = function(event, args) {
-      $(".event-log").first().append("<p>event fired: " + args + "</p>");
-    };
+    <script type="text/javascript">
 
-    bus.subscribe('bla', log);
+        window.onload = function () {
+            require(['main'], function () {
+                window.run = {};
+                // load
+                window.Bus = require('api/bus');
+                window.Button = require('ui/button');
 
-    var h = $('<h3></h3>').text('Predefined buttons');
-    $(".button-container").append(h);
+                run.bus = new Bus();
+                run.log = function (event, args) {
+                    $(".event-log").first().append("<p>event fired: " + args + "</p>");
+                };
+                run.bus.subscribe('button-event', run.log);
 
-    var b = new wdat.Button(null, 'add', bus, 'bla', 'Adding');
-    $(".button-container").append(b.jq());
-    b = new wdat.Button(null, 'del', bus, 'bla', 'Deleting');
-    $(".button-container").append(b.jq());
-    b = new wdat.Button(null, 'sel', bus, 'bla', 'Selecting');
-    $(".button-container").append(b.jq());
-    b = new wdat.Button(null, 'edit', bus, 'bla', 'Editing');
-    $(".button-container").append(b.jq());
+                run.buttons = [];
 
+                // the button container element
+                var cont = $('.button-container');
 
-    h = $('<h3></h3>').text('Predefined small buttons');
-    $(".button-container").append(h);
+                cont.append($('<h3>Predefined buttons</h3>'));
 
-    var b = new wdat.Button(null, 'add_small', bus, 'bla', 'Small adding');
-    $(".button-container").append(b.jq());
-    b = new wdat.Button(null, 'del_small', bus, 'bla', 'Small deleting');
-    $(".button-container").append(b.jq());
-    b = new wdat.Button(null, 'sel_small', bus, 'bla', 'Small selecting');
-    $(".button-container").append(b.jq());
-    b = new wdat.Button(null, 'edit_small', bus, 'bla', 'Small editing');
-    $(".button-container").append(b.jq());
+                var b = new Button(null, 'add', run.bus, 'button-event', 'Adding');
+                cont.append(b.jq()); run.buttons.push(b); run.buttons.push(b);
 
-    h = $('<h3></h3>').text('Event system checks');
-    $(".button-container").append(h);
-
-    b = new wdat.Button(null, 'Should create an alert', bus, function() {
-        alert('And, it does!');
-      }, 'blue');
-    $('.button-container').append(b.jq());
-
-    b = new wdat.Button(null, 'Should publish an event', bus, 'bla', 'And it does!');
-    $('.button-container').append(b.jq());
-
-    b = new wdat.Button(null, 'Should do nothing', bus, null);
-    $('.button-container').append(b.jq());
+                b = new Button(null, 'del', run.bus, 'button-event', 'Deleting');
+                cont.append(b.jq()); run.buttons.push(b);
+                b = new Button(null, 'sel', run.bus, 'button-event', 'Selecting');
+                cont.append(b.jq()); run.buttons.push(b);
+                b = new Button(null, 'edit', run.bus, 'button-event', 'Editing');
+                cont.append(b.jq()); run.buttons.push(b);
 
 
-    h = $('<h3></h3>').text('Toggle buttons');
-    $(".button-container").append(h);
+                cont.append($('<h3>Predefined small buttons</h3>'));
 
-    b = new wdat.Button(null, 'more', bus, 'bla', 'More/Less');
-    $('.button-container').append(b.jq());
+                b = new Button(null, 'add_small', run.bus, 'button-event', 'Small adding');
+                cont.append(b.jq()); run.buttons.push(b);
+                b = new Button(null, 'del_small', run.bus, 'button-event', 'Small deleting');
+                cont.append(b.jq()); run.buttons.push(b);
+                b = new Button(null, 'sel_small', run.bus, 'button-event', 'Small selecting');
+                cont.append(b.jq()); run.buttons.push(b);
+                b = new Button(null, 'edit_small', run.bus, 'button-event', 'Small editing');
+                cont.append(b.jq()); run.buttons.push(b);
 
-  };
-  $(window).load(init);
-</script>
+                cont.append($('<h3>Event system checks</h3>'));
+
+                b = new Button(null, 'Should create an alert', run.bus, function () {
+                    alert('And, it does!');
+                }, 'blue');
+                cont.append(b.jq()); run.buttons.push(b);
+
+                b = new Button(null, 'Should publish an event', run.bus, 'button-event', 'And it does!');
+                cont.append(b.jq()); run.buttons.push(b);
+
+                b = new Button(null, 'Should do nothing', run.bus, null);
+                cont.append(b.jq()); run.buttons.push(b);
+
+
+                cont.append($('<h3>Toggle buttons</h3>'));
+
+                b = new Button(null, 'more', run.bus, 'button-event', 'More/Less');
+                cont.append(b.jq()); run.buttons.push(b);
+
+            });
+        };
+    </script>
 {% endblock %}
 {% block body %}
-  <h1>Button Test</h1>
-  <div style="padding-left: 20px">
-    <div class="button-container"></div>
-    <h3>Events Logger</div>
-    <div class="event-log" style="padding-left: 40px"></div>
-  </div>
+    <h1>Button Test</h1>
+
+    <div style="padding-left: 20px">
+        <div class="button-container"></div>
+    </div>
+
+    <h3>Events Logger</h3>
+    <div class="event-log" style="padding-left: 40px">
+
+    </div>
 {% endblock %}
