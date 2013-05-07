@@ -14,14 +14,14 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
      * @param id
      * @param bus
      * @param actions
-     * @param clazz
+     * @param cls
      * @param template
      *
      * @constructor
      * @public
      * @extends {Widget}
      */
-    function MultiContainer(id, bus, actions, clazz, template) {
+    function MultiContainer(id, bus, actions, cls, template) {
 
         var _bus, _data, _actions;
 
@@ -32,8 +32,8 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
             var tmpl = template || _TEMPLATE;
             MultiContainer.parent.constructor.call(this, id, tmpl, 'wdat-container');
 
-            if (clazz !== undefined) {
-                this.jq().addClass(clazz);
+            if (cls !== undefined) {
+                this.jq().addClass(cls);
             }
 
             // set attributes
