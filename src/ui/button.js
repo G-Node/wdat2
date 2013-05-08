@@ -6,7 +6,7 @@
 define(['util/classes', 'ui/widget'], function (classes, Widget) {
     "use strict";
 
-    classes.inherit(Button, Widget);
+    //classes.inherit(Button, Widget);
 
     /**
      * Constructor for the class Button.
@@ -29,9 +29,13 @@ define(['util/classes', 'ui/widget'], function (classes, Widget) {
 
         var _bus, _data, _click;
 
-        // initialize function will be called later
+        Widget.apply(this, [id, '<button>', 'wdat-button']);
+
+        /**
+         * @private
+         */
         this._init = function() {
-            Button.parent.constructor.call(this, id, '<button>', 'wdat-button');
+            //Button.parent.constructor.call(this, id, '<button>', 'wdat-button');
 
             _bus  = bus;
             _data = data;

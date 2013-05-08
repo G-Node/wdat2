@@ -6,11 +6,14 @@
 .wdat-container {
   padding: @smallcushion;
   background-color: @bg;
+  margin: @smallcushion / 2;
+  .border-std-round;
 
   .buttons {
     float: right;
     height: 20px;
     vertical-align: middle;
+    display: none;
   }
 
   .primary {
@@ -28,7 +31,7 @@
     }
   }
 
-  .secondary {
+  dl.tabular {
     padding-top: @cushioning;
     margin: 0;
 
@@ -38,13 +41,24 @@
       font-weight: bold;
       margin: 0;
       padding: @smallcushion / 2 @smallcushion;
+      min-width: 100px;
     }
 
     dd {
       display: block;
       margin: 0;
+      margin-left: 100;
       padding: @smallcushion / 2  @smallcushion;
     }
   }
 
+}
+
+
+.wdat-container:HOVER {
+  background: @bg-grey !important;
+
+  .buttons {
+    display: block !important;
+  }
 }

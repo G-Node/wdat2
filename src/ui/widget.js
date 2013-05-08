@@ -49,7 +49,7 @@ define(function () {
          * @public
          */
         this.id = function(id) {
-            if (id) {
+            if (id !== undefined) {
                 _jq.attr('id', id);
                 return this;
             } else {
@@ -60,10 +60,17 @@ define(function () {
         /**
          * Getter for the jQuery object that represents the widget.
          *
-         * @returns {jQuery} The jQuery object that represents the widget.
+         * @param [jq] {jQuery} The new jQuery object to set.
+         *
+         * @returns {jQuery|Widget} The jQuery object that represents the widget.
          * @public
          */
-        this.jq = function() {
+        this.jq = function(jq) {
+            if (jq !== undefined) {
+                _jq.replaceWith($(jq));
+                _jq = jq;
+                return this;
+            }
             return _jq;
         };
 

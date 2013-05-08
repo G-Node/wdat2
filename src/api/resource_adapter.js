@@ -144,6 +144,7 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
             adapted.category = parted_id.category;
             adapted.plotable = model_helpers.isPlotable(adapted.type);
             adapted.owner = strings.urlOmitHost(fields['owner']);
+            // TODO safety level should be in fields
             adapted.safety_level = SECURITY_LEVEL_NUM[fields['safety_level']];
 
             var template = model_helpers.template(adapted.type);
