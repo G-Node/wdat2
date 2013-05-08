@@ -7,6 +7,8 @@
 
         window.onload = function () {
             require(['main'], function () {
+                var id = 1;
+
                 window.run = {};
                 // load
                 window.Bus  = require('api/bus');
@@ -20,12 +22,12 @@
                 run.bus.subscribe(run.list.event('sel'), run.list.selHandler());
                 run.bus.subscribe(run.list.event('del'), run.list.delHandler());
 
-                run.list.add({name: 'Test1', info: 'Some information 1', data: 'Some data 1'}, 'bla');
-                run.list.add({name: 'Test2', info: 'Some information 2', data: 'Some data 2'}, 'bla');
-                run.list.add({name: 'Test3', info: 'Some information 3', data: 'Some data 3'}, 'bar');
-                run.list.add({name: 'Test4', info: 'Some information 4', data: 'Some data 4'}, 'bar');
-                run.list.add({name: 'Test5', info: 'Some information 5', data: 'Some data 5'});
-                run.list.add({name: 'Test6', info: 'Some information 6', data: 'Some data 6'}, 'foo-bar');
+                run.list.add({id: id++, name: 'Test1', type: 'section', fields: {odml_type: 'foo'}});
+                run.list.add({id: id++, name: 'Test2', type: 'section', fields: {odml_type: 'foo'}}, 'bla');
+                run.list.add({id: id++, name: 'Test3', type: 'section', fields: {odml_type: 'foo'}}, 'bar');
+                run.list.add({id: id++, name: 'Test4', type: 'section', fields: {odml_type: 'foo'}}, 'bar');
+                run.list.add({id: id++, name: 'Test5', type: 'section', fields: {odml_type: 'foo'}});
+                run.list.add({id: id++, name: 'Test6', type: 'section', fields: {odml_type: 'foo'}}, 'foo-bar');
             });
         }
         /*

@@ -5,6 +5,7 @@
 # js compiler
 JSC = node r.js
 JSCARGS = -o optimize=none logLevel=2 baseUrl=src
+#JSCARGS = -o logLevel=2 baseUrl=src
 
 # target dir for js files
 JS_DIR = static/js
@@ -24,10 +25,10 @@ JS_MAIN = src/main.js src/main-worker.js
 
 JS_BUILD = $(patsubst src%.js, static%.js, $(JS_MAIN))
 
-JS_DEP  = lib/d3/d3.js \
-	lib/jquery-ui/jquery-ui.js \
-	lib/jquote/jquery.jqote2.js \
-	lib/requirejs/require.js
+JS_DEP  = lib/d3/d3.min.js \
+	lib/jquery-ui/jquery-ui.min.js \
+	lib/jquote/jquery.jqote2.min.js \
+	lib/requirejs/require.min.js
 
 # css sources and images
 LESS_SRC = $(wildcard src/*.less) \
@@ -35,7 +36,7 @@ LESS_SRC = $(wildcard src/*.less) \
 
 LESS_BUILD = static/main.css
 
-CSS_DEP = lib/jquery-ui/jquery-ui.css \
+CSS_DEP = lib/jquery-ui/jquery-ui.min.css \
 	lib/jquery-ui/images \
 	lib/crayon/crayon.css \
 	lib/reset/reset.css

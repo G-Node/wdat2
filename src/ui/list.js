@@ -3,8 +3,8 @@
 /*
  * TODO module description.
  */
-define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'ui/button'],
-    function (classes, strings, Container, MultiContainer, Button) {
+define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_container'],
+    function (strings, Container, ModelContainer, MultiContainer) {
         "use strict";
 
         /**
@@ -13,7 +13,7 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'u
          * @param id
          * @param bus
          * @param actions
-         * @param categories
+         * @param categories TODO implement categories
          *
          * @constructor
          * @extends {MultiContainer}
@@ -21,33 +21,41 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'u
          */
         function List(id, bus, actions, categories) {
 
-            var _container_actions, _categories, _bus;
+            var _list       = {} ,
+                _bus        = bus ,
+                _actions    = {} ,
+                _cont_actions = {};
+
+
+            MultiContainer.apply(this, [id, '<div>', 'wdat-list']);
 
             /**
              * @private
              */
-            //List.parent.constructor.call(this, id, bus, actions, 'wdat-list', '<div>');
-            MultiContainer.apply(this, [id, bus, actions, 'wdat-list', '<div>']);
-
-            _bus = bus;
-            // categories
-            _categories = {};
-            for (var i = 0; i < categories.length; i++) {
-                var cat = categories[i].toLowerCase();
-                _categories[cat] = strings.capitalWords(cat, /[_\- \.:]/);
-            }
-
-            // actions for container elements
-            _container_actions = {};
-            for (var j in actions) {
-                var act = actions[j];
-                if (_ACTIONS.indexOf(act) >= 0 && act != 'add') {
-                    _container_actions[act] = this.id() + '-' + act;
+            this._init = function() {
+                // initialize actions
+                var act, i;
+                if (actions instanceof Array) {
+                    for (i = 0; i < actions.length; i++) {
+                        act = actions[i];
+                        if (Container.ACTIONS.indexOf(act) >= 0) {
+                            _actions[act] = this.toID(act);
+                            if (act != 'add') {
+                                _cont_actions[act] = _actions[act];
+                            }
+                        }
+                    }
+                } else {
+                    for (act in actions) {
+                        if (actions.hasOwnProperty(act) && Container.ACTIONS.indexOf(act) >= 0) {
+                            _actions[act] = actions[act] || this.toID(act);
+                            if (act != 'add') {
+                                _cont_actions[act] = _actions[act];
+                            }
+                        }
+                    }
                 }
-            }
-
-            // append self to dom
-            this.jq().data(this);
+            };
 
 
             /**
@@ -60,90 +68,74 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'u
              * @return The inserted element.
              */
             this.add = function (data, category) {
-                //var elem = List.parent.add.call(this, data, category);
-                if (elem) {
-                    // create a container
-                    var id = this.toID(elem.id);
-                    var cont = new Container($('<li>').attr('id', id), this._bus, _container_actions);
-                    cont.set(elem);
-                    // get the right category
+                var inserted = null;
+
+                if (!this.has(data)) {
+
+                    var id = this.toID(data);
+                    var cont = new ModelContainer(id, _bus, _cont_actions, data);
+
+                    // get category
                     var cat = category || 'default';
-                    cat = cat.toLowerCase();
-                    if (_categories[cat]) {
-                        // found a matching category
-                        cat = this.jq().find('#' + this.toID(category));
-                    } else {
-                        // no category found, create a new one
+                    cat = cat.toString().toLowerCase();
+                    if (!_list.hasOwnProperty(cat)) {
                         var label = strings.capitalWords(cat, /[_\- \.:]/);
-                        _categories[cat] = label;
-                        var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
-                        html.attr('id', this.toID(cat));
-                        html.find('.category-name').text(label);
-                        // create add button if add event is present
-                        if (this.event('add')) {
-                            var b = new Button(null, 'add_small', this._bus, this.event('add'), {
-                                name: label, id: cat});
-                            html.find('.category-name').before(b.jq());
+                        var html;
+                        if (cat === 'default') {
+                            html = $('<div class="category"></div>');
+                        } else {
+                            html = $('<div class="category"><h2>'+label+'</h2></div>');
                         }
-                        // append everything
-                        var position = this.jq().find('#' + this.toID('default'));
-                        if (position.length > 0)
-                            position.before(html);
-                        else
-                            this.jq().append(html);
-                        cat = html;
+                        this.jq().append(html);
+                        _list[cat] = {html: html, data: {}};
                     }
-                    // append container to the right category
-                    cat.append(cont.jq());
+                    _list[cat]['html'].append(cont.jq());
+                    _list[cat]['data'][id] = cont;
+
+                    inserted = data;
                 }
-                return elem;
+
+                return inserted;
             };
 
             /**
              * Add a new element to the list that is already wrapped into a container
-             * TODO check call of parent add!
              *
              * @param cont (Container)   The element to add to the list.
              * @param category (String)  The category (optional).
              *
              * @return The inserted element.
              */
-            this.addContainer = function (cont, category) {
+            this.addContainer = function(cont, category) {
+                var inserted = null;
+
                 var data = cont.get();
-                data = List.parent.add.call(this, data, category);
-                if (data) {
-                    cont.jq().attr('id', this.toID(data));
-                    // get the right category
+
+                if (!this.has(data)) {
+
+                    var id = this.toID(data);
+                    cont.id(id);
+
+                    // get category
                     var cat = category || 'default';
-                    cat = cat.toLowerCase();
-                    if (_categories[cat]) {
-                        // found a matching category
-                        cat = this.jq().find('#' + this.toID(category));
-                    } else {
-                        // no category found, create a new one
+                    cat = cat.toString().toLowerCase();
+                    if (!_list.hasOwnProperty(cat)) {
                         var label = strings.capitalWords(cat, /[_\- \.:]/);
-                        _categories[cat] = label;
-                        var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
-                        html.attr('id', this.toID(cat));
-                        html.find('.category-name').text(label);
-                        // create add button if add event is present
-                        if (this.event('add')) {
-                            var b = new Button(null, 'add_small', _bus, this.event('add'), {
-                                name: label, id: cat});
-                            html.find('.category-name').before(b.jq());
+                        var html;
+                        if (cat === 'default') {
+                            html = $('<div class="category"></div>');
+                        } else {
+                            html = $('<div class="category"><h2>'+label+'</h2></div>');
                         }
-                        // append everything
-                        var position = this.jq().find('#' + this.toID('default'));
-                        if (position.length > 0)
-                            position.before(html);
-                        else
-                            this.jq().append(html);
-                        cat = html;
+                        this.jq().append(html);
+                        _list[cat] = {html: html, data: {}}
                     }
-                    // append container and return data object
-                    cat.append(cont.jq());
+                    _list[cat]['html'].append(cont.jq());
+                    _list[cat]['data'][id] = cont;
+
+                    inserted = data;
                 }
-                return data;
+                return inserted;
             };
 
             /**
@@ -167,28 +159,18 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'u
              * Update the content of an existing list element.
              *
              * @param data {Object}         The element to update.
-             * @param [category] {String}   The category.
              */
-            this.set = function (data, category) {
+            this.set = function (data) {
                 if (this.has(data)) {
-
-                    var oldcat = this.position(data.id);
-                    var elem = List.parent.set.call(this, data, category);
-                    var newcat = this.position(data.id);
-
-                    if (elem) {
-                        var html = this.jq().find('#' + this.toID(elem));
-                        var cont = html.data();
-                        cont.set(elem);
-                        if (oldcat != newcat) {
-                            cont.detach();
-                            var cat;
-                            if (newcat && newcat != 'default') {
-                                cat = this.jq().find('#' + this.toID(newcat));
-                            } else {
-                                cat = this.jq().find('#' + this.toID('default'));
+                    var id = this.toID(data);
+                    var cont;
+                    for (var cat in _list) {
+                        if (_list.hasOwnProperty(cat)) {
+                            if (_list[cat]['data'].hasOwnProperty(id)) {
+                                cont = _list[cat]['data'][id];
+                                cont.set(data);
+                                break;
                             }
-                            cat.append(cont.jq());
                         }
                     }
                 }
@@ -200,15 +182,46 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'u
              * @param data (String, Obj)    The element to remove or the id of this
              *                              element.
              *
-             * @return The removed element or null if no such element was found.
              */
             this.del = function (data) {
-                var deleted = List.parent.del.call(this, data);
-                if (deleted) {
-                    var elem = this.jq().find('#' + this.toID(data));
-                    elem.remove();
+                if (this.has(data)) {
+                    var id = this.toID(data);
+                    var cont;
+                    for (var cat in _list) {
+                        if (_list.hasOwnProperty(cat)) {
+                            if (_list[cat]['data'].hasOwnProperty(id)) {
+                                cont = _list[cat]['data'][id];
+                                cont.detach();
+                                delete _list[cat]['data'][id];
+                                break;
+                            }
+                        }
+                    }
                 }
-                return deleted;
+            };
+
+            /**
+             * Check if an element is in the container.
+             *
+             * @param data {Object|String} The element to check or the id of this element.
+             *
+             * @returns {Boolean} True if the element exists, false otherwise.
+             *
+             * @public
+             */
+            this.has = function(data) {
+                var id = this.toID(data);
+                var exists = false;
+                for (var cat in _list) {
+                    if (_list.hasOwnProperty(cat)) {
+                        var d = _list[cat]['data'];
+                        if (d.hasOwnProperty(id)) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                }
+                return exists;
             };
 
             /**
@@ -240,53 +253,36 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'u
              * Clear the container and refresh its content.
              */
             this.clear = function () {
-                _categories = {};
-                List.parent.clear.call(this);
+                for (var cat in _list) {
+                    if (_list.hasOwnProperty(cat)) {
+                        var data = _list[cat]['data'];
+                        var html = _list[cat]['html'];
+                        for(var id in data) {
+                            if (data.hasOwnProperty(id)) {
+                                data[id].detach();
+                            }
+                        }
+                        html.remove();
+                    }
+                }
+                _list = {};
             };
 
-
             /**
-             * Refresh or create the whole content of the container.
+             * Get the event for a specific action.
+             *
+             * @param action {String}    The action name.
+             *
+             * @returns {String} The event for the specific action or undefined.
+             *
+             * @public
              */
-            this.refresh = function () {
-                // remove all content
-                this.jq().empty();
-                // crate category representation
-                for (var cat in _categories) {
-                    if (_categories.hasOwnProperty(cat)) {
-                        var label = _categories[cat];
-                        var html = $('<ul><lh class="category"><div class="category-name"></div></lh></ul>');
-                        html.attr('id', this.toID(cat));
-                        html.find('.category-name').text(label);
-                        // create add button if add event is present
-                        if (this.event('add')) {
-                            var b = new Button(null, 'add_small', _bus, this.event('add'), {name: label, id: cat});
-                            html.find('.category-name').before(b.jq());
-                        }
-                        // append everything
-                        this.jq().append(html);
-                    }
+            this.event = function(action) {
+                var event = null;
+                if (_actions.hasOwnProperty(action) && typeof(_actions[action]) !== 'function') {
+                    event = _actions[action];
                 }
-                // add elements to list
-                var all_data = this._data();
-                for (var j in all_data) {
-                    if (all_data.hasOwnProperty(j)) {
-                        var elem = all_data[j].data;
-                        var category = all_data[j].position;
-                        // create a container
-                        var id = this.toID(elem.id);
-                        var cont = new Container($('<li>').attr('id', id), _bus, _container_actions);
-                        cont.set(elem);
-                        // get the right category
-                        if (category && category != 'default') {
-                            html = this.jq().find('#' + this.toID(category));
-                        } else {
-                            html = this.jq().find('#' + this.toID('default'));
-                        }
-                        // append container to the right category
-                        html.append(cont.jq());
-                    }
-                }
+                return event;
             };
 
             /**
@@ -312,12 +308,9 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'u
                     that.del(data);
                 };
             };
-        }
 
-        /**
-         * Possible container actions.
-         */
-        var _ACTIONS = ['add', 'del', 'sel', 'edit'];
+            this._init();
+        }
 
         return List;
     });

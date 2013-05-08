@@ -10,51 +10,16 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
      * TODO documentation for constructor and member functions
      *
      * @param id
-     * @param bus
-     * @param actions
-     * @param cls
-     * @param template
+     * @param [cls]
+     * @param [template}
      *
      * @constructor
-     * @public
      * @extends {Widget}
+     * @public
      */
-    function MultiContainer(id, bus, actions, cls, template) {
+    function MultiContainer(id, template, cls) {
 
-        var _bus, _data, _actions;
-
-        /**
-         * @private
-         */
-        var tmpl = template || _TEMPLATE;
-        //MultiContainer.parent.constructor.call(this, id, tmpl, 'wdat-container');
-        Widget.apply(this, [id, tmpl, 'wdat-container']);
-
-        if (cls !== undefined) {
-            this.jq().addClass(cls);
-        }
-
-        // set attributes
-        _bus = bus;
-        _data = {};
-
-        // prepare actions
-        _actions = {};
-        if (actions instanceof Array) {
-            for (var i = 0; i < actions.length; i++) {
-                var act = actions[i];
-                _actions[act] = this.toID(act);
-            }
-        } else if (typeof(actions) === 'object') {
-            for (var j in actions) {
-                if (actions.hasOwnProperty(j)) {
-                    _actions[j] = actions[j];
-                }
-            }
-        }
-
-        // TODO remove this line?
-        this.jq().data(this);
+        Widget.apply(this, [id, template, cls || 'wdat-container']);
 
         /**
          * Add a new element to the container.
@@ -67,39 +32,20 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
          * @public
          */
         this.add = function(data, position) {
-            var d = null;
-
-            if (!data.id) {
-                data.id = _bus.uid();
-            }
-            if (!this.has(data)) {
-                _data[data.id] = {data: data, position: position};
-                d = data;
-            }
-
-            return d;
+            throw "MultiContainer.add() not implemented yet!"
         };
 
         /**
          * Update an existing element of the container.
          *
          * @param data {Object}     The data object to update.
-         * @param position {*}      The position of the element (optional).
          *
          * @returns {Object} The updated element or null if no such element was found.
          *
          * @public
          */
-        this.set = function(data, position) {
-            var d = null;
-
-            if (this.has(data)) {
-                var pos = position || _data[data.id].position;
-                _data[data.id] = {data: data, position: pos};
-                d = data;
-            }
-
-            return d;
+        this.set = function(data) {
+            throw "MultiContainer.set() not implemented yet!"
         };
 
         /**
@@ -112,29 +58,7 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
          * @public
          */
         this.get = function(data) {
-            var d = null;
-
-            if (data) {
-                var id = data.id || data;
-                if (_data.hasOwnProperty(id)) {
-                    d = _data[id].data;
-                }
-            }
-
-            return d;
-        };
-
-        this.position = function(data) {
-            var pos = null;
-
-            if (data) {
-                var id = data.id || data;
-                if (_data.hasOwnProperty(id)) {
-                    pos = _data[id].position;
-                }
-            }
-
-            return pos;
+            throw "MultiContainer.get() not implemented yet!"
         };
 
         /**
@@ -147,14 +71,7 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
          * @public
          */
         this.has = function(data) {
-            var result = false;
-
-            if (data) {
-                var id = data.id || data;
-                result = (id && _data.hasOwnProperty(id));
-            }
-
-            return result;
+            throw "MultiContainer.has() not implemented yet!"
         };
 
         /**
@@ -163,8 +80,7 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
          * @public
          */
         this.clear = function() {
-            _data = {};
-            this.refresh();
+            throw "MultiContainer.clear() not implemented yet!"
         };
 
         /**
@@ -177,15 +93,7 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
          * @public
          */
         this.del = function(data) {
-            var result = false;
-
-            var id = data.id || data;
-            if (this.has(id)) {
-                delete _data[id];
-                result = true;
-            }
-
-            return result;
+            throw "MultiContainer.del() not implemented yet!"
         };
 
         /**
@@ -198,33 +106,10 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
          * @public
          */
         this.event = function(action) {
-            var act = null;
-
-            var tmp = _actions[action];
-            if (tmp && typeof(tmp) !== 'function') {
-                act = tmp;
-            }
-
-            return act;
-        };
-
-        /**
-         * Getter for data.
-         *
-         * @returns {Object}
-         * @protected
-         */
-        this._data = function() {
-            return  _data;
+            throw "MultiContainer.get() not implemented yet!"
         };
 
     }
-
-    /**
-     * HTML template for container
-     */
-    var _TEMPLATE = '<div><div class="buttons"></div><div class="primary"></div>' +
-                    '<dl class="secondary hidden"></dl></div>';
 
     return MultiContainer;
 });
