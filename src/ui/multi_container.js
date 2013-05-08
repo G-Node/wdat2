@@ -6,8 +6,6 @@
 define(['util/classes', 'ui/widget'], function(classes, Widget) {
     "use strict";
 
-    classes.inherit(MultiContainer, Widget);
-
     /**
      * TODO documentation for constructor and member functions
      *
@@ -28,36 +26,35 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
         /**
          * @private
          */
-        this._init = function() {
-            var tmpl = template || _TEMPLATE;
-            MultiContainer.parent.constructor.call(this, id, tmpl, 'wdat-container');
+        var tmpl = template || _TEMPLATE;
+        //MultiContainer.parent.constructor.call(this, id, tmpl, 'wdat-container');
+        Widget.apply(this, [id, tmpl, 'wdat-container']);
 
-            if (cls !== undefined) {
-                this.jq().addClass(cls);
+        if (cls !== undefined) {
+            this.jq().addClass(cls);
+        }
+
+        // set attributes
+        _bus = bus;
+        _data = {};
+
+        // prepare actions
+        _actions = {};
+        if (actions instanceof Array) {
+            for (var i = 0; i < actions.length; i++) {
+                var act = actions[i];
+                _actions[act] = this.toID(act);
             }
-
-            // set attributes
-            _bus = bus;
-            _data = {};
-
-            // prepare actions
-            _actions = {};
-            if (actions instanceof Array) {
-                for (var i = 0; i < actions.length; i++) {
-                    var act = actions[i];
-                    _actions[act] = this.toID(act);
-                }
-            } else if (typeof(actions) === 'object') {
-                for (var j in actions) {
-                    if (actions.hasOwnProperty(j)) {
-                        _actions[j] = actions[j];
-                    }
+        } else if (typeof(actions) === 'object') {
+            for (var j in actions) {
+                if (actions.hasOwnProperty(j)) {
+                    _actions[j] = actions[j];
                 }
             }
+        }
 
-            // TODO remove this line?
-            this.jq().data(this);
-        };
+        // TODO remove this line?
+        this.jq().data(this);
 
         /**
          * Add a new element to the container.
@@ -219,10 +216,8 @@ define(['util/classes', 'ui/widget'], function(classes, Widget) {
          */
         this._data = function() {
             return  _data;
-        }
+        };
 
-
-        this._init();
     }
 
     /**

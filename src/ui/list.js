@@ -3,11 +3,9 @@
 /*
  * TODO module description.
  */
-define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container'],
-    function (classes, strings, Container, MultiContainer) {
+define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container', 'ui/button'],
+    function (classes, strings, Container, MultiContainer, Button) {
         "use strict";
-
-        classes.inherit(List, MultiContainer);
 
         /**
          * TODO documentation for List and member functions
@@ -28,31 +26,28 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container'],
             /**
              * @private
              */
-            this._init = function () {
-                List.parent.constructor.call(this, id, bus, actions, 'wdat-list', '<div>');
+            //List.parent.constructor.call(this, id, bus, actions, 'wdat-list', '<div>');
+            MultiContainer.apply(this, [id, bus, actions, 'wdat-list', '<div>']);
 
-                _bus = bus;
-                // categories
-                _categories = {};
-                for (var i = 0; i < categories.length; i++) {
-                    var cat = categories[i].toLowerCase();
-                    _categories[cat] = strings.capitalWords(cat, /[_\- \.:]/);
+            _bus = bus;
+            // categories
+            _categories = {};
+            for (var i = 0; i < categories.length; i++) {
+                var cat = categories[i].toLowerCase();
+                _categories[cat] = strings.capitalWords(cat, /[_\- \.:]/);
+            }
+
+            // actions for container elements
+            _container_actions = {};
+            for (var j in actions) {
+                var act = actions[j];
+                if (_ACTIONS.indexOf(act) >= 0 && act != 'add') {
+                    _container_actions[act] = this.id() + '-' + act;
                 }
+            }
 
-                // actions for container elements
-                _container_actions = {};
-                for (var j in actions) {
-                    var act = actions[j];
-                    if (_ACTIONS.indexOf(act) >= 0 && act != 'add') {
-                        _container_actions[act] = this.id() + '-' + act;
-                    }
-                }
-
-                // append self to dom
-                this.jq().data(this);
-                // refresh layout
-                this.refresh();
-            };
+            // append self to dom
+            this.jq().data(this);
 
 
             /**
@@ -65,7 +60,7 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container'],
              * @return The inserted element.
              */
             this.add = function (data, category) {
-                var elem = List.parent.add.call(this, data, category);
+                //var elem = List.parent.add.call(this, data, category);
                 if (elem) {
                     // create a container
                     var id = this.toID(elem.id);
@@ -317,9 +312,6 @@ define(['util/classes', 'util/strings', 'ui/container', 'ui/multi_container'],
                     that.del(data);
                 };
             };
-
-
-            this._init();
         }
 
         /**
