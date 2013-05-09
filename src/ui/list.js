@@ -55,6 +55,19 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
                         }
                     }
                 }
+                for (i = 0; i < categories.length; i++) {
+                    var cat = categories[i].toString().toLowerCase();
+
+                    var label = strings.capitalWords(cat, /[_\- \.:]/);
+                    var html;
+                    if (cat === 'default') {
+                        html = $('<div class="category"></div>');
+                    } else {
+                        html = $('<div class="category"><h2>'+label+'</h2></div>');
+                    }
+                    this.jq().append(html);
+                    _list[cat] = {html: html, data: {}};
+                }
             };
 
 
@@ -74,6 +87,7 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
 
                     var id = this.toID(data);
                     var cont = new ModelContainer(id, _bus, _cont_actions, data);
+                    //_addSelectAction(cont, _bus, this.event('sel'));
 
                     // get category
                     var cat = category || 'default';
@@ -115,6 +129,7 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
 
                     var id = this.toID(data);
                     cont.id(id);
+                    //_addSelectAction(cont, _bus, this.event('sel'));
 
                     // get category
                     var cat = category || 'default';
@@ -310,6 +325,29 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
             };
 
             this._init();
+        }
+
+        /**
+         * Invoke select action on click.
+         *
+         * @param container
+         * @param bus
+         * @param action
+         *
+         * @private
+         */
+        function _addSelectAction(container, bus, action) {
+            if (action) {
+                var click;
+                if (typeof(action) === 'function') {
+                    click = action;
+                } else {
+                    click = function() {
+                        bus.publish(action, container.get());
+                    };
+                }
+                container.jq().click(click);
+            }
         }
 
         return List;

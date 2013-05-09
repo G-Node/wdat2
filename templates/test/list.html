@@ -17,7 +17,7 @@
                 window.List = require('ui/list');
 
                 run.bus = new Bus();
-                run.list = new List($('#list-1'), run.bus, ['add', 'del', 'sel', 'more'], ['bla', 'bar'])
+                run.list = new List($('#list-1'), run.bus, ['sel', 'add', 'edit', 'del'], ['bla', 'bar'])
 
                 run.bus.subscribe(run.list.event('sel'), run.list.selHandler());
                 run.bus.subscribe(run.list.event('del'), run.list.delHandler());

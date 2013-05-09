@@ -1,24 +1,11 @@
 /*---------- list.less ----------*/
 
-/*.wdat-list {
+.wdat-list {
   overflow-y: auto;
   border-spacing: 0px;
 
-  ul {
-    list-style-type: none;
-    margin: @cushioning 0;
-    padding: 0;
-  }
-
-  .wdat-container {
-    .border-std-round;
-    margin: @smallcushion / 2;
-    .buttons { display: none; }
-  }
-
   .wdat-container:HOVER {
     background: @bg-grey !important;
-    .buttons { display: block !important; }
   }
 
   .selected {
@@ -30,21 +17,14 @@
   }
 
   .category {
-    display: block;
-    padding: 0;
-    height: 22px;
+    /*padding: 0;
+    height: 22px;*/
 
-    .category-name {
+    h2 {
       margin: 0px 0px 0px 2px;
       height: 20px;
       font-size: @baseFontSize + 2px;
       font-weight: bold;
     }
-
-    .wdat-button {
-      margin: 0px 8px 0px 0px;
-      display: block;
-      float: right;
-    }
   }
-}*/
+}
