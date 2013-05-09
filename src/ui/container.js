@@ -16,14 +16,16 @@ define(['util/classes', 'util/objects', 'util/strings', 'api/model_helpers', 'ap
      * TODO documentation for constructor and member functions
      *
      * @param id
+     * @param [template] {String}   A template for the widget.
+     * @param [cls] {String}        A class that will be added to the widget.
      *
      * @constructor
      * @extends {Widget}
      * @public
      */
-    function Container(id) {
+    function Container(id, template, cls) {
 
-        Widget.apply(this, [id]);
+        Widget.apply(this, [id, template, cls]);
 
         /**
          * Set the data object of the container.
