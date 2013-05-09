@@ -104,15 +104,20 @@ define(function () {
         this.toID = function(element, suffix) {
             var id, this_id;
 
-            this_id = _jq.attr('id');
+            this_id = _jq.attr('id') || '';
             if (typeof(element) === 'object') {
-                id = this_id + '-' + element.id.toString().replace(/[\.\\\/_]+/g, '-');
+                id = element.id;
             } else {
-                id = this_id + '-' + element.replace(/[\.\\\/_]+/g, '-');
+                id = element;
             }
 
-            if (suffix) {
-                id += suffix;
+            if (id) {
+                id = this_id + '-' + id.toString().replace(/[\.\\\/_]+/g, '-');
+                if (suffix) {
+                    id += suffix;
+                }
+            } else {
+                id = null;
             }
 
             return id;

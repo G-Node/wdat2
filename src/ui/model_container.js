@@ -99,7 +99,7 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
         '  <dt>Shared With:</dt><dd><%="TODO"%></dd>' +
         '</dl></div></div>';
 
-    var _ACTIONS = ['del', 'sel', 'edit'];
+    var _ACTIONS = ['sel', 'edit', 'del'];
 
     return ModelContainer;
 });

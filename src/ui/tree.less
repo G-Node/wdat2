@@ -1,0 +1,58 @@
+/*---------- tree.less ----------*/
+
+.wdat-tree {
+
+  .tree-node {
+
+      button {
+        margin-right: @smallcushion / 4;
+      }
+
+      .node-icon {
+        float: left;
+        background-image: url(/site_media/static/css/tni-open.png);
+        background-position: center;
+        background-repeat: no-repeat;
+        padding: @smallcushion;
+        width: 18px;
+        height: 18px;
+      }
+
+      .wdat-container {
+        cursor: pointer;
+        border: 0;
+        .rounded;
+      }
+
+      .wdat-container:HOVER {
+        background: @bg-grey !important;
+        .buttons { display: block !important; }
+      }
+
+      .selected {
+        background: @bg-color;
+      }
+
+      .selected:HOVER {
+        background: @near-white-blue !important;
+      }
+
+      .tree-node {
+        margin-left: 20px;
+      }
+
+  }
+
+  .collapsed .tree-node { display: none; }
+
+  .collapsed .node-icon { background-image: url(/site_media/static/css/tni-closed.png); }
+
+  .leaf-node .node-icon { background-image: url(/site_media/static/css/tni-leaf.png); }
+
+  .node-icon:HOVER { background-image: url(/site_media/static/css/tni-hover-open.png); }
+
+  .collapsed .node-icon:HOVER { background-image: url(/site_media/static/css/tni-hover-closed.png); }
+
+  .leaf-node .node-icon:HOVER { background-image: url(/site_media/static/css/tni-hover-leaf.png); }
+
+}

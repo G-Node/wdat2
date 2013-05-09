@@ -3,29 +3,58 @@
 {% block title %}Tree Test{% endblock %}
 
 {% block extra_script %}
-<script type="text/javascript">
-  var init = function() {
-    var bus = new wdat.Bus(); 
-    var tree = new wdat.Tree($('#tree-1'), bus, ['del', 'sel', 'edit', 'add']);
-    bus.subscribe(tree.event('sel'), tree.selHandler());
-    bus.subscribe(tree.event('del'), tree.delHandler());
-    bus.subscribe(tree.event('expand'), tree.expandHandler());
-    bus.subscribe(tree.event('add'), function(event, data) {
-      var elem = {name: 'Test Node', type: 'section'};
-      tree.add(elem, data);
-    });
-    var n = tree.add({name: 'root-01', type: 'section'});
-    n = tree.add({name: 'root-01-child01', type: 'section'}, n);
-    tree.add({name: 'root-01-child01-child01', type: 'section'}, n, true);
-    tree.add({name: 'root-01-child01-child02', type: 'section'}, n, true);
-    tree.add({name: 'root-02', type: 'section'});
-  };
-  $(window).load(init);
-</script>
+    <script type="text/javascript">
+
+        window.onload = function () {
+            require(['main'], function () {
+                var id = 1;
+
+                window.run = {};
+
+                window.Bus      = require('api/bus');
+                window.Tree     = require('ui/tree');
+
+                run.bus  = new Bus();
+                run.tree = new Tree($('#tree-1'), run.bus, ['sel', 'add', 'edit', 'del']);
+
+                run.bus.subscribe(run.tree.event('sel'), run.tree.selHandler());
+                run.bus.subscribe(run.tree.event('del'), run.tree.delHandler());
+                run.bus.subscribe(run.tree.event('add'), function (event, data) {
+                    var elem = {id: id++, name: 'Test Node', type: 'section'};
+                    run.tree.add(elem, data);
+                });
+
+                run.tree.add({id: id++, name: 'Test1', type: 'section', fields: {odml_type: 'foo'}});
+                run.tree.add({id: id++, name: 'Test2', type: 'section', fields: {odml_type: 'foo'}}, 1);
+                run.tree.add({id: id++, name: 'Test3', type: 'section', fields: {odml_type: 'foo'}}, 1);
+                run.tree.add({id: id++, name: 'Test4', type: 'section', fields: {odml_type: 'foo'}});
+                /*run.list.add({id: id++, name: 'Test5', type: 'section', fields: {odml_type: 'foo'}});
+                run.list.add({id: id++, name: 'Test6', type: 'section', fields: {odml_type: 'foo'}}, 'foo-bar');*/
+            });
+        };
+
+        /*var init = function () {
+            var bus = new wdat.Bus();
+            var tree = new wdat.Tree($('#tree-1'), bus, ['del', 'sel', 'edit', 'add']);
+            bus.subscribe(tree.event('sel'), tree.selHandler());
+            bus.subscribe(tree.event('del'), tree.delHandler());
+            bus.subscribe(tree.event('expand'), tree.expandHandler());
+            bus.subscribe(tree.event('add'), function (event, data) {
+                var elem = {name: 'Test Node', type: 'section'};
+                tree.add(elem, data);
+            });
+            var n = tree.add({name: 'root-01', type: 'section'});
+            n = tree.add({name: 'root-01-child01', type: 'section'}, n);
+            tree.add({name: 'root-01-child01-child01', type: 'section'}, n, true);
+            tree.add({name: 'root-01-child01-child02', type: 'section'}, n, true);
+            tree.add({name: 'root-02', type: 'section'});
+        };
+        $(window).load(init);*/
+    </script>
 {% endblock %}
 
 {% block body %}
-<h1>Tree Test</h1>
-<div id="tree-1"></div>
-<div class="event-log"></div>
+    <h1>Tree Test</h1>
+    <div id="tree-1"></div>
+    <div class="event-log"></div>
 {% endblock %}

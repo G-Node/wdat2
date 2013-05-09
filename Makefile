@@ -39,7 +39,8 @@ LESS_BUILD = static/main.css
 CSS_DEP = lib/jquery-ui/jquery-ui.min.css \
 	lib/jquery-ui/images \
 	lib/crayon/crayon.css \
-	lib/reset/reset.css
+	lib/reset/reset.css \
+	img/*
 
 #
 # Targets
