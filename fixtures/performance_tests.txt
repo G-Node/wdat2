@@ -1,4 +1,0 @@
-# performance test with Apache server benchmarking tool
-# http://httpd.apache.org/docs/2.2/programs/ab.html
-
-ab -n 30 -c 5 -C sessionid=<current_cookie> http://141.84.42.103/datafiles/1/data/ > /tmp/gnode-test.txt
