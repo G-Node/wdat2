@@ -2,12 +2,10 @@
 
 define(['api/model_helpers'], function() {
 
+    // TODO implement nice model class (low priority)
     function Model() {
 
-        this.bla = function() {
-            return 'bla';
 
-        }
 
     }
 
