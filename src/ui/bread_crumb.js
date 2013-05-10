@@ -83,7 +83,7 @@ define(['ui/widget'], function (Widget) {
             }
 
             this.jq().buttonset('refresh');
-            this.jq().children('input').click(this._selectHandler);
+            this.jq().children('input').click(this._selectHandler());
 
             return data;
         };
@@ -119,7 +119,7 @@ define(['ui/widget'], function (Widget) {
             }
 
             this.jq().buttonset('refresh');
-            this.jq().children('input').click(this._selectHandler);
+            this.jq().children('input').click(this._selectHandler());
         };
 
         /**
@@ -186,16 +186,30 @@ define(['ui/widget'], function (Widget) {
         };
 
         /**
+         * Getter for action.
+         *
+         * @returns {String|Function}
+         * @public
+         */
+        this.action = function() {
+            return _action;
+        };
+
+        /**
          * Simple handler for selections
          * @private
          */
         this._selectHandler = function() {
-            var d = this.selected();
-            if (typeof(_action) === 'function') {
-                _action(d);
-            } else {
-                _bus.publish(_action, d);
-            }
+            var that = this;
+
+            return function() {
+                var d = that.selected();
+                if (typeof(_action) === 'function') {
+                    _action(d);
+                } else {
+                    _bus.publish(_action, d);
+                }
+            };
         };
 
         this._init();
