@@ -104,13 +104,13 @@ var wdat; (function(wdat, $){
       var search = null, info = null;
       if (_isPredefNode(id)) {
         if (id == 'own-metadata') {
-          search = {type: 'section', parent: '', owner: '2'}; // TODO get real owner
+          search = {type: 'section', parent: '', owner: '1'}; // TODO get real owner
           info = 'own-metadata';
         } else if (id == 'shared-metadata') {
-          search = {type: 'section', parent: '', owner: ['2', '!='], safety_level: 'friendly'}; // TODO get real owner
+          search = {type: 'section', parent: '', owner: ['1', '!='], safety_level: 'friendly'}; // TODO get real owner
           info = 'shared-metadata';
         } else if (id == 'public-metadata') {
-          search = {type: 'section', parent: '', owner: ['2', '!='], safety_level: 'public'}; // TODO get real owner
+          search = {type: 'section', parent: '', owner: ['1', '!='], safety_level: 'public'}; // TODO get real owner
           info = 'public-metadata';
         }
       } else {
