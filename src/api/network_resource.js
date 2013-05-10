@@ -230,7 +230,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
         function _paramToURL(urls, type, key, op, val) {
 
             var component = '',
-                fields = model_helpers.field(type);
+                fields = model_helpers.fields(type);
 
             switch (key) {
                 case 'safety_level':

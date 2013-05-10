@@ -6,6 +6,23 @@
 define(['util/objects'], function(objects) {
     "use strict";
 
+    function isType(type) {
+        var is_type = false;
+
+        if (type) {
+            var t = type.toString();
+            if (_def.metadata.hasOwnProperty(t)) {
+                is_type = true;
+            } else if (_def.ephys.container.hasOwnProperty(t)) {
+                is_type = true;
+            } else if (_def.ephys.plotable.hasOwnProperty(t)) {
+                is_type = true;
+            }
+        }
+
+        return is_type;
+    }
+
     /**
      * Find the matching category for specific type using the internal model definition.
      *
@@ -555,9 +572,10 @@ define(['util/objects'], function(objects) {
     // return public parts of the module
     //
     return {
+        isType:     isType ,
         category:   category ,
-        template:    template ,
-        field:      fields ,
+        template:   template ,
+        fields:     fields ,
         data:       data ,
         parents:    parents ,
         children:   children ,
