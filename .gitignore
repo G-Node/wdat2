@@ -1,27 +1,18 @@
-# exclude virtualenv directories 
-bin/
-include/
-lib/
-
-# Deployment files
-apache/
-apps/local/
-local_settings.py
-celeryconfig.py
-
 # Backup files
 *~
 
 # Precompiled python
 *.pyc
 
-# js and css inside static (produced by makefile)
-apps/wdat/static/*.js
-apps/wdat/static/*.js.worker
-apps/wdat/static/*.css
-apps/wdat/static/*.less
-
 # Eclipse project settings
 .project
 .settings/
 .externalToolBuilders
+
+# ignored files and folders
+static
+
+# ignore idea files
+.idea
+*.iml
+

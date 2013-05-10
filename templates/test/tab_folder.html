@@ -10,9 +10,9 @@
     folder1.add($('<div>One</div>'), 'one', 'Tab One');
     folder1.add($('<div>Two</div>'), 'two', 'Tab Two');
     folder1.add($('<div>Three</div>'), 'three', 'Tab Three');
-    folder1.add($('<div>Foo</div>'), 'foo', 'Tab Foo');
+    folder1.add($('<div>Foo</div>'), 'bla', 'Tab Foo');
     folder1.set($('<div>Foo2</div>'), 'three', 'Tab Three v2');
-    folder1.del('foo');
+    folder1.del('bla');
     bus.subscribe(folder1.event('sel'), folder1.selectHandler()); 
 
     var folder2 = new wdat.TabFolder($('#tf-2'), bus, false);

@@ -3,71 +3,88 @@
 {% block title %}DataAPI Test{% endblock %}
 
 {% block extra_script %}
-<script type="text/javascript">
-function init() {
+    <script type="text/javascript">
 
-  var bus = new wdat.Bus();
-  var data_api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
+        window.onload = function () {
+            require(['main'], function () {
+                window.run = {};
+                // load
+                window.Bus = require('api/bus');
+                window.DataAPI = require('api/data_api');
 
-  bus.subscribe('data-api', logResults);
-  $('#get-by-url').click(getByURLRequest);
-  $('#get-by-param').click(getByParamRequest);
+                run.bus = new Bus();
+                run.api = new DataAPI(run.bus);
 
-  /* log the results of data api requests */
-  function logResults(event, data) {
-    $('.event-log').text("")
-    $('.event-log').append("\nTest URL: " + data.url + "\n");
-    $('.event-log').append("Test action: " + data.action + "\n");
-    $('.event-log').append("Test param: " + JSON.stringify(data.param) + "\n");
-    $('.event-log').append("\nTest Result: " + JSON.stringify(data.response, null, 2) + "\n");
-  }
-  
-  /* request data from DataAPI by URL */
-  function getByURLRequest() {
-    var url = $('#url').val();
-    if (url)
-      data_api.getByURL('data-api', url);
-  }
-  
-  /* request data from DataAPI by search parameter */
-  function getByParamRequest() {
-    var param = $('#param').val();
-    if (param) {
-      param = JSON.parse(param);
-      data_api.get('data-api', param);
-    }
-  }
-};
+                window.callback = function (b) {
+                    console.log("DONE!!");
+                    window.result = b;
+                };
 
-$(window).load(init);
-</script>
+                /* log */
+                run.log =  $('.event-log');
+                run.logHandler = function(event, data) {
+                    run.log.text("")
+                    run.log.append("\nTest action: " + data.action + "\n");
+                    run.log.append("Test response: " + JSON.stringify(data, null, 4));
+                };
+
+                /* request data from DataAPI by URL */
+                run.requestByUrl = function() {
+                    var url = $('#url').val();
+                    if (url)
+                        run.api.getByURL('data-api', url);
+                };
+
+                /* request data from DataAPI by search parameter */
+                run.requestBySpecifier = function() {
+                    var param = $('#param').val();
+                    if (param) {
+                        param = JSON.parse(param);
+                        run.api.get('data-api', param);
+                    }
+                };
+
+                run.bus.subscribe('data-api', run.logHandler);
+                $('#get-by-url').click(run.requestByUrl);
+                $('#get-by-param').click(run.requestBySpecifier);
+            });
+        };
+
+    </script>
 {% endblock %}
 
 {% block body %}
-<h1>DataAPI Test</h1>
-<h2>Request data by URL:</h2>
-<p>
-  Examples:
-  <pre>
-  /metadata/section/1
-  /electrophysiology/block/1
-  /electrophysiology/segment/1
-  </pre>
-</p>
-<p><input type="text" size="80" id="url">&nbsp;<button id="get-by-url">GET</button></p>
-<h2>Request data by search parameter:</h2>
-<p>
-  Examples:
-  <pre>
-  {"id": "/metadata/section/1"}
-  {"id": 1, "type": "section"}
-  {"type": "section", "parent": "/metadata/section/1"}
-  {"type": "analogsignal", "name":"FIX Signal-995"}
-  </pre>
-</p>
-<p><input type="text" size="80" id="param">&nbsp;<button id="get-by-param">GET</button></p>
-<h1>Log</h1>
-<p>
-<pre class="event-log"></pre>
-</p>
+    <h1>DataAPI Test</h1>
+    <h2>Request data by URL:</h2>
+    <p>
+        Examples:
+    </p>
+    <pre>
+        /metadata/section/1
+        /electrophysiology/block/1
+        /electrophysiology/segment/1
+    </pre>
+    <p>
+        <input type="text" size="80" id="url">&nbsp;
+        <button id="get-by-url">GET</button>
+    </p>
+
+    <h2>Request data by search parameter:</h2>
+    <p>
+        Examples:
+    </p>
+    <pre>
+        {"id": "/metadata/section/1"}
+        {"id": 1, "type": "section"}
+        {"type": "section", "parent": "/metadata/section/1"}
+        {"type": "analogsignal", "name":"FIX Signal-995"}
+    </pre>
+    <p>
+        <input type="text" size="80" id="param">&nbsp;
+        <button id="get-by-param">GET</button>
+    </p>
+
+    <h1>Log</h1>
+    <pre class="event-log"></pre>
+
 {% endblock %}

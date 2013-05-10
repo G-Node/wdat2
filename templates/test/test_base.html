@@ -1,49 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>{% block title %}{% endblock %}</title>
-<link rel="stylesheet" href="{{ STATIC_URL }}reset.css" />
-<link rel="stylesheet" href="{{ STATIC_URL }}jquery-ui/jquery-ui.min.css" />
-<link rel="stylesheet" href="{{ STATIC_URL }}crayon/crayon.css" />
-<link rel="stylesheet" href="{{ STATIC_URL }}wdat-api.css" />
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}jquery-ui/jquery-ui.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}d3/d3.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}inheritance.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}crayon/crayon.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}wdat-api.js"></script>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/reset.css"/>
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/jquery-ui.min.css"/>
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/crayon.css"/>
+    <link rel="stylesheet" href="{{ STATIC_URL }}main.css"/>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.jqote2.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/d3.min.js"></script>
+    <script type="text/javascript" data-main="{{ STATIC_URL }}/main" src="{{ STATIC_URL }}js/require.min.js"></script>
+    {% block extra_script %}
+        <script type="text/javascript">
 
-{% block extra_script %}{% endblock %}
-<style type="text/css">
-/* test specific styles */
-.test-container {
-  border: 1px solid grey;
-  margin: 4px;
-  margin-left: 238px;
-}
-.test-nav {
-  background-color: white;
-  border: 1px solid grey;
-  margin: 4px;
-  margin-top: 0px;
-  padding: 4px;
-  float: left; 
-  min-height: 400px;
-  width: 220px;
-}
-</style>
+            window.onload = function() {
+                require(['main'], function() {
+                    // load
+                    window.NetworkResource = require('api/network_resource');
+                    window.resource = new NetworkResource();
+                    window.callback = function(b) { console.log("DONE!!"); window.result = b; };
+                    resource.get([{type: 'section', parent: 1}], callback)
+                });
+            }
+        </script>
+    {% endblock %}
+    <style type="text/css">
+        /* test specific styles */
+        .test-container {
+            border: 1px solid grey;
+            margin: 4px 4px 4px 238px;
+        }
+        .test-nav {
+            background-color: white;
+            border: 1px solid grey;
+            margin: 0px 4px 4px;
+            padding: 4px;
+            float: left;
+            min-height: 400px;
+            width: 220px;
+        }
+    </style>
 </head>
 <body>
 <div class="test-container test-nav">
-<h1>Test Navigation</h1>
-<p>
-{% for f in files %}<a href="{{ f }}">{{ f }}</a><br>
-{% endfor %}
-</p>
+    <h1>Test Navigation</h1>
+    <p>
+        {% for f in files %}<a href="{{ f }}">{{ f }}</a><br>
+        {% endfor %}
+    </p>
 </div>
 <div class="test-container">
-{% block body %}<h1>Select a Test</h1>{% endblock %}
+    {% block body %}<h1>Select a Test</h1>{% endblock %}
 </div>
 </body>
 </html>

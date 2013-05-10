@@ -1,64 +1,76 @@
+#
+# Definitions
+#
+
 # js compiler
-JSC = uglifyjs
-JSCARGS = --no-copyright
-# css compiler
-CSSC = lessc
-CSSCARGS = 
+JSC = node r.js
+JSCARGS = -o optimize=none logLevel=2 baseUrl=src
+#JSCARGS = -o logLevel=2 baseUrl=src
 
 # target dir for js files
-STATIC_JS = static
+JS_DIR = static/js
+
+# css compiler
+CSSC = lessc
+CSSCARGS = -s
 # target dir for css files
-STATIC_CSS = static
-
-# all js sources
-SRC_JS = 	$(wildcard src/*.js) \
-	$(wildcard src/wdat/*.js) \
-	$(wildcard src/wdat/mod/*.js) \
-	$(wildcard src/wdat/api/*.js) \
-	$(wildcard src/wdat/ui/*.js) \
-	$(wildcard src/wdat/app/*.js) \
-	$(wildcard src/wdat/plot/*.js)
-
-#	$(wildcard src/app/*.js)
-
-# sources that are also needed as separate files
-SRC_JS_SEPARATE = src/wdat/api/network_resource.js
-
-# web worker sources
-SRC_JS_WORKER = src/wdat/api/data_api.js.worker
-
-# all less sources
-SRC_LESS = $(wildcard src/wdat/ui/*.less) \
-	$(wildcard src/wdat/app/*.less)
-
-# compiled css sources
-SRC_CSS = $(wildcard $(STATIC_CSS)/*.less)
+CSS_DIR = static/css
 
 
-# make uncompressed js files
-wdat-api.js: $(SRC_JS) $(SRC_JS_ADD) $(SRC_JS_WORK)
-	cat $(SRC_JS) > $(STATIC_JS)/wdat-api.js
-	for i in $(SRC_JS_SEPARATE); do cp $$i $(STATIC_JS)/ ; done
-	for i in $(SRC_JS_WORKER); do cp $$i $(STATIC_JS)/ ; done
+# javascript sources
+JS_SRC  = $(wildcard src/api/*.js) \
+	$(wildcard src/util/*.js)
 
-# make compressed js files
-wdat-api-min.js: wdat-api.js $(SRC_JS_ADD) $(SRC_JS_WORK)
-	$(JSC) $(JSCARGS) $(STATIC_JS)/wdat-api.js > $(STATIC_JS)/wdat-api.min.js
-	for i in $(SRC_JS_SEPARATE); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js`.min.js ; done
-	for i in $(SRC_JS_WORKER); do $(JSC) $(JSCARGS) $$i > $(STATIC_JS)/`basename $$i .js.worker`.min.js.worker ; done
-	
-# compile css files
-wdat-api.css: $(SRC_LESS)
-	cat $(SRC_LESS) > $(STATIC_CSS)/wdat-api.less
-	$(CSSC) $(CSSCARGS) $(STATIC_CSS)/wdat-api.less > $(STATIC_CSS)/wdat-api.css
-	rm $(STATIC_CSS)/wdat-api.less
+JS_MAIN = src/main.js src/main-worker.js
 
-# make uncompressed js and css files
-wdat: wdat-api.js wdat-api.css
+JS_BUILD = $(patsubst src%.js, static%.js, $(JS_MAIN))
 
-# make all
-all: wdat-api.js wdat-api.css wdat-api-min.js
+JS_DEP  = lib/d3/d3.min.js \
+	lib/jquery-ui/jquery-ui.min.js \
+	lib/jquote/jquery.jqote2.min.js \
+	lib/requirejs/require.min.js
+
+# css sources and images
+LESS_SRC = $(wildcard src/*.less) \
+	$(wildcard src/ui/*.less)
+
+LESS_BUILD = static/main.css
+
+CSS_DEP = lib/jquery-ui/jquery-ui.min.css \
+	lib/jquery-ui/images \
+	lib/crayon/crayon.css \
+	lib/reset/reset.css \
+	img/*
+
+#
+# Targets
+#
+
+all: js jsdep less cssdep
+
+# make javascript files and dependencies
+js: $(JS_BUILD)
+
+$(JS_BUILD): $(JS_MAIN) $(JS_SRC)
+	@$(JSC) $(JSCARGS) name=$(notdir $(basename $@)) out=$@
+	@cp src/load-worker.js static/load-worker.js
+
+jsdep: $(JS_DEP)
+	@mkdir -p $(JS_DIR)
+	@for i in $(JS_DEP); do cp $$i $(JS_DIR)/`basename $$i` ; done
+
+# make less and css files and dependencies
+less: $(LESS_BUILD)
+
+$(LESS_BUILD): $(LESS_SRC)
+	@cat $(LESS_SRC) > static/tmp.less
+	@$(CSSC) $(CSSCARGS) static/tmp.less $(LESS_BUILD)
+	@rm -f static/tmp.less
+
+cssdep: $(CSS_DEP)
+	@mkdir -p $(CSS_DIR)
+	@for i in $(CSS_DEP); do cp -r $$i $(CSS_DIR)/`basename $$i` ; done
 
 .PHONY: clean
 clean:
-	rm -f $(STATIC_CSS)/*.less $(STATIC_JS)/wdat-api.css $(STATIC_JS)/*.js.worker $(STATIC_JS)/wdat-api.js  $(STATIC_JS)/wdat-api-min.js
+	@rm -fr $(CSS_DIR) $(JS_DIR) $(JS_BUILD) $(LESS_BUILD) static/load-worker.js

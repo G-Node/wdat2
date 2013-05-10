@@ -12,12 +12,12 @@
     var fn = function(event, args){ log.append("<p>event fired: " + args + "</p>"); };
 
     var uid = bus.uid();
-    bus.subscribe("foo", fn, uid);
-    $(".event-1").first().click(function() { bus.publish("foo", "event 1 data", uid);});
+    bus.subscribe("bla", fn, uid);
+    $(".event-1").first().click(function() { bus.publish("bla", "event 1 data", uid);});
 
     uid = bus.uid();
-    bus.subscribe("foo", fn, uid);
-    $(".event-2").first().click(function() { bus.publish("foo", "event 2 data", uid);});
+    bus.subscribe("bla", fn, uid);
+    $(".event-2").first().click(function() { bus.publish("bla", "event 2 data", uid);});
   };
   $(window).load(init);
 </script>

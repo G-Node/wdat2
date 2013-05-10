@@ -1,0 +1,64 @@
+/*---------- container.less ----------*/
+
+/*
+ * Styles for ui/container.js
+ */
+.wdat-container {
+  padding: @smallcushion;
+  background-color: @bg;
+  margin: @smallcushion / 2;
+  .border-std-round;
+
+  .buttons {
+    float: right;
+    height: 20px;
+    vertical-align: middle;
+    display: none;
+  }
+
+  .primary {
+    height: 20px;
+    vertical-align: middle;
+    overflow: hidden;
+
+    .head {
+      font-size: @mediumFontSize;
+    }
+
+    .head-add {
+      color: @fg-grey;
+      margin-left: @smallcushion;
+    }
+  }
+
+  dl.tabular {
+    padding-top: @cushioning;
+    margin: 0;
+
+    dt {
+      display: block;
+      float: left;
+      font-weight: bold;
+      margin: 0;
+      padding: @smallcushion / 2 @smallcushion;
+      min-width: 100px;
+    }
+
+    dd {
+      display: block;
+      margin: 0;
+      margin-left: 100;
+      padding: @smallcushion / 2  @smallcushion;
+    }
+  }
+
+}
+
+
+.wdat-container:HOVER {
+  background: @bg-grey !important;
+
+  .buttons {
+    display: block !important;
+  }
+}

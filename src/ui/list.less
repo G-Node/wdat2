@@ -1,0 +1,30 @@
+/*---------- list.less ----------*/
+
+.wdat-list {
+  overflow-y: auto;
+  border-spacing: 0px;
+
+  .wdat-container:HOVER {
+    background: @bg-grey !important;
+  }
+
+  .selected {
+    background: @bg-color;
+  }
+
+  .selected:HOVER {
+    background: @near-white-blue !important;
+  }
+
+  .category {
+    /*padding: 0;
+    height: 22px;*/
+
+    h2 {
+      margin: 0px 0px 0px 2px;
+      height: 20px;
+      font-size: @baseFontSize + 2px;
+      font-weight: bold;
+    }
+  }
+}

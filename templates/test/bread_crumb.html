@@ -3,23 +3,31 @@
 {% block title %}Bread Crumb Navigation Test{% endblock %}
 
 {% block extra_script %}
-<script type="text/javascript">
-  var init = function() {
-    var bus = new wdat.Bus(); 
-    var bcn = new wdat.BreadCrumb($('#bcn-1'), bus);
-    bus.subscribe(bcn.action, function(event, data) { 
-      $('.event-log').append(bcn.action + ': ' + JSON.stringify(data)).append('<br>'); 
-    });
-    bcn.add({id: 'one', name: 'One'});
-    bcn.add({id: 'two', name: 'Two'});
-    bcn.add({id: 'three', name: 'Three'});
-  };
-  $(window).load(init);
-</script>
+    <script type="text/javascript">
+        window.onload = function () {
+            require(['main'], function () {
+                window.run = {};
+                // load
+                window.Bus = require('api/bus');
+                window.BreadCrumb = require('ui/bread_crumb');
+
+                run.bus = new Bus();
+                run.bcn = new BreadCrumb($('#bcn-1'), run.bus, 'bcn-selection');
+
+                run.bus.subscribe(run.bcn.action(), function (event, data) {
+                    $('.event-log').append(run.bcn.action() + ': ' + JSON.stringify(data)).append('<br>');
+                });
+
+                run.bcn.add({id: 'one', name: 'One'});
+                run.bcn.add({id: 'two', name: 'Two'});
+                run.bcn.add({id: 'three', name: 'Three'});
+            });
+        };
+    </script>
 {% endblock %}
 
 {% block body %}
-  <h1>Bread Crumb Navigation Test</h1>
-  <div id="bcn-1"></div><br>
-  <div class="event-log"></div>
+    <h1>Bread Crumb Navigation Test</h1>
+    <div id="bcn-1"></div><br>
+    <div class="event-log"></div>
 {% endblock %}

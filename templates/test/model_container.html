@@ -1,0 +1,74 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}ModelConatiner Test{% endblock %}
+
+{% block extra_script %}
+    <script type="text/javascript">
+
+        window.onload = function () {
+            require(['main'], function () {
+                window.run = {};
+                // load
+                window.Bus = require('api/bus');
+                window.DataAPI = require('api/data_api');
+                window.ModelContainer = require('ui/model_container');
+
+                run.bus = new Bus();
+                run.api = new DataAPI(run.bus);
+                run.cont = null;
+
+                /* log */
+                run.log =  $('.event-log');
+                run.cont_elem = $('.model-container');
+
+                run.handler = function(event, data) {
+                    run.log.text("")
+                    run.log.append("\nTest action: " + data.action + "\n");
+                    run.log.append("Test response: " + JSON.stringify(data, null, 4));
+                    if (data.primary.length > 0) {
+                        run.cont = new ModelContainer('bla', run.bus, null, data.primary[0]);
+                        run.cont_elem.empty();
+                        run.cont_elem.append(run.cont.jq());
+                    }
+                };
+
+                /* request data from DataAPI by URL */
+                run.requestByUrl = function() {
+                    var url = $('#url').val();
+                    if (url)
+                        run.api.getByURL('data-api', url);
+                };
+
+                run.bus.subscribe('data-api', run.handler);
+                $('#get-by-url').click(run.requestByUrl);
+            });
+        };
+
+    </script>
+{% endblock %}
+
+{% block body %}
+    <h1>ModelConatiner Test</h1>
+    <h2>Request data by URL:</h2>
+    <p>
+        Examples:
+    </p>
+    <pre>
+        /metadata/section/1
+        /electrophysiology/block/1
+        /electrophysiology/segment/1
+    </pre>
+    <p>
+        <input type="text" size="80" id="url">&nbsp;
+        <button id="get-by-url">GET</button>
+    </p>
+
+    <h2>ModelContainer:</h2>
+    <p class="model-container">
+        Empty
+    </p>
+
+    <h1>Log</h1>
+    <pre class="event-log"></pre>
+
+{% endblock %}
