@@ -27,7 +27,7 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
             _is_modal = is_modal || false ,
             _model, _data, _type;
 
-        Container.apply(this, [id, _FORM_TEMPLATE]);
+        Container.apply(this, [id, _FORM_TEMPLATE, 'wdat-form']);
 
         this._init = function() {
             // get model and type
@@ -146,6 +146,23 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
         };
 
         /**
+         * Get the event for a specific action.
+         *
+         * @param action {String}    The action name.
+         *
+         * @returns {String} The event for the specific action or undefined.
+         *
+         * @public
+         */
+        this.event = function(action) {
+            var event = null;
+            if (_actions.hasOwnProperty(action) && typeof(_actions[action]) !== 'function') {
+                event = _actions[action];
+            }
+            return event;
+        };
+
+        /**
          * Validates the form and marks errors inside the form.
          *
          * @return {Boolean} True if the form is valid false otherwise.
@@ -232,7 +249,7 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
                 for (name in _model) {
                     if (_model.hasOwnProperty(name)) {
                         val = objects.deepGet(_data, name, ['fields', 'parents', 'data']);
-                        val = (val !== null && val.data) ? val.data : val;
+                        val = (val != null && val.data) ? val.data : val;
                         field = this._genField(name, _model[name], val);
                         fieldset.append(field);
                     }
@@ -256,14 +273,12 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
                     buttons : {
                         Cancel : function() {         // callback for cancel actions
                             $(this).dialog('close');
-                            $(this).detach();
                         },
                         Save : function() {           // callback for save actions
                             var data = that.get();
                             if (data) {
                                 _bus.publish(that.event('save'), data);
                                 $(this).dialog('close');
-                                $(this).detach();
                             }
                         }
                     }
