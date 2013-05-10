@@ -3,7 +3,8 @@
 /*
  * TODO module description.
  */
-define(['util/objects', 'api/model_helpers', 'ui/container'], function (objects, model_helpers, Container) {
+define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
+    function (objects, strings, model_helpers, Container) {
     "use strict";
 
     /**
@@ -13,25 +14,34 @@ define(['util/objects', 'api/model_helpers', 'ui/container'], function (objects,
      * @param bus
      * @param actions
      * @param type
-     * @param modal
+     * @param is_modal
      *
      * @constructor
      * @extends {Container}
      * @public
      */
-    function Form(id, bus, actions, type, modal) {
+    function Form(id, bus, actions, type, is_modal) {
 
         var _bus = bus ,
             _actions = {} ,
-            _type = type ,
-            _is_modal = modal || false ,
-            _model, _data;
+            _is_modal = is_modal || false ,
+            _model, _data, _type;
 
         Container.apply(this, [id, _FORM_TEMPLATE]);
 
         this._init = function() {
             // get model and type
-            _model = model_helpers.field(_type);
+            if (typeof type === 'string') {
+                _type  = type;
+                _model = model_helpers.fields(type);
+            } else if (typeof type === 'object') {
+                if (model_helpers.isType(type.type)) {
+                    _type  = type.type;
+                    _model = model_helpers.fields(type.type);
+                } else {
+                    _model = type;
+                }
+            }
 
             // init actions
             var act, i;
@@ -56,7 +66,7 @@ define(['util/objects', 'api/model_helpers', 'ui/container'], function (objects,
                 var that = this;
                 savebtn.click(function() {
                     var data = that.get();
-                    that._bus.publish(_actions.save, data);
+                    _bus.publish(_actions.save, data);
                 });
                 this.jq().children('.buttonset').append(savebtn);
             }
@@ -76,6 +86,7 @@ define(['util/objects', 'api/model_helpers', 'ui/container'], function (objects,
          */
         this.set = function(data) {
             var newdata;
+
             if (data) {
                 if (_type && data.type == _type) {
                     newdata = data;
@@ -93,11 +104,120 @@ define(['util/objects', 'api/model_helpers', 'ui/container'], function (objects,
                 _data = newdata;
             }
             this.refresh();
+
             return newdata;
         };
 
         /**
+         * Validates the form and read all data from the form.
+         *
+         * @returns {Object} The data of the form as object or null if the form is not valid.
+         * @public
+         */
+        this.get = function() {
+
+            if (this.validate()) {
+
+                for ( var field in _model) {
+                    if (_model.hasOwnProperty(field)) {
+                        var def   = _model[field];
+                        var input = this.jq().find('#' + this.toID(field) + ' :input');
+                        var val   = (input.val());
+
+                        if (val === '') {
+                            val = null;
+                        } else if (def.type === 'num') {
+                            val = parseFloat(val);
+                        } else if (def.type === 'int') {
+                            val = parseInt(val);
+                        }
+
+                        var is_set = objects.deepSet(_data, field, val, ['fields', 'parents', 'data']);
+                        if (!is_set) {
+                            _data[field] = val;
+                        }
+                    }
+                }
+
+                return _data;
+            }
+
+            return null;
+        };
+
+        /**
+         * Validates the form and marks errors inside the form.
+         *
+         * @return {Boolean} True if the form is valid false otherwise.
+         * @public
+         */
+        this.validate = function() {
+            var valid = true;
+
+            // reset errors
+            this.jq().find('.error').remove();
+
+            // iterate over input definitions
+            for (var name in _model) {
+                if (_model.hasOwnProperty(name)) {
+                    var def   = _model[name];
+                    var html  = this.jq().find('#' + this.toID(name));
+                    var input = html.children('.field-input').contents();
+                    var value = input.val();
+                    var error = $(_ERROR_TEMPLATE);
+
+                    // test if value is empty
+                    if (value.match(/^\s*$/)) {
+                        // check if not empty when obligatory
+                        if (def.obligatory) {
+                            error.children('.field-error').text('this field is obligatory');
+                            html.after(error);
+                            valid = false;
+                        }
+                    } else {
+                        // get type definition an do type specific checks
+                        var typedef = _FIELD_TYPES[def.type];
+                        if (typedef && typedef.check && !value.match(typedef.check)) {
+                            error.children('.field-error').text(typedef.fail);
+                            html.after(error);
+                            valid = false;
+                            continue;
+                        }
+                        // check bounds
+                        if (typedef && (def.type === 'num' || def.type === 'int')) {
+                            value = parseFloat(value);
+                            if (def.min !== undefined && value < def.min) {
+                                error.children('.field-error').text('value must be larger than ' + def.min);
+                                html.after(error);
+                                valid = false;
+                            } else if (def.max !== undefined && value > def.max) {
+                                error.children('.field-error').text('value must be less than ' + def.max);
+                                html.after(error);
+                                valid = false;
+                            }
+                        } else {
+                            value = value.toString();
+                            if (def.min !== undefined && value.length < def.min) {
+                                error.children('.field-error').text('value must be longer than ' + def.min);
+                                html.after(error);
+                                valid = false;
+                            } else if (def.max !== undefined && value.length > def.max) {
+                                error.children('.field-error').text('value must be less than ' + def.max);
+                                html.after(error);
+                                valid = false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return valid;
+        };
+
+        /**
          * Refresh the form.
+         *
+         * @public
          */
         this.refresh = function() {
             if (_model && _data) {
@@ -118,6 +238,104 @@ define(['util/objects', 'api/model_helpers', 'ui/container'], function (objects,
                     }
                 }
             }
+        };
+
+        /**
+         * Opens the form in a modal window.
+         *
+         * @public
+         */
+        this.open = function() {
+            if (_is_modal && this.jq()) {
+                var title = strings.capitalWords(_type, /[_\- \.:]/) || 'Form';
+                var that = this;
+
+                this.jq().dialog({               // jQuery-UI dialog
+                    autoOpen: true,     width : 610,        modal : true,
+                    draggable: false,   resizable: false,   title: title,
+                    buttons : {
+                        Cancel : function() {         // callback for cancel actions
+                            $(this).dialog('close');
+                            $(this).detach();
+                        },
+                        Save : function() {           // callback for save actions
+                            var data = that.get();
+                            if (data) {
+                                _bus.publish(that.event('save'), data);
+                                $(this).dialog('close');
+                                $(this).detach();
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        /**
+         * Creates a jQuery object representing an input field with label.
+         * For internal use only.
+         *
+         * @param name {String} Id for the input.
+         * @param def {Object}  The definition object for the input (see WDAT.type), it must
+         *                      specify a type and can have additionally the following fields:
+         *                      obligatory, min, max, value and label, options, readonly. Valid
+         *                      types are: text, file, email, ltext, num, int, password, option,
+         *                      boolean, hidden.
+         * @param value {*}     The value of the field (optional);
+         *
+         * @return {jQuery} A jQuery object that represents the input element and a label.
+         * @private
+         */
+        this._genField = function(name, def, value) {
+            // create template
+            var html        = $(_FIELD_TEMPLATE).attr('id', this.toID(name));
+            var html_label  = html.children('.field-label');
+            var html_input  = html.children('.field-input');
+
+            // generate label
+            if (def.type != 'hidden') {
+                var label = (def.label ? def.label : strings.capitalWords(name, /[_\- \.:]/)) + ':';
+                html_label.text(label);
+            } else {
+                html.addClass('hidden');
+            }
+
+            // generate input
+            var ftype = _FIELD_TYPES[def.type];
+            var input = null;
+
+            if (ftype) {
+                input = $('<input>').attr('type', ftype.type);
+                if (ftype.create)
+                    ftype.create(input);
+                if (!ftype.nowidth)
+                    input.addClass('fixed-width');
+            } else if (def.type === 'ltext' || def.type === 'textarea') {
+                input = $('<textarea rows="6"></textarea>');
+                input.addClass('fixed-width');
+                input.attr('value', def.value);
+            } else if (def.type === 'option') {
+                input = $('<select size="1"></select>');
+                for (var i in def.options) {
+                    if (def.options.hasOwnProperty(i)) {
+                        input.append($('<option></option>').attr('value', i).text(def.options[i]));
+                    }
+                }
+            } else {
+                throw new Error('field has no valid type: field.type = ' + type);
+            }
+            if (value) {
+                input.attr('value', value);
+            } else if (def.value != undefined && def.value != null) {
+                input.attr('value', def.value);
+            }
+            if (def.readonly) {
+                input.attr('readonly', 'readonly');
+            }
+
+            input.attr('name', this.toID(name));
+            html_input.append(input);
+            return html;
         };
 
         this._init();
