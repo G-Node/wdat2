@@ -3,32 +3,42 @@
 {% block title %}EventBus Test{% endblock %}
 
 {% block extra_script %}
-<script type="text/javascript">
-  "use strict";
-  var init = function() {
-    var bus = new wdat.Bus();
-    var log = $(".event-log").first();
+    <script type="text/javascript">
+        window.onload = function () {
+            require(['main'], function () {
+                window.run = {};
 
-    var fn = function(event, args){ log.append("<p>event fired: " + args + "</p>"); };
+                window.Bus      = require('api/bus');
 
-    var uid = bus.uid();
-    bus.subscribe("bla", fn, uid);
-    $(".event-1").first().click(function() { bus.publish("bla", "event 1 data", uid);});
+                run.bus = new Bus();
+                run.log = $(".event-run.log").first();
 
-    uid = bus.uid();
-    bus.subscribe("bla", fn, uid);
-    $(".event-2").first().click(function() { bus.publish("bla", "event 2 data", uid);});
-  };
-  $(window).load(init);
-</script>
+                run.fn = function (event, args) {
+                    run.log.append("<p>event fired: " + args + "</p>");
+                };
+
+                var uid = run.bus.uid();
+                run.bus.subscribe("bla", run.fn, uid);
+                $(".event-1").first().click(function () {
+                    run.bus.publish("bla", "event 1 data", uid);
+                });
+
+                uid = run.bus.uid();
+                run.bus.subscribe("bla", run.fn, uid);
+                $(".event-2").first().click(function () {
+                    run.bus.publish("bla", "event 2 data", uid);
+                });
+            });
+        };
+    </script>
 {% endblock %}
 
 {% block body %}
-<h1>EventBus Test</h1>
-<div>
-   <a href="#" class="event-1">Event 1</a> |
-   <a href="#" class="event-2">Event 2</a>
-</div>
-<div class="event-log">
-</div>
+    <h1>EventBus Test</h1>
+    <div>
+        <a href="#" class="event-1">Event 1</a> |
+        <a href="#" class="event-2">Event 2</a>
+    </div>
+    <div class="event-run.log">
+    </div>
 {% endblock %}
