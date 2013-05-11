@@ -15,14 +15,18 @@ define(['ui/template_container'], function (TemplateContainer) {
     }
 
     var _SEARCH_BAR_TEMPLATE = '' +
-        '<div class="wdat-search">' +
-        '  <div class="search-top">' + // was top-row
-        '    <textarea class="search-field" rows="2" cols="30"></textarea>' +
-        '    <button class="search-btn"></button>' +
-        '  </div>' + // was bottom-row
-        '  <div class="search-bottom">' +
-        '    <button class="activate-btn"></div>' +
-        '<div class="compose-btn"></div></div></div>';
+        '<div id="search" class="wdat-search">' +
+        '  <div class="search-right">' +
+        '    <select id="select-type" class="ui-button ui-widget ui-state-default ui-corner-all">' +
+        '      <option value="block">Block</option>' +
+        '      <option value="analogsignal">Analogsignal</option>' +
+        '    </select>' +
+        '    <button id="search-btn">Search</button>' +
+        '  </div>' +
+        '  <div class="search-left">' +
+        '    <input type="text" id="search-field">' +
+        '  </div>' +
+        '</div>';
 
     return {};
 });

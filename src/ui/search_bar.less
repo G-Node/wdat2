@@ -2,28 +2,30 @@
 
 .wdat-search {
 
-  display: table;
+  width: 560px;
 
-  .top-row, .bottom-row {
-    display: table-row;
+  input, select, button {
+    display: inline-block;
+    margin: @smallcushion;
   }
 
-  .search-field, .activate-btn {
-    display: table-cell;
-    vertical-align: middle;
-    width: 100%;
-    textarea { width: 100%; }
-    input { margin: 8px 4px 0px 0px;}
+  select {
+    height: 25px;
+    width: 140px;
   }
 
-  .search-btn, .compose-btn {
-    display: table-cell;
-    vertical-align: middle;
-    width: 90;
-    button { margin-left: @cushioning; }
+  input {
+    height: 14px;
+    width: 300px;
   }
 
-  .search-field, .search-btn { padding: @cushioning @smallcushion 0 @smallcushion; }
+  .search-right {
+    float: right;
+    margin: @smallcushion;
+  }
 
-  .activate-btn, .compose-btn { padding: 0 @smallcushion @cushioning @smallcushion; }
+  .search-left {
+    padding: @smallcushion;
+  }
+
 }

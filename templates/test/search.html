@@ -4,7 +4,10 @@
 
 {% block extra_script %}
     <script type="text/javascript">
-
+        window.onload = function() {
+            $('#active-btn').buttonset();
+            $('#search-btn').button();
+        }
     </script>
 {% endblock %}
 
@@ -12,21 +15,17 @@
     <h1>Search Bar Test</h1>
     <div class="container">
         <div id="search" class="wdat-search">
-            <div class="search-top">
-                <label name="search-field">Search:</label>
-                <input type="text" id="search-field">
-                <label name="select-type">Type:</label>
-                <select id="select-type">
+            <div class="search-right">
+                <!--<label for="select-type">Type:</label>-->
+                <select id="select-type" class="ui-button ui-widget ui-state-default ui-corner-all">
                     <option value='block'>Block</option>
                     <option value='analogsignal'>Analogsignal</option>
                 </select>
-            </div>
-            <div class="search-top">
-                <div id="active-btn">
-                    <input type="radio" id="active" name="radio" checked="checked" /><label for="radio1">Active</label>
-                    <input type="radio" id="inactive" name="radio"/><label for="radio2">Inactive</label>
-                </div>
                 <button id="search-btn">Search</button>
+            </div>
+            <div class="search-left">
+                <!--<label for="search-field">Search:</label>-->
+                <input type="text" id="search-field">
             </div>
         </div>
     </div>
