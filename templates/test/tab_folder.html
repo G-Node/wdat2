@@ -3,35 +3,52 @@
 {% block title %}Tab Folder Test{% endblock %}
 
 {% block extra_script %}
-<script type="text/javascript">
-  var init = function() {
-    var bus = new wdat.Bus();
-    var folder1 = new wdat.TabFolder($('#tf-1'), bus, true);
-    folder1.add($('<div>One</div>'), 'one', 'Tab One');
-    folder1.add($('<div>Two</div>'), 'two', 'Tab Two');
-    folder1.add($('<div>Three</div>'), 'three', 'Tab Three');
-    folder1.add($('<div>Foo</div>'), 'bla', 'Tab Foo');
-    folder1.set($('<div>Foo2</div>'), 'three', 'Tab Three v2');
-    folder1.del('bla');
-    bus.subscribe(folder1.event('sel'), folder1.selectHandler()); 
+    <script type="text/javascript">
 
-    var folder2 = new wdat.TabFolder($('#tf-2'), bus, false);
-    folder2.add($('<div>One</div>'), 'one', 'Tab One');
-    folder2.add($('<div>Two</div>'), 'two', 'Tab Two');
-    folder2.add($('<div>Three</div>'), 'three', 'Tab Three');
-    var link1 = $('<a href="#">One</a>').click(function() { folder2.select('one'); });
-    var link2 = $('<a href="#">Two</a>').click(function() { folder2.select('two'); });
-    var link3 = $('<a href="#">Three</a>').click(function() { folder2.select('three'); });
-    $('#tf-2').after(link3).after($('<br>')).after(link2).after($('<br>')).after(link1);
-  };
-  $(window).load(init);
-</script>
+        window.onload = function () {
+
+            require(['main'], function () {
+                var id = 1;
+
+                window.run = {};
+
+                window.Bus = require('api/bus');
+                window.TabFolder = require('ui/tab_folder');
+
+                run.bus = new Bus();
+                run.folder1 = new TabFolder($('#tf-1'), run.bus, true);
+                run.folder1.add($('<div>One</div>'), 'one', 'Tab One');
+                run.folder1.add($('<div>Two</div>'), 'two', 'Tab Two');
+                run.folder1.add($('<div>Three</div>'), 'three', 'Tab Three');
+                run.folder1.add($('<div>Foo</div>'), 'bla', 'Tab Foo');
+                run.folder1.set($('<div>Foo2</div>'), 'three', 'Tab Three v2');
+                run.folder1.del('bla');
+                run.bus.subscribe(run.folder1.event('sel'), run.folder1.selectHandler());
+
+                run.folder2 = new TabFolder($('#tf-2'), run.bus, false);
+                run.folder2.add($('<div>One</div>'), 'one', 'Tab One');
+                run.folder2.add($('<div>Two</div>'), 'two', 'Tab Two');
+                run.folder2.add($('<div>Three</div>'), 'three', 'Tab Three');
+
+                var link1 = $('<a href="#">One</a>').click(function () {
+                    run.folder2.select('one');
+                });
+                var link2 = $('<a href="#">Two</a>').click(function () {
+                    run.folder2.select('two');
+                });
+                var link3 = $('<a href="#">Three</a>').click(function () {
+                    run.folder2.select('three');
+                });
+                $('#tf-2').after(link3).after($('<br>')).after(link2).after($('<br>')).after(link1);
+            });
+        };
+    </script>
 {% endblock %}
 
 {% block body %}
-<h1>Tab Folder Test</h1>
-<div id="tf-1"></div><br>
-<div id="tf-2"></div><br>
-<div class="event-log"></div>
+    <h1>Tab Folder Test</h1>
+    <div id="tf-1"></div><br>
+    <div id="tf-2"></div><br>
+    <div class="event-log"></div>
 {% endblock %}
 

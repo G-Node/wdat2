@@ -1,0 +1,52 @@
+/* ---------- tab_folder.less ---------- */
+
+.wdat-tab-folder {
+
+  padding: 0;
+
+  .tab-navigation {
+    .vertical-padding(@smallcushion - 1px);
+    .horizontal-padding(0);
+    margin: 0px;
+    background-color: @bg-grey;
+    font-size: @baseFontSize + 2px;
+    list-style: none;
+    display: block;
+  }
+
+  div.tab-content {
+    display:none;
+  }
+
+  div.selected {
+    .border-std;
+    display: block;
+  }
+
+
+  .tab-navigation li {
+    .vertical-padding(@smallcushion);
+    .horizontal-padding(@cushioning * 2);
+    border-top: 1px solid  @border-color-std;
+    border-right: 1px solid  @border-color-std;
+    border-bottom: 1px solid  @border-color-std;
+
+    display: inline;
+    cursor: pointer;
+  }
+
+  .tab-navigation li:FIRST-CHILD {
+    border-left: 1px solid @border-color-std;
+  }
+
+  .tab-navigation li.selected {
+    border-bottom: 1px solid @bg;
+    background-color: @bg;
+  }
+
+  .tab-navigation li span {
+    text-decoration: none;
+    margin: 0px;
+  }
+
+}
