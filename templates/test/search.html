@@ -4,29 +4,27 @@
 
 {% block extra_script %}
     <script type="text/javascript">
-        window.onload = function() {
-            $('#active-btn').buttonset();
-            $('#search-btn').button();
-        }
+        window.onload = function () {
+            require(['main'], function () {
+
+                window.run = {};
+                // load
+                window.Bus  = require('api/bus');
+                window.SearchBar = require('ui/search_bar');
+
+                run.bus = new Bus();
+                run.list = new SearchBar($('#search'), run.bus);
+
+            });
+        };
     </script>
 {% endblock %}
 
 {% block body %}
     <h1>Search Bar Test</h1>
     <div class="container">
-        <div id="search" class="wdat-search">
-            <div class="search-right">
-                <!--<label for="select-type">Type:</label>-->
-                <select id="select-type" class="ui-button ui-widget ui-state-default ui-corner-all">
-                    <option value='block'>Block</option>
-                    <option value='analogsignal'>Analogsignal</option>
-                </select>
-                <button id="search-btn">Search</button>
-            </div>
-            <div class="search-left">
-                <!--<label for="search-field">Search:</label>-->
-                <input type="text" id="search-field">
-            </div>
+        <div id="search">
+
         </div>
     </div>
     <h3>Event Log</h3>
