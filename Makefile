@@ -12,7 +12,7 @@ JS_DIR = static/js
 
 # css compiler
 CSSC = lessc
-CSSCARGS = -s
+CSSCARGS = -s -x -O0
 # target dir for css files
 CSS_DIR = static/css
 
