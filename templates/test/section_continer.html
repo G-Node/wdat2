@@ -3,68 +3,63 @@
 {% block title %}SectionContainer Test{% endblock %}
 
 {% block extra_script %}
-<script type="text/javascript">
-  var init = function() {
-    var bus = new wdat.Bus();
-    var api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
-    var sec = new wdat.MetadataView($('#sec'), api, bus, 'select-section');
+    <script type="text/javascript">
 
-    /* Create section form and edit a selectable section */
-    var btn_section  = $("#btn-section").button({text: true});
-    btn_section.click( function() {
-      var id = $('#input-section').val();
-      bus.publish('select-section', {id: id});
-    });
+        window.onload = function () {
+            require(['main'], function () {
+                window.run = {};
+                // load
+                window.Bus = require('api/bus');
+                window.DataAPI = require('api/data_api');
+                window.SectionContainer = require('ui/section_container');
 
-    function handleRequestEvents(event, data) {
-      var section;
-      var properties = [];
-      for (var i in data.response) {
-        var elem = data.response[i];
-        if (elem.type == 'section') {
-          section = elem;
-        } else if (elem.type == 'property') {
-          var p = {property: elem, values: []};
-          for (var j in elem.children.value_set) {
-            var v = elem.children.value_set[j]
-            p.values.push(data.response[v]);
-          }
-          properties.push(p);
-        }
-      }
-      if (section) {
-        sec.set(section);
-        for (var j in properties) {
-          var p = properties[j].property;
-          var v = properties[j].values
-          var cont = new wdat.PropertyContainer(p.id, bus, contActions);
-          cont.set(p);
-          cont.setChildren(v);
-          list.addContainer(cont, 'properties');
-        }
-      }
-      log(properties);
-    }
+                run.bus = new Bus();
+                run.api = new DataAPI(run.bus);
+                run.cont = null;
 
-    function log(d) {
-      var l = $('.event-log');
-      l.empty();
-      l.text(JSON.stringify(d, null, 4));
-    }
-  };
-  $(window).load(init);
-</script>
+                /* log */
+                run.log =  $('.event-log');
+                run.cont_elem = $('.section-container');
+
+                run.handler = function(event, data) {
+                    run.log.text("")
+                    run.log.append("\nTest action: " + data.action + "\n");
+                    run.log.append("Test response: " + JSON.stringify(data, null, 4));
+                    if (data.primary.length > 0) {
+                        run.cont = new SectionContainer('bla', run.bus, null, data.primary[0]);
+                        run.cont_elem.empty();
+                        run.cont_elem.append(run.cont.jq());
+                    }
+                };
+
+                /* request data from DataAPI by URL */
+                run.requestByUrl = function() {
+                    var url = '/metadata/section/' + $('#url').val();
+                    if (url)
+                        run.api.getByURL('data-api', url);
+                };
+
+                run.bus.subscribe('data-api', run.handler);
+                $('#get-by-url').click(run.requestByUrl);
+            });
+        };
+
+    </script>
 {% endblock %}
 
 {% block body %}
-<h1>SectionContainer Test</h1>
-<div>
-  <button id="btn-section">Show Section</button>
-  <span>/metadata/section/</span>
-  <input type="text" value="12" id="input-section">
-</div>
-<div style="border: 1px solid grey">
-  <div id="sec"></div>
-</div>
-<pre class="event-log"></pre>
+    <h1>ModelConatiner Test</h1>
+    <h2>Request data by URL:</h2>
+    <p>
+        /metadata/section/<input type="text" size="4" id="url">&nbsp;
+        <button id="get-by-url">GET</button>
+    </p>
+
+    <p class="section-container">
+        Empty
+    </p>
+
+    <h1>Log</h1>
+    <pre class="event-log"></pre>
+
 {% endblock %}

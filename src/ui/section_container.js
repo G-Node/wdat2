@@ -17,7 +17,7 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
      * @extends {TemplateContainer}
      * @public
      */
-    function ModelContainer(id, bus, actions, data) {
+    function SectionContainer(id, bus, actions, data) {
 
         var _bus = bus;
 
@@ -27,7 +27,7 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
          * @private
          */
         this._postprocess = function(jq, data, actions) {
-            // TODO SctionContainer post processing of the template
+            // TODO SectionContainer post processing of the template
         };
 
         this.refresh();
@@ -40,25 +40,25 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
         '<div id="<%= this.dom_id %>" class="section-container"><h3>Section</h3>' +
         '<div class="properties">' +
         '  <div class="field">' +
-        '    <div class="field-name">Name</div><div class="field-val><%= this.name || unnamed %></div>' +
+        '    <div class="field-name">Name</div><div class="field-val"><%= this.name || "unnamed" %></div>' +
         '  </div>' +
         '  <div class="field">' +
-        '    <div class="field-name">Type</div><div class="field-val><%= this.fields.odml_type || n.a. %></div>' +
+        '    <div class="field-name">Type</div><div class="field-val"><%= this.fields.odml_type || "n.a." %></div>' +
         '  </div>' +
         '  <div class="field">' +
         '    <div class="field-name">Description</div>' +
-        '    <div class="field-val><%= this.field.description || n.a. %></div>' +
+        '    <div class="field-val"><%= this.fields.description || "n.a." %></div>' +
         '  </div>' +
         '  <div class="field">' +
-        '    <div class="field-name">Position</div><div class="field-val><%= this.fields.tree_position || n.a %></div>' +
+        '    <div class="field-name">Position</div><div class="field-val"><%= this.fields.tree_position || "n.a." %></div>' +
         '  </div>' +
         '  <div class="field">' +
-        '    <div class="field-name">Safety Level</div><div class="field-val><%= this.safety_level || n.a. %></div>' +
+        '    <div class="field-name">Safety Level</div><div class="field-val"><%= this.fields.safety_level || "n.a." %></div>' +
         '  </div>' +
         '  <div class="field">' +
-        '    <div class="field-name">Creation Date</div><div class="field-val><%= this.date_created || n.a. %></div>' +
+        '    <div class="field-name">Creation Date</div><div class="field-val"><%= this.fields.date_created || "n.a." %></div>' +
         '  </div>' +
         '</div></div>';
 
-    return ModelContainer;
+    return SectionContainer;
 });
