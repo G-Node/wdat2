@@ -105,7 +105,7 @@ define(function () {
             var id, this_id;
 
             this_id = _jq.attr('id') || '';
-            if (typeof(element) === 'object') {
+            if (element && typeof(element) === 'object') {
                 id = element.id;
             } else {
                 id = element;

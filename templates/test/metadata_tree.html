@@ -3,30 +3,39 @@
 {% block title %}Metadata Tree Test{% endblock %}
 
 {% block extra_script %}
-<script type="text/javascript">
-  var init = function() {
-    var selEvent = 'pmeta-select';
-    var bus = new wdat.Bus(); 
-    var api = new wdat.DataAPI('NetworkResource', 'ResourceAdapter', bus);
-    var pmeta = new wdat.MetadataTree($('#tree-1'), api, bus, selEvent);
-    bus.subscribe(selEvent, logSelection);
-    pmeta.load();
-    function logSelection(event, data) {
-      var logMsg = "Selection: " + JSON.stringify(data) + "\n";
-      $('.event-log').append(logMsg);
-      console.log(logMsg);
-    }
-  };
-  $(window).load(init);
-</script>
+    <script type="text/javascript">
+
+        window.onload = function () {
+            require(['main'], function () {
+                window.run = {};
+                window.run.sel = 'pmeta-select';
+                // load
+                window.Bus = require('api/bus');
+                window.DataAPI = require('api/data_api');
+                window.MetadataTree = require('app/metadata_tree');
+
+                run.bus = new Bus();
+                run.api = new DataAPI(run.bus);
+                run.tree = new MetadataTree($('#tree-1'), run.api, run.bus, run.sel);
+                run.tree.load();
+
+                run.log = function(event, data) {
+                    var logMsg = "Selection: " + JSON.stringify(data) + "\n";
+                    $('.event-log').empty().append(logMsg);
+                };
+                run.bus.subscribe(run.sel, run.log);
+            });
+        };
+
+    </script>
 {% endblock %}
 
 {% block body %}
-<h1>Metadata Tree Test</h1>
-<div id="tree-1" style="">
-</div>
-<h1>Log</h1>
-<p>
-<pre class="event-log"></pre>
-</p>
+    <h1>Metadata Tree Test</h1>
+    <div id="tree-1" style="">
+    </div>
+    <h1>Log</h1>
+    <p>
+    <pre class="event-log"></pre>
+    </p>
 {% endblock %}
