@@ -188,6 +188,24 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
         };
 
         /**
+         * Delete all children of a node.
+         *
+         * @param data  {Object|String}  The element to delete or the id of this element.
+         * @public
+         */
+        this.delChildren = function(data) {
+            var id = this.toID(data);
+
+            if (_data.hasOwnProperty(id)) {
+                this.jq().find('#' + id).find('.tree-node').each(function() {
+                    var i = $(this).attr('id');
+                    $(this).remove();
+                    delete _data[i];
+                })
+            }
+        };
+
+        /**
          * Select an element in the list. If the element is already selected
          * the selection will be removed (toggle).
          *
@@ -237,6 +255,7 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
          * Crates a default handler function for select events.
          *
          * @return {Function} A default handler.
+         * @public
          */
         this.selHandler = function () {
             var that = this;
@@ -249,6 +268,7 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
          * Crates a default handler function for delete events.
          *
          * @return {Function} A default handler.
+         * @public
          */
         this.delHandler = function () {
             var that = this;
