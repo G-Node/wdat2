@@ -307,7 +307,7 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
                 btn, click;
 
             for (var act in actions) {
-                if (actions.hasOwnProperty(act) && act != 'sel') {
+                if (actions.hasOwnProperty(act) && act != 'sel' && act != 'expand') {
                     click = actions[act];
                     btn   = new Button(null, act + '_small', _bus, click, data);
                     buttons.append(btn.jq());
@@ -326,7 +326,7 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
                 });
             }
 
-            jq.children('.node-icon').click(this._expandHandler());
+            jq.children('.node-icon').click(this._expandHandler(actions['expand']));
         };
 
 
@@ -336,10 +336,16 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
          * @returns {Function}
          * @private
          */
-        this._expandHandler = function() {
+        this._expandHandler = function(action) {
             var that = this;
 
             return function() {
+                var data = that.get();
+                if (typeof(action) === 'function') {
+                    actions(data);
+                } else if (action) {
+                    _bus.publish(String(action), data);
+                }
                 that.jq().toggleClass('collapsed');
             };
         };
