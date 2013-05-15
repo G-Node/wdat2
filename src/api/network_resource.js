@@ -203,7 +203,11 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
             for (var pname in parents) {
                 if (parents.hasOwnProperty(pname)) {
-                    component = encodeURIComponent(pname) + '=' + encodeURIComponent(val) + '&';
+                    if (val) {
+                        component = encodeURIComponent(pname) + '=' + encodeURIComponent(val) + '&';
+                    } else {
+                        component = encodeURIComponent(pname) + '__isnull=1&'
+                    }
                 }
                 for (var i = 0; i < urls.length; i++) {
                     newurls.push(urls[i] + component);
