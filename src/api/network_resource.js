@@ -551,7 +551,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             };
 
             // response and error handling
-            if (response.status === 200) {
+            if (response.status === 200 || response.status === 201) {
                 // all OK
 
                 if (contentType === 'application/json') {
