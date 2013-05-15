@@ -35,16 +35,22 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
             if (actions instanceof Array) {
                 for (i = 0; i < actions.length; i++) {
                     act = actions[i];
-                    if (Container.ACTIONS.indexOf(act) >= 0) {
+                    if (_ACTIONS.indexOf(act) >= 0) {
                         _actions[act] = this.toID(act);
                     }
                 }
             } else {
                 for (act in actions) {
-                    if (actions.hasOwnProperty(act) && Container.ACTIONS.indexOf(act) >= 0) {
+                    if (actions.hasOwnProperty(act) && _ACTIONS.indexOf(act) >= 0) {
                         _actions[act] = actions[act] || this.toID(act);
                     }
                 }
+            }
+            if (!_actions.hasOwnProperty('expand')) {
+                _actions['expand'] = this.toID('expand');
+            }
+            if (!_actions.hasOwnProperty('collapse')) {
+                _actions['collapse'] = this.toID('collapse');
             }
         };
 
@@ -307,7 +313,7 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
                 btn, click;
 
             for (var act in actions) {
-                if (actions.hasOwnProperty(act) && act != 'sel' && act != 'expand') {
+                if (actions.hasOwnProperty(act) && act != 'sel' && act != 'expand' && act != 'collapse') {
                     click = actions[act];
                     btn   = new Button(null, act + '_small', _bus, click, data);
                     buttons.append(btn.jq());
@@ -326,7 +332,7 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
                 });
             }
 
-            jq.children('.node-icon').click(this._expandHandler(actions['expand']));
+            jq.children('.node-icon').click(this._expandHandler(actions));
         };
 
 
@@ -336,17 +342,27 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
          * @returns {Function}
          * @private
          */
-        this._expandHandler = function(action) {
+        this._expandHandler = function(actions) {
             var that = this;
 
             return function() {
-                var data = that.get();
-                if (typeof(action) === 'function') {
-                    actions(data);
-                } else if (action) {
-                    _bus.publish(String(action), data);
+                var data = that.get() ,
+                    collapsed = that.jq().is('.collapsed') ,
+                    act;
+
+                if (collapsed) {
+                    act = actions['expand'];
+                } else {
+                    act = actions['collapse'];
                 }
-                that.jq().toggleClass('collapsed');
+
+                if (act === 'function') {
+                    act(data);
+                } else {
+                    _bus.publish(act, data);
+                }
+
+                that.jq().toggleClass('collapsed', !collapsed);
             };
         };
 
@@ -362,7 +378,7 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
         '  </div>' +
         '</div>';
 
-    var _ACTIONS = ['sel', 'add', 'edit', 'del'];
+    var _ACTIONS = ['expand', 'collapse', 'sel', 'add', 'edit', 'del'];
 
     return Tree;
 });
