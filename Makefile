@@ -19,7 +19,9 @@ CSS_DIR = static/css
 
 # javascript sources
 JS_SRC  = $(wildcard src/api/*.js) \
-	$(wildcard src/util/*.js)
+	$(wildcard src/util/*.js) \
+	$(wildcard src/ui/*.js) \
+	$(wildcard src/app/*.js)
 
 JS_MAIN = src/main.js src/main-worker.js
 
@@ -32,7 +34,8 @@ JS_DEP  = lib/d3/d3.min.js \
 
 # css sources and images
 LESS_SRC = $(wildcard src/*.less) \
-	$(wildcard src/ui/*.less)
+	$(wildcard src/ui/*.less) \
+	$(wildcard src/app/*.less)
 
 LESS_BUILD = static/main.css
 
