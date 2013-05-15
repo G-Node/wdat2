@@ -148,6 +148,18 @@ define(function () {
     }
 
     /**
+     * TODO description
+     *
+     * @param url {String}
+     *
+     * @returns {String}
+     */
+    function urlToID(url) {
+        var tmp = url.split('/');
+        return (tmp[tmp.length - 1]).split('?')[0];
+    }
+
+    /**
      * Create a URL from a category, type and id.
      *
      * @param category {String}     The category.
@@ -181,6 +193,7 @@ define(function () {
         trim:           trim ,
         urlOmitHost:    urlOmitHost ,
         segmentId:      segmentId ,
-        makeBaseURL:    makeBaseURL
+        makeBaseURL:    makeBaseURL ,
+        urlToID:        urlToID
     };
 });

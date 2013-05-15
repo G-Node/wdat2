@@ -204,7 +204,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             for (var pname in parents) {
                 if (parents.hasOwnProperty(pname)) {
                     if (val) {
-                        component = encodeURIComponent(pname) + '=' + encodeURIComponent(val) + '&';
+                        var id = strings.urlToID(val);
+                        component = encodeURIComponent(pname) + '=' + encodeURIComponent(id) + '&';
                     } else {
                         component = encodeURIComponent(pname) + '__isnull=1&'
                     }
