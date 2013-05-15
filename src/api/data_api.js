@@ -174,6 +174,48 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
         };
 
         /**
+         * Dummy that returns the current user.
+         * TODO Implement real function
+         *
+         * @returns {Object} The current user
+         * @public
+         */
+        this.currentUser = function() {
+            return {
+                name: 'bob' ,
+                id: '1' ,
+                permalink: '/user/1'
+            };
+        };
+
+        /**
+         * Dummy that returns all users as array.
+         *
+         * @returns {Array} Array with all users.
+         * @public
+         */
+        this.allUsers = function() {
+            var all = [
+                {
+                    name: 'bob' ,
+                    id: '1' ,
+                    permalink: '/user/1'
+                } ,
+                {
+                    name: 'jeff' ,
+                    id: '2' ,
+                    permalink: '/user/2'
+                } ,
+                {
+                    name: 'anita' ,
+                    id: '3' ,
+                    permalink: '/user/3'
+                }
+            ];
+            return all;
+        }
+
+        /**
          * Handles responses from the worker
          *
          * @param msg {Object} The message from the worker.
