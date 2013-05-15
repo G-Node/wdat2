@@ -31,9 +31,9 @@ define(['ui/tree'], function (Tree) {
         this._init = function() {
             _tree_actions = {
                 sel:        _sel ,
-                save:       _id + '-save' ,
                 edit:       _id + '-edit' ,
                 del:        _id + '-delete' ,
+                add:        _id + '-add' ,
                 expand:     _id + '-expand' ,
                 collapse:   _id + '-collapse'
             };
@@ -110,10 +110,18 @@ define(['ui/tree'], function (Tree) {
          * @private
          */
         this._onLoad = function() {
-            var that = this;
-
             return function(event, data) {
-                // TODO implement
+                if (!data.error) {
+                    for (var i = 0; i < data.primary.length; i++) {
+                        var section = data.primary[i];
+
+                        if (data.info && _isPredefNode(data.info)) {
+                            _tree.add(section, data.info);
+                        } else {
+                            _tree.add(section, section.parents.parent_section);
+                        }
+                    }
+                }
             };
         };
 
@@ -144,15 +152,46 @@ define(['ui/tree'], function (Tree) {
         };
 
         /**
+         * Crates a handler for expand events.
+         * It requests missing children of a node from the DataAPI, the response of
+         * the DataAPI will trigger a load event.
          *
-         * @returns {Function}
+         * @returns {Function} A function that handles expand events
          * @private
          */
         this._onExpand = function() {
-            var that = this;
-
             return function(event, data) {
-                // TODO implement
+                var evname  = event.type ,
+                    id      = data.id || data ,
+                    user    = _api.currentUser() ,
+                    search  = null ,
+                    info    = null;
+
+                if (evname === _tree_actions.expand) {
+                    if (_isPredefNode(id)) {
+                        switch (id) {
+                            case 'own-metadata':
+                                search = {type: 'section', parent: null, owner: user.id};
+                                info   = 'own-metadata';
+                                break;
+                            case 'shared-metadata':
+                                search = {type: 'section', parent: null, owner: [user.id, '!='], safety_level: 'friendly'};
+                                info   = 'shared-metadata';
+                                break;
+                            case 'public-metadata':
+                                search = {type: 'section', parent: null, owner: [user.id, '!='], safety_level: 'public'};
+                                info   = 'public-metadata';
+                                break;
+                        }
+                    } else {
+                        search = {type: 'section', parent: id};
+                    }
+                    if (search) {
+                        _api.get(_actions.load, search, info);
+                    }
+                } else if (evname === _tree_actions.collapse) {
+                    _tree.delChildren(data);
+                }
             };
         };
 
@@ -165,7 +204,7 @@ define(['ui/tree'], function (Tree) {
             var that = this;
 
             return function(event, data) {
-                // TODO implement
+                _tree.select(data.id, true);
             };
         };
 
@@ -198,14 +237,14 @@ define(['ui/tree'], function (Tree) {
      * Some predefined nodes that are loaded into the tree
      */
     var _PREDEF_NODES = [
-        {id: 'own-metadata', name: 'Metadata', parent_id: null},
-        {id: 'own-all', name: 'All Data', parent_id: null, isleaf: true},
-        {id: 'shared', name: 'Shared Objects', parent_id: null},
-        {id: 'shared-metadata', name: 'Metadata', parent_id: 'shared'},
-        {id: 'shared-all', name: 'All Data', parent_id: 'shared', isleaf: true},
-        {id: 'public', name: 'Public Objects', parent_id: null},
-        {id: 'public-metadata', name: 'Metadata', parent_id: 'public'},
-        {id: 'public-all', name: 'All Data', parent_id: 'public', isleaf: true}
+        {id: 'own-metadata', name: 'Metadata', parent_id: null, type: 'predef'},
+        {id: 'own-all', name: 'All Data', parent_id: null, isleaf: true, type: 'predef'},
+        {id: 'shared', name: 'Shared Objects', parent_id: null, type: 'predef'},
+        {id: 'shared-metadata', name: 'Metadata', parent_id: 'shared', type: 'predef'},
+        {id: 'shared-all', name: 'All Data', parent_id: 'shared', isleaf: true, type: 'predef'},
+        {id: 'public', name: 'Public Objects', parent_id: null, type: 'predef'},
+        {id: 'public-metadata', name: 'Metadata', parent_id: 'public', type: 'predef'},
+        {id: 'public-all', name: 'All Data', parent_id: 'public', isleaf: true, type: 'predef'}
     ];
 
     return MetadataTree;
