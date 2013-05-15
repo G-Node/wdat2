@@ -3,7 +3,7 @@
 /*
  * TODO module description.
  */
-define(['ui/tree'], function (Tree) {
+define(['ui/tree', 'ui/form'], function (Tree, Form) {
     "use strict";
 
     /**
@@ -52,6 +52,10 @@ define(['ui/tree'], function (Tree) {
                  .append(_tree.jq())
                  .append('<div class=tree-buttons></div>');
 
+            var formId = _id += '-section-form';
+            _form = new Form(formId, _bus, {save: _actions.save}, 'section', true);
+            _form.set({});
+
             // subscribe handlers for internal events
             _bus.subscribe(_actions.save, this._onSave());
             _bus.subscribe(_actions.update, this._onUpdate());
@@ -59,7 +63,7 @@ define(['ui/tree'], function (Tree) {
             // subscribe handlers for tree events
             _bus.subscribe(_tree_actions.del, this._onDelete());
             _bus.subscribe(_tree_actions.edit, this._onEdit());
-            _bus.subscribe(_tree_actions.edit, this._onEdit());
+            _bus.subscribe(_tree_actions.add, this._onEdit());
             _bus.subscribe(_tree_actions.expand, this._onExpand());
             _bus.subscribe(_tree_actions.collapse, this._onExpand());
             // publish tree selections as external event
@@ -84,23 +88,32 @@ define(['ui/tree'], function (Tree) {
          * @private
          */
         this._onSave = function() {
-            var that = this;
-
             return function(event, data) {
-                // TODO implement
+                _api.set(_actions.update, data);
             };
         };
 
         /**
+         * Creates a handler for delete events from the DataAPI.
          *
          * @returns {Function}
          * @private
          */
         this._onUpdate = function() {
-            var that = this;
-
             return function(event, data) {
-                // TODO implement
+                if (data.action === 'del') {
+                    _tree.del(data.info);
+                } else if (data.action === 'set') {
+                    for (var i = 0; i < data.primary.length; i++) {
+                        var element = data.primary[i];
+                        _tree.del(element.id);
+                        if (element.parents && element.parents.parent_section) {
+                            _tree.add(element, element.parents.parent_section);
+                        } else {
+                            _tree.add(element, 'own-metadata');
+                        }
+                    }
+                }
             };
         };
 
@@ -126,28 +139,44 @@ define(['ui/tree'], function (Tree) {
         };
 
         /**
+         * Creates a handler for delete events from the tree.
+         * The handler passes the delete request to the DataAPI,
+         * which notifies events.update.
          *
-         * @returns {Function}
+         * @returns {Function} A function that handles delete events.
          * @private
          */
         this._onDelete = function() {
-            var that = this;
-
             return function(event, data) {
-                // TODO implement
+                if (data.id) {
+                    _api.del(_actions.update, data.id, data.id);
+                }
             };
         };
 
         /**
+         * Crates a handler for edit events.
          *
-         * @returns {Function}
+         * @returns {Function} A handler for edit events.
          * @private
          */
         this._onEdit = function() {
-            var that = this;
-
             return function(event, data) {
-                // TODO implement
+                var id = data.id ,
+                    evname = event.type;
+
+                _form.set({});
+                if (!_isPredefNode(id)) {
+                    if (evname == _tree_actions.add) {
+                        _form.set({parents: {parent_section: id}, type: 'section'});
+                    } else if (evname == _tree_actions.edit) {
+                        _form.set(data);
+                    }
+                    _form.open();
+                } else if (id == 'own-metadata') {
+                    _form.set({parents: {parent_section: null}, type: 'section'});
+                    _form.open();
+                }
             };
         };
 
@@ -190,7 +219,9 @@ define(['ui/tree'], function (Tree) {
                         _api.get(_actions.load, search, info);
                     }
                 } else if (evname === _tree_actions.collapse) {
-                    _tree.delChildren(data);
+                    if (!_isPredefNode(id)) {
+                        _tree.delChildren(data);
+                    }
                 }
             };
         };
