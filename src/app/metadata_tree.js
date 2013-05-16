@@ -18,9 +18,9 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
      */
     function MetadataTree(html, api, bus, selEvent) {
 
-        var _id = bus.uid() ,
-            _html = $(html) ,
+        var _html = $(html) ,
             _bus  = bus ,
+            _id   = _html.attr('id') || _bus.uid() ,
             _api  = api ,
             _sel  = selEvent || _id + '-select',
             _tree, _actions, _tree_actions, _form;
@@ -52,8 +52,8 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
                  .append(_tree.jq())
                  .append('<div class=tree-buttons></div>');
 
-            var formId = _id += '-section-form';
-            _form = new Form(formId, _bus, {save: _actions.save}, 'section', true);
+            var form_id = _id += '-section-form';
+            _form = new Form(form_id, _bus, {save: _actions.save}, 'section', true);
             _form.set({});
 
             // subscribe handlers for internal events
