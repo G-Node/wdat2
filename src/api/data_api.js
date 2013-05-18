@@ -183,8 +183,8 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
         this.currentUser = function() {
             return {
                 name: 'bob' ,
-                id: '1' ,
-                permalink: '/user/1'
+                id: '2' ,
+                permalink: '/user/2'
             };
         };
 
@@ -198,12 +198,12 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
             var all = [
                 {
                     name: 'bob' ,
-                    id: '1' ,
+                    id: '2' ,
                     permalink: '/user/1'
                 } ,
                 {
                     name: 'jeff' ,
-                    id: '2' ,
+                    id: '1' ,
                     permalink: '/user/2'
                 } ,
                 {
