@@ -22,10 +22,10 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
             _adapter    = new ResourceAdapter() ,
             _worker;
 
-        /*if (Worker) {
+        if (Worker && !env.debug) {
             _worker = new Worker('/site_media/static/load-worker.js');
             _worker.onmessage = _workerHandler;
-        }*/
+        }
 
         /**
          * Get data from the api via search specifiers.
