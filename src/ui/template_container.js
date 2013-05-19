@@ -1,17 +1,15 @@
 //--------- template_container.js ---------//
 
-/*
- * TODO module description.
- */
 define(['ui/container'], function (Container) {
     "use strict";
 
     /**
+     * Constructor of the class TemplateContainer.
      *
-     * @param id
-     * @param template
-     * @param actions
-     * @param data
+     * @param id {String|jQuery}        The id of the container or a jQuery object.
+     * @param template {String}         The template (see jQote2 documentation).
+     * @param actions {Array|Object}    Array or Object defining events.
+     * @param data {Object}             The model data to display.
      *
      * @constructor
      * @extends {Container}

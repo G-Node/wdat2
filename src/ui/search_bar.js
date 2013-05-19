@@ -1,15 +1,13 @@
 //--------- search_bar.js ---------//
 
-/*
- * TODO module description.
- */
 define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Widget) {
     "use strict";
 
     /**
+     * A simple search widget.
      *
-     * @param id
-     * @param bus
+     * @param id {String|jQuery}        The id of the search bar or a jQuery object.
+     * @param bus {Bus}                 Bus for events.
      *
      * @constructor
      * @extends {Widget}
@@ -66,6 +64,7 @@ define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Wi
          *  {active: Boolean, param: Array, string: String, type: String}
          *
          * @return  {Object} Object with information about the search field.
+         * @public
          */
         this.get = function() {
             // parse params

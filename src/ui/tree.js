@@ -1,18 +1,18 @@
 //--------- tree.js ---------//
 
 /*
- * TODO module description.
+ * The module defines the class Tree.
  */
 define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'ui/multi_container'],
     function (strings, Button, Container, TemplateContainer, MultiContainer) {
     "use strict";
 
     /**
-     * TODO documentation for Tree and member functions
+     * A tree widget.
      *
-     * @param id
-     * @param bus
-     * @param actions
+     * @param id {String|jQuery}        The id of the list or a jQuery object.
+     * @param bus {Bus}                 Bus for events.
+     * @param actions {Array|Object}    Array or Object defining events for the tree.
      *
      * @constructor
      * @extends {MultiContainer}

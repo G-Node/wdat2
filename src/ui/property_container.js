@@ -1,21 +1,24 @@
 //--------- property_container.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class PropertyContainer
  */
 define(['ui/button', 'ui/template_container'], function(Button, TemplateContainer) {
     "use strict";
 
 
     /**
+     * A container that displays property and value data.
+     * TODO Implement missing methods.
      *
-     * @param id
-     * @param bus
-     * @param actions
-     * @param property
-     * @param values
+     * @param id {String|jQuery}        The id of the list or a jQuery object.
+     * @param bus {Bus}                 Bus for events.
+     * @param actions {Array|Object}    Array or Object defining events for the list.
+     * @param property {Object}         The property data to display.
+     * @param values {Array}            The values of the property.
      *
      * @constructor
+     * @extends {TemplateContainer}
      * @public
      */
     function PropetyContainer(id, bus, actions, property, values) {

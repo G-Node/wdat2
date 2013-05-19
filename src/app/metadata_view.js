@@ -1,20 +1,23 @@
 //--------- metadata_view.js ---------//
 
 /*
- * TODO module description.
+ * The module defines the presenter class MetadataView
  */
-define(['ui/list', 'ui/Form', 'ui/section_container', 'ui/property_container'],
+define(['ui/list', 'ui/form', 'ui/section_container', 'ui/property_container'],
     function (List, Form, SectionContainer, PropertyContainer) {
     "use strict";
 
     /**
+     * Constructor for the class MetadataView. This class defines a presenter that reacts on
+     * selection and update events from the MetadataTree and displays the selected section and
+     * all its properties and values.
      *
-     * @param html
-     * @param api
-     * @param bus
-     * @param selSection
-     * @param updateSection
-     * @param selValue
+     * @param html {jQuery}             The html element where the presenter should include its content.
+     * @param api {DataAPI}             A data api object as data source.
+     * @param bus {Bus}                 A message bus.
+     * @param selSection {String}       An event name for selection events from the metadata tree.
+     * @param updateSection {String}    An event name for update events (section update)
+     * @param selValue {String}         An event name for value selections.
      *
      * @constructor
      * @public
@@ -75,6 +78,7 @@ define(['ui/list', 'ui/Form', 'ui/section_container', 'ui/property_container'],
         };
 
         /**
+         * Crates a handler function for select events.
          *
          * @returns {Function}
          * @private
@@ -91,6 +95,7 @@ define(['ui/list', 'ui/Form', 'ui/section_container', 'ui/property_container'],
         };
 
         /**
+         * Crates a handler function for update events.
          *
          * @returns {Function}
          * @private
@@ -130,6 +135,7 @@ define(['ui/list', 'ui/Form', 'ui/section_container', 'ui/property_container'],
         };
 
         /**
+         * Crates a handler function for section update events.
          *
          * @returns {Function}
          * @private
@@ -146,6 +152,7 @@ define(['ui/list', 'ui/Form', 'ui/section_container', 'ui/property_container'],
         };
 
         /**
+         * Crates a handler function for save property events.
          *
          * @returns {Function}
          * @private
@@ -159,6 +166,7 @@ define(['ui/list', 'ui/Form', 'ui/section_container', 'ui/property_container'],
         };
 
         /**
+         * Crates a handler function for update property events.
          *
          * @returns {Function}
          * @private
@@ -174,6 +182,7 @@ define(['ui/list', 'ui/Form', 'ui/section_container', 'ui/property_container'],
         };
 
         /**
+         * Crates a handler function for property edit events.
          *
          * @returns {Function}
          * @private
@@ -188,6 +197,7 @@ define(['ui/list', 'ui/Form', 'ui/section_container', 'ui/property_container'],
         };
 
         /**
+         * Crates a handler function for property delete events.
          *
          * @returns {Function}
          * @private

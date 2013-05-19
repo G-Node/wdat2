@@ -23,7 +23,9 @@ define(function () {
         /** @type  jQuery */
         var _jq;
 
-        // initializes the object (is called later)
+        /**
+         * @private
+         */
         this._init = function() {
             var templ = template || '<div>';
 
