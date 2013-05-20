@@ -1,4 +1,4 @@
-//--------- file_view.js ---------//
+//--------- selected_data_view.js ---------//
 
 define(['ui/list'], function(List) {
 
@@ -11,10 +11,11 @@ define(['ui/list'], function(List) {
             _actions, _list_actions, _nav, _list;
 
         this._init = function() {
-            html.addClass('wdat-file-view');
-            var list_id = _id + '-file-list';
+            _html.addClass('wdat-selected-data-view');
+            var list_id = _id + '-data-list';
             _list = new List(list_id, bus, ['sel']);
             _html.append(_list.jq());
+            _list.add({id: 'dummy', name: 'A NEO element'});
         }
 
         this._init();
