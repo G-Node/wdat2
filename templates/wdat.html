@@ -1,48 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>WDAT</title>
+    <meta charset="UTF-8">
+    <title>WDAT</title>
 
-<link rel="stylesheet" href="{{ STATIC_URL }}reset.css" />
-<link rel="stylesheet" href="{{ STATIC_URL }}jquery-ui/jquery-ui.min.css" />
-<link rel="stylesheet" href="{{ STATIC_URL }}crayon/crayon.css" />
-<link rel="stylesheet" href="{{ STATIC_URL }}wdat-api.css" />
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}jquery-ui/jquery-ui.min.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}d3/d3.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}inheritance.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}crayon/crayon.js"></script>
-<script type="text/javascript" src="{{ STATIC_URL }}wdat-api.js"></script>
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/reset.css"/>
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/jquery-ui.min.css"/>
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/crayon.css"/>
+    <link rel="stylesheet" href="{{ STATIC_URL }}main.css"/>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.jqote2.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/d3.min.js"></script>
+    <script type="text/javascript" data-main="{{ STATIC_URL }}/main" src="{{ STATIC_URL }}js/require.min.js"></script>
 
-<style type="text/css"></style>
+    <style type="text/css"></style>
 
-<script type="text/javascript">
-  $(window).load(wdat.initialize);
-  window.onresize = wdat.adjustLayout
-</script>
+    <script type="text/javascript">
+
+        window.onload = function() {
+            require(['main'], function(main) {
+                main.initialize();
+                window.onresize = main.adjustLayout
+            });
+        }
+    </script>
 
 </head>
 <body>
 
 <div class="head">head</div>
 <div class="nav">
-  <div id="nav-buttons">nav-buttons</div>
+    <div id="nav-buttons">nav-buttons</div>
 </div>
 <div class="main">
-  <div class="left">
-    <div id="metadata-tree"></div>
-  </div>
-  <div class="right">
-    <div id="sel-value-view"></div>
-    <div id="sel-data-view"></div>
-  </div>
-  <div class="center">
-    <div id="search-bar"></div>
-    <div id="main-content">
-      <div id="tab-folder"></div>
+    <div class="left">
+        <div id="metadata-tree"></div>
     </div>
-  </div>
+    <div class="right">
+        <div id="sel-value-view"></div>
+        <div id="sel-data-view"></div>
+    </div>
+    <div class="center">
+        <div id="search-bar"></div>
+        <div id="main-content">
+            <div id="tab-folder"></div>
+        </div>
+    </div>
 </div>
 </body>
 </html>

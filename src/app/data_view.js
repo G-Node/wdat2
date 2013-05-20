@@ -1,6 +1,6 @@
 //---------- data_view.js ---------//
 
-define(['api/model_helpers', 'objects', 'ui/list', 'ui/model_container', 'ui/bread_crumb'],
+define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'ui/bread_crumb'],
     function(model_helpers, objects, List, ModelContainer, BreadCrumb) {
     "use strict";
 
