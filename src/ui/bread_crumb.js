@@ -1,7 +1,7 @@
 //--------- bread_crumb.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class BradCrumb
  */
 define(['ui/widget'], function (Widget) {
     "use strict";

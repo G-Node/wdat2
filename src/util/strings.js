@@ -6,7 +6,6 @@
 define(function () {
     "use strict";
 
-
     /**
      * Evaluates if a string starts with a certain substring.
      *
@@ -14,7 +13,6 @@ define(function () {
      * @param cmp {String}    The putative start sequence
      *
      * @returns {Boolean} True if str starts with cmp, false otherwise.
-     *
      * @public
      */
     function startsWith(s, cmp) {
@@ -32,7 +30,6 @@ define(function () {
      *                          regex this will be used to separate words (See string.split())
      *
      * @return {String} A copy of s with capitalized first character(s).
-     *
      * @public
      */
     function capitalWords(s, sep) {
@@ -58,7 +55,6 @@ define(function () {
      * @param s {String}    The string to trim.
      *
      * @return {String} Copy of the string without leading and trailing white space characters.
-     *
      * @public
      */
     function trim(s) {
@@ -70,12 +66,9 @@ define(function () {
      *
      * "http://foo.de/a/b/c?d=e" becomes "/a/b/c?d=e"
      *
-     * TODO refine regex
-     *
      * @param s {String} The URL to modify.
      *
      * @returns {String} The URL without leading protocol, host and port.
-     *
      * @public
      */
     function urlOmitHost(s) {
@@ -102,7 +95,6 @@ define(function () {
      * @param id {String|Number} The id to analyse.
      *
      * @returns {{type: *, category: *, id: *}} The parts of the segmented id.
-     *
      * @public
      */
     function segmentId(id) {
@@ -148,11 +140,12 @@ define(function () {
     }
 
     /**
-     * TODO description
+     * Extracts the numerical id from a permalink URL.
      *
      * @param url {String}
      *
      * @returns {String}
+     * @public
      */
     function urlToID(url) {
         var tmp = url.split('/');
@@ -167,7 +160,6 @@ define(function () {
      * @param id {String}           The id.
      *
      * @returns {string} A base URL.
-     *
      * @public
      */
     function makeBaseURL(category, type, id) {
