@@ -1,7 +1,7 @@
 //--------- container.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class Container.
  */
 define(['util/classes', 'util/objects', 'util/strings', 'api/model_helpers', 'api/bus', 'ui/widget', 'ui/button'],
     function (classes, objects, strings, model_helpers, Bus, Widget, Button) {
@@ -13,9 +13,10 @@ define(['util/classes', 'util/objects', 'util/strings', 'api/model_helpers', 'ap
     Container.ACTIONS = ['add', 'del', 'sel', 'edit'];
 
     /**
-     * TODO documentation for constructor and member functions
+     * Constructor for the class container. This is just a sort of interface.
+     * Implementations of methods are to be provided by subclasses.
      *
-     * @param id
+     * @param id {String|jQuery}    The id of the list or a jQuery object.
      * @param [template] {String}   A template for the widget.
      * @param [cls] {String}        A class that will be added to the widget.
      *

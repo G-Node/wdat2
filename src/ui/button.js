@@ -1,7 +1,7 @@
 //--------- button.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class Button.
  */
 define(['util/classes', 'ui/widget'], function (classes, Widget) {
     "use strict";

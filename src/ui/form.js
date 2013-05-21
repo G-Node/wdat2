@@ -1,13 +1,14 @@
 //--------- form.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class Form.
  */
 define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
     function (objects, strings, model_helpers, Container) {
     "use strict";
 
     /**
+     * Constructor for the Form base class.
      * TODO check set, _init and refresh for correct implementation
      *
      * @param id
