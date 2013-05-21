@@ -98,7 +98,46 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
             '</dl><h3>Security</h3><dl class="tabular">' +
             '  <dt>Safety Level:</dt><dd><%= this.safety_level || "n.a."%></dd>' +
             '  <dt>Shared With:</dt><dd><%="TODO"%></dd>' +
-            '</dl></div></div>'
+            '</dl></div></div>',
+
+        analogsignal: '' +
+            '<div id="<%= this.dom_id %>" class="wdat-container">' +
+                '<div class="buttons"></div>' +
+                '' +
+                '<div class="primary">' +
+                    '<span class="head"><%= this.name || "unnamed analogsignal"%></span>' +
+                    '<span class="head-add"></span>' +
+                '</div>' +
+                '<div class="secondary hidden"><h3>Fields</h3>' +
+                    '<div class="properties">' +
+                    '  <div class="field">' +
+                    '    <div class="field-name">Name</div><div class="field-val"><%= this.name || "unnamed analogsignal" %></div>' +
+                    '  </div>' +
+                    '  <div class="field">' +
+                    '    <div class="field-name">Type</div><div class="field-val"><%= this.type || "n.a." %></div>' +
+                    '  </div>' +
+                    '  <div class="field">' +
+                    '    <div class="field-name">Description</div>' +
+                    '    <div class="field-val"><%= this.fields.description || "n.a." %></div>' +
+                    '  </div>' +
+                    '  <div class="field">' +
+                    '    <div class="field-name">Safety Level</div><div class="field-val"><%= this.fields.safety_level || "n.a." %></div>' +
+                    '  </div>' +
+                    '  <div class="field">' +
+                    '    <div class="field-name">Creation Date</div><div class="field-val"><%= this.fields.date_created || "n.a." %></div>' +
+                    '  </div>' +
+                    '</div>' +
+                '</div>' +
+            '<div class="secondary hidden"><h3>Security</h3>' +
+            '<div class="properties">' +
+            '  <div class="field">' +
+            '    <div class="field-name">Safety Level</div><div class="field-val"><%= this.fields.safety_level || "n.a." %></div>' +
+            '  </div>' +
+            '  <div class="field">' +
+            '    <div class="field-name">Shared With</div><div class="field-val"><%= this.fields.odml_type || "n.a." %></div>' +
+            '  </div>' +
+            '</div>' +
+            '</div>'
     };
 
     /**
@@ -108,10 +147,10 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
         '<div id="<%= this.dom_id %>" class="wdat-container">' +
         '<div class="buttons"></div>' +
         '<div class="primary">' +
-        '  <span class="head"><%= this.name || "unnamed section"%></span>' +
+        '  <span class="head"><%= this.name || "unnamed container"%></span>' +
         '  <span class="head-add"></span></div>' +
         '<div class="secondary hidden"><h3>Fields</h3><dl class="tabular">' +
-        '  <dt>Name:</dt><dd><%= this.name || "unnamed section"%></dd>' +
+        '  <dt>Name:</dt><dd><%= this.name || "unnamed container"%></dd>' +
         '  <dt>Creation Date:</dt><dd><%= this.fields.date_created || "n.a."%></dd>' +
         '</dl><h3>Security</h3><dl class="tabular">' +
         '  <dt>Safety Level:</dt><dd><%= this.safety_level || "n.a."%></dd>' +
