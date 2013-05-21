@@ -103,13 +103,14 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
         analogsignal: '' +
             '<div id="<%= this.dom_id %>" class="wdat-container">' +
                 '<div class="buttons"></div>' +
-                '<hr>' +
                 '' +
                 '<div class="primary">' +
                     '<span class="head"><%= this.name || "unnamed analogsignal"%></span>' +
                     '<span class="head-add"></span>' +
                 '</div>' +
-                '<div class="secondary hidden"><h3>Fields</h3>' +
+                '<div class="secondary hidden">' +
+                    '<hr>' +
+                    '<h3>Fields</h3>' +
                     '<div class="properties">' +
                     '  <div class="field">' +
                     '    <div class="field-name">Name</div><div class="field-val"><%= this.name || "unnamed analogsignal" %></div>' +
