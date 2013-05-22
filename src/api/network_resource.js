@@ -145,7 +145,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                                 op  = par[1];
 
                             if (key === 'parent') {
-                                baseURLs = _parentToURL(baseURLs, type, val);
+                                baseURLs = _parentToURL(baseURLs, type, op, val);
                             } else {
                                 baseURLs = _paramToURL(baseURLs, type, key, op, val);
                             }
@@ -195,7 +195,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          *
          * @private
          */
-        function _parentToURL(urls, type, val) {
+        function _parentToURL(urls, type, op, val) {
 
             var newurls = [],
                 component ,
@@ -205,7 +205,11 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 if (parents.hasOwnProperty(pname)) {
                     if (val) {
                         var id = strings.urlToID(val);
-                        component = encodeURIComponent(pname) + '=' + encodeURIComponent(id) + '&';
+                        if (op === '!=') {
+                            component = 'n__' + encodeURIComponent(pname) + '=' + encodeURIComponent(id) + '&';
+                        } else {
+                            component = encodeURIComponent(pname) + '=' + encodeURIComponent(id) + '&';
+                        }
                     } else {
                         component = encodeURIComponent(pname) + '__isnull=1&'
                     }
@@ -234,7 +238,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          */
         function _paramToURL(urls, type, key, op, val) {
 
-            var component = '',
+            var operator,
+                component = '',
                 fields = model_helpers.fields(type);
 
             switch (key) {
@@ -243,28 +248,41 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     if (!safety_level > 0) {
                         safety_level = SAFETY_LEVEL[val] || 3;
                     }
-                    component = 'safety_level=' + safety_level + '&';
+                    if (op === '!=') {
+                        component = 'n__safety_level=' + safety_level + '&';
+                    } else {
+                        component = 'safety_level=' + safety_level + '&';
+                    }
                     break;
                 case 'owner':
                     if (val) {
-                        component = 'owner' + op + encodeURIComponent(val) + '&';
+                        if (op === '!=') {
+                            component = 'n__owner=' + encodeURIComponent(val) + '&';
+                        } else {
+                            component = 'owner=' + encodeURIComponent(val) + '&';
+                        }
                     } else {
                         component = 'owner__isnull=1&';
                     }
                     break;
                 default:
-                    var operator;
                     if (fields[key]) {
                         var t = fields[key]['type'];
-                        if (op === '=' && (t === 'int' || t === 'num' || t === 'date')) {
+                        if ((op === '=' || op === '!=') && (t === 'int' || t === 'num' || t === 'date')) {
                             operator = '='
+                        } else if (op === '!='){
+                            operator = '__icontains=';
                         } else {
                             operator = OPERATOR[op] || '__icontains=';
                         }
                     } else {
                         operator = OPERATOR[op] || '__icontains=';
                     }
-                    component = encodeURIComponent(key) + operator + encodeURIComponent(val) + '&';
+                    if (op === '!=') {
+                        component = 'n__' + encodeURIComponent(key) + operator + encodeURIComponent(val) + '&';
+                    } else {
+                        component = encodeURIComponent(key) + operator + encodeURIComponent(val) + '&';
+                    }
             }
 
             for (var i = 0; i < urls.length; i++) {
