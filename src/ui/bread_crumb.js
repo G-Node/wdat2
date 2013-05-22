@@ -29,7 +29,7 @@ define(['ui/widget'], function (Widget) {
             _datasets = [],
             _action;
 
-        Widget.apply(this, [id, 'div', 'wdat-bread-crumb']);
+        Widget.apply(this, [id, '<div>', 'wdat-bread-crumb']);
 
         /**
          * @private

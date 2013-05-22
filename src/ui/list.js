@@ -57,18 +57,20 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
                         }
                     }
                 }
-                for (i = 0; i < categories.length; i++) {
-                    var cat = categories[i].toString().toLowerCase();
+                if (categories) {
+                    for (i = 0; i < categories.length; i++) {
+                        var cat = categories[i].toString().toLowerCase();
 
-                    var label = strings.capitalWords(cat, /[_\- \.:]/);
-                    var html;
-                    if (cat === 'default') {
-                        html = $('<div class="category"></div>');
-                    } else {
-                        html = $('<div class="category"><h2>'+label+'</h2></div>');
+                        var label = strings.capitalWords(cat, /[_\- \.:]/);
+                        var html;
+                        if (cat === 'default') {
+                            html = $('<div class="category"></div>');
+                        } else {
+                            html = $('<div class="category"><h2>'+label+'</h2></div>');
+                        }
+                        this.jq().append(html);
+                        _list[cat] = {html: html, data: {}};
                     }
-                    this.jq().append(html);
-                    _list[cat] = {html: html, data: {}};
                 }
             };
 

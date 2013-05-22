@@ -2,7 +2,7 @@
 
 define(['ui/list'], function(List) {
 
-    function SelectedDataView(html, bus, selSelection, searchEvent) {
+    function SelectedDataView(html, api, bus, selSelection, searchEvent) {
         var _html       = $(html) ,
             _bus        = bus ,
             _id         = _html.attr('id') || _bus.uid() ,
@@ -20,6 +20,26 @@ define(['ui/list'], function(List) {
 
             _list.add({id: 'dummy', name: 'A NEO element'});
         }
+
+        /**
+         * Getter for html element of the view.
+         *
+         * @returns {jQuery}
+         * @public
+         */
+        this.html = function() {
+            return _html;
+        };
+
+        /**
+         * Getter for the list widget.
+         *
+         * @returns {List}
+         * @public
+         */
+        this.list = function() {
+            return _list;
+        };
 
         this._init();
     }

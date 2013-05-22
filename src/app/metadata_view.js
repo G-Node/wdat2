@@ -78,6 +78,16 @@ define(['ui/list', 'ui/form', 'ui/section_container', 'ui/property_container'],
         };
 
         /**
+         * Getter for the html element of the view.
+         *
+         * @returns {jQuery}
+         * @public
+         */
+        this.html = function() {
+            return _html;
+        };
+
+        /**
          * Crates a handler function for select events.
          *
          * @returns {Function}

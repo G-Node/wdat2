@@ -1,6 +1,6 @@
 //--------- template_container.js ---------//
 
-define(['ui/container'], function (Container) {
+define(['util/objects', 'ui/container'], function (objects, Container) {
     "use strict";
 
     /**
@@ -20,7 +20,7 @@ define(['ui/container'], function (Container) {
         // inherit from Container
         Container.apply(this, [id]);
 
-        var _data       = data || TemplateContainer.EMPTY,
+        var _data       = data || {},
             _template   = $.jqotec(template) ,
             _actions    = {};
 
@@ -54,7 +54,7 @@ define(['ui/container'], function (Container) {
          * @public
          */
         this.set = function(data) {
-            _data = data || TemplateContainer.EMPTY;
+            _data = data || {};
             this.refresh();
             return this;
         };
@@ -107,7 +107,9 @@ define(['ui/container'], function (Container) {
          */
         this.refresh = function() {
             var id = this.id();
-            var d  = _data || {};
+            var d  = objects.deepCopy(_data || {});
+            if (!d.fields) d.fields = {};
+            if (!d.data) d.data = {};
             var jq = $($.jqote(_template, d)).attr('id', id);
             this._postprocess(jq, d, _actions);
             this.jq(jq);
@@ -123,8 +125,6 @@ define(['ui/container'], function (Container) {
 
         this._init();
     }
-
-    TemplateContainer.EMPTY = {fields: {}, data: {}};
 
     return TemplateContainer;
 });
