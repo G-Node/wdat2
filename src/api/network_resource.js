@@ -247,7 +247,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     break;
                 case 'owner':
                     if (val) {
-                        component = 'owner=' + encodeURIComponent(val) + '&';
+                        component = 'owner' + op + encodeURIComponent(val) + '&';
                     } else {
                         component = 'owner__isnull=1&';
                     }
