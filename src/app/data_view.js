@@ -30,6 +30,9 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
                 edit:           _id + '-edit'
             };
 
+            _html.attr('id', _id)
+                .addClass('wdat-data-view');
+
             var nav_id  = _id + '-bread-crumb',
                 list_id = _id + '-data-list';
 
@@ -47,6 +50,26 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
             _bus.subscribe(_list_actions.sel, this._onSelectData());
             //_bus.subscribe(_list_actions.edit, this._onEditData());
             _bus.subscribe(_actions.nav, this._onNavigate());
+        };
+
+        /**
+         * Getter for html element of the view.
+         *
+         * @returns {jQuery}
+         * @public
+         */
+        this.html = function() {
+            return _html;
+        };
+
+        /**
+         * Getter for the list widget.
+         *
+         * @returns {List}
+         * @public
+         */
+        this.list = function() {
+            return _list;
         };
 
         this.requestData = function(event) {

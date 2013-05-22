@@ -86,6 +86,26 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
         };
 
         /**
+         * Getter for the tree widget.
+         *
+         * @returns {Tree}
+         * @public
+         */
+        this.tree = function() {
+            return _tree;
+        };
+
+        /**
+         * Getter for the html element of the view.
+         *
+         * @returns {jQuery}
+         * @public
+         */
+        this.html = function() {
+            return _html;
+        };
+
+        /**
          * Creates a handler for save events.
          *
          * @returns {Function}
