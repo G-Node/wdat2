@@ -20,7 +20,7 @@ define(['ui/container'], function (Container) {
         // inherit from Container
         Container.apply(this, [id]);
 
-        var _data       = data,
+        var _data       = data || TemplateContainer.EMPTY,
             _template   = $.jqotec(template) ,
             _actions    = {};
 
@@ -54,7 +54,7 @@ define(['ui/container'], function (Container) {
          * @public
          */
         this.set = function(data) {
-            _data = data;
+            _data = data || TemplateContainer.EMPTY;
             this.refresh();
             return this;
         };
@@ -123,6 +123,8 @@ define(['ui/container'], function (Container) {
 
         this._init();
     }
+
+    TemplateContainer.EMPTY = {fields: {}, data: {}};
 
     return TemplateContainer;
 });
