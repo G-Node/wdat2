@@ -1,18 +1,20 @@
 //--------- model_container.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class ModelContainer.
  */
 define(['ui/button', 'ui/template_container'], function (Button, TemplateContainer) {
     "use strict";
 
 
     /**
+     * Constructor of the class ModelContainer. ModelContainer can display a single
+     * instance of a data model object in an expendable container.
      *
-     * @param id
-     * @param bus
-     * @param actions
-     * @param data
+     * @param id {String|jQuery}        The id of the container or a jQuery object.
+     * @param bus {Bus}                 Bus for events.
+     * @param actions {Array|Object}    Array or Object defining events.
+     * @param data {Object}             The model data to display.
      *
      * @constructor
      * @extends {TemplateContainer}
@@ -21,6 +23,7 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
     function ModelContainer(id, bus, actions, data) {
 
         var _bus = bus;
+
         TemplateContainer.apply(this, [id, _template(data), actions || _ACTIONS, data]);
 
         /**
@@ -44,7 +47,7 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
         /**
          * Returns a handler for expand events (for internal use only)
          *
-         * @returns {Function}
+         * @returns {Function} The expand handler.
          */
         this._expandHandler = function() {
           var that = this;
@@ -57,6 +60,14 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
 
     }
 
+    /**
+     * Select the right template and return the template as string.
+     *
+     * @param data {Object}     The data object to find a template for.
+     *
+     * @returns {String} The template.
+     * @private
+     */
     function _template(data) {
         if (typeof(data) === 'string' && _MODEL_TEMPLATES.hasOwnProperty(data)) {
             return _MODEL_TEMPLATES[data];
@@ -67,6 +78,9 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
         }
     }
 
+    /**
+     * Predefined model templates.
+     */
     var _MODEL_TEMPLATES = {
 
         section: '' +
@@ -87,6 +101,9 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
             '</dl></div></div>'
     };
 
+    /**
+     * The default template.
+     */
     var _DEFAULT_TEMPLATE = '' +
         '<div id="<%= this.dom_id %>" class="wdat-container">' +
         '<div class="buttons"></div>' +
@@ -101,6 +118,9 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
         '  <dt>Shared With:</dt><dd><%="TODO"%></dd>' +
         '</dl></div></div>';
 
+    /**
+     * Default actions for the model container.
+     */
     var _ACTIONS = ['sel', 'edit', 'del'];
 
     return ModelContainer;

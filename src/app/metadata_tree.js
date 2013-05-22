@@ -1,26 +1,29 @@
 //--------- metadata_tree.js ---------//
 
 /*
- * TODO module description.
+ * The module defines the presenter class MetadataTree
  */
 define(['ui/tree', 'ui/form'], function (Tree, Form) {
     "use strict";
 
     /**
+     * Constructor for the class MetadataTree. The class implements a presenter,
+     * that fills a tree widget with sections from the data api.
      *
-     * @param html
-     * @param api
-     * @param bus
-     * @param selEvent
+     * @param html {jQuery}     The html element where the presenter should include the tree.
+     * @param api {DataAPI}     A data api object as data source.
+     * @param bus {Bus}         A message bus for events.
+     * @param selEvent {String} Event name under which selections events of the tree will be
+     *                          published.
      *
      * @constructor
      * @public
      */
     function MetadataTree(html, api, bus, selEvent) {
 
-        var _id = bus.uid() ,
-            _html = $(html) ,
+        var _html = $(html) ,
             _bus  = bus ,
+            _id   = _html.attr('id') || _bus.uid() ,
             _api  = api ,
             _sel  = selEvent || _id + '-select',
             _tree, _actions, _tree_actions, _form;
@@ -52,8 +55,8 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
                  .append(_tree.jq())
                  .append('<div class=tree-buttons></div>');
 
-            var formId = _id += '-section-form';
-            _form = new Form(formId, _bus, {save: _actions.save}, 'section', true);
+            var form_id = _id += '-section-form';
+            _form = new Form(form_id, _bus, {save: _actions.save}, 'section', true);
             _form.set({});
 
             // subscribe handlers for internal events
@@ -83,6 +86,27 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
         };
 
         /**
+         * Getter for the tree widget.
+         *
+         * @returns {Tree}
+         * @public
+         */
+        this.tree = function() {
+            return _tree;
+        };
+
+        /**
+         * Getter for the html element of the view.
+         *
+         * @returns {jQuery}
+         * @public
+         */
+        this.html = function() {
+            return _html;
+        };
+
+        /**
+         * Creates a handler for save events.
          *
          * @returns {Function}
          * @private
@@ -118,6 +142,7 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
         };
 
         /**
+         * Creates a handler for load events.
          *
          * @returns {Function}
          * @private
@@ -227,13 +252,12 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
         };
 
         /**
+         * Creates a handler for select events.
          *
          * @returns {Function}
          * @private
          */
         this._onSelect = function() {
-            var that = this;
-
             return function(event, data) {
                 _tree.select(data.id, true);
             };

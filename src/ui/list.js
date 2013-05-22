@@ -1,19 +1,21 @@
 //--------- list.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class List.
  */
 define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_container'],
     function (strings, Container, ModelContainer, MultiContainer) {
         "use strict";
 
         /**
-         * TODO documentation for List and member functions
+         * Class List. List implements view to a dynamic list. Elements can
+         * be added, removed and selected. The list expects all elements to have at least
+         * the attribute 'name'.
          *
-         * @param id
-         * @param bus
-         * @param actions
-         * @param categories TODO implement categories
+         * @param id {String|jQuery}        The id of the list or a jQuery object.
+         * @param bus {Bus}                 Bus for events.
+         * @param actions {Array|Object}    Array or Object defining events for the list.
+         * @param [categories] {Array}      Predefined categories.
          *
          * @constructor
          * @extends {MultiContainer}
@@ -55,18 +57,20 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
                         }
                     }
                 }
-                for (i = 0; i < categories.length; i++) {
-                    var cat = categories[i].toString().toLowerCase();
+                if (categories) {
+                    for (i = 0; i < categories.length; i++) {
+                        var cat = categories[i].toString().toLowerCase();
 
-                    var label = strings.capitalWords(cat, /[_\- \.:]/);
-                    var html;
-                    if (cat === 'default') {
-                        html = $('<div class="category"></div>');
-                    } else {
-                        html = $('<div class="category"><h2>'+label+'</h2></div>');
+                        var label = strings.capitalWords(cat, /[_\- \.:]/);
+                        var html;
+                        if (cat === 'default') {
+                            html = $('<div class="category"></div>');
+                        } else {
+                            html = $('<div class="category"><h2>'+label+'</h2></div>');
+                        }
+                        this.jq().append(html);
+                        _list[cat] = {html: html, data: {}};
                     }
-                    this.jq().append(html);
-                    _list[cat] = {html: html, data: {}};
                 }
             };
 
@@ -75,10 +79,11 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
              * Add a new element to the list. If the element doesn't has id, a unique identifier
              * will be created.
              *
-             * @param data (Obj)          The element to add to the list.
-             * @param category (String)   The category (optional).
+             * @param data {Object}         The element to add to the list.
+             * @param [category] {String}   The category (optional).
              *
-             * @return The inserted element.
+             * @return {Object} The inserted element.
+             * @public
              */
             this.add = function (data, category) {
                 var inserted = null;
@@ -115,10 +120,11 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
             /**
              * Add a new element to the list that is already wrapped into a container
              *
-             * @param cont (Container)   The element to add to the list.
-             * @param category (String)  The category (optional).
+             * @param cont {Container}      The element to add to the list.
+             * @param [category] {String}   The category (optional).
              *
              * @return The inserted element.
+             * @public
              */
             this.addContainer = function(cont, category) {
                 var inserted = null;
@@ -160,6 +166,7 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
              * @param [category] {String}   The category.
              *
              * @return {Array} The elements added to the list.
+             * @public
              */
             this.addAll = function (datasets, category) {
                 var added = [];
@@ -174,6 +181,7 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
              * Update the content of an existing list element.
              *
              * @param data {Object}         The element to update.
+             * @public
              */
             this.set = function (data) {
                 if (this.has(data)) {
@@ -194,9 +202,9 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
             /**
              * Remove an element from the list.
              *
-             * @param data (String, Obj)    The element to remove or the id of this
+             * @param data {String|Object}  The element to remove or the id of this
              *                              element.
-             *
+             * @public
              */
             this.del = function (data) {
                 if (this.has(data)) {
@@ -243,12 +251,13 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
              * Select an element in the list. If the element is already selected
              * the selection will be removed (toggle).
              *
-             * @param data (String, Obj)    The elements to select or the id of this
+             * @param data {String|Object}  The elements to select or the id of this
              *                              element.
-             * @param single (Boolean)      Set to true if the selected element should be the
+             * @param single {Boolean}      Set to true if the selected element should be the
              *                              only selected element in the whole list.
              *
              * @return {Boolean} True if the element is now selected false otherwise.
+             * @public
              */
             this.select = function (data, single) {
                 var selected = false;
@@ -266,6 +275,7 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
 
             /**
              * Clear the container and refresh its content.
+             * @public
              */
             this.clear = function () {
                 for (var cat in _list) {
@@ -289,7 +299,6 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
              * @param action {String}    The action name.
              *
              * @returns {String} The event for the specific action or undefined.
-             *
              * @public
              */
             this.event = function(action) {
@@ -304,6 +313,7 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
              * Crates a default handler function for select events.
              *
              * @return {Function} A default handler.
+             * @public
              */
             this.selHandler = function () {
                 var that = this;
@@ -316,6 +326,7 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
              * Crates a default handler function for delete events.
              *
              * @return {Function} A default handler.
+             * @public
              */
             this.delHandler = function () {
                 var that = this;

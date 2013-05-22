@@ -1,7 +1,7 @@
 //--------- tab_folder.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class TabFolder.
  */
 define(['util/strings', 'ui/multi_container'], function (strings, MultiContainer) {
     "use strict";
