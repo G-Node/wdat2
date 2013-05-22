@@ -110,6 +110,7 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
 
             adapted.safety_level = SECURITY_LEVEL_STR[data['fields']['safety_level']] || 3;
             delete adapted.date_created;
+            delete adapted.shared_with;
 
             for (var p in data['parents']) {
                 if (data['parents'].hasOwnProperty(p)) {
@@ -159,7 +160,9 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
                         }
                     } else if (f === 'safety_level') {
                         adapted.fields[f] = SECURITY_LEVEL_NUM[fields['safety_level']];
-                    } else {
+                    } else if (f === 'shared_with') {
+                        adapted.shared_with = fields[f];
+                    }else {
                         adapted.fields[f] = fields[f];
                     }
                 }
