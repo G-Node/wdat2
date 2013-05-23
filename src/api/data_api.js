@@ -189,31 +189,70 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
         };
 
         /**
+         * Fetches users list asynchronously.
+         * TODO implement this together
+         *
+         * @param callback {Function}
+         *
+         * @public
+         */
+        this.allUsersAsync = function() {
+            _resource.doGET(['/user/'], usersReady, 0);
+
+            function usersReady( responses ) {
+                return responses[0].data;
+            };
+        };
+
+        /**
          * Dummy that returns all users as array.
          *
          * @returns {Array} Array with all users.
          * @public
          */
         this.allUsers = function() {
-            var all = [
-                {
-                    name: 'bob' ,
-                    id: '1' ,
-                    permalink: '/user/1'
-                } ,
-                {
-                    name: 'jeff' ,
-                    id: '2' ,
-                    permalink: '/user/2'
-                } ,
-                {
-                    name: 'anita' ,
-                    id: '3' ,
-                    permalink: '/user/3'
+            var xhr = new XMLHttpRequest();
+            var url = '/user/';
+
+            xhr.open('GET', url, false);
+            xhr.send(null);
+
+            var contentType = xhr.getResponseHeader('Content-Type') ,
+                content     = xhr.responseText;
+
+            var response = {
+                url:        url ,
+                error:      false ,
+                data:       [] ,
+                range:      [0, 0] ,
+                status:     parseInt(xhr.status) ,
+                type:       "GET",
+                message:    'No message'
+            };
+
+            if (response.status === 200) {
+                // all OK
+
+                if (contentType === 'application/json') {
+                    content = JSON.parse(content);
+                    response.message = content['message'];
+                    response.data    = content['selected'] || [];
+                    response.range   = content['selected_range'] || [0, 0];
+                } else {
+                    response.error   = true;
+                    response.message = "Severe Error: wrong content type or no content ("+status+")";
                 }
-            ];
-            return all;
-        }
+            } else {
+                // server errors and unexpected responses
+
+                response.data    = [];
+                response.error   = true;
+                response.message = "Server Error: unresolved ("+status+")";
+
+            }
+
+            return response.data; // change to the response if needed
+        };
 
         /**
          * Handles responses from the worker
