@@ -35,8 +35,9 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
 
             btn = new Button(null, 'more', _bus, this._expandHandler());
             buttons.append(btn.jq());
+            btn = new Button(jq.find('.share-btn'), 'Share', _bus, actions.share, data);
             for (var act in actions) {
-                if (actions.hasOwnProperty(act)) {
+                if (act !== 'share' && actions.hasOwnProperty(act)) {
                     click = actions[act];
                     btn   = new Button(null, act + '_small', _bus, click, data);
                     buttons.append(btn.jq());
@@ -103,7 +104,6 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
         analogsignal: '' +
             '<div id="<%= this.dom_id %>" class="wdat-container">' +
                 '<div class="buttons"></div>' +
-                '' +
                 '<div class="primary">' +
                     '<span class="head"><%= this.name || "unnamed analogsignal"%></span>' +
                     '<span class="head-add"></span>' +
@@ -112,40 +112,47 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
                     '<hr>' +
                     '<h3>Fields</h3>' +
                     '<div class="properties">' +
-                    '  <div class="field">' +
-                    '    <div class="field-name">Name</div><div class="field-val"><%= this.name || "unnamed analogsignal" %></div>' +
-                    '  </div>' +
-                    '  <div class="field">' +
-                    '    <div class="field-name">Type</div><div class="field-val"><%= this.type || "n.a." %></div>' +
-                    '  </div>' +
-                    '  <div class="field">' +
-                    '    <div class="field-name">Description</div>' +
-                    '    <div class="field-val"><%= this.fields.description || "n.a." %></div>' +
-                    '  </div>' +
-                    '  <div class="field">' +
-                    '    <div class="field-name">Safety Level</div><div class="field-val"><%= this.fields.safety_level || "n.a." %></div>' +
-                    '  </div>' +
-                    '  <div class="field">' +
-                    '    <div class="field-name">Creation Date</div><div class="field-val"><%= this.fields.date_created || "n.a." %></div>' +
-                    '  </div>' +
+                        '<div class="field">' +
+                            '<div class="field-name">Name</div>' +
+                            '<div class="field-val"><%= this.name || "unnamed analogsignal" %></div>' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<div class="field-name">Type</div>' +
+                            '<div class="field-val"><%= this.type || "n.a." %></div>' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<div class="field-name">Description</div>' +
+                            '<div class="field-val"><%= this.fields.description || "n.a." %></div>' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<div class="field-name">Safety Level</div>' +
+                            '<div class="field-val"><%= this.fields.safety_level || "n.a." %></div>' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<div class="field-name">Creation Date</div>' +
+                            '<div class="field-val"><%= this.fields.date_created || "n.a." %></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<h3>Security</h3>' +
+                    '<div class="properties">' +
+                        '<div class="field">' +
+                            '<div class="field-name">Safety Level</div>' +
+                            '<div class="field-val"><%= this.fields.safety_level || "n.a." %></div>' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<div class="field-name">Shared With</div>' +
+                            '<div class="field-val">' +
+                                '<% for (person in this.shared_with) { %>' +
+                                    '<%= person + "&nbsp(" + this.shared_with[person] + ");"%>' +
+                                '<% } %>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<div class="field-name"></div>' +
+                            '<div class="field-val"><button class="share-btn"></button></div>' +
+                        '</div>' +
                     '</div>' +
                 '</div>' +
-            '<div class="secondary hidden"><h3>Security</h3>' +
-            '<div class="properties">' +
-            '  <div class="field">' +
-            '    <div class="field-name">Safety Level</div><div class="field-val"><%= this.fields.safety_level || "n.a." %></div>' +
-            '  </div>' +
-            '</div>' +
-            '</div>' +
-            '<div class="secondary hidden"><h3>Shared with</h3>' +
-            '<div class="properties">' +
-            '   <% for (person in this.shared_with) { %>' +
-            '  <div class="field">' +
-            '    <div class="field-name"><%= person %></div><div class="field-val"><%= this.shared_with[person] %></div>' +
-            '  </div>' +
-            '  <% } %>' +
-
-            '</div>' +
             '</div>'
     };
 
@@ -169,7 +176,7 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
     /**
      * Default actions for the model container.
      */
-    var _ACTIONS = ['sel', 'edit', 'del'];
+    var _ACTIONS = ['sel', 'share', 'edit', 'del'];
 
     return ModelContainer;
 });
