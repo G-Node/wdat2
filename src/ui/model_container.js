@@ -135,9 +135,16 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
             '  <div class="field">' +
             '    <div class="field-name">Safety Level</div><div class="field-val"><%= this.fields.safety_level || "n.a." %></div>' +
             '  </div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="secondary hidden"><h3>Shared with</h3>' +
+            '<div class="properties">' +
+            '   <% for (person in this.shared_with) { %>' +
             '  <div class="field">' +
-            '    <div class="field-name">Shared With</div><div class="field-val"><%= this.fields.odml_type || "n.a." %></div>' +
+            '    <div class="field-name"><%= person %></div><div class="field-val"><%= this.shared_with[person] %></div>' +
             '  </div>' +
+            '  <% } %>' +
+
             '</div>' +
             '</div>'
     };
