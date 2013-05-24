@@ -1,17 +1,15 @@
 //--------- template_container.js ---------//
 
-/*
- * TODO module description.
- */
-define(['ui/container'], function (Container) {
+define(['util/objects', 'ui/container'], function (objects, Container) {
     "use strict";
 
     /**
+     * Constructor of the class TemplateContainer.
      *
-     * @param id
-     * @param template
-     * @param actions
-     * @param data
+     * @param id {String|jQuery}        The id of the container or a jQuery object.
+     * @param template {String}         The template (see jQote2 documentation).
+     * @param actions {Array|Object}    Array or Object defining events.
+     * @param data {Object}             The model data to display.
      *
      * @constructor
      * @extends {Container}
@@ -22,7 +20,7 @@ define(['ui/container'], function (Container) {
         // inherit from Container
         Container.apply(this, [id]);
 
-        var _data       = data,
+        var _data       = data || {},
             _template   = $.jqotec(template) ,
             _actions    = {};
 
@@ -56,7 +54,7 @@ define(['ui/container'], function (Container) {
          * @public
          */
         this.set = function(data) {
-            _data = data;
+            _data = data || {};
             this.refresh();
             return this;
         };
@@ -109,7 +107,9 @@ define(['ui/container'], function (Container) {
          */
         this.refresh = function() {
             var id = this.id();
-            var d  = _data || {};
+            var d  = objects.deepCopy(_data || {});
+            if (!d.fields) d.fields = {};
+            if (!d.data) d.data = {};
             var jq = $($.jqote(_template, d)).attr('id', id);
             this._postprocess(jq, d, _actions);
             this.jq(jq);

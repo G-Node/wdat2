@@ -1,17 +1,18 @@
 //--------- multi_container.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the interface class MultiContainer
  */
 define(['util/classes', 'ui/widget'], function(classes, Widget) {
     "use strict";
 
     /**
-     * TODO documentation for constructor and member functions
+     * Constructor for the class MultiContainer. This is just a sort of interface.
+     * Implementations of methods are to be provided by subclasses.
      *
-     * @param id
-     * @param [cls]
-     * @param [template}
+     * @param id {String|jQuery}    The id of the list or a jQuery object.
+     * @param [template] {String}   A template for the widget.
+     * @param [cls] {String}        A class that will be added to the widget.
      *
      * @constructor
      * @extends {Widget}

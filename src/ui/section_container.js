@@ -1,17 +1,15 @@
 //--------- section_container.js ---------//
 
-/*
- * TODO module description.
- */
 define(['ui/button', 'ui/template_container'], function (Button, TemplateContainer) {
     "use strict";
 
     /**
+     * Constructor of the class SectionContainer.
      *
-     * @param id
-     * @param bus
-     * @param actions
-     * @param data
+     * @param id {String|jQuery}        The id of the container or a jQuery object.
+     * @param bus {Bus}                 Bus for events.
+     * @param actions {Array|Object}    Array or Object defining events.
+     * @param data {Object}             The model data to display.
      *
      * @constructor
      * @extends {TemplateContainer}

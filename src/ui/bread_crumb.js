@@ -1,7 +1,7 @@
 //--------- bread_crumb.js ---------//
 
 /*
- * TODO module description.
+ * This module defines the class BradCrumb
  */
 define(['ui/widget'], function (Widget) {
     "use strict";
@@ -29,7 +29,7 @@ define(['ui/widget'], function (Widget) {
             _datasets = [],
             _action;
 
-        Widget.apply(this, [id, 'div', 'wdat-bread-crumb']);
+        Widget.apply(this, [id, '<div>', 'wdat-bread-crumb']);
 
         /**
          * @private

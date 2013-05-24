@@ -1,15 +1,13 @@
 //--------- search_bar.js ---------//
 
-/*
- * TODO module description.
- */
 define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Widget) {
     "use strict";
 
     /**
+     * A simple search widget.
      *
-     * @param id
-     * @param bus
+     * @param id {String|jQuery}        The id of the search bar or a jQuery object.
+     * @param bus {Bus}                 Bus for events.
      *
      * @constructor
      * @extends {Widget}
@@ -66,6 +64,7 @@ define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Wi
          *  {active: Boolean, param: Array, string: String, type: String}
          *
          * @return  {Object} Object with information about the search field.
+         * @public
          */
         this.get = function() {
             // parse params
@@ -158,16 +157,18 @@ define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Wi
 
     var _SEARCH_BAR_TEMPLATE = '' +
         '<div id="search" class="wdat-search">' +
-        '  <div class="search-right">' +
-        '    <select id="select-type" class="ui-button ui-widget ui-state-default ui-corner-all">' +
-        '      <option value="block">Block</option>' +
-        '      <option value="analogsignal">Analogsignal</option>' +
-        '    </select>' +
-        '    <button id="search-btn">Search</button>' +
-        '  </div>' +
-        '  <div class="search-left">' +
-        '    <input type="text" id="search-field">' +
-        '  </div>' +
+            '<div>' +
+                '<div class="search-left">' +
+                    '<input type="text" id="search-field">' +
+                '</div>' +
+                '<div class="search-right">' +
+                    '<select id="select-type" class="ui-button ui-widget ui-state-default ui-corner-all">' +
+                        '<option value="block">Block</option>' +
+                        '<option value="analogsignal">Analogsignal</option>' +
+                    '</select>' +
+                    '<button id="search-btn">Search</button>' +
+                '</div>' +
+            '</div>' +
         '</div>';
 
     return SearchBar;

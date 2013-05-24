@@ -108,8 +108,9 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
             adapted = objects.deepMerge(adapted, data['fields']);
             adapted = objects.deepMerge(adapted, data['data']);
 
-            adapted.safety_level = SECURITY_LEVEL_STR[data['safety_level']] || 3;
+            adapted.safety_level = SECURITY_LEVEL_STR[data['fields']['safety_level']] || 3;
             delete adapted.date_created;
+            delete adapted.shared_with;
 
             for (var p in data['parents']) {
                 if (data['parents'].hasOwnProperty(p)) {
@@ -144,8 +145,8 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
             adapted.category = parted_id.category;
             adapted.plotable = model_helpers.isPlotable(adapted.type);
             adapted.owner = strings.urlOmitHost(fields['owner']);
-            // TODO safety level should be in fields
-            adapted.safety_level = SECURITY_LEVEL_NUM[fields['safety_level']];
+
+            adapted.shared_with = fields['shared_with'];
 
             var template = model_helpers.template(adapted.type);
 
@@ -159,6 +160,8 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
                         } else {
                             adapted.name = fields['name'];
                         }
+                    } else if (f === 'safety_level') {
+                        adapted.fields[f] = SECURITY_LEVEL_NUM[fields['safety_level']];
                     } else {
                         adapted.fields[f] = fields[f];
                     }

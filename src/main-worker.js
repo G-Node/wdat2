@@ -1,8 +1,5 @@
 //--------- main-worker.js ---------//
 
-/*
- * TODO module description.
- */
 define(['api/resource_adapter', 'api/network_resource'], function (ResourceAdapter, NetworkResource) {
 
     var _resource, _adapter;
