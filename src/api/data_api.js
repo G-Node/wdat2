@@ -176,7 +176,7 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/
         };
 
         /**
-         * Dummy that returns the current user.
+         * Returns the current user.
          *
          * @returns {Object} The current user
          * @public
@@ -211,43 +211,47 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/
          * @public
          */
         this.allUsers = function() {
-            var xhr = new XMLHttpRequest();
-            var url = '/user/';
+            if (!_all_users) {
+                var xhr = new XMLHttpRequest();
+                var url = '/user/';
 
-            xhr.open('GET', url, false);
-            xhr.send(null);
+                xhr.open('GET', url, false);
+                xhr.send(null);
 
-            var contentType = xhr.getResponseHeader('Content-Type') ,
-                content     = xhr.responseText;
+                var contentType = xhr.getResponseHeader('Content-Type') ,
+                    content     = xhr.responseText;
 
-            var response = {
-                url:        url ,
-                error:      false ,
-                data:       [] ,
-                range:      [0, 0] ,
-                status:     parseInt(xhr.status) ,
-                type:       "GET",
-                message:    'No message'
-            };
+                var response = {
+                    url:        url ,
+                    error:      false ,
+                    data:       [] ,
+                    range:      [0, 0] ,
+                    status:     parseInt(xhr.status) ,
+                    type:       "GET",
+                    message:    'No message'
+                };
 
-            if ((!response.status === 200) || (!contentType === 'application/json')) {
+                if ((!response.status === 200) || (!contentType === 'application/json')) {
 
-                // server errors and unexpected responses
-                throw "HTTP " + response.status + ". Problem fetching users: " + response.message;
-            };
+                    // server errors and unexpected responses
+                    throw "HTTP " + response.status + ". Problem fetching users: " + response.message;
+                };
 
-            content = JSON.parse(content);
-            response.message = content['message'];
-            response.data    = content['selected'] || [];
-            response.range   = content['selected_range'] || [0, 0];
+                content = JSON.parse(content);
+                response.message = content['message'];
+                response.data    = content['selected'] || [];
+                response.range   = content['selected_range'] || [0, 0];
 
-            // update current user
-            var cu = content['logged_in_as'];
-            cu['id'] = strings.urlToID( cu['permalink'] );
-            _curr_user = cu;
+                // update current user
+                var cu = content['logged_in_as'];
+                cu['id'] = strings.urlToID( cu['permalink'] );
+                _curr_user = cu;
 
-            // update users list
-            _all_users = response.data;
+                // update users list
+                _all_users = response.data;
+            }
+
+            return _all_users;
         };
 
         /**
