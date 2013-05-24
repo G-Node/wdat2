@@ -3,8 +3,8 @@
 /*
  * Defines the class DataAPI.
  */
-define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
-    function (env, Bus, ResourceAdapter, NetworkResource) {
+define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/strings'],
+    function (env, Bus, ResourceAdapter, NetworkResource, strings) {
     "use strict";
 
     /**
@@ -20,7 +20,9 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
         var _bus        = bus ,
             _resource   = new NetworkResource() ,
             _adapter    = new ResourceAdapter() ,
-            _worker;
+            _worker                             ,
+            _curr_user                          ,
+            _all_users;
 
         /*if (Worker) {
             _worker = new Worker('/site_media/static/load-worker.js');
@@ -175,17 +177,15 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
 
         /**
          * Dummy that returns the current user.
-         * TODO Implement real function
          *
          * @returns {Object} The current user
          * @public
          */
         this.currentUser = function() {
-            return {
-                name: 'bob' ,
-                id: '1' ,
-                permalink: '/user/1'
-            };
+            if (!_curr_user) {
+                this.allUsers();
+            }
+            return _curr_user;
         };
 
         /**
@@ -205,7 +205,7 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
         };
 
         /**
-         * Dummy that returns all users as array.
+         * Fetches current user / all users, saves in local variables.
          *
          * @returns {Array} Array with all users.
          * @public
@@ -230,28 +230,24 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
                 message:    'No message'
             };
 
-            if (response.status === 200) {
-                // all OK
+            if ((!response.status === 200) || (!contentType === 'application/json')) {
 
-                if (contentType === 'application/json') {
-                    content = JSON.parse(content);
-                    response.message = content['message'];
-                    response.data    = content['selected'] || [];
-                    response.range   = content['selected_range'] || [0, 0];
-                } else {
-                    response.error   = true;
-                    response.message = "Severe Error: wrong content type or no content ("+status+")";
-                }
-            } else {
                 // server errors and unexpected responses
+                throw "HTTP " + response.status + ". Problem fetching users: " + response.message;
+            };
 
-                response.data    = [];
-                response.error   = true;
-                response.message = "Server Error: unresolved ("+status+")";
+            content = JSON.parse(content);
+            response.message = content['message'];
+            response.data    = content['selected'] || [];
+            response.range   = content['selected_range'] || [0, 0];
 
-            }
+            // update current user
+            var cu = content['logged_in_as'];
+            cu['id'] = strings.urlToID( cu['permalink'] );
+            _curr_user = cu;
 
-            return response.data; // change to the response if needed
+            // update users list
+            _all_users = response.data;
         };
 
         /**
