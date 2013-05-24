@@ -271,7 +271,7 @@ define(['util/objects'], function(objects) {
             fields : {
                 name:               {type: 'text', obligatory: true, min: 3, max: 100},
                 description:        {type: 'ltext'},
-                odml_type:          {type: 'int', label: 'Type', obligatory: true, min: 0, value: 0},
+                odml_type:          {type: 'text', label: 'Type', obligatory: true, min: 3, max: 100},
                 tree_position:      {type: 'int', label: 'Position', obligatory: true, min: 0, value: 0}
             },
             children : {
