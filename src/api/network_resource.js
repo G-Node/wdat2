@@ -374,6 +374,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     if (urls.length > 0) {
                         currDepth -= 1;
                         _doMultiGET(urls, collectSecondary);
+                    } else {
+                        callback({primary: primary, secondary: secondary});
                     }
                 }
             }
@@ -397,6 +399,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     if (urls.length > 0) {
                         currDepth -= 1;
                         _doMultiGET(urls, collectSecondary);
+                    } else {
+                        callback({primary: primary, secondary: secondary});
                     }
                 }
             }
