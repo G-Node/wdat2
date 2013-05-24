@@ -2,30 +2,43 @@
 
 .wdat-search {
 
-  width: 600px;
+  display: table;
+  width: 100%;
 
-  input, select, button {
-    display: inline-block;
-    margin: @smallcushion;
-  }
+  div {
+    display: table-row;
 
-  select {
-    height: 25px;
-    width: 140px;
-  }
 
-  input {
-    height: 14px;
-    width: 330px;
-  }
+    .search-right {
+      display: table-cell;
+      padding: @smallcushion;
+      margin: @smallcushion;
+      vertical-align: middle;
+      width: 230px;
+    }
 
-  .search-right {
-    float: right;
-    margin: @smallcushion;
-  }
+    .search-left {
+      display: table-cell;
+      padding: @smallcushion;
+      margin: @smallcushion;
+      vertical-align: middle;
+    }
 
-  .search-left {
-    padding: @smallcushion;
+    input, select, button {
+      display: inline-block;
+      margin: @smallcushion;
+    }
+
+    select {
+      height: 25px;
+      width: 140px;
+    }
+
+    input {
+      height: 14px;
+      width: 97%;
+    }
+
   }
 
 }
