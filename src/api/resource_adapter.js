@@ -146,6 +146,8 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
             adapted.plotable = model_helpers.isPlotable(adapted.type);
             adapted.owner = strings.urlOmitHost(fields['owner']);
 
+            adapted.shared_with = fields['shared_with'];
+
             var template = model_helpers.template(adapted.type);
 
             // adapt fields
@@ -160,9 +162,7 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
                         }
                     } else if (f === 'safety_level') {
                         adapted.fields[f] = SECURITY_LEVEL_NUM[fields['safety_level']];
-                    } else if (f === 'shared_with') {
-                        adapted.shared_with = fields[f];
-                    }else {
+                    } else {
                         adapted.fields[f] = fields[f];
                     }
                 }
