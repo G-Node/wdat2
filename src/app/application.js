@@ -32,7 +32,7 @@ define(
 
     function initialize() {
         var bus = new Bus();
-        var api = new DataAPI('NetworkResource', 'ResourceAdapter', bus);
+        var api = new DataAPI(bus);
         // add metadata tree
         metadataTree = new MetadataTree($('#metadata-tree'), api, bus, events.sel_section);
         metadataTree.load();
@@ -56,16 +56,16 @@ define(
 
         // add file view
         html = $('<div id="file-view"></div>');
-        fileView = new FileView(html, bus, events.sel_section, events.search);
+        fileView = new FileView(html, api, bus, events.sel_section, events.search);
         tabFolder.add(html, 'files');
 
         // add selected values list
         html = $('#sel-value-view');
-        selValueView = new SelectedValuesView(html, bus, events.sel_value);
+        selValueView = new SelectedValuesView(html, api, bus, events.sel_value);
 
         // add selected data list
         html = $('#sel-data-view');
-        selDataView = new SelectedDataView(html, bus, events.sel_data, events.plot);
+        selDataView = new SelectedDataView(html, api, bus, events.sel_data, events.plot);
 
         adjustLayout();
     }
@@ -75,14 +75,14 @@ define(
         var w = $(window);
         var vspace = w.height() - VSPACE_HEAD;
         // vspace left
-        metadataTree.tree.jq().css('height', vspace - VSPACE_CUSHION - MOD_METADATA_TREE);
+        metadataTree.tree().jq().css('height', vspace - VSPACE_CUSHION - MOD_METADATA_TREE);
         // vspace center
-        metadataView._jq.css('height', vspace - VSPACE_CUSHION * 2 - MOD_METADATA_VIEW);
-        dataView.list.jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_DATA_VIEW);
-        fileView.list.jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_FILE_VIEW);
+        metadataView.html().css('height', vspace - VSPACE_CUSHION * 2 - MOD_METADATA_VIEW);
+        dataView.list().jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_DATA_VIEW);
+        fileView.list().jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_FILE_VIEW);
         // vspace right
-        selValueView.list.jq().css('height', VSPACE_SEL_VALUES);
-        selDataView.list.jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_SEL_DATA);
+        selValueView.list().jq().css('height', VSPACE_SEL_VALUES);
+        selDataView.list().jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_SEL_DATA);
     }
 
     // constant values for the layout

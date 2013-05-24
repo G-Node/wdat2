@@ -92,4 +92,6 @@ define(['ui/button', 'ui/template_container'], function(Button, TemplateContaine
         '  <dt>Shared With:</dt><dd><%="TODO"%></dd>' +
         '</dl></div></div>';
 
+    return PropetyContainer;
+
 });
