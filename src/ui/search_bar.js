@@ -13,7 +13,7 @@ define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Wi
      * @extends {Widget}
      * @private
      */
-    function SearchBar(id, bus) {
+    function SearchBar(id, bus, searchEvent, typeEvent) {
 
         var _bus = bus ,
             _actions ,
@@ -29,9 +29,9 @@ define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Wi
         this._init = function() {
             // initiate actions
             _actions = {
-                search:     this.id() + '-search',
-                activate:   this.id() + '-search',
-                type:       this.id() + '-type',
+                search:     searchEvent || this.id() + '-search',
+                activate:   searchEvent || this.id() + '-search',
+                type:       typeEvent   || this.id() + '-type',
                 compose:    this.id() + '-compose'
             };
 
@@ -164,7 +164,20 @@ define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Wi
                 '<div class="search-right">' +
                     '<select id="select-type" class="ui-button ui-widget ui-state-default ui-corner-all">' +
                         '<option value="block">Block</option>' +
+                        '<option value="segment">Segment</option>' +
+                        '<option value="unit">Unit</option>' +
+                        '<option value="recordingchannel">Recordingchannel</option>' +
+                        '<option value="recordingchannelgroup">Recordingchannel Group</option>' +
+                        '<option value="spike">Spike</option>' +
+                        '<option value="spiketrain">Spiketrain</option>' +
+                        '<option value="event">Event</option>' +
+                        '<option value="eventarray">Event Array</option>' +
+                        '<option value="epoch">Epoch</option>' +
+                        '<option value="epocharray">Epoch Array</option>' +
+                        '<option value="event">Event</option>' +
+                        '<option value="irsaanalogsignal">IRSA Analogsignal</option>' +
                         '<option value="analogsignal">Analogsignal</option>' +
+                        '<option value="analogsignalarray">Analogsignal Array</option>' +
                     '</select>' +
                     '<button id="search-btn">Search</button>' +
                 '</div>' +

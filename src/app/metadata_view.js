@@ -95,7 +95,7 @@ define(['ui/list', 'ui/form', 'ui/section_container', 'ui/property_container'],
          */
         this._onSelect = function() {
             return function(event, data) {
-                if (data && data.id) {
+                if (data && data.id && data.type && data.type === 'section') {
                     _api.get(_actions.update, {id: data.id, type: 'section', depth: 2});
                 } else {
                     _cont.clear();
