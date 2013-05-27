@@ -122,7 +122,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     type = part.type || spec.type;
                     category = part.category || model_helpers.category(type);
                 } else {
-                    type = spec.type;
+                    spec.type = _normalizeParam(spec.type);
+                    type = spec.type[0];
                     category = model_helpers.category(type);
                 }
 

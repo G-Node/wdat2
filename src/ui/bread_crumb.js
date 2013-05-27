@@ -55,35 +55,37 @@ define(['ui/widget'], function (Widget) {
          * @public
          */
         this.add = function(data, position) {
-            var pos = position || this.selectedPos() + 1;
+            if (!this.has(data)) {
+                var pos = position || this.selectedPos() + 1;
 
-            if (!data.id) {
-                data.id = _bus.uid();
-            }
-
-            // prepare datasets
-            _datasets.splice(pos, _datasets.length);
-            _datasets.push(data);
-
-            // remove old radio buttons
-            this.jq().empty();
-
-            // create new ratio buttons
-            var d, input, label;
-            for (var i = 0; i < _datasets.length; i++) {
-                d       = _datasets[i];
-                input   = $('<input type="radio">').attr('name', this.id()).attr('id', this.toID(d));
-                label   = $('<label>').attr('for', this.toID(d)).text(d.name);
-
-                if (i === (_datasets.length - 1)) {
-                    label.addClass('ui-state-active');
+                if (!data.id) {
+                    data.id = _bus.uid();
                 }
 
-                this.jq().append(input).append(label);
-            }
+                // prepare datasets
+                _datasets.splice(pos, _datasets.length);
+                _datasets.push(data);
 
-            this.jq().buttonset('refresh');
-            this.jq().children('input').click(this._selectHandler());
+                // remove old radio buttons
+                this.jq().empty();
+
+                // create new ratio buttons
+                var d, input, label;
+                for (var i = 0; i < _datasets.length; i++) {
+                    d       = _datasets[i];
+                    input   = $('<input type="radio">').attr('name', this.id()).attr('id', this.toID(d));
+                    label   = $('<label>').attr('for', this.toID(d)).text(d.name);
+
+                    if (i === (_datasets.length - 1)) {
+                        label.addClass('ui-state-active');
+                    }
+
+                    this.jq().append(input).append(label);
+                }
+
+                this.jq().buttonset('refresh');
+                this.jq().children('input').click(this._selectHandler());
+            }
 
             return data;
         };
@@ -171,6 +173,20 @@ define(['ui/widget'], function (Widget) {
          */
         this.selected = function() {
             return _datasets[this.selectedPos()];
+        };
+
+        this.select = function(data) {
+            var pos = this.pos(data);
+
+            if (pos >= 0) {
+                this.jq().children('label').each(function(i) {
+                    if (pos === i) {
+                        $(this).addClass('ui-state-active');
+                    } else {
+                        $(this).removeClass('ui-state-active');
+                    }
+                });
+            }
         };
 
         /**
