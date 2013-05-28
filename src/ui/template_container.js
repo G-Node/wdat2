@@ -125,6 +125,5 @@ define(['util/objects', 'ui/container'], function (objects, Container) {
 
         this._init();
     }
-
     return TemplateContainer;
 });
