@@ -4,7 +4,7 @@
  * Defines the class DataAPI.
  */
 define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/strings'],
-    function (env, Bus, ResourceAdapter, NetworkResource, strings) {
+    function (env, Bus, ResourceAdapter, NetworkResource, model_helpers, strings) {
     "use strict";
 
     /**
@@ -63,6 +63,113 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/
 
                 _bus.publish(event, result);
             }
+        };
+
+        /**
+         * Requests data (slice) from the REST api for a certain object. Returns always array(s)
+         *  in pure SI-units.
+         *
+         * @param event {String}        A name of the event to publich in the bus.
+         * @param url {String}          An url of an object to fetch the data (like /neo/eventarray/13/)
+         * @param max_points {Number}   Maximum datapoints to return on (X-axis).
+         * @param start {Number}        Start (time) in SI units (no-prefix).
+         * @param end {Number}          End (time) in SI units (no-prefix).
+         *
+         * @public
+         */
+        this.getData = function(event, url, max_points, start, end) {
+
+            var obj_url = url; // URL with parameters
+            var param_map = {
+                'start_time':   start,
+                'end_time':     end,
+                'downsample':   max_points
+            };
+
+            // add parameters to the URL
+            var counter = 0;
+            for (var i in param_map) {
+                if (param_map.hasOwnProperty(i)) {
+
+                    // add a ? character if some params are defined
+                    if (counter == 0 && param_map[i]) {
+                        obj_url += '?';
+                        counter++
+                    }
+
+                    // concatenate parameters to the URL
+                    if (param_map[i]) {
+                        obj_url += encodeURIComponent(i) + '=' + encodeURIComponent(param_map[i]) + '&'
+                    }
+                }
+            }
+
+            // remove last & if any of the params were assigned
+            if (counter > 0) { obj_url.substring(0, obj_url.length-1) }
+
+            if (_worker) {
+                var message = {
+                    action:     'get_data' ,
+                    event:      event ,
+                    url:        url
+                };
+
+                _worker.postMessage(message);
+            } else {
+                _resource.getData(urls, handler, depth);
+            }
+
+            // callback
+            function handler(response) {
+                var result = _adapter.adaptFromResource(response);
+
+                result.action = 'get';
+                result.info   = info;
+
+                _bus.publish(event, result);
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            // fetch actual object with correct data permalinks
+            this.getByURL([url], _fetchData, 0);
+
+
+
+            function _fetchData(response) {
+                var result = _adapter.adaptFromResource(response);
+
+
+
+            }
+
+
+
+
+
+
+
+
+
+            // add format for data requests
         };
 
         /**
@@ -235,7 +342,7 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/
 
                     // server errors and unexpected responses
                     throw "HTTP " + response.status + ". Problem fetching users: " + response.message;
-                };
+                }
 
                 content = JSON.parse(content);
                 response.message = content['message'];

@@ -43,6 +43,18 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
         };
 
         /**
+         * Delete an element by URL
+         *
+         * @param url {String}              A URL, like "/datafiles/1736/?start_time=15"
+         * @param callback {Function}       A callback function.
+         *
+         * @public
+         */
+        this.getData = function(url, callback) {
+            _manager.doGETDATA(url, callback);
+        };
+
+        /**
          * Get elements from the REST api by URLs.
          *
          * @param urls {String|Array}       Single URL or an array of URLs.
@@ -51,6 +63,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          *
          * @public
          */
+
         this.getByURL = function(urls, callback, depth) {
             if (!(urls instanceof Array))
                 urls = [urls];
@@ -401,6 +414,52 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 }
             }
 
+        };
+
+        /**
+         * Requests array-type data from the server. URL should already
+         *
+         * @param url        {String}        The data-url for the request. May contain GET params.
+         * @param callback   {Function}
+         *
+         * @public
+         */
+        this.doGETDATA = function(url, callback) {
+
+            var xhr = new XMLHttpRequest();
+            var obj_url = url; // add format parameter
+
+            xhr.open('GET', obj_url);
+            xhr.send(null);
+
+            if (xhr.readyState === 4) {
+                var contentType = xhr.getResponseHeader('Content-Type') ,
+                    content     = xhr.responseText,
+                    status      = parseInt(xhr.status);
+
+                // response and error handling
+                if (status === 200 && contentType === 'application/json') {
+
+                    // all OK
+                    callback( JSON.parse(content) );
+
+                } else if (status >= 400 && status < 500) {
+
+                    // client errors
+                    if (contentType === 'application/json') {
+                        content = JSON.parse(content);
+                        throw content['message'] + ' Details: ' + content['details'];
+
+                    } else {
+                        throw "Client Error: unresolved (" + status + ")";
+                    }
+
+                } else {
+
+                    // server errors and unexpected responses
+                    throw "Server Error: unresolved (" + status + ")";
+                }
+            }
         };
 
         /**
