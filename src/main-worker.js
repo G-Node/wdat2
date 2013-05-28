@@ -65,37 +65,42 @@ define(['api/resource_adapter', 'api/network_resource', 'api/model_helpers'],
         // callback that will parse the response object and fetch
         // data from permalinks in data-fields
         function main_handler(response) {
+            var all_data = []; // resulting array of all data-fields
             var result = _adapter.adaptFromResource(response);
             var obj = result.primary[0];
 
             if (!obj['plotable']) {
-                throw "Requested object is not plotable, data can't be fetched."
+                throw "Requested object is not plotable, data can't be fetched.";
             }
 
             // iterate over all data fields and fetch arrays
-            var links = [];
+            var links = []; // links to the datafiles with arrays
             for (var field_name in obj['data']) {
                 if (obj['data'].hasOwnProperty(field_name)) {
-                    // permalink is the criteria.. ?
+                    // permalink http:// is the criteria.. ?
                     if (field_name['data'].toString().search( 'http://' ) > -1) {
-                        links.push( field_name['data'] )
+                        links.push( field_name['data'] );
                     }
 
                 }
             }
 
+            // fetch real [sliced] [downsampled] array-data
             for (var i = 0; i < links.length; i++) {
-                _resource.getData( links[i], single_data_handler);
+                _resource.getData( links[i], collect);
             }
 
-            function single_data_handler() {
-                // look how the Getmultirequest was built
+            // closure that collects results and
+            // invokes callback when ready.
+            function collect( data ) {
+                all_data.push( data );
+                if (all_data.length === links.length) {
+                    result.action = 'get_data';
+                    result.event  = event;
+                    result.data  = all_data;
 
-                result.action = 'get';
-                result.info   = info;
-                result.event  = event;
-
-                postMessage(result);
+                    postMessage(result);
+                }
             }
         }
     }

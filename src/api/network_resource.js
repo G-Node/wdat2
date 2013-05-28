@@ -420,6 +420,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          * Requests array-type data from the server. URL should already
          *
          * @param url        {String}        The data-url for the request. May contain GET params.
+         *                                   Should be like "http://<host>/datafiles/2353/?start_index=198
          * @param callback   {Function}
          *
          * @public
@@ -429,35 +430,50 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
             var xhr = new XMLHttpRequest();
             var obj_url = url; // add format parameter
 
+            if (!(obj_url.search('?') > -1)) {
+                url += '?';
+            }
+
+            if (!(obj_url.search('?') === obj_url.length - 1)) {
+                url += '&';
+            }
+
+            obj_url += encodeURIComponent('format') + '=' + encodeURIComponent('json')
+
+            xhr.onreadystatechange = ready;
             xhr.open('GET', obj_url);
             xhr.send(null);
 
-            if (xhr.readyState === 4) {
-                var contentType = xhr.getResponseHeader('Content-Type') ,
-                    content     = xhr.responseText,
-                    status      = parseInt(xhr.status);
+            function ready() {
+                if (xhr.readyState === 4) {
 
-                // response and error handling
-                if (status === 200 && contentType === 'application/json') {
+                    var contentType = xhr.getResponseHeader('Content-Type') ,
+                        content     = xhr.responseText,
+                        status      = parseInt(xhr.status);
 
-                    // all OK
-                    callback( JSON.parse(content) );
+                    // response and error handling
+                    if (status === 200 && contentType === 'application/json') {
 
-                } else if (status >= 400 && status < 500) {
+                        // all OK
+                        callback( JSON.parse(content) );
 
-                    // client errors
-                    if (contentType === 'application/json') {
-                        content = JSON.parse(content);
-                        throw content['message'] + ' Details: ' + content['details'];
+                    } else if (status >= 400 && status < 500) {
+
+                        // client errors
+                        if (contentType === 'application/json') {
+                            content = JSON.parse(content);
+                            throw content['message'] + ' Details: ' + content['details'];
+
+                        } else {
+                            throw "Client Error: unresolved (" + status + ")";
+                        }
 
                     } else {
-                        throw "Client Error: unresolved (" + status + ")";
+
+                        // server errors and unexpected responses
+                        throw "Server Error: unresolved (" + status + ")";
                     }
 
-                } else {
-
-                    // server errors and unexpected responses
-                    throw "Server Error: unresolved (" + status + ")";
                 }
             }
         };
