@@ -3,6 +3,12 @@
 /*
  * Styles for ui/container.js
  */
+.clickable {
+  cursor: pointer;
+  border: 0;
+  .rounded;
+}
+
 .wdat-container {
   padding: @smallcushion;
   background-color: @bg;
@@ -49,6 +55,32 @@
       margin: 0;
       margin-left: 100;
       padding: @smallcushion / 2  @smallcushion;
+    }
+  }
+
+  h3 {
+    font-size: @largeFontSize;
+    padding: 0;
+    margin: 0;
+  }
+
+  .properties {
+    display: table;
+    padding:  0  @cushioning * 2;
+
+    .field {
+      display: table-row;
+    }
+
+    .field-name {
+      display: table-cell;
+      font-weight: bold;
+      padding:  @smallcushion / 2  @smallcushion;
+    }
+
+    .field-val {
+      display: table-cell;
+      padding:  @smallcushion / 2  @smallcushion;
     }
   }
 
