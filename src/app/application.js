@@ -46,17 +46,20 @@ define(
 
         // add metadata view
         var html = $('<div id="metadata-view"></div>');
-        metadataView = new MetadataView(html, api, bus, events.sel_section);
+        // metadataView = new MetadataView(html, api, bus, events.sel_section);
+        metadataView = new MetadataView(html, api, bus, 'blaselect');
         tabFolder.add(html, 'info');
 
         // add data view
         html = $('<div id="data-view"></div>');
         dataView = new DataView(html, api, bus, events.sel_section, events.search);
+        //dataView = new DataView(html, api, bus, 'fooselect', events.search);
         tabFolder.add(html, 'data');
 
         // add file view
         html = $('<div id="file-view"></div>');
-        fileView = new FileView(html, api, bus, events.sel_section, events.search);
+        //fileView = new FileView(html, api, bus, events.sel_section, events.search);
+        fileView = new FileView(html, api, bus, 'barselect', events.search);
         tabFolder.add(html, 'files');
 
         // add selected values list
@@ -77,9 +80,9 @@ define(
         // vspace left
         metadataTree.tree().jq().css('height', vspace - VSPACE_CUSHION - MOD_METADATA_TREE);
         // vspace center
-        metadataView.html().css('height', vspace - VSPACE_CUSHION * 2 - MOD_METADATA_VIEW);
-        dataView.list().jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_DATA_VIEW);
-        fileView.list().jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_FILE_VIEW);
+        metadataView.html().css('height', vspace - VSPACE_CUSHION * 2 - VSPACE_SEARCH - MOD_METADATA_VIEW);
+        dataView.list().jq().css('height', vspace - VSPACE_CUSHION * 2 - VSPACE_SEARCH - MOD_DATA_VIEW);
+        fileView.list().jq().css('height', vspace - VSPACE_CUSHION * 2 - VSPACE_SEARCH - MOD_FILE_VIEW);
         // vspace right
         selValueView.list().jq().css('height', VSPACE_SEL_VALUES);
         selDataView.list().jq().css('height', vspace - VSPACE_CUSHION * 2 - MOD_SEL_DATA);
@@ -90,12 +93,12 @@ define(
     var VSPACE_SEARCH = 62;
     var VSPACE_TAB = 34;
     var VSPACE_CUSHION = 6;
-    var VSPACE_SEL_VALUES = 240;
+    var VSPACE_SEL_VALUES = 230;
     var MOD_METADATA_TREE = 40;
-    var MOD_SEL_DATA = 320;
-    var MOD_METADATA_VIEW = 133;
-    var MOD_DATA_VIEW = 174;
-    var MOD_FILE_VIEW = 141;
+    var MOD_SEL_DATA = 303;
+    var MOD_METADATA_VIEW = 45;
+    var MOD_DATA_VIEW = 78;
+    var MOD_FILE_VIEW = 45;
 
     return {
         initialize:     initialize ,

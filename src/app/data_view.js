@@ -4,7 +4,7 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
     function(model_helpers, objects, List, ModelContainer, BreadCrumb) {
     "use strict";
 
-    function DataView(html, api, bus, selSection, searchEvent, selData) {
+    function DataView(html, api, bus, selSection, searchEvent) {
         var _html       = $(html) ,
             _bus        = bus ,
             _id         = _html.attr('id') || _bus.uid() ,
@@ -26,7 +26,7 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
             };
 
             _list_actions = {
-                sel:            selData,
+                sel:            _id + '-sel-data',
                 edit:           _id + '-edit'
             };
 
@@ -140,7 +140,11 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
                     _list.clear();
 
                     if (data.info) {
-                        _nav.add(data.info)
+                        if (_nav.has(data.info)) {
+                            _nav.select(data.info);
+                        } else {
+                            _nav.add(data.info)
+                        }
                     } else {
                         _nav.del(1);
                     }
@@ -172,19 +176,24 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
         };
 
         this._onNavigate = function() {
+            var that = this;
             return function(event, data) {
-                var urls = [];
+                if (data && data.id === 'root') {
+                    that.requestData(_actions.update);
+                } else {
+                    var urls = [];
 
-                if (data && data.children) {
-                    for (var childfield in data.children) {
-                        if (data.children.hasOwnProperty(childfield)) {
-                            urls = urls.concat(data.children[childfield]);
+                    if (data && data.children) {
+                        for (var childfield in data.children) {
+                            if (data.children.hasOwnProperty(childfield)) {
+                                urls = urls.concat(data.children[childfield]);
+                            }
                         }
                     }
-                }
 
-                if (urls.length > 0) {
-                    _api.getByURL(_actions.update, urls, 0, data);
+                    if (urls.length > 0) {
+                        _api.getByURL(_actions.update, urls, 0, data);
+                    }
                 }
             }
         }
