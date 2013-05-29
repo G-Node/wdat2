@@ -45,13 +45,126 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
         /**
          * Delete an element by URL
          *
-         * @param url {String}              A URL, like "/datafiles/1736/?start_time=15"
-         * @param callback {Function}       A callback function.
+         * @param url {String}          A URL, like "/datafiles/1736/?start_time=15"
+         * @param callback {Function}   A callback function.
+         * @param [params] {Object}     Object of the form
+         *                                  {"max_points": <Number>, "start": <Number>,"end": <Number>}
          *
          * @public
          */
-        this.getData = function(url, callback) {
-            _manager.doGETDATA(url, callback);
+        this.getData = function(url, callback, params) {
+
+            var obj_url     = strings.urlOmitHost( url), // URL with parameters
+                obj_type    = strings.segmentId( obj_url).type,
+                links       = {}, // links to the datafiles with arrays
+                all_data    = {}, // collector of data-fields with data
+                obj_response;
+
+            var param_map = {
+                'downsample':   params['max_points'] || null, // End (time) in SI units (no-prefix)
+                'start_time':   params['start'] || null, // Maximum datapoints to return on (X-axis)
+                'end_time':     params['end'] || null // Start (time) in SI units (no-prefix)
+            };
+
+            // add parameters to the URL
+            var counter = 0;
+            for (var i in param_map) {
+                if (param_map.hasOwnProperty(i)) {
+
+                    // add a ? character if some params are defined
+                    if (counter == 0 && param_map[i]) {
+                        obj_url += '?';
+                        counter++
+                    }
+
+                    // concatenate parameters to the URL
+                    if (param_map[i]) {
+                        obj_url += encodeURIComponent(i) + '=' + encodeURIComponent(param_map[i]) + '&'
+                    }
+                }
+            }
+
+            // remove last & if any of the params were assigned
+            if (counter > 0) { obj_url.substring(0, obj_url.length-1) }
+
+            // an url is a url to fetch single plottable object
+            // with slicing / downsampling parameters
+            _manager.doGET([obj_url], main_handler, 0);
+
+            // callback that will parse main response object and fetch
+            // data from permalinks in data-fields
+            function main_handler(response) {
+
+                obj_response = response; // save response for other callbacks
+                var data        = response.primary[0]['data'],
+                    data_fields = model_helpers.data( obj_type),
+                    obj         = data[0],
+                    field_type,
+                    reference;
+
+                // validate response
+                if (data['error']) {
+
+                    callback( response );
+
+                } else {
+                    // iterate over all data fields and fetch arrays
+                    for (var field_name in obj['fields']) {
+                        if (obj['fields'].hasOwnProperty(field_name) && data_fields.hasOwnProperty(field_name)) {
+
+                            field_type = data_fields[ field_name ]['type'];
+                            reference = obj['fields'][ field_name ]['data'];
+                            if (field_type === 'datafile' && !(reference === null)) {
+                                links[ field_name ] = reference;
+                            }
+
+                        }
+                    }
+
+                    // fetch real [sliced] [downsampled] array-data
+                    counter = 0;
+                    for (var f in links) {
+                        if (links.hasOwnProperty(f)) {
+                            counter++;
+                            _manager.doGETDATA( links[f], collect, f);
+                        }
+                    }
+
+                    if (counter === 0) {
+                        // all data fields are null, return main response
+                        callback( obj_response );
+                    }
+                }
+            }
+
+            // closure that collects array-data results and
+            // invokes callback when ready
+            function collect(data_response) {
+
+                if (data_response.primary[0].message == 'data fetched') {
+
+                    // all OK
+                    var field_name = data_response.primary[0]['field_name'];
+                    all_data[ field_name ] =  data_response.primary[0].data;
+
+                    if (Object.keys( all_data ).length === Object.keys( links ).length) {
+
+                        // update array-data fields with fetched data
+                        for (var f in all_data) {
+                            if (all_data.hasOwnProperty(f)) {
+                                obj_response.primary[0]['data'][0]['fields'][ f ]['data'] = all_data[ f ];
+                            }
+                        }
+                        callback( obj_response );
+
+                    }
+
+                } else {
+
+                    callback( data_response );
+
+                }
+            }
         };
 
         /**
@@ -417,63 +530,41 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
         };
 
         /**
-         * Requests array-type data from the server. URL should already
+         * Requests array-type data from the server by URL.
          *
-         * @param url        {String}        The data-url for the request. May contain GET params.
-         *                                   Should be like "http://<host>/datafiles/2353/?start_index=198
+         * @param url        {String}       The data-url for the request. May contain GET params.
+         *                                  Should be like "http://<host>/datafiles/2353/?start_index=198
          * @param callback   {Function}
+         * @param field_name {String}       A name of the field of an object, holding this data.
          *
          * @public
          */
-        this.doGETDATA = function(url, callback) {
+        this.doGETDATA = function(url, callback, field_name) {
 
             var xhr = new XMLHttpRequest();
             var obj_url = url; // add format parameter
 
-            if (!(obj_url.search('?') > -1)) {
-                url += '?';
+            if (!(obj_url.search('\\?') > -1)) {
+                obj_url += '?';
             }
 
-            if (!(obj_url.search('?') === obj_url.length - 1)) {
-                url += '&';
+            if (!(strings.endsWith(obj_url, '?')) && !(strings.endsWith(obj_url, '&'))) {
+                obj_url += '&';
             }
 
             obj_url += encodeURIComponent('format') + '=' + encodeURIComponent('json')
 
-            xhr.onreadystatechange = ready;
+            xhr.onreadystatechange = collect;
             xhr.open('GET', obj_url);
             xhr.send(null);
 
-            function ready() {
+            function collect() {
                 if (xhr.readyState === 4) {
 
-                    var contentType = xhr.getResponseHeader('Content-Type') ,
-                        content     = xhr.responseText,
-                        status      = parseInt(xhr.status);
+                    var response = _buildResponse(xhr, url, 'GET');
+                    response['field_name'] = field_name; // proxy field name
 
-                    // response and error handling
-                    if (status === 200 && contentType === 'application/json') {
-
-                        // all OK
-                        callback( JSON.parse(content) );
-
-                    } else if (status >= 400 && status < 500) {
-
-                        // client errors
-                        if (contentType === 'application/json') {
-                            content = JSON.parse(content);
-                            throw content['message'] + ' Details: ' + content['details'];
-
-                        } else {
-                            throw "Client Error: unresolved (" + status + ")";
-                        }
-
-                    } else {
-
-                        // server errors and unexpected responses
-                        throw "Server Error: unresolved (" + status + ")";
-                    }
-
+                    callback({primary: [response], secondary: []});
                 }
             }
         };
@@ -649,12 +740,22 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
                 if (contentType === 'application/json') {
                     content = JSON.parse(content);
-                    if (etag !== null) {
-                        _cache.store(url, etag, content);
+
+                    if (url.search( '/data/' ) > -1) {
+                        response.message = 'data fetched';
+                        response.data    = content;
+                        response.range   = [0, 0];
+
+                    } else {
+
+                        if (etag !== null) {
+                            _cache.store(url, etag, content);
+                        }
+                        response.message = content['message'];
+                        response.data    = content['selected'] || [];
+                        response.range   = content['selected_range'] || [0, 0];
                     }
-                    response.message = content['message'];
-                    response.data    = content['selected'] || [];
-                    response.range   = content['selected_range'] || [0, 0];
+
                 } else {
                     response.error   = true;
                     response.message = "Severe Error: wrong content type or no content ("+status+")";

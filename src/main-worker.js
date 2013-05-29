@@ -24,7 +24,7 @@ define(['api/resource_adapter', 'api/network_resource', 'api/model_helpers'],
                 get(message.event, message.specifier, message.info);
                 break;
             case 'get_data':
-                getData(message.event, message.url);
+                getData(message.event, message.url, message.info, message.params);
                 break;
             case 'get_by_url':
                 getByURL(message.event, message.urls, message.depth, message.info);
@@ -56,52 +56,19 @@ define(['api/resource_adapter', 'api/network_resource', 'api/model_helpers'],
         }
     }
 
-    function getData(event, url) {
+    function getData(event, url, info, params) {
 
-        // an url is a url to fetch single plottable object
-        // with slicing / downsampling parameters
-        _resource.getByURL([url], main_handler, 0);
+        _resource.getData(url, handler, params);
 
-        // callback that will parse the response object and fetch
-        // data from permalinks in data-fields
-        function main_handler(response) {
-            var all_data = []; // resulting array of all data-fields
+        // callback
+        function handler(response) {
             var result = _adapter.adaptFromResource(response);
-            var obj = result.primary[0];
 
-            if (!obj['plotable']) {
-                throw "Requested object is not plotable, data can't be fetched.";
-            }
+            result.action = 'get_data';
+            result.info   = info;
+            result.event  = event;
 
-            // iterate over all data fields and fetch arrays
-            var links = []; // links to the datafiles with arrays
-            for (var field_name in obj['data']) {
-                if (obj['data'].hasOwnProperty(field_name)) {
-                    // permalink http:// is the criteria.. ?
-                    if (field_name['data'].toString().search( 'http://' ) > -1) {
-                        links.push( field_name['data'] );
-                    }
-
-                }
-            }
-
-            // fetch real [sliced] [downsampled] array-data
-            for (var i = 0; i < links.length; i++) {
-                _resource.getData( links[i], collect);
-            }
-
-            // closure that collects results and
-            // invokes callback when ready.
-            function collect( data ) {
-                all_data.push( data );
-                if (all_data.length === links.length) {
-                    result.action = 'get_data';
-                    result.event  = event;
-                    result.data  = all_data;
-
-                    postMessage(result);
-                }
-            }
+            postMessage(result);
         }
     }
 
