@@ -2,10 +2,11 @@
 
 define(
     ['api/bus', 'api/data_api', 'ui/tab_folder', 'app/metadata_tree', 'app/search_view',
-     'app/metadata_view', 'app/data_view', 'app/file_view', 'app/selected_data_view', 'app/selected_values_view'],
+     'app/metadata_view', 'app/data_view', 'app/file_view', 'app/selected_data_view',
+     'app/selected_values_view', 'app/plotting_view'],
 
     function(Bus, DataAPI, TabFolder, MetadataTree, SearchView, MetadataView, DataView, FileView,
-             SelectedDataView, SelectedValuesView) {
+             SelectedDataView, SelectedValuesView, PlottingView) {
 
     "use strict";
 

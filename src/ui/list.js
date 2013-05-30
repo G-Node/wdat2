@@ -177,6 +177,35 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
                 return added;
             };
 
+            this.get = function(data) {
+                var id = this.toID(data);
+                var found = null;
+                for (var cat in _list) {
+                    if (_list.hasOwnProperty(cat)) {
+                        var d = _list[cat]['data'];
+                        if (d.hasOwnProperty(id)) {
+                            found = d[id].get();
+                        }
+                    }
+                }
+                return found;
+            };
+
+            this.getAll = function() {
+                var data = [];
+                for (var cat in _list) {
+                    if (_list.hasOwnProperty(cat)) {
+                        var catdata = _list[cat]['data'];
+                        for (var id in catdata) {
+                            if (catdata.hasOwnProperty(id)) {
+                                data.push(catdata[id].get());
+                            }
+                        }
+                    }
+                }
+                return data;
+            };
+
             /**
              * Update the content of an existing list element.
              *
