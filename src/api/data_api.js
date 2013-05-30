@@ -4,7 +4,7 @@
  * Defines the class DataAPI.
  */
 define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/strings'],
-    function (env, Bus, ResourceAdapter, NetworkResource, model_helpers, strings) {
+    function (env, Bus, ResourceAdapter, NetworkResource, strings) {
     "use strict";
 
     /**
