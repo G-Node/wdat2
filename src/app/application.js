@@ -47,20 +47,20 @@ define(
 
         // add metadata view
         var html = $('<div id="metadata-view"></div>');
-        // metadataView = new MetadataView(html, api, bus, events.sel_section);
-        metadataView = new MetadataView(html, api, bus, 'blaselect');
+        metadataView = new MetadataView(html, api, bus, events.sel_section);
+        // metadataView = new MetadataView(html, api, bus, 'blaselect');
         tabFolder.add(html, 'info');
 
         // add data view
         html = $('<div id="data-view"></div>');
         dataView = new DataView(html, api, bus, events.sel_section, events.search);
-        //dataView = new DataView(html, api, bus, 'fooselect', events.search);
+        // dataView = new DataView(html, api, bus, 'fooselect', events.search);
         tabFolder.add(html, 'data');
 
         // add file view
         html = $('<div id="file-view"></div>');
-        //fileView = new FileView(html, api, bus, events.sel_section, events.search);
-        fileView = new FileView(html, api, bus, 'barselect', events.search);
+        fileView = new FileView(html, api, bus, events.sel_section, events.search);
+        // fileView = new FileView(html, api, bus, 'barselect', events.search);
         tabFolder.add(html, 'files');
 
         // add selected values list
