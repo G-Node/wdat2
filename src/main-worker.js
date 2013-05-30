@@ -1,6 +1,7 @@
 //--------- main-worker.js ---------//
 
-define(['api/resource_adapter', 'api/network_resource'], function (ResourceAdapter, NetworkResource) {
+define(['api/resource_adapter', 'api/network_resource', 'api/model_helpers'],
+    function (ResourceAdapter, NetworkResource, model_helpers) {
 
     var _resource, _adapter;
 
@@ -21,6 +22,9 @@ define(['api/resource_adapter', 'api/network_resource'], function (ResourceAdapt
         switch(message.action) {
             case 'get':
                 get(message.event, message.specifier, message.info);
+                break;
+            case 'get_data':
+                getData(message.event, message.url, message.info, message.params);
                 break;
             case 'get_by_url':
                 getByURL(message.event, message.urls, message.depth, message.info);
@@ -45,6 +49,22 @@ define(['api/resource_adapter', 'api/network_resource'], function (ResourceAdapt
             var result = _adapter.adaptFromResource(response);
 
             result.action = 'get';
+            result.info   = info;
+            result.event  = event;
+
+            postMessage(result);
+        }
+    }
+
+    function getData(event, url, info, params) {
+
+        _resource.getData(url, handler, params);
+
+        // callback
+        function handler(response) {
+            var result = _adapter.adaptFromResource(response);
+
+            result.action = 'get_data';
             result.info   = info;
             result.event  = event;
 

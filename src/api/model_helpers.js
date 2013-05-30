@@ -436,7 +436,7 @@ define(['util/objects'], function(objects) {
                 file_origin:        {type: 'text'}
             },
             data: {
-                times:              {type: 'num'},
+                times:              {type: 'datafile'},
                 waveforms:          {type: 'datafile'},
                 sampling_rate:      {type: 'num'},
                 t_start:            {type: 'num'},
