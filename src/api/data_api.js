@@ -3,8 +3,8 @@
 /*
  * Defines the class DataAPI.
  */
-define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/strings'],
-    function (env, Bus, ResourceAdapter, NetworkResource, strings) {
+define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter', 'api/network_resource'],
+    function (env, strings, objects, Bus, ResourceAdapter, NetworkResource) {
     "use strict";
 
     /**
@@ -229,22 +229,6 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/
         };
 
         /**
-         * Fetches users list asynchronously.
-         * TODO implement this together
-         *
-         * @param callback {Function}
-         *
-         * @public
-         */
-        this.allUsersAsync = function() {
-            _resource.doGET(['/user/'], usersReady, 0);
-
-            function usersReady( responses ) {
-                return responses[0].data;
-            };
-        };
-
-        /**
          * Fetches current user / all users, saves in local variables.
          *
          * @returns {Array} Array with all users.
@@ -252,43 +236,38 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/
          */
         this.allUsers = function() {
             if (!_all_users) {
-                var xhr = new XMLHttpRequest();
-                var url = '/user/';
+                var xhr = new XMLHttpRequest(),
+                    url = '/user/',
+                    contentType, content;
 
                 xhr.open('GET', url, false);
                 xhr.send(null);
 
-                var contentType = xhr.getResponseHeader('Content-Type') ,
-                    content     = xhr.responseText;
-
-                var response = {
-                    url:        url ,
-                    error:      false ,
-                    data:       [] ,
-                    range:      [0, 0] ,
-                    status:     parseInt(xhr.status) ,
-                    type:       "GET",
-                    message:    'No message'
-                };
-
-                if ((!response.status === 200) || (!contentType === 'application/json')) {
-
-                    // server errors and unexpected responses
-                    throw "HTTP " + response.status + ". Problem fetching users: " + response.message;
+                contentType = xhr.getResponseHeader('Content-Type');
+                if (contentType !== 'application/json') {
+                    throw "Severe Error: wrong content type or no content ("+xhr.status+")";
                 }
 
-                content = JSON.parse(content);
-                response.message = content['message'];
-                response.data    = content['selected'] || [];
-                response.range   = content['selected_range'] || [0, 0];
+                content = JSON.parse(xhr.responseText);
+                if (xhr.status !== 200) {
+                    throw "Severe Error: "+ content.message +" ("+xhr.status+")";
+                }
 
                 // update current user
-                var cu = content['logged_in_as'];
-                cu['id'] = strings.urlToID( cu['permalink'] );
-                _curr_user = cu;
+                _curr_user = content['logged_in_as'];
+                _curr_user['id'] = strings.urlToID(_curr_user['permalink']);
 
-                // update users list
-                _all_users = response.data;
+                // update user list
+                _all_users = [];
+                for (var i = 0; i < content['selected'].length; i++) {
+                    var u_ugly = content['selected'][i],
+                        u_nice = {username: null, id: null, permalink: null};
+                    u_nice.username  = objects.deepGet(u_ugly, 'username');
+                    u_nice.permalink = objects.deepGet(u_ugly, 'permalink');
+                    u_nice.id = strings.urlToID(u_nice['permalink']);
+                    _all_users[i] = u_nice;
+                }
+
             }
 
             return _all_users;
