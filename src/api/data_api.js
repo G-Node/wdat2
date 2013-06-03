@@ -181,6 +181,48 @@ define(['env', 'api/bus', 'api/resource_adapter', 'api/network_resource', 'util/
         };
 
         /**
+         * Update ACL for a certain object.
+         *
+         * @param event {String}            The event under which the response will be published.
+         * @param data {Object}             The ACL data with object ID. Can look like
+         *                              data = {
+         *                                  "id": "/metadata/section/39487",
+         *                                  "safety_level": 3,
+         *                                  "shared_with": {
+         *                                      "bob": 1, "anita": 2
+         *                                  }
+         *                              }
+         * @param [info] {*}                Some additional information that will be included in the
+         *                                  response.
+         *
+         * @public
+         */
+        this.setACL = function(event, data, info) {
+
+            if (_worker) {
+                var message = {
+                    action:     'set_acl' ,
+                    event:      event ,
+                    data:       data ,
+                    info:       info
+                };
+
+                _worker.postMessage(message);
+            } else {
+                var request = _adapter.adaptFromACL(data);
+                _resource.set(request.url, request.data, handler);
+            }
+
+            function handler(response) {
+                response.action = 'set_acl';
+                response.info   = info;
+
+                _bus.publish(event, response);
+            }
+
+        };
+
+        /**
          * Delete an object.
          *
          * @param event {String}            The event under which the response will be published.
