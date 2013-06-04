@@ -365,10 +365,11 @@ define(['util/objects'], function(objects) {
             },
             children : {
                 spiketrain_set:     {type: 'spiketrain'},
-                spike_set:          {type: 'spike'},
-                recordingchannel:   {type: 'recordingchannel'}
+                spike_set:          {type: 'spike'}
             },
-            parents :               {}
+            parents : {
+                recordingchannelgroup: {type: 'recordingchannelgroup'}
+            }
         },
 
         recordingchannel : {
@@ -380,12 +381,13 @@ define(['util/objects'], function(objects) {
                 index:              {type: 'int', min: 0 , value: 0}
             },
             children : {
-                unit_set:           {type: 'unit'},
                 analogsignal_set:   {type: 'analogsignal'},
                 irsaanalogsignal_set: {type: 'irsaanalogsignal'}
             },
             parents : {
-                recordingchannelgroup: {type: 'recordingchannelgroup'}
+                // recordingchannelgroup: {type: 'recordingchannelgroup'},  TODO: ask Andrey, problems with model_container
+                block:              {type: 'block'}
+
             }
         },
 
@@ -438,10 +440,10 @@ define(['util/objects'], function(objects) {
             data: {
                 times:              {type: 'datafile'},
                 waveforms:          {type: 'datafile'},
-                sampling_rate:      {type: 'num'},
+                //sampling_rate:      {type: 'num'}, TODO: Check with Andrey
                 t_start:            {type: 'num'},
-                t_stop:             {type: 'num'},
-                left_sweep:         {type: 'num'}
+                t_stop:             {type: 'num'}//,
+                //left_sweep:         {type: 'num'} TODO: Check with Andrey
             },
             children:               {},
             parents: {
@@ -508,8 +510,9 @@ define(['util/objects'], function(objects) {
                 file_origin:        {type: 'text'}
             },
             data: {
+                t_start:            {type: 'num'}, // TODO: comment: added by PR
                 times:              {type: 'num'},
-                samples:            {type: 'datafile'}
+                signal:             {type: 'datafile'} // TODO: comment: 'samples' --> 'signal'
             },
             children:               {},
             parents: {
@@ -557,7 +560,7 @@ define(['util/objects'], function(objects) {
                 file_origin:        {type: 'text'}
             },
             data : {
-                analogsignal_set:   {type: 'datafile'},
+                signal:             {type: 'datafile'},// TODO: comment: 'analogsignal_set' --> 'signal'
                 sampling_rate:      {type: 'num'},
                 t_start:            {type: 'num'}
             },

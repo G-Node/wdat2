@@ -30,6 +30,7 @@ JS_BUILD = $(patsubst src%.js, static%.js, $(JS_MAIN))
 JS_DEP  = lib/d3/d3.min.js \
 	lib/jquery-ui/jquery-ui.min.js \
 	lib/jquote/jquery.jqote2.min.js \
+	lib/crayon/crayon.js \
 	lib/requirejs/require.min.js
 
 # css sources and images

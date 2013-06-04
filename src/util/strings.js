@@ -165,8 +165,7 @@ define(function () {
      * @public
      */
     function urlToID(url) {
-        var tmp = url.split('/');
-        return (tmp[tmp.length - 1]).split('?')[0];
+        return segmentId(url)['id'];
     }
 
     /**

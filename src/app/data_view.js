@@ -4,7 +4,7 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
     function(model_helpers, objects, List, ModelContainer, BreadCrumb) {
     "use strict";
 
-    function DataView(html, api, bus, selSection, searchEvent) {
+    function DataView(html, api, bus, selSection, searchEvent, selData) {
         var _html       = $(html) ,
             _bus        = bus ,
             _id         = _html.attr('id') || _bus.uid() ,
@@ -26,7 +26,8 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
             };
 
             _list_actions = {
-                sel:            _id + '-sel-data',
+                sel:            selData,
+                sel_click:      selData,
                 edit:           _id + '-edit'
             };
 
