@@ -106,13 +106,23 @@ define(['util/objects', 'util/strings', 'ui/container'], function (objects, stri
          * @public
          */
         this.refresh = function() {
-            var id = this.id();
-            var d  = objects.deepCopy(_data || {});
-            d.id = strings.urlToID(_data.id);
-            if (!d.fields) d.fields = {};
-            if (!d.data) d.data = {};
-            var jq = $($.jqote(_template, d)).attr('id', id);
-            this._postprocess(jq, _data, _actions);
+            var id = this.id(),
+                data_orig = _data || {},
+                data_copy = objects.deepCopy(data_orig),
+                jq;
+
+            if (data_orig.id) {
+                data_copy.id = strings.urlToID(data_orig.id);
+            }
+            if (!data_copy.fields) {
+                data_copy.fields = {};
+            }
+            if (!data_copy.data) {
+                data_copy.data = {}
+            }
+
+            jq = $($.jqote(_template, data_copy)).attr('id', id);
+            this._postprocess(jq, data_orig, _actions);
             this.jq(jq);
         };
 
