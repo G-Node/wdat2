@@ -2,10 +2,11 @@
 
 define(
     ['api/bus', 'api/data_api', 'ui/tab_folder', 'app/metadata_tree', 'app/search_view',
-     'app/metadata_view', 'app/data_view', 'app/file_view', 'app/selected_data_view', 'app/selected_values_view'],
+     'app/metadata_view', 'app/data_view', 'app/file_view', 'app/selected_data_view',
+     'app/selected_values_view', 'app/plotting_view'],
 
     function(Bus, DataAPI, TabFolder, MetadataTree, SearchView, MetadataView, DataView, FileView,
-             SelectedDataView, SelectedValuesView) {
+             SelectedDataView, SelectedValuesView, PlottingView) {
 
     "use strict";
 
@@ -46,20 +47,20 @@ define(
 
         // add metadata view
         var html = $('<div id="metadata-view"></div>');
-        // metadataView = new MetadataView(html, api, bus, events.sel_section);
-        metadataView = new MetadataView(html, api, bus, 'blaselect');
+        metadataView = new MetadataView(html, api, bus, events.sel_section);
+        // metadataView = new MetadataView(html, api, bus, 'blaselect');
         tabFolder.add(html, 'info');
 
         // add data view
         html = $('<div id="data-view"></div>');
-        dataView = new DataView(html, api, bus, events.sel_section, events.search);
-        //dataView = new DataView(html, api, bus, 'fooselect', events.search);
+        dataView = new DataView(html, api, bus, events.sel_section, events.search, events.sel_data);
+        // dataView = new DataView(html, api, bus, 'fooselect', events.search);
         tabFolder.add(html, 'data');
 
         // add file view
         html = $('<div id="file-view"></div>');
-        //fileView = new FileView(html, api, bus, events.sel_section, events.search);
-        fileView = new FileView(html, api, bus, 'barselect', events.search);
+        fileView = new FileView(html, api, bus, events.sel_section, events.search);
+        // fileView = new FileView(html, api, bus, 'barselect', events.search);
         tabFolder.add(html, 'files');
 
         // add selected values list

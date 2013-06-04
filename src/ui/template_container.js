@@ -1,6 +1,6 @@
 //--------- template_container.js ---------//
 
-define(['util/objects', 'ui/container'], function (objects, Container) {
+define(['util/objects', 'util/strings', 'ui/container'], function (objects, strings, Container) {
     "use strict";
 
     /**
@@ -106,12 +106,23 @@ define(['util/objects', 'ui/container'], function (objects, Container) {
          * @public
          */
         this.refresh = function() {
-            var id = this.id();
-            var d  = objects.deepCopy(_data || {});
-            if (!d.fields) d.fields = {};
-            if (!d.data) d.data = {};
-            var jq = $($.jqote(_template, d)).attr('id', id);
-            this._postprocess(jq, d, _actions);
+            var id = this.id(),
+                data_orig = _data || {},
+                data_copy = objects.deepCopy(data_orig),
+                jq;
+
+            if (data_orig.id) {
+                data_copy.id = strings.urlToID(data_orig.id);
+            }
+            if (!data_copy.fields) {
+                data_copy.fields = {};
+            }
+            if (!data_copy.data) {
+                data_copy.data = {}
+            }
+
+            jq = $($.jqote(_template, data_copy)).attr('id', id);
+            this._postprocess(jq, data_orig, _actions);
             this.jq(jq);
         };
 

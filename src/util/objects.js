@@ -15,7 +15,7 @@ define(function() {
      *
      * @param object {Object}   The object to search in
      * @param prop {String}     The name of the property to find
-     * @param children {Array}  Only search this subset of children (if present)
+     * @param [children] {Array}  Only search this subset of children (if present)
      *
      * @returns {} The value of the first property with the given name or undefined.
      *

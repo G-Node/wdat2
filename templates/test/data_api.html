@@ -28,14 +28,14 @@
                     run.log.append("Test response: " + JSON.stringify(data, null, 4));
                 };
 
-                /* request data from DataAPI by URL */
+                /* request object(s) from DataAPI by URL */
                 run.requestByUrl = function() {
                     var url = $('#url').val();
                     if (url)
                         run.api.getByURL('data-api', url);
                 };
 
-                /* request data from DataAPI by search parameter */
+                /* request object(s) from DataAPI by search parameter */
                 run.requestBySpecifier = function() {
                     var param = $('#param').val();
                     if (param) {
@@ -44,9 +44,19 @@
                     }
                 };
 
+                /* request object(s) from DataAPI with data */
+                run.requestWithData = function() {
+                    var param = $('#data').val();
+                    if (param) {
+                        param = JSON.parse(param);
+                        run.api.getData('data-api', param['url'], param['options']);
+                    }
+                };
+
                 run.bus.subscribe('data-api', run.logHandler);
                 $('#get-by-url').click(run.requestByUrl);
                 $('#get-by-param').click(run.requestBySpecifier);
+                $('#get-with-data').click(run.requestWithData);
             });
         };
 
@@ -55,7 +65,7 @@
 
 {% block body %}
     <h1>DataAPI Test</h1>
-    <h2>Request data by URL:</h2>
+    <h2>Request object(s) by URL:</h2>
     <p>
         Examples:
     </p>
@@ -69,7 +79,7 @@
         <button id="get-by-url">GET</button>
     </p>
 
-    <h2>Request data by search parameter:</h2>
+    <h2>Request object(s) by search parameter:</h2>
     <p>
         Examples:
     </p>
@@ -82,6 +92,19 @@
     <p>
         <input type="text" size="80" id="param">&nbsp;
         <button id="get-by-param">GET</button>
+    </p>
+
+    <h2>Request object(s) with data:</h2>
+    <p>
+        Examples:
+    </p>
+    <pre>
+        {"url": "/neo/analogsignal/17", "options": {"max_points": null, "start": 0.0, "end": 1.0}}
+        {"url": "/neo/spiketrain/5", "options": {"max_points": null, "start": null, "end": null}}
+    </pre>
+    <p>
+        <input type="text" size="80" id="data">&nbsp;
+        <button id="get-with-data">GET</button>
     </p>
 
     <h1>Log</h1>

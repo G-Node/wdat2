@@ -20,6 +20,19 @@ define(function () {
     }
 
     /**
+     * Evaluates if a string ends with a certain substring.
+     *
+     * @param s {String}      The string to check.
+     * @param cmp {String}    The putative end sequence
+     *
+     * @returns {Boolean} True if str ends with cmp, false otherwise.
+     * @public
+     */
+    function endsWith(s, cmp) {
+        return s.substr(s.length - cmp.length, cmp.length) == cmp;
+    }
+
+    /**
      * Capitalizes the first character of a string or the first characters of all
      * words of a string.
      *
@@ -114,6 +127,10 @@ define(function () {
                 tmp = tmp.substr(1, tmp.length);
             }
 
+            if (endsWith(tmp, '/')) {
+                tmp = tmp.substr(0, tmp.length - 1);
+            }
+
             // split by path separator
             tmp = tmp.split('/');
 
@@ -148,8 +165,7 @@ define(function () {
      * @public
      */
     function urlToID(url) {
-        var tmp = url.split('/');
-        return (tmp[tmp.length - 1]).split('?')[0];
+        return segmentId(url)['id'];
     }
 
     /**
@@ -181,6 +197,7 @@ define(function () {
     // return public parts of the module
     return {
         startsWith:     startsWith ,
+        endsWith:       endsWith ,
         capitalWords:   capitalWords ,
         trim:           trim ,
         urlOmitHost:    urlOmitHost ,

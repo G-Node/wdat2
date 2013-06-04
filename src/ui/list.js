@@ -40,16 +40,14 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
                 if (actions instanceof Array) {
                     for (i = 0; i < actions.length; i++) {
                         act = actions[i];
-                        if (Container.ACTIONS.indexOf(act) >= 0) {
-                            _actions[act] = this.toID(act);
-                            if (act != 'add') {
-                                _cont_actions[act] = _actions[act];
-                            }
+                        _actions[act] = this.toID(act);
+                        if (act != 'add') {
+                            _cont_actions[act] = _actions[act];
                         }
                     }
                 } else {
                     for (act in actions) {
-                        if (actions.hasOwnProperty(act) && Container.ACTIONS.indexOf(act) >= 0) {
+                        if (actions.hasOwnProperty(act)) {
                             _actions[act] = actions[act] || this.toID(act);
                             if (act != 'add') {
                                 _cont_actions[act] = _actions[act];
@@ -175,6 +173,35 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
                     if (data) added.push(data);
                 }
                 return added;
+            };
+
+            this.get = function(data) {
+                var id = this.toID(data);
+                var found = null;
+                for (var cat in _list) {
+                    if (_list.hasOwnProperty(cat)) {
+                        var d = _list[cat]['data'];
+                        if (d.hasOwnProperty(id)) {
+                            found = d[id].get();
+                        }
+                    }
+                }
+                return found;
+            };
+
+            this.getAll = function() {
+                var data = [];
+                for (var cat in _list) {
+                    if (_list.hasOwnProperty(cat)) {
+                        var catdata = _list[cat]['data'];
+                        for (var id in catdata) {
+                            if (catdata.hasOwnProperty(id)) {
+                                data.push(catdata[id].get());
+                            }
+                        }
+                    }
+                }
+                return data;
             };
 
             /**
