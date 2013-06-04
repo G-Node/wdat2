@@ -40,16 +40,14 @@ define(['util/strings', 'ui/container', 'ui/model_container', 'ui/multi_containe
                 if (actions instanceof Array) {
                     for (i = 0; i < actions.length; i++) {
                         act = actions[i];
-                        if (Container.ACTIONS.indexOf(act) >= 0) {
-                            _actions[act] = this.toID(act);
-                            if (act != 'add') {
-                                _cont_actions[act] = _actions[act];
-                            }
+                        _actions[act] = this.toID(act);
+                        if (act != 'add') {
+                            _cont_actions[act] = _actions[act];
                         }
                     }
                 } else {
                     for (act in actions) {
-                        if (actions.hasOwnProperty(act) && Container.ACTIONS.indexOf(act) >= 0) {
+                        if (actions.hasOwnProperty(act)) {
                             _actions[act] = actions[act] || this.toID(act);
                             if (act != 'add') {
                                 _cont_actions[act] = _actions[act];

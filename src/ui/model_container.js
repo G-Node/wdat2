@@ -51,7 +51,6 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
                 }
 
             if (actions.hasOwnProperty('sel_click')) {
-                console.log('is simple select!')
                 click = actions['sel_click'];
                 jq.addClass("clickable"); // style specified in container.less
                 var html = jq.find('.primary');

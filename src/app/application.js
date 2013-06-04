@@ -53,7 +53,7 @@ define(
 
         // add data view
         html = $('<div id="data-view"></div>');
-        dataView = new DataView(html, api, bus, events.sel_section, events.search);
+        dataView = new DataView(html, api, bus, events.sel_section, events.search, events.sel_data);
         // dataView = new DataView(html, api, bus, 'fooselect', events.search);
         tabFolder.add(html, 'data');
 
