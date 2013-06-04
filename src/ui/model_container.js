@@ -90,13 +90,10 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
      */
     function _template(data) {
         if (typeof(data) === 'string' && _MODEL_TEMPLATES.hasOwnProperty(data)) {
-            console.log(data)
             return _MODEL_TEMPLATES[data];
         } else if (typeof(data) === 'object' && _MODEL_TEMPLATES.hasOwnProperty(data.type)) {
-            console.log(data.type)
             return _MODEL_TEMPLATES[data.type];
         } else {
-            console.log('default')
             return _DEFAULT_TEMPLATE;
         }
     }
