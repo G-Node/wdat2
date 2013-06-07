@@ -18,12 +18,28 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
         var _bus = bus,
             _api = api,
             _sel_list = selected_list,
-            _html = $(_WINDOW_TEMPLATE),
-            _own_list, _manager;
+            _html, _own_list, _manager, _config, _contexts, _renderer;
 
 
         this._init = function() {
+            // init html
+            _html = $(_WINDOW_TEMPLATE);
+
+            // register for open events
             bus.subscribe(plot_event, this._onOpen());
+
+            // configure plotting
+            _config = {
+                analogsignal: {context: 'signals', renderer: 'signal_renderer', source: SourceAnalogsignal}
+                //spiketrain: {context: 'spikes', renderer: 'spike_renderer', source: SourceAnalogsignal}
+            };
+
+            _contexts = ['signals', 'spikes'];
+
+            _renderer = {
+                signal_renderer: new cry.SignalRenderer(),
+                spike_renderer: new cry.SpikeRenderer()
+            };
         };
 
 
@@ -52,11 +68,16 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
             var id = '#' + svg.attr('id');
             svg = d3.select(id);
             _manager = new cry.PlotManager(svg);
-            _manager.createContext('signal');
-            _manager.addRenderer('signal', new cry.SignalRenderer());
 
-            _manager.createContext('spike', {yticks: 0});
-            _manager.addRenderer('spike', new cry.SpikeRenderer());
+            for (var i = 0; i < _contexts.length; i++) {
+                _manager.createContext(_contexts[i]);
+            }
+
+            for (var r in _renderer) {
+                if (_renderer.hasOwnProperty(r)) {
+                    _manager.addRenderer(r, _renderer[r]);
+                }
+            }
 
             _html.find('.wdat-list')
                  .attr('id', 'list-' + _bus.uid())
@@ -67,12 +88,14 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
             var data = _sel_list.getAll();
 
             for (var i = 0; i < data.length; i++) {
-                if (data[i].type = 'analogsignal') {
-                    var s = new SourceAnalogsignal(_api, data[i]);
-                    _manager.addSource(s, 'signal', 'signal');
-                    console.log('signal source added');
+                var d = data[i],
+                    conf = _config[d.type];
+
+                if (conf) {
+                    var s = new conf.source(_api, d);
+                    _manager.addSource(s, conf.context, conf.renderer);
+                    _own_list.addContainer(new ModelContainer(null, _bus, [], data[i], true));
                 }
-                _own_list.addContainer(new ModelContainer(null, _bus, [], data[i], true));
             }
 
             _manager.plot();
@@ -117,7 +140,7 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
         '<div class="wdat-plotting-view">' +
             '<div class="list-panel">' +
                 '<div class="wdat-list"></div>' +
-                '<div class="buttons"></div>' +
+                '<div class="panel-buttons"></div>' +
             '</div>' +
             '<div class="plot-panel"><svg></svg></div>' +
         '</div>';

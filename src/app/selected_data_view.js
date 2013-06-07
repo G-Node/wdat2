@@ -28,8 +28,8 @@ define(['ui/list', 'ui/model_container', 'ui/button'], function(List, ModelConta
 
             _html.append('<h1>Selected Data</h1>');
             _html.append(_list.jq());
-            _html.append('<div class="buttons"></div>');
-            _html.find('.buttons').append(btn.jq());
+            _html.append('<div class="panel-buttons"></div>');
+            _html.find('.panel-buttons').append(btn.jq());
 
             _bus.subscribe(_actions.sel, this._onSelect());
             _bus.subscribe(_list_actions.del, this._onDelete());
