@@ -53,10 +53,20 @@
                     }
                 };
 
+                /* request object(s) from DataAPI with data */
+                run.updateACL = function() {
+                    var param = $('#acls').val();
+                    if (param) {
+                        param = JSON.parse(param);
+                        run.api.setACL('data-api', param);
+                    }
+                };
+
                 run.bus.subscribe('data-api', run.logHandler);
                 $('#get-by-url').click(run.requestByUrl);
                 $('#get-by-param').click(run.requestBySpecifier);
                 $('#get-with-data').click(run.requestWithData);
+                $('#update-acl').click(run.updateACL);
             });
         };
 
@@ -105,6 +115,20 @@
     <p>
         <input type="text" size="80" id="data">&nbsp;
         <button id="get-with-data">GET</button>
+    </p>
+
+    <h2>Update object's ACL:</h2>
+    <p>
+        Examples:
+    </p>
+    <pre>
+            {"id": "/neo/analogsignal/17", "safety_level": 1}
+            {"id": "/neo/spiketrain/5", "safety_level": 3, "shared_with": {"anita": 1}}
+            {"id": "/neo/section/3", "shared_with": null}
+    </pre>
+    <p>
+        <input type="text" size="80" id="acls">&nbsp;
+        <button id="update-acl">POST</button>
     </p>
 
     <h1>Log</h1>

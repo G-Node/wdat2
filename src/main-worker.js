@@ -32,6 +32,9 @@ define(['api/resource_adapter', 'api/network_resource', 'api/model_helpers'],
             case 'set':
                 set(message.event, message.data, message.info);
                 break;
+            case 'set_acl':
+                setACL(message.event, message.data, message.info);
+                break;
             case 'del':
                 del(message.event, message.url, message.info);
                 break;
@@ -101,6 +104,21 @@ define(['api/resource_adapter', 'api/network_resource', 'api/model_helpers'],
             result.event  = event;
 
             postMessage(result);
+        }
+
+    }
+
+    function setACL(event, data, info) {
+
+        var request = _adapter.adaptFromACL(data);
+        _resource.set(request.url, request.data, handler);
+
+        function handler(response) {
+            response.action = 'set_acl';
+            response.info   = info;
+            response.event  = event;
+
+            postMessage(response);
         }
 
     }

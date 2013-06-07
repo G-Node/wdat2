@@ -123,6 +123,52 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
         };
 
         /**
+         * Translate data from the application, so it can be used by the
+         * NetworkResource.
+         *
+         * @param data {Object}     An ACL object like
+         *                          data = {
+         *                              "id": "/metadata/section/39487",
+         *                              "safety_level": 3,
+         *                              "shared_with": {
+         *                                  "bob": 1, "anita": 2
+         *                              }
+         *                          }
+         *
+         * @returns {{data: Object, url: String}}
+         *
+         * @public
+         */
+        this.adaptFromACL = function(data) {
+
+            var adapted = {}, url;
+
+            // parse ID and build URL
+            if (!data.id) throw "Unable to generate URL without ID";
+
+            var definitions = strings.segmentId(data.id);
+            if (definitions.id === undefined || definitions.type === undefined || definitions.category === undefined) {
+                throw "ID of an object is not correct. Should be like '/metadata/section/39487'";
+            }
+
+            url = data.id + '/acl/';
+
+            // parse ACLs
+            if (data.safety_level === undefined && data.shared_with === undefined) {
+                throw "No ACL information provided, request is cancelled."
+            }
+
+            if (!(data.safety_level === undefined)) {
+                adapted['safety_level'] = data.safety_level;
+            }
+            if (!(data.shared_with === undefined)) {
+                adapted['shared_with'] = data.shared_with;
+            }
+
+            return {data: adapted, url: url};
+        };
+
+        /**
          * Translates a single element returned by the NetworkResource.
          *
          * @param element {Object}
