@@ -1,6 +1,7 @@
 // --------- plotting_window.js --------//
 
-define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
+define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
+    function(List, ModelContainer, SourceAnalogsignal) {
     "use strict";
 
     /**
@@ -49,15 +50,9 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
             _plot_manager = new cry.PlotManager(svg);
             _plot_manager.createContext('signal');
             _plot_manager.addRenderer('signal', new cry.SignalRenderer());
-            var signals = new cry.RandomSignal(150, 4, 10000, 5);
-            _plot_manager.addSource(signals, 'signal', 'signal');
 
             _plot_manager.createContext('spike', {yticks: 0});
             _plot_manager.addRenderer('spike', new cry.SpikeRenderer());
-            var spikes = new cry.RandomSpikes(150, 1000, 7);
-            _plot_manager.addSource(spikes, 'spike', 'spike');
-
-            _plot_manager.plot();
 
             _html.find('.wdat-list')
                  .attr('id', 'list-' + _bus.uid())
@@ -68,9 +63,15 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
             var data = _sel_list.getAll();
 
             for (var i = 0; i < data.length; i++) {
+                if (data[i].type = 'analogsignal') {
+                    var s = new SourceAnalogsignal(_api, data[i]);
+                    _plot_manager.addSource(s, 'signal', 'signal');
+                    console.log('signal source added');
+                }
                 _own_list.addContainer(new ModelContainer(null, _bus, [], data[i], true));
             }
 
+            _plot_manager.plot();
         };
 
         this.close = function() {

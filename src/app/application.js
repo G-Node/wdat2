@@ -71,6 +71,8 @@ define(
         html = $('#sel-data-view');
         selDataView = new SelectedDataView(html, api, bus, events.sel_data, events.plot);
 
+        window.pv = new PlottingView(bus, api, selDataView.list());
+
         adjustLayout();
     }
 

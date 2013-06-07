@@ -1,25 +1,37 @@
 //--------- selected_data_view.js ---------//
 
-define(['ui/list'], function(List) {
+define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
 
-    function SelectedDataView(html, api, bus, selSelection, searchEvent) {
-        var _html       = $(html) ,
-            _bus        = bus ,
-            _id         = _html.attr('id') || _bus.uid() ,
-            _api        = api ,
-            _selection  = null,
-            _actions, _list_actions, _nav, _list;
+    function SelectedDataView(html, api, bus, selData, doPlot) {
+        var _html       = $(html),
+            _bus        = bus,
+            _id         = _html.attr('id') || _bus.uid(),
+            _api        = api,
+            _actions, _list_actions, _list;
 
         this._init = function() {
             _html.addClass('wdat-selected-data-view');
+
+            _actions = {
+                sel:    selData || _id + '-data-sel',
+                plot:   doPlot  || _id + '-data-plot'
+            };
+
+            _list_actions = {
+                del:    _id + '-data-remove'
+            };
+
             var list_id = _id + '-data-list';
-            _list = new List(list_id, bus, ['sel']);
+            _list = new List(list_id, bus, _list_actions);
 
             _html.append('<h1>Selected Data</h1>');
             _html.append(_list.jq());
+            _html.append('<div class="buttons"></div>');
 
-            _list.add({id: 'dummy', name: 'A NEO element'});
-        }
+            _bus.subscribe(_actions.sel, this._onSelect());
+            _bus.subscribe(_list_actions.del, this._onDelete());
+        };
+
 
         /**
          * Getter for html element of the view.
@@ -39,6 +51,24 @@ define(['ui/list'], function(List) {
          */
         this.list = function() {
             return _list;
+        };
+
+
+        this._onSelect = function() {
+            return function(event, data) {
+
+                var cont = new ModelContainer(null, _bus, _list_actions, data, true);
+                _list.addContainer(cont);
+
+            };
+        }
+
+        this._onDelete = function() {
+            return function(event, data) {
+
+                _list.del(data)
+
+            }
         };
 
         this._init();

@@ -27,7 +27,7 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
 
             _list_actions = {
                 sel:            selData,
-                sel_click:      selData,
+                sel_click:      _id + '-sel-click',
                 edit:           _id + '-edit'
             };
 
@@ -48,7 +48,7 @@ define(['api/model_helpers', 'util/objects', 'ui/list', 'ui/model_container', 'u
             _bus.subscribe(_actions.search, this._onSearch());
             _bus.subscribe(_actions.update, this._onUpdate());
             //_bus.subscribe(_actions.update_single, this._onUpdateSingle());
-            _bus.subscribe(_list_actions.sel, this._onSelectData());
+            _bus.subscribe(_list_actions.sel_click, this._onSelectData());
             //_bus.subscribe(_list_actions.edit, this._onEditData());
             _bus.subscribe(_actions.nav, this._onNavigate());
         };
