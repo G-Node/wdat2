@@ -13,14 +13,18 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
      * @constructor
      * @public
      */
-    function PlottingView(bus, api, selected_list) {
+    function PlottingView(bus, api, selected_list, plot_event) {
 
         var _bus = bus,
             _api = api,
             _sel_list = selected_list,
             _html = $(_WINDOW_TEMPLATE),
-            _own_list, _plot_manager;
+            _own_list, _manager;
 
+
+        this._init = function() {
+            bus.subscribe(plot_event, this._onOpen());
+        };
 
 
         this.open = function() {
@@ -47,12 +51,12 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
 
             var id = '#' + svg.attr('id');
             svg = d3.select(id);
-            _plot_manager = new cry.PlotManager(svg);
-            _plot_manager.createContext('signal');
-            _plot_manager.addRenderer('signal', new cry.SignalRenderer());
+            _manager = new cry.PlotManager(svg);
+            _manager.createContext('signal');
+            _manager.addRenderer('signal', new cry.SignalRenderer());
 
-            _plot_manager.createContext('spike', {yticks: 0});
-            _plot_manager.addRenderer('spike', new cry.SpikeRenderer());
+            _manager.createContext('spike', {yticks: 0});
+            _manager.addRenderer('spike', new cry.SpikeRenderer());
 
             _html.find('.wdat-list')
                  .attr('id', 'list-' + _bus.uid())
@@ -65,13 +69,13 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
             for (var i = 0; i < data.length; i++) {
                 if (data[i].type = 'analogsignal') {
                     var s = new SourceAnalogsignal(_api, data[i]);
-                    _plot_manager.addSource(s, 'signal', 'signal');
+                    _manager.addSource(s, 'signal', 'signal');
                     console.log('signal source added');
                 }
                 _own_list.addContainer(new ModelContainer(null, _bus, [], data[i], true));
             }
 
-            _plot_manager.plot();
+            _manager.plot();
         };
 
         this.close = function() {
@@ -82,7 +86,7 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
             _own_list = null;
 
             _html.find('svg').empty();
-            _plot_manager = null;
+            _manager = null;
 
             _html.remove();
         };
@@ -100,6 +104,8 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
                 that.open();
             };
         };
+
+        this._init();
     }
 
 

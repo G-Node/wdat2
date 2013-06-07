@@ -1,6 +1,6 @@
 //--------- selected_data_view.js ---------//
 
-define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
+define(['ui/list', 'ui/model_container', 'ui/button'], function(List, ModelContainer, Button) {
 
     function SelectedDataView(html, api, bus, selData, doPlot) {
         var _html       = $(html),
@@ -24,9 +24,12 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
             var list_id = _id + '-data-list';
             _list = new List(list_id, bus, _list_actions);
 
+            var btn = new Button(null, 'Plot Selection', _bus, doPlot);
+
             _html.append('<h1>Selected Data</h1>');
             _html.append(_list.jq());
             _html.append('<div class="buttons"></div>');
+            _html.find('.buttons').append(btn.jq());
 
             _bus.subscribe(_actions.sel, this._onSelect());
             _bus.subscribe(_list_actions.del, this._onDelete());
