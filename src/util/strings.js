@@ -119,6 +119,8 @@ define(function () {
 
         if (id) {
 
+            id = String( id );
+
             // remove host and query part
             tmp = urlOmitHost(id);
             tmp = tmp.split('?')[0];

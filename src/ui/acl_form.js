@@ -3,421 +3,338 @@
 /*
  * This module defines the class Form.
  */
-define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
-    function (objects, strings, model_helpers, Container) {
-        "use strict";
+define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
+    'ui/model_container', 'ui/list'], function (objects, strings, model_helpers, 
+    Container, ModelContainer, List) {
+    "use strict";
+
+    /**
+     * Constructor for the ACL Form class.
+     *
+     * @param id
+     * @param bus
+     * @param users
+     * @param is_modal
+     *
+     * @constructor
+     * @extends {Container}
+     * @public
+     */
+    function Form(id, bus, users, is_modal) {
+
+        var _bus = bus,
+            _is_modal = is_modal || false ,
+            _users = users, // permanent array of all users in the system
+            _users_autocomplete = [], // array of users available for autocomplete field
+            _actions = {}, // actions supported (save)
+            _title = 'Undefined', // title of the form
+            SECURITY_LEVEL_NUM = model_helpers.SECURITY_LEVEL_NUM,
+            SECURITY_LEVEL_STR = model_helpers.SECURITY_LEVEL_STR,
+            _sl_input, _auto_input, _shared_with; // field input elements
+
+        // parse users in appropriate for autocompletion users list
+        for (var i=0; i < users.length; i++) {
+            _users_autocomplete[i] = {"value": users[i]["id"], "label": users[i]["name"]};
+        }
+
+        Container.apply(this, [id, _FORM_TEMPLATE, 'wdat-form']);
+
+        this._init = function() { // builds the form
+            // form needs only one action
+            _actions[ 'save' ] = this.toID( 'save' );
+
+            var fieldset, field;
+
+            // clear form
+            this.jq().children('.errorset').empty();
+            this.jq().children('.fieldset').empty();
+            fieldset = this.jq().children('.fieldset');
+
+            // generate fields
+            // 1. SAFETY LEVEL <select> field
+            field = $(_FIELD_TEMPLATE).attr('id', this.toID('safety_level'));
+            field.children('.field-label').text('Privacy level');
+
+            _sl_input = $('<select size="1"></select>');
+            for (var i in SECURITY_LEVEL_NUM) {
+                if (SECURITY_LEVEL_NUM.hasOwnProperty(i)) {
+                    _sl_input.append($('<option></option>').attr('value', i).text(SECURITY_LEVEL_NUM[i]));
+                }
+            }
+            _sl_input.attr('value', 3); // default is private
+            _sl_input.attr('id', this.toID('safety_level'));
+            field.children('.field-input').append( _sl_input );
+            fieldset.append(field);
+
+            // 2. USER SEARCH autocomplete field
+            field = $(_FIELD_TEMPLATE).attr('id', this.toID('user_auto_search'));
+            field.children('.field-label').text('Username');
+
+            _auto_input = $('<input>').attr('type', 'text');
+            _auto_input.attr('id', this.toID('user_auto_search_input'));
+            field.children('.field-input').append( _auto_input );
+            fieldset.append(field);
+
+            // 3. SELECTED USERS list field
+            field = $(_FIELD_TEMPLATE).attr('id', this.toID('shared_with'));
+            field.children('.field-label').text('Selected');
+
+            _shared_with = new List(this.toID('shared_with_selection'), _bus, ['add', 'del']);
+            var a = _shared_with.event('del');
+            _bus.subscribe(_shared_with.event('del'), this._onRemoveUser());
+
+            field.children('.field-input').append( _shared_with.jq() );
+            fieldset.append(field);
+
+            // set up autocompletion actions
+            var that = this;
+            _auto_input.autocomplete({
+                source: _users_autocomplete,
+                select: function (event, ui) {
+
+                    // process selected user without bus
+                    that._onSelectUser( ui.item.value );
+                    return false;
+                }
+            });
+
+            // if not modal create a save button
+            if (!_is_modal) {
+                var savebtn = $('<button>').button({text : true, label : "Save"});
+                var that = this;
+                savebtn.click(function() {
+                    var data = that.get();
+                    _bus.publish(that.event('save'), data);
+                });
+                this.jq().children('.buttonset').append(savebtn);
+            }
+        };
 
         /**
-         * Constructor for the ACL Form class.
+         * Appends user to the selected users list.
          *
-         * @param id
-         * @param bus
-         * @param actions
-         * @param type
-         * @param is_modal
+         * @param user_id {Number}       User id to append.
          *
-         * @constructor
-         * @extends {Container}
-         * @public
+         * @returns undefined
+         * @private
          */
-        function Form(id, bus, users, is_modal) {
+        this._onSelectUser = function( user_id ) {
+            var user = this._getUserByID( user_id );
+            var c = new ModelContainer(null, _bus, ['del'], user, true);
+            _shared_with.addContainer( c );
 
-            var _bus = bus ,
-                _is_modal = is_modal || false ,
-                _users = [],
-                _data;
+            /* non-list way
+            var lid = _shared_with[0].id;
+            var li, index;
 
-            // parse users in appropriate for autocompletion users list
-            for (var i=0; i < users.length; i++) {
-                _users[i] = {"value": users[i]["id"], "label": users[i]["username"]
+            if (!($('#' + lid + ' li[id=' + user.value + ']').length > 0)) {
+
+                // selected item is not in the selected items list, add item
+                li = $('<li><div class="object_repr">' + user.username +
+                    '</div><div><a style="cursor:pointer" onClick="removeUser(' + user.id +
+                    ')"><img src="/site_media/static/pinax/images/img/icon_deletelink.gif" /></a></div></li>');
+                li.attr('uid', user.id);
+                _shared_with.append( li );
+
+                // remove from the _users_autocomplete list
+                index = _users_autocomplete.indexOf( user );
+                _users_autocomplete.splice(index, 1);
             }
-
-            Container.apply(this, [id, _FORM_TEMPLATE, 'wdat-form']);
-
-            this._init = function() { // builds the form
-                var SECURITY_LEVEL_NUM = {
-                    1: "Public",
-                    2: "Friendly",
-                    3: "Private"
-                }
-                var fieldset, field, input;
-
-                // clear form
-                this.jq().children('.errorset').empty();
-                this.jq().children('.fieldset').empty();
-                fieldset = this.jq().children('.fieldset');
-
-                // generate fields
-                // 1. safety level <select> field
-                field = $(_FIELD_TEMPLATE).attr('id', this.toID('safety_level'));
-                field.children('.field-label').text('Privacy level');
-
-                input = $('<select size="1"></select>');
-                for (var i in SECURITY_LEVEL_NUM) {
-                    if (SECURITY_LEVEL_NUM.options.hasOwnProperty(i)) {
-                        input.append($('<option></option>').attr('value', i).text(SECURITY_LEVEL_NUM.options[i]));
-                    }
-                }
-                input.attr('value', 3); // default is private
-                input.attr('name', this.toID('safety_level'));
-                field.children('.field-input').append(input);
-                fieldset.append(field);
-
-                // 2. user search autocomplete field
-                field = $(_FIELD_TEMPLATE).attr('id', this.toID('user_auto_search'));
-                field.children('.field-label').text('Username');
-
-                var input_id = this.toID('user_auto_search_input');
-                input = $('<input>').attr('type', 'text');
-                input.autocomplete({
-                    source: _users,
-                    select: function (event, ui) {
-                        $()
-                        return false;
-                    }
-                });
-                field.children('.field-input').append(input);
-                fieldset.append(field);
-
-                // 3. selected users info field
-                field = $(_FIELD_TEMPLATE).attr('id', this.toID('shared_with'));
-                field.children('.field-label').text('Selected');
-
-                input = $('<ul></ul>');
-                input.attr('id', this.toID('shared_with_list'));
-
-                field.children('.field-input').append(input);
-                fieldset.append(field);
-
-                // if not modal create a save button
-                if (!_is_modal) {
-                    var savebtn = $('<button>').button({text : true, label : "Save"});
-                    var that = this;
-                    savebtn.click(function() {
-                        var data = that.get();
-                        _bus.publish(this.toID('save'), data);
-                    });
-                    this.jq().children('.buttonset').append(savebtn);
-                }
-            };
-
-            /**
-             * Set the data object of the form.
-             *
-             * @param data {Object}       The data object of the container.
-             *
-             * @returns {Object} The data object or undefined if the data don't match the form type.
-             * @public
-             */
-            this.set = function(data) {
-                var newdata;
-
-                if (data) {
-                    if (_type && data.type == _type) {
-                        newdata = data;
-                    } else if (!_type) {
-                        newdata = data;
-                    }
-                } else {
-                    if (_type) {
-                        newdata = model_helpers.create(_type);
-                    } else {
-                        newdata = {};
-                    }
-                }
-                if (newdata) {
-                    _data = newdata;
-                }
-                this.refresh();
-
-                return newdata;
-            };
-
-            /**
-             * Validates the form and read all data from the form.
-             *
-             * @returns {Object} The data of the form as object or null if the form is not valid.
-             * @public
-             */
-            this.get = function() {
-
-                if (this.validate()) {
-
-                    for ( var field in _model) {
-                        if (_model.hasOwnProperty(field)) {
-                            var def   = _model[field];
-                            var input = this.jq().find('#' + this.toID(field) + ' :input');
-                            var val   = (input.val());
-
-                            if (val === '') {
-                                val = null;
-                            } else if (def.type === 'num') {
-                                val = parseFloat(val);
-                            } else if (def.type === 'int') {
-                                val = parseInt(val);
-                            }
-
-                            var is_set = objects.deepSet(_data, field, val, ['fields', 'parents', 'data']);
-                            if (!is_set) {
-                                _data[field] = val;
-                            }
-                        }
-                    }
-
-                    return _data;
-                }
-
-                return null;
-            };
-
-            /**
-             * Get the event for a specific action.
-             *
-             * @param action {String}    The action name.
-             *
-             * @returns {String} The event for the specific action or undefined.
-             *
-             * @public
-             */
-            this.event = function(action) {
-                var event = null;
-                if (_actions.hasOwnProperty(action) && typeof(_actions[action]) !== 'function') {
-                    event = _actions[action];
-                }
-                return event;
-            };
-
-            /**
-             * Validates the form and marks errors inside the form.
-             *
-             * @return {Boolean} True if the form is valid false otherwise.
-             * @public
-             */
-            this.validate = function() {
-                var valid = true;
-
-                // reset errors
-                this.jq().find('.error').remove();
-
-                // iterate over input definitions
-                for (var name in _model) {
-                    if (_model.hasOwnProperty(name)) {
-                        var def   = _model[name];
-                        var html  = this.jq().find('#' + this.toID(name));
-                        var input = html.children('.field-input').contents();
-                        var value = input.val();
-                        var error = $(_ERROR_TEMPLATE);
-
-                        // test if value is empty
-                        if (value.match(/^\s*$/)) {
-                            // check if not empty when obligatory
-                            if (def.obligatory) {
-                                error.children('.field-error').text('this field is obligatory');
-                                html.after(error);
-                                valid = false;
-                            }
-                        } else {
-                            // get type definition an do type specific checks
-                            var typedef = _FIELD_TYPES[def.type];
-                            if (typedef && typedef.check && !value.match(typedef.check)) {
-                                error.children('.field-error').text(typedef.fail);
-                                html.after(error);
-                                valid = false;
-                                continue;
-                            }
-                            // check bounds
-                            if (typedef && (def.type === 'num' || def.type === 'int')) {
-                                value = parseFloat(value);
-                                if (def.min !== undefined && value < def.min) {
-                                    error.children('.field-error').text('value must be larger than ' + def.min);
-                                    html.after(error);
-                                    valid = false;
-                                } else if (def.max !== undefined && value > def.max) {
-                                    error.children('.field-error').text('value must be less than ' + def.max);
-                                    html.after(error);
-                                    valid = false;
-                                }
-                            } else {
-                                value = value.toString();
-                                if (def.min !== undefined && value.length < def.min) {
-                                    error.children('.field-error').text('value must be longer than ' + def.min);
-                                    html.after(error);
-                                    valid = false;
-                                } else if (def.max !== undefined && value.length > def.max) {
-                                    error.children('.field-error').text('value must be less than ' + def.max);
-                                    html.after(error);
-                                    valid = false;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                return valid;
-            };
-
-            /**
-             * Refresh the form.
-             *
-             * @public
-             */
-            this.refresh = function() {
-                if (_model && _data) {
-                    var fieldset, field, name, val;
-
-                    // clear form
-                    this.jq().children('.errorset').empty();
-                    fieldset = this.jq().children('.fieldset');
-                    fieldset.empty();
-
-                    // generate fields
-                    for (name in _model) {
-                        if (_model.hasOwnProperty(name)) {
-                            val = objects.deepGet(_data, name, ['fields', 'parents', 'data']);
-                            val = (val != null && val.data) ? val.data : val;
-                            field = this._genField(name, _model[name], val);
-                            fieldset.append(field);
-                        }
-                    }
-                }
-            };
-
-            /**
-             * Opens the form in a modal window.
-             *
-             * @public
-             */
-            this.open = function() {
-                if (_is_modal && this.jq()) {
-                    var title = strings.capitalWords(_type, /[_\- \.:]/) || 'Form';
-                    var that = this;
-
-                    this.jq().dialog({               // jQuery-UI dialog
-                        autoOpen: true,     width : 610,        modal : true,
-                        draggable: false,   resizable: false,   title: title,
-                        buttons : {
-                            Cancel : function() {         // callback for cancel actions
-                                $(this).dialog('close');
-                            },
-                            Save : function() {           // callback for save actions
-                                var data = that.get();
-                                if (data) {
-                                    _bus.publish(that.event('save'), data);
-                                    $(this).dialog('close');
-                                }
-                            }
-                        }
-                    });
-                }
-            };
-
-            /**
-             * Creates a jQuery object representing an input field with label.
-             * For internal use only.
-             *
-             * @param name {String} Id for the input.
-             * @param def {Object}  The definition object for the input (see WDAT.type), it must
-             *                      specify a type and can have additionally the following fields:
-             *                      obligatory, min, max, value and label, options, readonly. Valid
-             *                      types are: text, file, email, ltext, num, int, password, option,
-             *                      boolean, hidden.
-             * @param value {*}     The value of the field (optional);
-             *
-             * @return {jQuery} A jQuery object that represents the input element and a label.
-             * @private
-             */
-            this._genField = function(name, def, value) {
-                // create template
-                var html        = $(_FIELD_TEMPLATE).attr('id', this.toID(name));
-                var html_label  = html.children('.field-label');
-                var html_input  = html.children('.field-input');
-
-                // generate label
-                if (def.type != 'hidden') {
-                    var label = (def.label ? def.label : strings.capitalWords(name, /[_\- \.:]/)) + ':';
-                    html_label.text(label);
-                } else {
-                    html.addClass('hidden');
-                }
-
-                // generate input
-                var ftype = _FIELD_TYPES[def.type];
-                var input = null;
-
-                if (ftype) {
-                    input = $('<input>').attr('type', ftype.type);
-                    if (ftype.create)
-                        ftype.create(input);
-                    if (!ftype.nowidth)
-                        input.addClass('fixed-width');
-                } else if (def.type === 'ltext' || def.type === 'textarea') {
-                    input = $('<textarea rows="6"></textarea>');
-                    input.addClass('fixed-width');
-                    input.attr('value', def.value);
-                } else if (def.type === 'option') {
-                    input = $('<select size="1"></select>');
-                    for (var i in def.options) {
-                        if (def.options.hasOwnProperty(i)) {
-                            input.append($('<option></option>').attr('value', i).text(def.options[i]));
-                        }
-                    }
-                } else {
-                    throw new Error('field has no valid type: field.type = ' + type);
-                }
-                if (value) {
-                    input.attr('value', value);
-                } else if (def.value != undefined && def.value != null) {
-                    input.attr('value', def.value);
-                }
-                if (def.readonly) {
-                    input.attr('readonly', 'readonly');
-                }
-
-                input.attr('name', this.toID(name));
-                html_input.append(input);
-                return html;
-            };
-
-            this._init();
+            */
         }
 
         /**
-         * Some template strings.
+         * Crates a handler function for property delete events.
+         *
+         * @returns {Function}
+         * @private
          */
-        var _FORM_TEMPLATE =    '<div class="wdat-form"><div class="errorset"></div>' +
-            '<div class="fieldset"></div><div class="buttonset"></div></div>';
+        this._onRemoveUser = function() {
+            return function (event, data) {
+                if (data && data.id) {
+                    _shared_with.del(data.info);
+                }
+                //var lid = _shared_with[0].id;
+                //var user = this._getUserByID( user_id );
+                // remove item from the selected items list
+                //$('#' + lid + ' li[id=' + user_id + ']').remove();
 
-        var _FIELD_TEMPLATE =   '<div class="field"><div class="field-label"></div>' +
-            '<div class="field-input"></div></div>';
+                // add an item back to the _users_autocomplete list
+                //_users_autocomplete.push( {"value": user.id, "label": user.username} );
+            }
+        }
 
-        var _ERROR_TEMPLATE =   '<div class="error"><div class="field-label"></div>' +
-            '<div class="field-error"></div></div>';
-
-        var _ACTIONS = ['save'];
-
-        /**
-         * Internal constant that defines properties for several input types.
+         /**
+         * Set the data object of the form.
+         *
+         * @param data {Object}       The data object of the container.
+         *
+         * @returns undefined
+         * @public
          */
-        var _FIELD_TYPES = {
-            text:   { type: 'text' },
-            file:   { type: 'file' },
-            hidden: { type: 'hidden'},
-            password: { type: 'password' },
-            date:   { type: 'text',
-                create: function(input) { input.datepicker({dateFormat : "yy/mm/dd"}); },
-                nowidth: true },
-            num:    { type: 'text',
-                check: /^[-+]?[0-9]{1,16}\.?[0-9]{0,16}([eE][-+]?[0-9]+)?$/,
-                fail: 'is not a valid number (floeatingpoint)' },
-            int:    { type: 'text',
-                check: /^[0-9]{1,16}?$/,
-                fail: 'is not a valid number (integer)' },
-            email:  { type: 'text',
-                check: /^[a-zA-Z][\w\.\-]{1,128}@[a-zA-Z][\w\.\-]{1,128}\.[a-zA-Z]{2,4}$/,
-                fail: 'is not a valid email address' },
-            boolean:  { type: 'checkbox',
-                nowidth: true }
+        this.set = function( data ) {
+            var _shared_with_init = [],
+                _safety_level_init = 3,
+                user;
+
+            // clear the list from previous usages
+            _shared_with.clear();
+            _auto_input.val('');
+
+            // parse input object data
+            _title = data.name;
+            _shared_with_init = data.shared_with;
+            _safety_level_init = SECURITY_LEVEL_STR[ data.fields.safety_level ];
+
+            if (_shared_with_init === undefined || _safety_level_init === undefined )  {
+                throw "A given object does not contain shared_with and safety_level fields."
+            };
+
+            // set up the form with actual data
+            //selected_option = '#' + _sl_input.id + ' option[value=' + _safety_level_init + ']';
+            //$( selected_option ).prop('selected', true);
+            _sl_input.val( _safety_level_init );
+
+            for (var username in _shared_with_init) {
+                if (_shared_with_init.hasOwnProperty(username)) {
+
+                    user = this._getUserByName( username );
+                    if (user) {
+                        this._onSelectUser( user.id );
+                    }
+                }
+            }
         };
 
-        return Form;
-    });
+        /**
+         * Read all data from the form.
+         *
+         * @returns {Object} selected users and a safety level as an object like
+         *                      {"safety_level": 3, "shared_with": {"bob": 1, "anita": 2}}
+         * @public
+         */
+        this.get = function() {
+            var result = {},
+                users = [];
+
+            // fetch selected safety level
+            result["safety_level"] = _sl_input.val();
+
+            // fetch selected users
+            result["shared_with"] = {};
+            users = _shared_with.getAll();
+            for (var i=0; i < users.length; i++) {
+                result["shared_with"][ users[i]['name'] ] = 1;
+            }
+
+            return result;
+        };
+
+        /**
+         * Get the event for a specific action.
+         *
+         * @param action {String}    The action name.
+         *
+         * @returns {String} The event for the specific action or undefined.
+         *
+         * @public
+         */
+        this.event = function(action) {
+            var event = null;
+            if (_actions.hasOwnProperty(action) && typeof(_actions[action]) !== 'function') {
+                event = _actions[action];
+            }
+            return event;
+        };
+
+        /**
+         * Opens the form in a modal window.
+         *
+         * @public
+         */
+        this.open = function() {
+            if (_is_modal && this.jq()) {
+                var that = this;
+
+                this.jq().dialog({               // jQuery-UI dialog
+                    autoOpen: true,     width : 610,        modal : true,
+                    draggable: false,   resizable: false,   title: _title,
+                    buttons : {
+                        Cancel : function() {         // callback for cancel actions
+                            $(this).dialog('close');
+                        },
+                        Save : function() {           // callback for save actions
+                            var data = that.get();
+                            if (data) {
+                                _bus.publish(that.event('save'), data);
+                                $(this).dialog('close');
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        /**
+         * Fetches a user from the _users list by a given id.
+         *
+         * @param username {Number}   Id of the required user.
+         *
+         * @return {Object}     A user object like {"value": 2873, "username": "bob"}
+         * @private
+         */
+        this._getUserByName = function ( username ) {
+            var users = _users.filter(function (el) {
+                return el.name == username;
+            });
+            if (users.length > 0) {
+
+                // user found
+                return users[0];
+            } else {
+
+                // username not found in all users list
+                return undefined;
+            }
+        }
+
+        /**
+         * Fetches a user from the _users list by a given id.
+         *
+         * @param user_id {Number}   Id of the required user.
+         *
+         * @return {Object}     A user object like {"value": 2873, "username": "bob"}
+         * @private
+         */
+        this._getUserByID = function ( user_id ) {
+            var users = _users.filter(function (el) {
+                return el.id == user_id;
+            });
+            if (users.length > 0) {
+
+                // user found
+                return users[0];
+            } else {
+
+                // user id not found in all users list
+                return undefined;
+            }
+        }
+
+        this._init();
+    }
+
+    /**
+     * Some template strings.
+     */
+    var _FORM_TEMPLATE =    '<div class="acl-form"><div class="errorset"></div>' +
+        '<div class="fieldset"></div><div class="buttonset"></div></div>';
+
+    var _FIELD_TEMPLATE =   '<div class="field"><div class="field-label"></div>' +
+        '<div class="field-input"></div></div>';
+
+    var _ERROR_TEMPLATE =   '<div class="error"><div class="field-label"></div>' +
+        '<div class="field-error"></div></div>';
+
+    return Form;
+});

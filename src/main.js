@@ -1,7 +1,7 @@
 //--------- file: main.js ---------//
 
 
-define(['app/application'], function(application) {
+define(['app/application', 'ui/acl_form'], function(application) {
 
     return {
         initialize:     application.initialize ,

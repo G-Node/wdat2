@@ -222,6 +222,13 @@ define(['util/objects'], function(objects) {
     var _types;
 
     /**
+     * dictionnaries for safety levels
+     * @public
+     */
+    var SECURITY_LEVEL_NUM = {1: 'public', 2: 'friendly', 3: 'private'};
+    var SECURITY_LEVEL_STR = {'public': 1, 'friendly': 2, 'private': 3};
+
+    /**
      * Returns an array containing all ephys type names.
      *
      * @return {Array} All type names of ephys data types.
@@ -584,6 +591,8 @@ define(['util/objects'], function(objects) {
         children:   children ,
         isPlotable: isPlottable ,
         ephyTypes:  ephysTypes ,
+        SECURITY_LEVEL_NUM: SECURITY_LEVEL_NUM,
+        SECURITY_LEVEL_STR: SECURITY_LEVEL_STR,
         create:     create
     };
 
