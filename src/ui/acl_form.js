@@ -80,23 +80,24 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
             field.children('.field-label').text('Selected');
 
             _shared_with = new List(this.toID('shared_with_selection'), _bus, ['add', 'del']);
-            var a = _shared_with.event('del');
             _bus.subscribe(_shared_with.event('del'), this._onRemoveUser());
 
             field.children('.field-input').append( _shared_with.jq() );
             fieldset.append(field);
 
             // set up autocompletion actions
-            var that = this;
-            _auto_input.autocomplete({
-                source: _users_autocomplete,
-                select: function (event, ui) {
+            if (!is_modal) {
+                var that = this;
+                _auto_input.autocomplete({
+                    source: _users_autocomplete,
+                    select: function (event, ui) {
 
-                    // process selected user without bus
-                    that._onSelectUser( ui.item.value );
-                    return false;
-                }
-            });
+                        // process selected user without bus
+                        that._onSelectUser( ui.item.value );
+                        return false;
+                    }
+                });
+            };
 
             // if not modal create a save button
             if (!_is_modal) {
@@ -120,7 +121,7 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
          */
         this._onSelectUser = function( user_id ) {
             var user = this._getUserByID( user_id );
-            var c = new ModelContainer(null, _bus, ['del'], user, true);
+            var c = new ModelContainer(null, _bus, {'del': _shared_with.event('del')}, user, true);
             _shared_with.addContainer( c );
 
             /* non-list way
@@ -152,7 +153,7 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
         this._onRemoveUser = function() {
             return function (event, data) {
                 if (data && data.id) {
-                    _shared_with.del(data.info);
+                    _shared_with.del(data.id);
                 }
                 //var lid = _shared_with[0].id;
                 //var user = this._getUserByID( user_id );
@@ -270,6 +271,16 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
                                 $(this).dialog('close');
                             }
                         }
+                    }
+                });
+
+                _auto_input.autocomplete({
+                    source: _users_autocomplete,
+                    select: function (event, ui) {
+
+                        // process selected user without bus
+                        that._onSelectUser( ui.item.value );
+                        return false;
                     }
                 });
             }
