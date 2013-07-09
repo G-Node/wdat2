@@ -60,12 +60,12 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
          * Requests data (slice) from the REST api for a certain object. Returns always array(s)
          *  in pure SI-units.
          *
-         * @param callback {String|Function} The callback under which the response will be published.
-         * @param url {String}               An url of an object to fetch the data (like /neo/eventarray/13/)
-         * @param [params] {Object}          Object of the form
-         *                                   {"max_points": <Number>, "start": <Number>,"end": <Number>}
-         * @param [info] {*}                 Some additional information that will be included in the
-         *                                   response.
+         * @param event {String}        A name of the event to publish in the bus.
+         * @param url {String}          An url of an object to fetch the data (like /neo/eventarray/13/)
+         * @param [params] {Object}     Object that looks like:
+         *                                  {"max_points": <Number>, "start": <Number>,"end": <Number>}
+         * @param [info] {*}            Some additional information that will be included in the
+         *                              response.
          *
          * @public
          */
@@ -259,8 +259,8 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
                 _all_users = [];
                 for (var i = 0; i < content['selected'].length; i++) {
                     var u_ugly = content['selected'][i],
-                        u_nice = {username: null, id: null, permalink: null};
-                    u_nice.username  = objects.deepGet(u_ugly, 'username');
+                        u_nice = {name: null, id: null, permalink: null};
+                    u_nice.name  = objects.deepGet(u_ugly, 'username');
                     u_nice.permalink = objects.deepGet(u_ugly, 'permalink');
                     u_nice.id = strings.urlToID(u_nice['permalink']);
                     _all_users[i] = u_nice;

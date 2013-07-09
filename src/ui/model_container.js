@@ -1099,6 +1099,15 @@ define(['ui/button', 'ui/template_container'], function (Button, TemplateContain
                         '</div>' +
                     '</div>' +
                 '</div>' +
+            '</div>',
+
+        user: '' +
+            '<div id="<%= this.dom_id %>" class="wdat-container">' +
+                '<div class="buttons"></div>' +
+                '<div class="primary">' +
+                    '<span class="head"><%= this.name || "unnamed user"%></span>' +
+                    '<span class="head-add"></span>' +
+                '</div>' +
             '</div>'
     };
 

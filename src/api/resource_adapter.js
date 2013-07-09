@@ -14,8 +14,8 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
      */
     function ResourceAdapter() {
 
-        var SECURITY_LEVEL_NUM = {1: 'public', 2: 'friendly', 3: 'private'} ,
-            SECURITY_LEVEL_STR = {'public': 1, 'friendly': 2, 'private': 3};
+        var SECURITY_LEVEL_NUM = model_helpers.SECURITY_LEVEL_NUM ,
+            SECURITY_LEVEL_STR = model_helpers.SECURITY_LEVEL_STR;
 
         /**
          * Translate date from the NetworkResource.
