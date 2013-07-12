@@ -175,7 +175,7 @@ define([], function() {
     /**
      * Provides some partially randomized styles for plotting.
      *
-     * @returns {{stroke: string, sroke_opacity: string}}
+     * @returns {{stroke: string, stroke_opacity: string}}
      * @public
      */
     BasicSource.randomStyle = function() {
@@ -184,7 +184,7 @@ define([], function() {
         };
         return  {
             stroke: 'stroke:rgb(' + rand256() + ',' + rand256() + ',' + rand256() + ')',
-            sroke_opacity: 'stroke-opacity:0.85'
+            stroke_opacity: 'stroke-opacity:0.85'
         };
     };
 
