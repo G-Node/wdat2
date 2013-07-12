@@ -30,8 +30,8 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_
 
             // configure plotting
             _config = {
-                analogsignal: {context: 'signals', renderer: 'signal_renderer', source: SourceAnalogsignal}
-                //spiketrain: {context: 'spikes', renderer: 'spike_renderer', source: SourceAnalogsignal}
+                analogsignal: {context: 'signals', renderer: 'signal_renderer', source: SourceAnalogsignal},
+                spiketrain: {context: 'spikes', renderer: 'spike_renderer', source: SourceSpiketrain}
             };
 
             _contexts = ['signals', 'spikes'];
