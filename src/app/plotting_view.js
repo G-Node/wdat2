@@ -1,7 +1,7 @@
 // --------- plotting_window.js --------//
 
-define(['ui/list', 'ui/model_container', 'cry/source_analogsignal'],
-    function(List, ModelContainer, SourceAnalogsignal) {
+define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_spiketrain'],
+    function(List, ModelContainer, SourceAnalogsignal, SourceSpiketrain) {
     "use strict";
 
     /**

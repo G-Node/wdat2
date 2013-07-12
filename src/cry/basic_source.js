@@ -99,7 +99,7 @@ define([], function() {
          * @returns {{xmin: Number, xmax: Number, ymin: Number, ymax: Number}}
          * @public
          */
-        this.slicedBorders = function() {
+        this.sliceBorders = function() {
             if (!_sliced) {
                 throw "Source: no sliced data available. Use hasSliced() to avoid this error.";
             }
