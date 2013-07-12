@@ -1,7 +1,7 @@
 //-------- source_spiketrain.js ---------//
 
-define(['util/objects', 'util/strings', 'api/bus', 'cry/basic_source'],
-    function(objects, strings, Bus, BasicSource) {
+define(['util/objects', 'util/strings', 'cry/basic_source'],
+    function(objects, strings, BasicSource) {
     "use strict";
 
     var _count = 0;

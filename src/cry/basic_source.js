@@ -143,7 +143,10 @@ define([], function() {
      * [x1, y1, x2, x2, ... , xn, yn]
      *
      * @param array
+     *
      * @returns {{xmin: Number, xmax: Number, ymin: Number, ymax: Number}}
+     * @public
+     * @static
      */
     BasicSource.calculateBorders = function(array) {
         /** @type {{xmin: Number, xmax: Number, ymin: Number, ymax: Number}} */
@@ -177,6 +180,7 @@ define([], function() {
      *
      * @returns {{stroke: string, stroke_opacity: string}}
      * @public
+     * @static
      */
     BasicSource.randomStyle = function() {
         var rand256 = function() {
