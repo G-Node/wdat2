@@ -1,10 +1,5 @@
 /*---------- application.less -----------*/
 
-/*
-body {
-  background-color: #dddddd;
-}*/
-
 div.head, div.nav {
   border: 1px solid black;
 }
@@ -26,21 +21,25 @@ div.head, div.nav {
 
   margin: @cushioning;
 
+  div {
+    text-align: left;
+  }
+
   .left {
     float: left;
-    width: 280px;
+    width: 240px;
     min-height: 200px; /* remove?*/
   }
 
   .right {
     float: right;
-    width: 280px;
+    width: 240px;
     min-height: 200px; /* remove?*/
   }
 
   .center {
     min-height: 200px; /* remove?*/
-    margin: 0 280px + @cushioning;
+    margin: 0 240px + @cushioning;
   }
 
   /* MOVE THE FOLLOWING DEFINITIONS TO OTHER FILES*/
@@ -53,4 +52,19 @@ div.head, div.nav {
   #data-list, #main-content {
     margin: @cushioning 0;
   }
+}
+
+/* Override some settings of the global template */
+
+#footer {
+  margin: 0px auto 0px auto;
+  height: auto;
+}
+
+#content {
+  padding: 0;
+}
+
+.contentseite {
+  width: 928px !important;
 }

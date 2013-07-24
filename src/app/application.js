@@ -92,13 +92,13 @@ define(
     }
 
     // constant values for the layout
-    var VSPACE_HEAD = 158;
+    var VSPACE_HEAD = 230;
     var VSPACE_SEARCH = 62;
     var VSPACE_TAB = 34;
     var VSPACE_CUSHION = 6;
     var VSPACE_SEL_VALUES = 193;
-    var MOD_METADATA_TREE = 40;
-    var MOD_SEL_DATA = 303;
+    var MOD_METADATA_TREE = 37;
+    var MOD_SEL_DATA = 306;
     var MOD_METADATA_VIEW = 45;
     var MOD_DATA_VIEW = 78;
     var MOD_FILE_VIEW = 45;

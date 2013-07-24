@@ -5,8 +5,7 @@
   padding: 0;
 
   .tab-navigation {
-    .vertical-padding(@smallcushion - 1px);
-    .horizontal-padding(0);
+    padding: 3px 0 1px 0;
     margin: 0px;
     background-color: @bg-grey;
     font-size: @baseFontSize + 2px;
@@ -25,12 +24,12 @@
 
 
   .tab-navigation li {
-    .vertical-padding(@smallcushion);
-    .horizontal-padding(@cushioning * 2);
+    font-weight: bold;
+
+    padding: @smallcushion @cushioning * 2;
     border-top: 1px solid  @border-color-std;
     border-right: 1px solid  @border-color-std;
     border-bottom: 1px solid  @border-color-std;
-
     display: inline;
     cursor: pointer;
   }
