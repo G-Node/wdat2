@@ -92,7 +92,7 @@ define(
     }
 
     // constant values for the layout
-    var VSPACE_HEAD = 256;
+    var VSPACE_HEAD = 230;
     var VSPACE_SEARCH = 62;
     var VSPACE_TAB = 34;
     var VSPACE_CUSHION = 6;
