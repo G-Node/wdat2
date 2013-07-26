@@ -63,6 +63,7 @@ define(['ui/list', 'ui/form', 'ui/section_container', 'ui/property_container'],
                 .addClass('wdat-metadata-view')
                 .append(_cont.jq())
                 .append('<div class=view-buttons></div>')
+                .append('<h3>Properties</h3>')
                 .append(_list.jq());
 
 

@@ -24,44 +24,31 @@
 
   .primary {
     height: 20px;
-    vertical-align: middle;
     overflow: hidden;
 
     .head {
-      font-size: @mediumFontSize;
+      vertical-align: middle;
+      /*font-size: @mediumFontSize;*/
     }
 
     .head-add {
+      vertical-align: middle;
       color: @fg-grey;
       margin-left: @smallcushion;
     }
   }
 
-  dl.tabular {
-    padding-top: @cushioning;
-    margin: 0;
-
-    dt {
-      display: block;
-      float: left;
-      font-weight: bold;
-      margin: 0;
-      padding: @smallcushion / 2 @smallcushion;
-      min-width: 100px;
-    }
-
-    dd {
-      display: block;
-      margin: 0;
-      margin-left: 100;
-      padding: @smallcushion / 2  @smallcushion;
-    }
+  hr {
+    width: auto;
+    margin: @smallcushion;
+    color: #d3d3d3;
+    border: 1px inset #d3d3d3;
   }
 
   h3 {
-    font-size: @largeFontSize;
+    font-size: @mediumFontSize;
     padding: 0;
-    margin: 0;
+    margin: @smallcushion;
   }
 
   .properties {
@@ -75,11 +62,13 @@
     .field-name {
       display: table-cell;
       font-weight: bold;
+      min-width: 100px;
       padding:  @smallcushion / 2  @smallcushion;
     }
 
     .field-val {
       display: table-cell;
+      overflow: hidden;
       padding:  @smallcushion / 2  @smallcushion;
     }
   }
