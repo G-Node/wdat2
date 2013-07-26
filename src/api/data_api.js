@@ -20,48 +20,39 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
         var _bus        = bus ,
             _resource   = new NetworkResource() ,
             _adapter    = new ResourceAdapter() ,
-            _worker                             ,
-            _curr_user                          ,
-            _all_users;
+            _worker, _callback_cache, _curr_user, _all_users;
 
-        if (Worker && !env.debug) {
-            _worker = new Worker('/site_media/static/load-worker.js');
-            _worker.onmessage = _workerHandler;
-        }
+        this._init = function() {
+            _callback_cache = {};
+            if (Worker && !env.debug) {
+                _worker = new Worker('/site_media/static/load-worker.js');
+                _worker.onmessage = this._workerHandler();
+            }
+        };
 
         /**
          * Get data from the api via search specifiers.
          *
-         * @param event {String}            The event under which the response will be published.
-         * @param specifier {Object|Array}  Search specifiers.
-         * @param [info] {*}                Some additional information that will be included in the
-         *                                  response.
+         * @param callback {String|Function} The callback under which the response will be published.
+         * @param specifier {Object|Array}   Search specifiers.
+         * @param [info] {*}                 Some additional information that will be included in the
+         *                                   response.
          *
          * @public
          */
-        this.get = function(event, specifier, info) {
+        this.get = function(callback, specifier, info) {
 
             if (_worker) {
                 var message = {
                     action:     'get' ,
-                    event:      event ,
+                    event:      callback ,
                     specifier:  specifier ,
                     info:       info
                 };
 
-                _worker.postMessage(message);
+                this._notifyWorker(message);
             } else {
-                _resource.get(specifier, handler);
-            }
-
-            // callback
-            function handler(response) {
-                var result = _adapter.adaptFromResource(response);
-
-                result.action = 'get';
-                result.info   = info;
-
-                _bus.publish(event, result);
+                _resource.get(specifier, this._localHandler(callback, 'get', info));
             }
         };
 
@@ -69,46 +60,37 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
          * Requests data (slice) from the REST api for a certain object. Returns always array(s)
          *  in pure SI-units.
          *
-         * @param event {String}        A name of the event to publich in the bus.
+         * @param event {String}        A name of the event to publish in the bus.
          * @param url {String}          An url of an object to fetch the data (like /neo/eventarray/13/)
-         * @param [params] {Object}     Object of the form
+         * @param [params] {Object}     Object that looks like:
          *                                  {"max_points": <Number>, "start": <Number>,"end": <Number>}
          * @param [info] {*}            Some additional information that will be included in the
          *                              response.
          *
          * @public
          */
-        this.getData = function(event, url, params, info) {
+        this.getData = function(callback, url, params, info) {
 
             if (_worker) {
                 var message = {
                     action:     'get_data' ,
-                    event:      event ,
+                    event:      callback ,
                     url:        url,
                     info:       info,
                     params:     params
                 };
 
-                _worker.postMessage(message);
+                this._notifyWorker(message);
             } else {
-                _resource.getData(url, handler, params);
+                _resource.getData(url, this._localHandler(callback, 'get_data', info), params);
             }
 
-            // callback
-            function handler(response) {
-                var result = _adapter.adaptFromResource(response);
-
-                result.action = 'get_data';
-                result.info   = info;
-
-                _bus.publish(event, result);
-            }
         };
 
         /**
          * Get data from the api via urls.
          *
-         * @param event {String}            The event under which the response will be published.
+         * @param callback {String|Function} The callback under which the response will be published.
          * @param urls  {String|Array}      The URLs to request.
          * @param depth {Number}            The depth of the request.
          * @param [info] {*}                Some additional information that will be included in the
@@ -116,48 +98,74 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
          *
          * @public
          */
-        this.getByURL = function(event, urls, depth, info) {
+        this.getByURL = function(callback, urls, depth, info) {
 
             if (_worker) {
                 var message = {
                     action:     'get_by_url' ,
-                    event:      event ,
+                    event:      callback ,
                     urls:       urls ,
                     depth:      depth ,
                     info:       info
                 };
 
-                _worker.postMessage(message);
+                this._notifyWorker(message);
             } else {
-                _resource.getByURL(urls, handler, depth);
+                _resource.getByURL(urls, this._localHandler(callback, 'get_by_url', info), depth);
             }
 
-            // callback
-            function handler(response) {
-                var result = _adapter.adaptFromResource(response);
-
-                result.action = 'get';
-                result.info   = info;
-
-                _bus.publish(event, result);
-            }
         };
 
         /**
          * Update or create objects.
          *
+         * @param callback {String|Function} The callback under which the response will be published.
+         * @param data {Object}              The data of the element to update or create.
+         * @param [info] {*}                 Some additional information that will be included in the
+         *                                   response.
+         *
+         * @public
+         */
+        this.set = function(callback, data, info) {
+
+            if (_worker) {
+                var message = {
+                    action:     'set' ,
+                    event:      callback ,
+                    data:       data ,
+                    info:       info
+                };
+
+                this._notifyWorker(message);
+            } else {
+                var request = _adapter.adaptFromApplication(data);
+                _resource.set(request.url, request.data, this._localHandler(callback, 'set', info));
+            }
+
+        };
+
+        /**
+         * Update ACL for a certain object.
+         *
          * @param event {String}            The event under which the response will be published.
-         * @param data {Object}             The data of the element to update or create.
+         * @param data {Object}             The ACL data with object ID. Can look like
+         *                              data = {
+         *                                  "id": "/metadata/section/39487",
+         *                                  "safety_level": 3,
+         *                                  "shared_with": {
+         *                                      "bob": 1, "anita": 2
+         *                                  }
+         *                              }
          * @param [info] {*}                Some additional information that will be included in the
          *                                  response.
          *
          * @public
          */
-        this.set = function(event, data, info) {
+        this.setACL = function(event, data, info) {
 
             if (_worker) {
                 var message = {
-                    action:     'set' ,
+                    action:     'set_acl' ,
                     event:      event ,
                     data:       data ,
                     info:       info
@@ -165,17 +173,15 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
 
                 _worker.postMessage(message);
             } else {
-                var request = _adapter.adaptFromApplication(data);
+                var request = _adapter.adaptFromACL(data);
                 _resource.set(request.url, request.data, handler);
             }
 
             function handler(response) {
-                var result = _adapter.adaptFromResource(response);
+                response.action = 'set_acl';
+                response.info   = info;
 
-                result.action = 'set';
-                result.info   = info;
-
-                _bus.publish(event, result);
+                _bus.publish(event, response);
             }
 
         };
@@ -183,36 +189,28 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
         /**
          * Delete an object.
          *
-         * @param event {String}            The event under which the response will be published.
-         * @param url {String}              The URL of the object to delete.
-         * @param [info] {*}                Some additional information that will be included in the
-         *                                  response.
+         * @param callback {String|Function} The callback under which the response will be published.
+         * @param url {String}               The URL of the object to delete.
+         * @param [info] {*}                 Some additional information that will be included in the
+         *                                   response.
          *
          * @public
          */
-        this.del = function(event, url, info) {
+        this.del = function(callback, url, info) {
 
             if (_worker) {
                 var message = {
                     action:     'del' ,
                     url:        url ,
-                    event:      event ,
+                    event:      callback ,
                     info:       info
                 };
 
-                _worker.postMessage(message);
+                this._notifyWorker(message);
             } else {
-                _resource.delete(url, handler);
+                _resource.delete(url, this._localHandler(callback, 'del', info));
             }
 
-            function handler(response) {
-                var result = _adapter.adaptFromResource(response);
-
-                result.action = 'del';
-                result.info   = info;
-
-                _bus.publish(event, result);
-            }
         };
 
         /**
@@ -261,8 +259,8 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
                 _all_users = [];
                 for (var i = 0; i < content['selected'].length; i++) {
                     var u_ugly = content['selected'][i],
-                        u_nice = {username: null, id: null, permalink: null};
-                    u_nice.username  = objects.deepGet(u_ugly, 'username');
+                        u_nice = {name: null, id: null, permalink: null};
+                    u_nice.name  = objects.deepGet(u_ugly, 'username');
                     u_nice.permalink = objects.deepGet(u_ugly, 'permalink');
                     u_nice.id = strings.urlToID(u_nice['permalink']);
                     _all_users[i] = u_nice;
@@ -273,27 +271,82 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
             return _all_users;
         };
 
+
         /**
-         * Handles responses from the worker
+         * Send a message to the worker.
          *
-         * @param msg {Object} The message from the worker.
+         * @param message {{action: *, event: *, info: *}} The message object.
          *
          * @private
          */
-        function _workerHandler(msg) {
+        this._notifyWorker = function(message) {
+            if (message.action && message.event) {
 
-            // unwrap message
-            var result  = msg.data ,
-                event   = msg.data.event;
+                if (typeof(message.event) === 'function') {
+                    var callback_id = 'callback_' + _bus.uid();
+                    _callback_cache[callback_id] = message.event;
+                    message.event = callback_id;
+                }
 
-            if (event === 'debug') {
-                console.log("WORKER DEBUG\n" + JSON.stringify(result.data, null, 2));
-            } else {
-                _bus.publish(event, result);
+                _worker.postMessage(message);
             }
-        }
+        };
 
-    }
+        /**
+         * Returns a handler function that processes messages from the
+         * worker.
+         *
+         * @returns {Function} The handler function.
+         * @private
+         */
+        this._workerHandler = function() {
+            return function(msg) {
+                // unwrap message
+                var result  = msg.data ,
+                    event   = msg.data.event;
+
+                if (event === 'debug') {
+                    console.log("WORKER DEBUG\n" + JSON.stringify(result.data, null, 2));
+                } else {
+                    if (_callback_cache.hasOwnProperty(event)) {
+                        var callback = _callback_cache[event];
+                        delete _callback_cache[event];
+                        delete msg.data.event;
+                        callback(result);
+                    } else {
+                        _bus.publish(event, result);
+                    }
+                }
+            };
+        };
+
+        /**
+         * Returns a handler function, that processes results from the network resource.
+         *
+         * @param callback {String|Function}  A callback.
+         * @param action {String}             The performed action.
+         * @param info {*}                    Some additional information.
+         *
+         * @returns {Function} A handler function.
+         * @private
+         */
+        this._localHandler = function(callback, action, info) {
+            return function(response) {
+                var result = _adapter.adaptFromResource(response);
+
+                result.action = 'del';
+                result.info   = info;
+
+                if (typeof(callback) === 'function') {
+                    callback(result);
+                } else {
+                    _bus.publish(callback, result);
+                }
+            };
+        };
+
+        this._init();
+    } // end DataAPI
 
     return DataAPI;
 });

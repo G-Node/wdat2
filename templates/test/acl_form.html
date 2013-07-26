@@ -1,0 +1,81 @@
+{% extends "test/test_base.html" %}
+
+{% block title %}ACL Form Test{% endblock %}
+
+{% block extra_script %}
+    <script type="text/javascript">
+
+        window.onload = function () {
+            require(['main'], function () {
+
+                window.run = {};
+
+                // load
+                window.Bus     = require('api/bus');
+                window.DataAPI = require('api/data_api');
+                window.Form    = require('ui/acl_form');
+                window.strings = require('util/strings');
+
+                run.bus  = new Bus();
+                run.api  = new DataAPI(run.bus);
+
+                // fetch all registered users
+                var users;
+                try {
+                    users = run.api.allUsers();
+                }
+                catch (e) {
+                    alert(e);
+                    users = [{"username": "no users fetched", "id": 0, "permalink": null}];
+                };
+
+                // build and setup non-modal form
+                var fake_acl = {
+                    "fields": {"safety_level": "private"},
+                    "shared_with": {
+                        "bob": 1
+                    }
+                };
+                run.f01 = new Form($('#form01'), run.bus, users);
+                run.f01.set( fake_acl );
+                run.bus.subscribe(run.f01.event('save'), doSave);
+
+                // build a modal form
+                run.f_modal = new Form('form-modal', run.bus, users, true);
+                run.btn_object = $("#btn-object").button({text: true});
+                run.btn_object.click(function () {
+                    var location = $('#input-object').val();
+
+                    console.log('REQUEST object @: ' + location);
+                    run.api.get('get-object', strings.segmentId( location ));
+                });
+                run.bus.subscribe('get-object', getObject);
+
+                // define actions
+                function doSave(event, data) {
+                    console.log('EVENT save: ' + JSON.stringify(data));
+                }
+
+                function getObject(event, data) {
+                    console.log('EVENT get-object: ' + JSON.stringify(data));
+                    run.f_modal.set(data.primary[0]);
+                    run.f_modal.open();
+                }
+            });
+        };
+    </script>
+{% endblock %}
+
+{% block body %}
+    <h1>Form Test</h1>
+    <div>
+        <div id="form01" style="border: 1px solid grey"></div>
+    </div>
+    <div>
+        <button id="btn-object">Show object ACL form</button>
+        <span>object URL</span>
+        <input type="text" value="/metadata/section/1" id="input-object">
+    </div>
+    <div class="event-log">
+    </div>
+{% endblock %}

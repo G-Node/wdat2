@@ -43,11 +43,11 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
         };
 
         /**
-         * Delete an element by URL
+         * Fetch data as JSON for a given datafile with [slicing] and/or [downsampling].
          *
          * @param url {String}          A URL, like "/datafiles/1736/?start_time=15"
          * @param callback {Function}   A callback function.
-         * @param [params] {Object}     Object of the form
+         * @param [params] {Object}     Object of the form like
          *                                  {"max_points": <Number>, "start": <Number>,"end": <Number>}
          *
          * @public
@@ -749,6 +749,14 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     if (url.search( '/data/' ) > -1) {
                         response.message = 'data fetched';
                         response.data    = content;
+                        response.range   = [0, 0];
+
+                    } else if (url.search( '/acl/' ) > -1) {
+                        response.message = 'ACL processed';
+                        response.acl    = {
+                            "safety_level": content.safety_level,
+                            "shared_with": content.shared_with
+                        };
                         response.range   = [0, 0];
 
                     } else {

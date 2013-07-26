@@ -1,6 +1,7 @@
 // --------- plotting_window.js --------//
 
-define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
+define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_spiketrain'],
+    function(List, ModelContainer, SourceAnalogsignal, SourceSpiketrain) {
     "use strict";
 
     /**
@@ -12,14 +13,34 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
      * @constructor
      * @public
      */
-    function PlottingView(bus, api, selected_list) {
+    function PlottingView(bus, api, selected_list, plot_event) {
 
         var _bus = bus,
             _api = api,
             _sel_list = selected_list,
-            _html = $(_WINDOW_TEMPLATE),
-            _own_list, _plot_manager;
+            _html, _own_list, _manager, _config, _contexts, _renderer;
 
+
+        this._init = function() {
+            // init html
+            _html = $(_WINDOW_TEMPLATE);
+
+            // register for open events
+            bus.subscribe(plot_event, this._onOpen());
+
+            // configure plotting
+            _config = {
+                analogsignal: {context: 'signals', renderer: 'signal_renderer', source: SourceAnalogsignal},
+                spiketrain: {context: 'spikes', renderer: 'spike_renderer', source: SourceSpiketrain}
+            };
+
+            _contexts = ['signals', 'spikes'];
+
+            _renderer = {
+                signal_renderer: new cry.SignalRenderer(),
+                spike_renderer: new cry.SpikeRenderer()
+            };
+        };
 
 
         this.open = function() {
@@ -46,18 +67,17 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
 
             var id = '#' + svg.attr('id');
             svg = d3.select(id);
-            _plot_manager = new cry.PlotManager(svg);
-            _plot_manager.createContext('signal');
-            _plot_manager.addRenderer('signal', new cry.SignalRenderer());
-            var signals = new cry.RandomSignal(150, 4, 10000, 5);
-            _plot_manager.addSource(signals, 'signal', 'signal');
+            _manager = new cry.PlotManager(svg);
 
-            _plot_manager.createContext('spike', {yticks: 0});
-            _plot_manager.addRenderer('spike', new cry.SpikeRenderer());
-            var spikes = new cry.RandomSpikes(150, 1000, 7);
-            _plot_manager.addSource(spikes, 'spike', 'spike');
+            for (var i = 0; i < _contexts.length; i++) {
+                _manager.createContext(_contexts[i]);
+            }
 
-            _plot_manager.plot();
+            for (var r in _renderer) {
+                if (_renderer.hasOwnProperty(r)) {
+                    _manager.addRenderer(r, _renderer[r]);
+                }
+            }
 
             _html.find('.wdat-list')
                  .attr('id', 'list-' + _bus.uid())
@@ -68,9 +88,17 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
             var data = _sel_list.getAll();
 
             for (var i = 0; i < data.length; i++) {
-                _own_list.addContainer(new ModelContainer(null, _bus, [], data[i], true));
+                var d = data[i],
+                    conf = _config[d.type];
+
+                if (conf) {
+                    var s = new conf.source(_api, d);
+                    _manager.addSource(s, conf.context, conf.renderer);
+                    _own_list.addContainer(new ModelContainer(null, _bus, [], data[i], true));
+                }
             }
 
+            _manager.plot();
         };
 
         this.close = function() {
@@ -81,7 +109,7 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
             _own_list = null;
 
             _html.find('svg').empty();
-            _plot_manager = null;
+            _manager = null;
 
             _html.remove();
         };
@@ -99,6 +127,8 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
                 that.open();
             };
         };
+
+        this._init();
     }
 
 
@@ -110,7 +140,7 @@ define(['ui/list', 'ui/model_container'], function(List, ModelContainer) {
         '<div class="wdat-plotting-view">' +
             '<div class="list-panel">' +
                 '<div class="wdat-list"></div>' +
-                '<div class="buttons"></div>' +
+                '<div class="panel-buttons"></div>' +
             '</div>' +
             '<div class="plot-panel"><svg></svg></div>' +
         '</div>';
