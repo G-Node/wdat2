@@ -123,8 +123,9 @@ define(['util/objects', 'util/strings', 'ui/container'], function (objects, stri
                 data_copy.data = {}
             }
 
-            jq = $($.jqote(_template, data_copy)).attr('id', id).addClass(classes);
+            jq = $($.jqote(_template, data_copy)).attr('id', id);
             this._postprocess(jq, data_orig, _actions);
+            jq.addClass(classes)
             this.jq(jq);
         };
 
