@@ -111,6 +111,8 @@ define(['util/objects', 'util/strings', 'ui/container'], function (objects, stri
                 data_copy = objects.deepCopy(data_orig),
                 jq;
 
+            var classes = this.jq().attr('class');
+
             if (data_orig.id) {
                 data_copy.id = strings.urlToID(data_orig.id);
             }
@@ -121,7 +123,7 @@ define(['util/objects', 'util/strings', 'ui/container'], function (objects, stri
                 data_copy.data = {}
             }
 
-            jq = $($.jqote(_template, data_copy)).attr('id', id);
+            jq = $($.jqote(_template, data_copy)).attr('id', id).addClass(classes);
             this._postprocess(jq, data_orig, _actions);
             this.jq(jq);
         };
