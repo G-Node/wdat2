@@ -56,13 +56,14 @@ define(['ui/list', 'ui/form', 'ui/section_container', 'ui/property_container'],
 
             _cont = new SectionContainer(cont_id, _bus, []);
             _list = new List(list_id, _bus, _list_actions);
-            _form = new Form(form_id, _bus, {save: _actions.save_prop}, 'section', true);
+            _form = new Form(form_id, _bus, {save: _actions.save_prop}, 'property', true);
             _form.set({});
 
             _html.attr('id', _id)
                 .addClass('wdat-metadata-view')
                 .append(_cont.jq())
                 .append('<div class=view-buttons></div>')
+                .append('<h3>Properties</h3>')
                 .append(_list.jq());
 
 

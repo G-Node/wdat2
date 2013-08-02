@@ -15,6 +15,7 @@ define(
           sel_section: 'global-sel-section',
           sel_value: 'global-sel-value',
           sel_value_search: 'global-sel-value-search',
+          update_section: 'global-update-section',
           search: 'global-search',
           sel_data: 'global-sel-data',
           plot: 'global-plot',
@@ -35,7 +36,7 @@ define(
         var bus = new Bus();
         var api = new DataAPI(bus);
         // add metadata tree
-        metadataTree = new MetadataTree($('#metadata-tree'), api, bus, events.sel_section);
+        metadataTree = new MetadataTree($('#metadata-tree'), api, bus, events.sel_section, events.update_section);
         metadataTree.load();
 
         // add search bar
@@ -47,7 +48,7 @@ define(
 
         // add metadata view
         var html = $('<div id="metadata-view"></div>');
-        metadataView = new MetadataView(html, api, bus, events.sel_section);
+        metadataView = new MetadataView(html, api, bus, events.sel_section, events.update_section);
         // metadataView = new MetadataView(html, api, bus, 'blaselect');
         tabFolder.add(html, 'info');
 

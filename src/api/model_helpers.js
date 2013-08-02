@@ -177,6 +177,10 @@ define(['util/objects'], function(objects) {
             tmpl = template(type);
 
         if (tmpl) {
+
+            obj.type = type;
+            obj.category = category(type);
+
             if (tmpl.fields) {
                 obj.fields = {};
                 for (i in tmpl.fields) {

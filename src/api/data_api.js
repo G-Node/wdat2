@@ -334,7 +334,7 @@ define(['env', 'util/strings', 'util/objects', 'api/bus', 'api/resource_adapter'
             return function(response) {
                 var result = _adapter.adaptFromResource(response);
 
-                result.action = 'del';
+                result.action = action;
                 result.info   = info;
 
                 if (typeof(callback) === 'function') {
