@@ -19,13 +19,12 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
      * @constructor
      * @public
      */
-    function MetadataTree(html, api, bus, selEvent) {
+    function MetadataTree(html, api, bus, selEvent, updateEvent) {
 
         var _html = $(html) ,
             _bus  = bus ,
             _id   = _html.attr('id') || _bus.uid() ,
             _api  = api ,
-            _sel  = selEvent || _id + '-select',
             _tree, _actions, _tree_actions, _form;
 
         /**
@@ -33,7 +32,7 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
          */
         this._init = function() {
             _tree_actions = {
-                sel:        _sel ,
+                sel:        selEvent || _id + '-select' ,
                 edit:       _id + '-edit' ,
                 del:        _id + '-delete' ,
                 add:        _id + '-add' ,
@@ -44,7 +43,7 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
             _actions = {
                 save:       _id + '-save',    // save events from forms
                 load:       _id + '-load',    // DataAPI response to load events
-                update:     _id + '-update'   // DataAPI response to update events
+                update:     updateEvent || _id + '-update'   // DataAPI response to update events
             };
 
             _tree = new Tree(_id + '-mdata-tree', _bus, _tree_actions);
