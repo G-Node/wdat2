@@ -138,14 +138,14 @@ define(function () {
 
             switch (tmp.length) {
                 case 1:
-                    numId = parseInt(tmp[0]);
+                    numId = tmp[0];
                     break;
                 case 2:
-                    numId = parseInt(tmp[1]);
+                    numId = tmp[1];
                     type  = tmp[0];
                     break;
                 case 3:
-                    numId = parseInt(tmp[2]);
+                    numId = tmp[2];
                     type  = tmp[1];
                     cat   = tmp[0];
                     break;
