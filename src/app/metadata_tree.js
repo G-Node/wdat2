@@ -3,7 +3,7 @@
 /*
  * The module defines the presenter class MetadataTree
  */
-define(['ui/tree', 'ui/form'], function (Tree, Form) {
+define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tree, Form) {
     "use strict";
 
     /**
@@ -192,13 +192,15 @@ define(['ui/tree', 'ui/form'], function (Tree, Form) {
                 _form.set({});
                 if (!_isPredefNode(id)) {
                     if (evname == _tree_actions.add) {
-                        _form.set({parents: {parent_section: id}, type: 'section'});
+                        var tmpl = model_helpers.create('section');
+                        tmpl.parents.parent_section = id;
+                        _form.set(tmpl);
                     } else if (evname == _tree_actions.edit) {
                         _form.set(data);
                     }
                     _form.open();
                 } else if (id == 'own-metadata') {
-                    _form.set({parents: {parent_section: null}, type: 'section'});
+                    _form.set(model_helpers.create('section'));
                     _form.open();
                 }
             };
