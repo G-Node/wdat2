@@ -61,6 +61,9 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
                 }
             }
 
+            // sort primary data
+            adapted_data.primary.sort(_compareObject);
+
             if (error) {
                 adapted_data.error = error;
                 adapted_data.message = message;
@@ -248,6 +251,39 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
             }
 
             return adapted;
+        }
+
+
+        /**
+         * Compare two objects for sorting.
+         *
+         * @private
+         */
+        function _compareObject(prev, next) {
+            if (prev.name && next.name) {
+                return _comparePrimitive(prev.name, next.name);
+            } if (prev.name) {
+                return -1;
+            } if (next.name) {
+                return 1;
+            } else {
+                return _comparePrimitive(prev.id, next.id);
+            }
+        }
+
+        /**
+         * Compare two primitive types for sorting.
+         *
+         * @private
+         */
+        function _comparePrimitive(prev, next) {
+            if (prev < next) {
+                return -1;
+            } else if (prev > next) {
+                return 1;
+            } else {
+                return 0;
+            }
         }
     }
 

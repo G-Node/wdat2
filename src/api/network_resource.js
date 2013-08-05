@@ -561,6 +561,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
             xhr.onreadystatechange = collect;
             xhr.open('GET', obj_url);
+            xhr.setRequestHeader('If-None-Match', 'ed2876adff987613414abcged091875621823760');
             xhr.send(null);
 
             function collect() {
