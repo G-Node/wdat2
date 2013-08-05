@@ -69,10 +69,6 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_
             svg = d3.select(id);
             _manager = new cry.PlotManager(svg);
 
-            //for (var i = 0; i < _contexts.length; i++) {
-            //    _manager.createContext(_contexts[i]);
-            //}
-
             for (var r in _renderer) {
                 if (_renderer.hasOwnProperty(r)) {
                     _manager.addRenderer(r, _renderer[r]);
