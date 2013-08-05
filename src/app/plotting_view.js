@@ -69,9 +69,9 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_
             svg = d3.select(id);
             _manager = new cry.PlotManager(svg);
 
-            for (var i = 0; i < _contexts.length; i++) {
-                _manager.createContext(_contexts[i]);
-            }
+            //for (var i = 0; i < _contexts.length; i++) {
+            //    _manager.createContext(_contexts[i]);
+            //}
 
             for (var r in _renderer) {
                 if (_renderer.hasOwnProperty(r)) {
@@ -87,14 +87,24 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_
             _own_list = new List(_html.find('.wdat-list'), _bus, []);
             var data = _sel_list.getAll();
 
-            for (var i = 0; i < data.length; i++) {
-                var d = data[i],
-                    conf = _config[d.type];
+            var contexts_created = {};
+            for (var i = 0; i < _contexts.length; i++) {
+                var context_name = _contexts[i];
 
-                if (conf) {
-                    var s = new conf.source(_api, d);
-                    _manager.addSource(s, conf.context, conf.renderer);
-                    _own_list.addContainer(new ModelContainer(null, _bus, [], data[i], true));
+                for (var j = 0; j < data.length; j++) {
+                    var d = data[j],
+                        conf = _config[d.type];
+
+                    if (conf && conf.context === context_name) {
+                        if (!contexts_created[context_name]) {
+                            _manager.createContext(context_name);
+                            contexts_created[context_name] = true;
+                        }
+
+                        var s = new conf.source(_api, d);
+                        _manager.addSource(s, conf.context, conf.renderer);
+                        _own_list.addContainer(new ModelContainer(null, _bus, [], data[j], true));
+                    }
                 }
             }
 
