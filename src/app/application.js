@@ -15,6 +15,7 @@ define(
           sel_section: 'global-sel-section',
           sel_value: 'global-sel-value',
           sel_value_search: 'global-sel-value-search',
+          update_section: 'global-update-section',
           search: 'global-search',
           sel_data: 'global-sel-data',
           plot: 'global-plot',
@@ -35,7 +36,7 @@ define(
         var bus = new Bus();
         var api = new DataAPI(bus);
         // add metadata tree
-        metadataTree = new MetadataTree($('#metadata-tree'), api, bus, events.sel_section);
+        metadataTree = new MetadataTree($('#metadata-tree'), api, bus, events.sel_section, events.update_section);
         metadataTree.load();
 
         // add search bar
@@ -47,7 +48,7 @@ define(
 
         // add metadata view
         var html = $('<div id="metadata-view"></div>');
-        metadataView = new MetadataView(html, api, bus, events.sel_section);
+        metadataView = new MetadataView(html, api, bus, events.sel_section, events.update_section);
         // metadataView = new MetadataView(html, api, bus, 'blaselect');
         tabFolder.add(html, 'info');
 
@@ -71,6 +72,8 @@ define(
         html = $('#sel-data-view');
         selDataView = new SelectedDataView(html, api, bus, events.sel_data, events.plot);
 
+        window.pv = new PlottingView(bus, api, selDataView.list(), events.plot);
+
         adjustLayout();
     }
 
@@ -90,13 +93,13 @@ define(
     }
 
     // constant values for the layout
-    var VSPACE_HEAD = 158;
+    var VSPACE_HEAD = 230;
     var VSPACE_SEARCH = 62;
     var VSPACE_TAB = 34;
     var VSPACE_CUSHION = 6;
-    var VSPACE_SEL_VALUES = 230;
-    var MOD_METADATA_TREE = 40;
-    var MOD_SEL_DATA = 303;
+    var VSPACE_SEL_VALUES = 193;
+    var MOD_METADATA_TREE = 37;
+    var MOD_SEL_DATA = 306;
     var MOD_METADATA_VIEW = 45;
     var MOD_DATA_VIEW = 78;
     var MOD_FILE_VIEW = 45;

@@ -329,7 +329,6 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
             } else if (def.type === 'ltext' || def.type === 'textarea') {
                 input = $('<textarea rows="6"></textarea>');
                 input.addClass('fixed-width');
-                input.attr('value', def.value);
             } else if (def.type === 'option') {
                 input = $('<select size="1"></select>');
                 for (var i in def.options) {
@@ -341,9 +340,9 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container'],
                 throw new Error('field has no valid type: field.type = ' + type);
             }
             if (value) {
-                input.attr('value', value);
-            } else if (def.value != undefined && def.value != null) {
-                input.attr('value', def.value);
+                input.val(value);
+            } else if (def.value !== undefined && def.value !== null) {
+                input.val(def.value);
             }
             if (def.readonly) {
                 input.attr('readonly', 'readonly');
