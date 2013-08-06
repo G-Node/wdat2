@@ -22,7 +22,8 @@ define(['env'], function (env) {
      */
     function Bus() {
 
-        var _counter = 1;
+        var _counter = 1 ,
+            _states  = {};
 
         /**
          * Subscribe a function to a specific event.
@@ -36,12 +37,14 @@ define(['env'], function (env) {
             var e = event;
 
             if (uid) e += uid;
+            $(this).bind(e, callback);
 
             if (env.debug) {
-                console.log('Bus (DEBUG): subscribe event ' + e);
+                if (_states.hasOwnProperty(e))
+                    console.log('Bus (DEBUG): subscribe for state ' + e);
+                else
+                    console.log('Bus (DEBUG): subscribe for event ' + e);
             }
-
-            $(this).bind(e, callback);
         };
 
         /**
@@ -55,12 +58,14 @@ define(['env'], function (env) {
             var e = event;
 
             if (uid) e += uid;
+            $(this).unbind(e);
 
             if (env.debug) {
-                console.log('Bus (DEBUG): unsubscribe event ' + e);
+                if (_states.hasOwnProperty(e))
+                    console.log('Bus (DEBUG): unsubscribe from state ' + e);
+                else
+                    console.log('Bus (DEBUG): unsubscribe from event ' + e);
             }
-
-            $(this).unbind(e);
         };
 
         /**
@@ -68,25 +73,62 @@ define(['env'], function (env) {
          *
          * @param event {String}    The event name.
          * @param data {Object}     The data object.
-         * @param [uid] {String}      Unique identifier.
+         * @param [uid] {String}    Unique identifier.
          */
         this.publish = function(event, data, uid) {
             var e = event;
 
             if (uid) e += uid;
 
-            if (this.onerror(event, data)) {
-                if (env.debug) {
-                    var d = data || 'none';
-                    console.log('Bus (DEBUG): publish event ' + e + ' // data = ' + JSON.stringify(d));
+            if (!_states.hasOwnProperty(e)) {
+                if (this.onerror(event, data)) {
+                    if (env.debug) {
+                        var d = data || 'none';
+                        console.log('Bus (DEBUG): publish event ' + e + ' // data = ' + JSON.stringify(d));
+                    }
+                    $(this).trigger(e, data);
+                } else {
+                    if (env.debug) {
+                        var d = data || 'none';
+                        console.log('Bus (DEBUG): event not published due to errors // data = ' + JSON.stringify(d));
+                    }
                 }
-                $(this).trigger(e, data);
             } else {
+                throw 'Unable to publish data for a state, use the state() method instead.';
+            }
+        };
+
+        /**
+         * Get or set a certain state.
+         *
+         * @param state {String}    The name of the state.
+         * @param [data] {Object}   The new representation of the state. If set it will
+         *                          change the state and notify all subscribed functions.
+         *
+         * @return {Object} The current representation of the state.
+         */
+        this.state = function(state, data) {
+            var current = null;
+
+            if (data !== undefined) {
+
+                _states[state] = data;
+                current = data;
+                $(this).trigger(state, data);
+
                 if (env.debug) {
-                    var d = data || 'none';
-                    console.log('Bus (DEBUG): event not published due to errors // data = ' + JSON.stringify(d));
+                    console.log('Bus (DEBUG): change state ' + state + ' to: ' + JSON.stringify(data))
+                }
+
+            } else {
+                if (_states.hasOwnProperty(state)) {
+                    current = _states[state];
+                } else {
+                    console.log('Bus (WARN): no such state ' + state);
                 }
             }
+
+            return current;
         };
 
         /**

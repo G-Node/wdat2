@@ -18,8 +18,10 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
      *
      * @constructor
      * @public
+     *
+     * TODO use search state
      */
-    function MetadataTree(html, api, bus, selEvent, updateEvent) {
+    function MetadataTree(html, api, bus, selEvent, updateEvent, searchState) {
 
         var _html = $(html) ,
             _bus  = bus ,
@@ -57,6 +59,11 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
             var form_id = _id += '-section-form';
             _form = new Form(form_id, _bus, {save: _actions.save}, 'section', true);
             _form.set({});
+
+            // set state for search to false
+            var state = _bus.state(searchState) || {};
+            state['tree-state'] = false;
+            _bus.state(searchState, state);
 
             // subscribe handlers for internal events
             _bus.subscribe(_actions.save, this._onSave());
@@ -260,7 +267,15 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
          */
         this._onSelect = function() {
             return function(event, data) {
+                var id = data.id || data;
+                var state = _bus.state(searchState) || {};
+                if (id === 'own-all' || id === 'shared-all' || id === 'public-all') {
+                    state['tree-state'] = true;
+                } else {
+                    state['tree-state'] = false;
+                }
                 _tree.select(data.id, true);
+                _bus.state(searchState, state);
             };
         };
 

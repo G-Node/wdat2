@@ -22,8 +22,15 @@ define(
           manage: 'global-manage'
     };
 
+    // global states
+    var states = {
+        search_active: 'global-search-active'
+    };
+
     // global presenter objects
-    var metadataTree,
+    var bus,
+        api,
+        metadataTree,
         searchView,
         tabFolder,
         metadataView,
@@ -33,18 +40,20 @@ define(
         selDataView;
 
     function initialize() {
-        var bus = new Bus();
-        var api = new DataAPI(bus);
-        // add metadata tree
-        metadataTree = new MetadataTree($('#metadata-tree'), api, bus, events.sel_section, events.update_section);
-        metadataTree.load();
+        bus = new Bus();
+        api = new DataAPI(bus);
 
         // add search bar
-        searchView = new SearchView($('#search-bar'), bus, events.search);
+        searchView = new SearchView($('#search-bar'), bus, events.search, states.search_active);
 
         // add tab folder
-        tabFolder = new TabFolder($('#tab-folder'), bus, true);
-        bus.subscribe(tabFolder.event('sel'), tabFolder.selectHandler());
+        tabFolder = new TabFolder($('#tab-folder'), bus, true, states.search_active);
+        bus.subscribe(tabFolder.event('sel'), tabHandler);
+
+        // add metadata tree
+        metadataTree = new MetadataTree($('#metadata-tree'), api, bus, events.sel_section,
+            events.update_section, states.search_active);
+        metadataTree.load();
 
         // add metadata view
         var html = $('<div id="metadata-view"></div>');
@@ -63,6 +72,7 @@ define(
         fileView = new FileView(html, api, bus, events.sel_section, events.search);
         // fileView = new FileView(html, api, bus, 'barselect', events.search);
         tabFolder.add(html, 'files');
+        tabFolder.select('info');
 
         // add selected values list
         html = $('#sel-value-view');
@@ -75,6 +85,17 @@ define(
         window.pv = new PlottingView(bus, api, selDataView.list(), events.plot);
 
         adjustLayout();
+    }
+
+    function tabHandler(event, tab_id) {
+        var search_state = bus.state(states.search_active) || {};
+        if (tab_id === 'info') {
+            search_state['tab-state'] = false;
+        } else {
+            search_state['tab-state'] = true;
+        }
+        tabFolder.select(tab_id);
+        bus.state(states.search_active, search_state);
     }
 
     function adjustLayout() {
