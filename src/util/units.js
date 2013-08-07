@@ -12,6 +12,12 @@ define(function () {
         sampling: ['MHz', 'kHz', 'Hz']
     }
 
+    var default_units = {
+        time: 'ms',
+        signal: 'mV',
+        sampling: 'Hz'
+    }
+
     /**
      * @returns {Number}           Conversion rate.
      * @public
@@ -23,16 +29,33 @@ define(function () {
                 f_index = supported_units[t].indexOf(orig_unit);
                 t_index = supported_units[t].indexOf(new_unit);
                 if ((f_index > -1) && (t_index > -1)) {
-                    unit_type = supported_units[t];
+                    unit_type = t;
+                    break;
                 }
 
             }
         }
 
         if (unit_type === undefined) {
-            throw "Unable to convert between" + orig_unit.toString() + " and " + new_unit.toString();
+            throw "Unable to convert between " + orig_unit.toString() + " and " + new_unit.toString();
         }
         return Math.pow(10, (t_index - f_index) * 3)
+    }
+
+    /**
+     * Converts a given frequency unit to corresponding time unit.
+     *
+     * @param f_unit  {String}     Units to convert from.
+     *
+     * @returns {String}           Resulting units in the time domain.
+     * @public
+     */
+    function frequency_to_time(f_unit) {
+        var f_index = supported_units['sampling'].indexOf(f_unit);
+        if (!f_index) {
+            throw f_index.toString() + " is not a supported frequency."
+        }
+        return supported_units['time'][-f_index + 2]
     }
 
     /**
@@ -51,6 +74,9 @@ define(function () {
 
     // return public parts of the module
     return {
-        convert:     convert
+        convert:            convert,
+        frequency_to_time:  frequency_to_time,
+        supported_units:    supported_units,
+        default_units:      default_units
     };
 });
