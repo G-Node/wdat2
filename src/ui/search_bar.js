@@ -98,6 +98,18 @@ define(['util/strings', 'ui/button', 'ui/widget'], function (strings, Button, Wi
             return result;
         };
 
+        this.enable = function() {
+            _search_btn.jq().removeAttr("disabled");
+            _search_field.removeAttr("disabled");
+            _select_type.removeAttr("disabled");
+        };
+
+        this.disable = function() {
+            _search_btn.jq().attr("disabled",true);
+            _search_field.attr("disabled",true);
+            _select_type.attr("disabled",true);
+        };
+
         /**
          * A handler for the search button.
          *
