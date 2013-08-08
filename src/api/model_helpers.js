@@ -354,7 +354,7 @@ define(['util/objects'], function(objects) {
             },
             children : {
                 analogsignal_set:       {type: 'analogsignal'},
-                irsaanalogsignal_set:   {type: 'irsaanalogsignal'},
+                irregularlysampledsignal_set:   {type: 'irregularlysampledsignal'},
                 analogsignalarray_set:  {type: 'analogsignalarray'},
                 spiketrain_set:     {type: 'spiketrain'},
                 spike_set:          {type: 'spike'},
@@ -393,7 +393,7 @@ define(['util/objects'], function(objects) {
             },
             children : {
                 analogsignal_set:   {type: 'analogsignal'},
-                irsaanalogsignal_set: {type: 'irsaanalogsignal'}
+                irregularlysampledsignal_set: {type: 'irregularlysampledsignal'}
             },
             parents : {
                 // recordingchannelgroup: {type: 'recordingchannelgroup'},  TODO: ask Andrey, problems with model_container
@@ -514,7 +514,7 @@ define(['util/objects'], function(objects) {
             }
         },
 
-        irsaanalogsignal : {
+        irregularlysampledsignal : {
             fields: {
                 name:               {type: 'text', obligatory: true, min: 3, max: 100},
                 description:        {type: 'ltext'},
