@@ -280,10 +280,10 @@ define(['util/objects', 'util/strings', 'ui/button', 'ui/container'],
                         '<% } %>' +
                         '</div>' +
                     '</div>' +
-                    '<div class="field">' +
+                    /*'<div class="field">' +
                         '<div class="field-name"></div>' +
                         '<div class="field-val"><button class="share-btn"></button></div>' +
-                    '</div>' +
+                    '</div>' +*/
                 '</div>' +
             '</div>' +
         '</div>';
