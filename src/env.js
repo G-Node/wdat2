@@ -18,7 +18,7 @@ define(function () {
      *
      * @type {Boolean}
      */
-    var debug = false;
+    var debug = true;
 
     return {
         version:    version ,
