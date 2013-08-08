@@ -1,7 +1,7 @@
 //--------- source_analogsignal.js ---------//
 
-define(['util/objects', 'util/strings', 'cry/basic_source'],
-    function(objects, strings, BasicSource) {
+define(['util/objects', 'util/strings', 'util/units', 'cry/basic_source'],
+    function(objects, strings, units, BasicSource) {
     "use strict";
 
     var _count = 0;
@@ -40,28 +40,38 @@ define(['util/objects', 'util/strings', 'cry/basic_source'],
             }
         };
 
+        this._data_convertor = function(data) {
+            var sampling = data['sampling_rate'],
+                signal = data['signal'],
+                tstart = data['t_start'],
+                ut = units.default_units['time'],
+                us = units.default_units['signal'],
+                uf = units.default_units['sampling'],
+                array, t, index, interv;
+
+            array = new Float32Array(signal['data'].length * 2);
+            t = units.convert(tstart['data'], tstart['units'], ut);
+
+            interv = 1 / units.convert(sampling['data'], sampling['units'], uf);
+            interv = units.convert(interv, units.frequency_to_time(uf), ut);
+
+            for (var i = 0; i < signal['data'].length; i++) {
+                index = i * 2;
+                array[index] = t;
+                array[index + 1] = units.convert(signal['data'][i], signal['units'], us);
+                t += interv;
+            }
+            return array
+        }
+
         this.load = function(callback) {
             this.data(null);
             _api.getData(handler, _url, {max_points: 1000});
 
             var that = this;
             function handler(response) {
-                var data   = response['primary'][0]['data'],
-                    interv = 1 / data['sampling_rate']['data'],
-                    signal = data['signal']['data'],
-                    tstart = data['t_start']['data'],
-                    array, t, index;
-
-                array = new Float32Array(signal.length * 2);
-                t = tstart;
-                for (var i = 0; i < signal.length; i++) {
-                    index = i * 2;
-                    array[index] = t;
-                    array[index + 1] = signal[i];
-                    t += interv;
-                }
-
-                that.data([{data: array, style: _style}]);
+                var response_data = response['primary'][0]['data'];
+                that.data([{data: that._data_convertor(response_data), style: _style}]);
                 callback(that)
             }
         };
@@ -76,26 +86,11 @@ define(['util/objects', 'util/strings', 'cry/basic_source'],
 
             var that = this;
             function handler(response) {
-                var data   = response['primary'][0]['data'],
-                    interv = 1 / data['sampling_rate']['data'],
-                    signal = data['signal']['data'],
-                    tstart = data['t_start']['data'],
-                    array, t, index;
-
-                array = new Float32Array(signal.length * 2);
-                t = tstart;
-                for (var i = 0; i < signal.length; i++) {
-                    index = i * 2;
-                    array[index] = t;
-                    array[index + 1] = signal[i];
-                    t += interv;
-                }
-
-                that.sliced([{data: array, style: _style}]);
+                var response_data = response['primary'][0]['data'];
+                that.sliced([{data: that._data_convertor(response_data), style: _style}]);
                 callback(that);
             }
         };
-
 
         this._init();
     }

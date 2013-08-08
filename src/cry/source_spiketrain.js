@@ -1,7 +1,7 @@
 //-------- source_spiketrain.js ---------//
 
-define(['util/objects', 'util/strings', 'cry/basic_source'],
-    function(objects, strings, BasicSource) {
+define(['util/objects', 'util/strings', 'util/units', 'cry/basic_source'],
+    function(objects, strings, units, BasicSource) {
     "use strict";
 
     var _count = 0;
@@ -43,24 +43,28 @@ define(['util/objects', 'util/strings', 'cry/basic_source'],
             }
         };
 
+        this._data_convertor = function(data) {
+            var times = data['times'],
+                ut = units.default_units['time'],
+                array, index;
+
+            array = new Float32Array(times['data'].length * 2);
+            for (var i = 0; i < times['data'].length; i++) {
+                index = i * 2;
+                array[index] = units.convert(times['data'][i], times['units'], ut);
+                array[index + 1] = _val;
+            }
+            return array
+        }
+
         this.load = function(callback) {
             this.data(null);
             _api.getData(handler, _url, {max_points: 10000});
 
             var that = this;
             function handler(response) {
-                var data = response['primary'][0]['data'],
-                    times = data['times']['data'],
-                    array, index;
-
-                array = new Float32Array(times.length * 2);
-                for (var i = 0; i < times.length; i++) {
-                    index = i * 2;
-                    array[index] = times[i];
-                    array[index + 1] = _val;
-                }
-
-                that.data([{data: array, style: _style}])
+                var response_data = response['primary'][0]['data'];
+                that.data([{data: that._data_convertor(response_data), style: _style}])
                 callback(that);
             }
         };
@@ -76,18 +80,8 @@ define(['util/objects', 'util/strings', 'cry/basic_source'],
 
             var that = this;
             function handler(response) {
-                var data = response['primary'][0]['data'],
-                    times = data['times']['data'],
-                    array, index;
-
-                array = new Float32Array(times.length * 2);
-                for (var i = 0; i < times.length; i++) {
-                    index = i * 2;
-                    array[index] = times[i];
-                    array[index + 1] = _val;
-                }
-
-                that.sliced([{data: array, style: _style}]);
+                var response_data = response['primary'][0]['data'];
+                that.sliced([{data: that._data_convertor(response_data), style: _style}]);
                 callback(that);
             }
         };
