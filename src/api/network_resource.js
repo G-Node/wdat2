@@ -89,7 +89,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
             // an url is a url to fetch single plottable object
             // with slicing / downsampling parameters
-            _manager.doGET([obj_url], main_handler, 0);
+            _manager.doGET([obj_url], main_handler, 0, true);
 
             // callback that will parse main response object and fetch
             // data from permalinks in data-fields
@@ -465,13 +465,15 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
         /**
          * Performs multiple, parallel requests with deep option.
          *
-         * @param urls {Array}
-         * @param callback {Function}
-         * @param depth {Number}
+         * @param urls {Array}          An array of urls to request.
+         * @param callback {Function}   Callback that is invoked when done.
+         * @param [depth] {Number}      The depth to which children should be fetched as secondary
+         *                              results.
+         * @param [nocache] {Boolean}   Set this to true in order to prevent caching.
          *
          * @public
          */
-        this.doGET = function(urls, callback, depth) {
+        this.doGET = function(urls, callback, depth, nocache) {
 
             var primary = [] ,
                 secondary = [] ,
@@ -480,7 +482,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
             // perform GET for all urls and let the results be collected
             // by collectPrimary
-            _doMultiGET(urls, collectPrimary);
+            _doMultiGET(urls, collectPrimary, nocache);
 
             // callback collects primary results and
             // starts deep requests if necessary
@@ -654,12 +656,13 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
          * Private function that performs simple GET requests
          * without any other options (e.g. deep).
          *
-         * @param urls {Array}
-         * @param callback {Function}
+         * @param urls {Array}          An array of urls to request.
+         * @param callback {Function}   Callback that is invoked when ready.
+         * @param [nocache] {Boolean}   Set this to true in order to prevent caching.
          *
          * @private
          */
-        function _doMultiGET(urls, callback) {
+        function _doMultiGET(urls, callback, nocache) {
 
             var responses = [];
             for (var i = 0; i < urls.length; i++) {
@@ -677,7 +680,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
                 xhr.onreadystatechange = collect;
                 xhr.open('GET', url);
-                if (tag) {
+                if (tag && !nocache) {
                     xhr.setRequestHeader('If-None-Match', tag);
                 } else {
                     xhr.setRequestHeader('If-None-Match', 'ed2876adff987613414abcged091875621823760');
