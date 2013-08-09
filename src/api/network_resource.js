@@ -624,7 +624,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                 element ,
                 childfields ,
                 children ,
-                type;
+                type,
+                category;
 
             for (var i = 0; i < responses.length; i++) {
                 if (!responses[i].error && responses[i].data) {
@@ -633,15 +634,23 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
                     for (var j = 0; j < selected.length; j++) {
                         element = selected[j];
+
                         type = (type = element['model'].split('.'))[type.length - 1];
+                        category = model_helpers.category(type);
 
                         childfields = model_helpers.children(type);
 
                         for (var k in childfields) {
                             if (childfields.hasOwnProperty(k) && childfields[k].type !== type) {
-                                children = element['fields'][k];
-                                if (children) {
-                                    urls = urls.concat(children);
+                                // TODO find better solution that prevents excessive deep fetching!
+                                // this limits the deep fetching to entities of the same category
+                                // an optional list of excluded children might be a better
+                                // solution.
+                                if (category === model_helpers.category(childfields[k].type)) {
+                                    children = element['fields'][k];
+                                    if (children) {
+                                        urls = urls.concat(children);
+                                    }
                                 }
                             }
                         }
