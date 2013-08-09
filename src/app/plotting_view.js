@@ -30,8 +30,8 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_
 
             // configure plotting
             _config = {
-                analogsignal: {context: 'signals', renderer: 'signal_renderer', source: SourceAnalogsignal},
-                spiketrain: {context: 'spikes', renderer: 'spike_renderer', source: SourceSpiketrain}
+                analogsignal: {context: 'signals', renderer: 'signal_renderer', source: SourceAnalogsignal, options: {}},
+                spiketrain: {context: 'spikes', renderer: 'spike_renderer', source: SourceSpiketrain, options: {yticks: 0}}
             };
 
             _contexts = ['signals', 'spikes'];
@@ -93,7 +93,7 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_
 
                     if (conf && conf.context === context_name) {
                         if (!contexts_created[context_name]) {
-                            _manager.createContext(context_name);
+                            _manager.createContext(context_name, conf.options);
                             contexts_created[context_name] = true;
                         }
 

@@ -103,7 +103,7 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                     reference;
 
                 // validate response
-                if (data['error']) {
+                if (response.primary[0]['error']) {
 
                     callback( response );
 

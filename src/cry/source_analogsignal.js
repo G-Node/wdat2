@@ -86,8 +86,14 @@ define(['util/objects', 'util/strings', 'util/units', 'cry/basic_source'],
 
             var that = this;
             function handler(response) {
-                var response_data = response['primary'][0]['data'];
-                that.sliced([{data: that._data_convertor(response_data), style: _style}]);
+
+                if (!response['error']) {
+                    var response_data = response['primary'][0]['data'];
+                    that.sliced([{data: that._data_convertor(response_data), style: _style}]);
+                } else {
+                    that.sliced([{data: [], style: _style}]);
+                }
+
                 callback(that);
             }
         };
