@@ -35,9 +35,9 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
             // adapt primary data
             for (var i = 0; i < response.primary.length; i++) {
                 var data = response.primary[i]['data'];
-                if (data['error']) {
-                    error = data['error'];
-                    message = data['message'];
+                if (response.primary[i]['error']) {
+                    error = response.primary[i]['error'];
+                    message = response.primary[i]['message'];
                     break;
                 } else {
                     for (var j = 0; j < data.length; j++) {
@@ -49,9 +49,9 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
             // adapt secondary data
             for (i = 0; i < response.secondary.length; i++) {
                 data = response.secondary[i]['data'];
-                if (data['error']) {
-                    error = data['error'];
-                    message = data['message'];
+                if (response.secondary[i]['error']) {
+                    error = response.secondary[i]['error'];
+                    message = response.secondary[i]['message'];
                     break;
                 } else {
                     for (j = 0; j < data.length; j++) {
