@@ -70,11 +70,17 @@ define(['ui/widget'], function (Widget) {
                 this.jq().empty();
 
                 // create new ratio buttons
-                var d, input, label;
+                var d, input, label, label_text;
                 for (var i = 0; i < _datasets.length; i++) {
                     d       = _datasets[i];
+
+                    label_text = d.name;
+                    if (label_text.length > BreadCrumb.MAX_LENGTH) {
+                        label_text = label_text.slice(0, BreadCrumb.MAX_LENGTH-3) + "...";
+                    }
+
                     input   = $('<input type="radio">').attr('name', this.id()).attr('id', this.toID(d));
-                    label   = $('<label>').attr('for', this.toID(d)).text(d.name);
+                    label   = $('<label>').attr('for', this.toID(d)).text(label_text);
 
                     if (i === (_datasets.length - 1)) {
                         label.addClass('ui-state-active');
@@ -230,6 +236,8 @@ define(['ui/widget'], function (Widget) {
 
         this._init();
     }
+
+    BreadCrumb.MAX_LENGTH = 20;
 
     return BreadCrumb;
 });
