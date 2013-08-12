@@ -184,11 +184,7 @@ define(['ui/list', 'ui/form', 'ui/section_container', 'ui/property_container'],
          */
         this._onUpdateProperty = function() {
             return function(event, data) {
-                if (data.action.del) {
-                    _list.del(data.info);
-                } else if (data.primary.length > 0) {
-                    _list.set(data.primary[0]);
-                }
+                _api.get(_actions.update, {id: _cont.get().id, type: 'section', depth: 2});
             };
         };
 
