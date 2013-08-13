@@ -87,7 +87,19 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
         this.load = function() {
             for (var i = 0; i < _PREDEF_NODES.length; i++) {
                 var node =  _PREDEF_NODES[i];
-                _tree.add(node, node.parent_id, node.isleaf);
+
+                var act = {
+                    sel: _tree_actions.sel,
+                    expand: _tree_actions.expand,
+                    collapse: _tree_actions.collapse
+                };
+
+                if (node.id === 'own-metadata') {
+                    act.add = _tree_actions.add;
+                }
+
+                _tree.add(node, node.parent_id, act);
+
             }
         };
 
@@ -252,7 +264,7 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
                         _api.get(_actions.load, search, info);
                     }
                 } else if (evname === _tree_actions.collapse) {
-                    if (!_isPredefNode(id)) {
+                    if (id !== 'shared' && id !== 'public') {
                         _tree.delChildren(data);
                     }
                 }
