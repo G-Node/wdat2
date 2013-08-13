@@ -3,7 +3,8 @@
 /*
  * The module defines the presenter class MetadataTree
  */
-define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tree, Form) {
+define(['api/model_helpers', 'ui/tree', 'ui/form', 'ui/acl_form'],
+    function (model_helpers, Tree, Form, ACLForm) {
     "use strict";
 
     /**
@@ -27,7 +28,7 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
             _bus  = bus ,
             _id   = _html.attr('id') || _bus.uid() ,
             _api  = api ,
-            _tree, _actions, _tree_actions, _form;
+            _tree, _actions, _tree_actions, _form, _acl_form, _users;
 
         /**
          * @private
@@ -38,6 +39,7 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
                 edit:       _id + '-edit' ,
                 del:        _id + '-delete' ,
                 add:        _id + '-add' ,
+                share:      _id + '-share',
                 expand:     _id + '-expand' ,
                 collapse:   _id + '-collapse'
             };
@@ -45,8 +47,12 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
             _actions = {
                 save:       _id + '-save',    // save events from forms
                 load:       _id + '-load',    // DataAPI response to load events
-                update:     updateEvent || _id + '-update'   // DataAPI response to update events
+                update:     updateEvent || _id + '-update', // DataAPI response to update events
+                share:      _id + '-acl-update' // DataAPI response to update events
             };
+
+            try { _users = _api.allUsers() }
+            catch (e) { _users = [{"username": "no users fetched", "id": 0, "permalink": null}] };
 
             _tree = new Tree(_id + '-mdata-tree', _bus, _tree_actions);
 
@@ -60,6 +66,9 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
             _form = new Form(form_id, _bus, {save: _actions.save}, 'section', true);
             _form.set({});
 
+            form_id = _id += '-section-acl-form';
+            _acl_form = new ACLForm(form_id, _bus, _actions.share, _users, true);
+
             // set state for search to false
             var state = _bus.state(searchState) || {};
             state['tree-state'] = false;
@@ -69,10 +78,12 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
             _bus.subscribe(_actions.save, this._onSave());
             _bus.subscribe(_actions.update, this._onUpdate());
             _bus.subscribe(_actions.load, this._onLoad());
+            _bus.subscribe(_actions.share, this._onUpdateACL());
             // subscribe handlers for tree events
             _bus.subscribe(_tree_actions.del, this._onDelete());
             _bus.subscribe(_tree_actions.edit, this._onEdit());
             _bus.subscribe(_tree_actions.add, this._onEdit());
+            _bus.subscribe(_tree_actions.share, this._onShare());
             _bus.subscribe(_tree_actions.expand, this._onExpand());
             _bus.subscribe(_tree_actions.collapse, this._onExpand());
             // publish tree selections as external event
@@ -155,7 +166,24 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
                             _tree.add(element, 'own-metadata');
                         }
                     }
+                } else if (data.action === 'set_acl') {
+                    for (var i = 0; i < data.primary.length; i++) {
+                        var element = data.primary[i];
+                        _tree.set_acl(element);
+                    }
                 }
+            };
+        };
+
+        /**
+         * Creates a handler for ACL update events.
+         *
+         * @returns {Function}
+         * @private
+         */
+        this._onUpdateACL = function() {
+            return function(event, data) {
+                _api.setACL(_actions.update, data);
             };
         };
 
@@ -222,6 +250,19 @@ define(['api/model_helpers', 'ui/tree', 'ui/form'], function (model_helpers, Tre
                     _form.set(model_helpers.create('section'));
                     _form.open();
                 }
+            };
+        };
+
+        /**
+         * Crates a handler for permissions change events.
+         *
+         * @returns {Function} A handler for permissions change events.
+         * @private
+         */
+        this._onShare = function() {
+            return function(event, data) {
+                _acl_form.set(data);
+                _acl_form.open();
             };
         };
 

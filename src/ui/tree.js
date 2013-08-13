@@ -119,6 +119,27 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
         };
 
         /**
+         * Update ACL of an existing element in the container.
+         *
+         * @param data {Object}     The ACL data object to update.
+         *
+         * @returns {Object} The updated element or null if no such element was found.
+         *
+         * @public
+         */
+        this.set_acl = function(data) {
+            var id = this.toID(data) ,
+                updated_data = null;
+
+            if (_data.hasOwnProperty(id)) {
+                _data[id].set_acl(data);
+                updated_data = _data[id].get();
+            }
+
+            return updated_data;
+        };
+
+        /**
          * Get an existing element by its id.
          *
          * @param data {Object|String}     The id of the element to get.
@@ -405,7 +426,7 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
         '  </div>' +
         '</div>';
 
-    var _ACTIONS = ['expand', 'collapse', 'sel', 'add', 'edit', 'del'];
+    var _ACTIONS = ['expand', 'collapse', 'sel', 'add', 'edit', 'del', 'share'];
 
     return Tree;
 });
