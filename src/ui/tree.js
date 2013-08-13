@@ -59,28 +59,35 @@ define(['util/strings', 'ui/button', 'ui/container', 'ui/template_container', 'u
          *
          * @param data {Object}     The data object to add.
          * @param parent {*}        The parent where to add the element.
+         * @param [actions] {Array} The actions for this node (optional).
          *
          * @returns {Object} The added object or null if nothing was added.
          *
          * @public
          */
-        this.add = function(data, parent) {
+        this.add = function(data, parent, actions) {
             var id = this.toID(data) ,
                 parent_id = this.toID(parent) ,
                 added_data = null ,
-                cont, parent_cont;
+                used_actions, cont, parent_cont;
+
+            if (actions === null || actions === undefined) {
+                used_actions = _actions;
+            } else {
+                used_actions = actions;
+            }
 
             if (_data.hasOwnProperty(parent_id)) {
                 if (!_data.hasOwnProperty(id)) {
                     parent_cont = _data[parent_id];
-                    cont = new NodeContainer(id, _bus, _actions, data);
+                    cont = new NodeContainer(id, _bus, used_actions, data);
                     parent_cont.addChild(cont);
                     _data[id] = cont;
                     added_data = data;
                 }
             } else {
                 if (!_data.hasOwnProperty(id)) {
-                    cont = new NodeContainer(id, _bus, _actions, data);
+                    cont = new NodeContainer(id, _bus, used_actions, data);
                     this.jq().append(cont.jq());
                     _data[id] = cont;
                     added_data = data;
