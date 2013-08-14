@@ -20,7 +20,7 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
      * @extends {Container}
      * @public
      */
-    function Form(id, bus, users, is_modal) {
+    function ACLForm(id, bus, on_save, users, is_modal) {
 
         var _bus = bus,
             _is_modal = is_modal || false ,
@@ -30,6 +30,7 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
             _title = 'Undefined', // title of the form
             SECURITY_LEVEL_NUM = model_helpers.SECURITY_LEVEL_NUM,
             SECURITY_LEVEL_STR = model_helpers.SECURITY_LEVEL_STR,
+            _location = '', // location of an object to apply ACL
             _sl_input, _auto_input, _shared_with; // field input elements
 
         // parse users in appropriate for autocompletion users list
@@ -41,7 +42,7 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
 
         this._init = function() { // builds the form
             // form needs only one action
-            _actions[ 'save' ] = this.toID( 'save' );
+            _actions['save'] = on_save || this.toID('save');
 
             var fieldset, field;
 
@@ -184,6 +185,7 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
 
             // parse input object data
             _title = data.name;
+            _location = data.id;
             _shared_with_init = data.shared_with;
             _safety_level_init = SECURITY_LEVEL_STR[ data.fields.safety_level ];
 
@@ -216,12 +218,11 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
          */
         this.get = function() {
             var result = {},
-                users = [];
+                users;
 
-            // fetch selected safety level
+            result["id"] = _location;
             result["safety_level"] = _sl_input.val();
 
-            // fetch selected users
             result["shared_with"] = {};
             users = _shared_with.getAll();
             for (var i=0; i < users.length; i++) {
@@ -347,5 +348,5 @@ define(['util/objects', 'util/strings', 'api/model_helpers', 'ui/container',
     var _ERROR_TEMPLATE =   '<div class="error"><div class="field-label"></div>' +
         '<div class="field-error"></div></div>';
 
-    return Form;
+    return ACLForm;
 });

@@ -41,7 +41,7 @@
                 run.bus.subscribe(run.f01.event('save'), doSave);
 
                 // build a modal form
-                run.f_modal = new Form('form-modal', run.bus, users, true);
+                run.f_modal = new Form('form-modal', run.bus, undefined, users, true);
                 run.btn_object = $("#btn-object").button({text: true});
                 run.btn_object.click(function () {
                     var location = $('#input-object').val();
