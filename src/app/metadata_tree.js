@@ -168,8 +168,8 @@ define(['api/model_helpers', 'ui/tree', 'ui/form', 'ui/acl_form'],
                     }
                 } else if (data.action === 'set_acl') {
                     for (var i = 0; i < data.primary.length; i++) {
-                        var element = data.primary[i];
-                        _tree.set_acl(element);
+                        var acl_data = data.primary[i];
+                        _tree.set(acl_data);
                     }
                 }
             };

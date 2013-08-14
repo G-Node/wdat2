@@ -740,7 +740,8 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
 
             var contentType = xhr.getResponseHeader('Content-Type') ,
                 etag        = xhr.getResponseHeader('ETag') ,
-                content     = xhr.responseText;
+                content     = xhr.responseText,
+                SLN         = model_helpers.SECURITY_LEVEL_NUM;
 
             var response = {
                     url:        url ,
@@ -765,15 +766,15 @@ define(['util/strings', 'api/model_helpers'], function (strings, model_helpers) 
                         response.range   = [0, 0];
 
                     } else if (url.search( '/acl/' ) > -1) {
+                        response.id = url.replace('acl/', '');
                         response.message = 'ACL processed';
                         response.acl    = {
-                            "safety_level": content.safety_level,
+                            "safety_level": SLN[content.safety_level],
                             "shared_with": content.shared_with
                         };
                         response.range   = [0, 0];
 
                     } else {
-
                         if (etag !== null) {
                             _cache.store(url, etag, content);
                         }
