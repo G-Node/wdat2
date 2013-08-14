@@ -135,6 +135,7 @@ define(['util/classes', 'ui/widget'], function (classes, Widget) {
       sel_small:  {def: {text: false, icons: { primary: "ui-icon-check"}}},
       edit:       {def: {text: true, label: "Edit", icons: { primary: "ui-icon-wrench"}}},
       edit_small: {def: {text: false, icons: { primary: "ui-icon-wrench"}}},
+      share_small:  {def: {text: false, icons: { primary: "ui-icon-key"}}},
       ok:         {def: {text: true, label: "OK"}},
       save:       {def: {text: true, label: "Save"}},
       quit:       {def: {text: true, label: "Cancel"}},

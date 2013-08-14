@@ -45,7 +45,7 @@ define(['util/objects', 'util/strings', 'ui/container'], function (objects, stri
         };
 
         /**
-         * Set the data object of the container.
+         * Set the data object of the container or just updates it's ACL.
          *
          * @param data {Object}       The data object of the container.
          *
@@ -54,7 +54,12 @@ define(['util/objects', 'util/strings', 'ui/container'], function (objects, stri
          * @public
          */
         this.set = function(data) {
-            _data = data || {};
+            if (data.acl) {
+                _data.shared_with = data.acl.shared_with;
+                _data.fields.safety_level = data.acl.safety_level;
+            } else {
+                _data = data || {};
+            }
             this.refresh();
             return this;
         };

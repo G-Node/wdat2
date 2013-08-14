@@ -143,20 +143,15 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
          * @public
          */
         this.adaptFromACL = function(data) {
-
             var adapted = {}, url;
 
-            // parse ID and build URL
             if (!data.id) throw "Unable to generate URL without ID";
-
-            var definitions = strings.segmentId(data.id);
-            if (definitions.id === undefined || definitions.type === undefined || definitions.category === undefined) {
+            var path = strings.segmentId(data.id);
+            if (path.id === undefined || path.type === undefined || path.category === undefined) {
                 throw "ID of an object is not correct. Should be like '/metadata/section/39487'";
             }
+            url = '/' + path.category + '/' + path.type + '/' + path.id + '/acl/';
 
-            url = data.id + '/acl/';
-
-            // parse ACLs
             if (data.safety_level === undefined && data.shared_with === undefined) {
                 throw "No ACL information provided, request is cancelled."
             }
@@ -167,7 +162,6 @@ define(['util/strings', 'util/objects', 'api/model_helpers'], function (strings,
             if (!(data.shared_with === undefined)) {
                 adapted['shared_with'] = data.shared_with;
             }
-
             return {data: adapted, url: url};
         };
 
