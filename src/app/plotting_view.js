@@ -1,7 +1,7 @@
 // --------- plotting_window.js --------//
 
-define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_spiketrain'],
-    function(List, ModelContainer, SourceAnalogsignal, SourceSpiketrain) {
+define(['util/units', 'ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_spiketrain'],
+    function(units, List, ModelContainer, SourceAnalogsignal, SourceSpiketrain) {
     "use strict";
 
     /**
@@ -30,8 +30,24 @@ define(['ui/list', 'ui/model_container', 'cry/source_analogsignal', 'cry/source_
 
             // configure plotting
             _config = {
-                analogsignal: {context: 'signals', renderer: 'signal_renderer', source: SourceAnalogsignal, options: {}},
-                spiketrain: {context: 'spikes', renderer: 'spike_renderer', source: SourceSpiketrain, options: {yticks: 0}}
+                analogsignal: {
+                    context: 'signals',
+                    renderer: 'signal_renderer',
+                    source: SourceAnalogsignal,
+                    options: {
+                        xlabel: "time [" + units.default_units.time + "]",
+                        ylabel: "voltage [" + units.default_units.signal + "]"
+                    }
+                },
+                spiketrain: {
+                    context: 'spikes',
+                    renderer: 'spike_renderer',
+                    source: SourceSpiketrain,
+                    options: {
+                        yticks: 0,
+                        xlabel: "time [" + units.default_units.time + "]"
+                    }
+                }
             };
 
             _contexts = ['signals', 'spikes'];
