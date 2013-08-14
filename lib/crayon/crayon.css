@@ -5,6 +5,12 @@ svg .context {
   fill: none;
   cursor: default;
 }
+svg .axislabel {
+  stroke: none;
+  fill: black;
+  font-family: sans-serif;
+  font-size: 11px;
+}
 svg .axis path,
 svg .axis line {
   fill: none;
