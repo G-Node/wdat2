@@ -86,7 +86,7 @@ define(function () {
      */
     function urlOmitHost(s) {
 
-        var result = s.match(/^(http:\/\/|)([A-Za-z0-9\.:-@]*|)(\/.*|^.*)/)[3];
+        var result = s.match(/^(http:\/\/|)([A-Za-z0-9\.:\-@]*|)(\/.*|^.*)/)[3];
 
         if (!result) {
             throw "Error: URL mismatch"
